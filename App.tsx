@@ -117,6 +117,13 @@ const AppContent: React.FC = () => {
   useAutoLogout(user);
 
   useEffect(() => {
+    if (loading) {
+      const timer = setTimeout(() => setLoading(false), 10000);
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
+
+  useEffect(() => {
     const brandingUnsubscribe = onSnapshot(doc(db, 'settings', 'branding'), (doc) => {
       if (doc.exists()) {
         const data = doc.data();
@@ -206,11 +213,6 @@ const AppContent: React.FC = () => {
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#faf9f6]">
       <Loader2 className="animate-spin text-primary" size={40} />
       <p className="mt-4 text-stone-400 animate-pulse">Duke u lidhur...</p>
-      {/* Fallback to hide loader after 10s if something hangs */}
-      {useEffect(() => {
-        const timer = setTimeout(() => setLoading(false), 10000);
-        return () => clearTimeout(timer);
-      }, []) as any}
     </div>
   );
 
