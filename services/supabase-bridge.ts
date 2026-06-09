@@ -465,6 +465,24 @@ export async function signInWithPopup(authObj: any, provider: any) {
   return { user: authObj.currentUser };
 }
 
+export async function sendEmailVerification(user: any) {
+  if (!supabase) throw new Error("Supabase is not configured.");
+  const { error } = await supabase.auth.resend({
+    type: 'signup',
+    email: user.email,
+  });
+  if (error) throw error;
+}
+
+export async function updateProfile(user: any, { displayName, photoURL }: { displayName?: string, photoURL?: string }) {
+  if (!supabase) throw new Error("Supabase is not configured.");
+  const { data, error } = await supabase.auth.updateUser({
+    data: { displayName, photoURL }
+  });
+  if (error) throw error;
+  return data;
+}
+
 export class GoogleAuthProvider {}
 
 // Export default compatibility app
