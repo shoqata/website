@@ -1,0 +1,25 @@
+config:
+  target: "http://localhost:3000"
+  phases:
+    # Phase 1: Load Testing (Normal Traffic)
+    # Simulates a steady stream of users over 1 minute
+    - duration: 60
+      arrivalRate: 5
+      name: "Load Testing - Normal Traffic"
+    
+    # Phase 2: Stress Testing (Spike/High Traffic)
+    # Simulates a sudden spike in traffic to see if the server crashes
+    - duration: 30
+      arrivalRate: 20
+      rampTo: 50
+      name: "Stress Testing - Spike Traffic"
+
+scenarios:
+  - name: "Basic User Flow (Load App)"
+    flow:
+      - get:
+          url: "/"
+      - think: 2 # Simulate user reading the page
+      # Note: In a real scenario, you would add API calls here (e.g., fetching data)
+      # - get:
+      #     url: "/api/health"
