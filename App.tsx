@@ -202,7 +202,17 @@ const AppContent: React.FC = () => {
     return () => { authUnsubscribe(); brandingUnsubscribe(); settingsUnsubscribe(); if (userUnsubscribe) userUnsubscribe(); };
   }, [tenant]);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-[#faf9f6]"><Loader2 className="animate-spin text-primary" size={40} /></div>;
+  if (loading) return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#faf9f6]">
+      <Loader2 className="animate-spin text-primary" size={40} />
+      <p className="mt-4 text-stone-400 animate-pulse">Duke u lidhur...</p>
+      {/* Fallback to hide loader after 10s if something hangs */}
+      {useEffect(() => {
+        const timer = setTimeout(() => setLoading(false), 10000);
+        return () => clearTimeout(timer);
+      }, []) as any}
+    </div>
+  );
 
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>

@@ -76,6 +76,8 @@ export function getFirestore() {
   return { type: "db" };
 }
 
+export const db = getFirestore();
+
 export function collection(dbObj: any, path: string) {
   return { type: "collection", path };
 }
@@ -281,7 +283,11 @@ export function onSnapshot(ref: any, callback: (snap: any) => void) {
 
   pullAndCallback();
 
-  if (!supabase) return () => { isCancelled = true; };
+  if (!supabase) {
+    // If Supabase is not configured, we still need to stop the loading spinner
+    // but without data. The components should handle null data gracefully.
+    return () => { isCancelled = true; };
+  }
 
   const table = ref.type === "document" ? ref.path : ref.path;
   const channel = supabase
