@@ -308,6 +308,8 @@ export function getStorage() {
   return { type: "storage" };
 }
 
+export const storage = getStorage();
+
 export function ref(storageObj: any, path: string) {
   return { type: "storage-ref", path };
 }
