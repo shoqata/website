@@ -1,0 +1,174 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- HELPER FUNCTIONS ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && (
+        getUserData().role in ['ADMIN', 'SUPER_ADMIN'] ||
+        request.auth.token.email == 'burim@unityhub.li' ||
+        request.auth.token.email == 'info@unityhub.li' ||
+        request.auth.token.email == 'email@dervishi.ch'
+      );
+    }
+
+    function isManager() {
+      return isSignedIn() && getUserData().role == 'NEIGHBORHOOD_MANAGER';
+    }
+
+    function isBoard() {
+      return isSignedIn() && getUserData().role == 'BOARD';
+    }
+
+    function isRepresentative() {
+      return isSignedIn() && getUserData().role == 'REPRESENTATIVE';
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // --- GLOBAL COLLECTIONS ---
+
+    match /users/{userId} {
+      // 1. FIX: Prevent Data Leak. Only staff or the user themselves can read the profile.
+      allow read: if isAdmin() || isBoard() || isManager() || isRepresentative() || isOwner(userId); 
+      
+      // 2. FIX: Prevent Privilege Escalation on Create
+      allow create: if isAdmin() || 
+        (isOwner(userId) && request.resource.data.role in ['MEMBER', 'GUEST']) ||
+        ((isManager() || isRepresentative()) && request.resource.data.role in ['MEMBER', 'GUEST']);
+        
+      // 3. FIX: Prevent Privilege Escalation on Update & Protect Admins from Managers
+      allow update: if isAdmin() || 
+        (isOwner(userId) && 
+         request.resource.data.role == resource.data.role && 
+         request.resource.data.membershipStatus == resource.data.membershipStatus &&
+         request.resource.data.tenantId == resource.data.tenantId) ||
+        (isManager() && resource.data.role in ['MEMBER', 'GUEST'] && request.resource.data.role in ['MEMBER', 'GUEST']) ||
+        (isRepresentative() && resource.data.role in ['MEMBER', 'GUEST'] && request.resource.data.role in ['MEMBER', 'GUEST']);
+        
+      allow delete: if isAdmin();
+    }
+
+    match /news/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /events/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /event_registrations/{regId} {
+      allow read: if isAdmin() || isBoard() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      // 6. FIX: Prevent Spam. Require login to register for events.
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    match /neighborhoods/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /payments/{paymentId} {
+      allow read: if isAdmin() || isManager() || isBoard() || isRepresentative() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isAdmin() || isRepresentative();
+      allow update: if isAdmin();
+    }
+
+    match /settings/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // --- NEW MODULES ---
+    
+    match /inquiries/{inquiryId} {
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow read: if isAdmin() || isBoard() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+    
+    match /accounting_journal/{document=**} {
+      allow read, write: if isAdmin() || isBoard();
+    }
+    match /accounting_accounts/{document=**} {
+      allow read, write: if isAdmin() || isBoard();
+    }
+    match /fiscal_years/{document=**} {
+      allow read, write: if isAdmin() || isBoard();
+    }
+
+    match /expenses/{document=**} {
+      allow read: if isAdmin() || isBoard() || isRepresentative();
+      allow create: if isAdmin() || isBoard() || isRepresentative();
+      // 4. FIX: Reps cannot approve their own expenses or change accounting fields
+      allow update: if isAdmin() || isBoard() || 
+        (isRepresentative() && 
+         resource.data.createdBy == request.auth.uid &&
+         request.resource.data.status == resource.data.status &&
+         request.resource.data.bookedInJournal == resource.data.bookedInJournal);
+      allow delete: if isAdmin() || isBoard() || (isRepresentative() && resource.data.createdBy == request.auth.uid && resource.data.status == 'PENDING');
+    }
+
+    match /tasks/{document=**} {
+      allow read: if isAdmin() || isBoard() || isRepresentative();
+      allow create: if isAdmin() || isBoard() || isRepresentative();
+      allow update: if isAdmin() || isBoard() || isRepresentative();
+    }
+    
+    match /board_meetings/{document=**} {
+      allow read, write: if isAdmin() || isBoard();
+    }
+    match /board_members/{document=**} {
+      allow read, write: if isAdmin() || isBoard();
+    }
+
+    match /polls/{document=**} {
+      allow read: if isSignedIn();
+      // 5. FIX: Prevent Poll Manipulation. Users can only add their own vote.
+      allow update: if isAdmin() || 
+        (isSignedIn() && 
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['userVotes', 'options']) &&
+         request.resource.data.userVotes.hasAll(resource.data.userVotes) &&
+         request.auth.uid in request.resource.data.userVotes);
+      allow create, delete: if isAdmin();
+    }
+    
+    match /socialMediaPosts/{document=**} {
+      allow read, write: if isAdmin() || isBoard();
+    }
+    
+    match /mail/{document=**} {
+      allow create: if isAdmin() || isManager();
+    }
+
+    match /tenants/{tenantId} {
+      allow read: if true;
+      allow write: if isAdmin();
+      match /{document=**} {
+        allow read, write: if isAdmin();
+      }
+    }
+
+    match /security_logs/{logId} {
+      allow create: if true; // Allow anyone (even unauthenticated bots) to log their violation
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

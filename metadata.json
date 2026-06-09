@@ -1,0 +1,7 @@
+{
+  "name": "Humanitas Network - Modern Humanitarian Platform",
+  "description": "A cutting-edge humanitarian association platform featuring AI-driven social automation, 3D neighborhood visualizations, and automated Swiss QR billing.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
