@@ -6,8 +6,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from '../context/LanguageContext';
 
 // Firebase
-import { auth } from '../services/firebase';
 import { 
+  auth,
   sendSignInLinkToEmail, 
   isSignInWithEmailLink, 
   signInWithEmailLink,
@@ -15,7 +15,8 @@ import {
   signInWithPopup,
   signInWithEmailAndPassword,
   sendPasswordResetEmail
-} from 'firebase/auth';
+} from '../services/firebase';
+
 
 const LoginPage: React.FC = () => {
   const { t } = useTranslation();

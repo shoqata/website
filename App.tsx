@@ -10,9 +10,14 @@ import {
 import { QRCodeSVG } from 'qrcode.react';
 
 // Firebase
-import { auth, db } from './services/firebase';
-import { onAuthStateChanged, signOut, Unsubscribe } from 'firebase/auth';
+import { 
+  auth, 
+  db, 
+  onAuthStateChanged, 
+  signOut 
+} from './services/firebase';
 import { doc, getDoc, onSnapshot, setDoc, updateDoc, collection, query, orderBy, where, getDocs, deleteDoc } from 'firebase/firestore';
+
 
 // Context & Hooks
 import { LanguageProvider, useTranslation } from './context/LanguageContext';
