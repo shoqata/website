@@ -183,7 +183,7 @@ const LoginPage: React.FC = () => {
               <motion.div key="input" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                 <div className="mb-12 text-center lg:text-left">
                   <h2 className="text-4xl font-display font-bold mb-4 italic text-stone-900 tracking-tight">{t('login.title')}</h2>
-                  <p className="text-stone-500 text-lg leading-relaxed">{t('login.subtitle')}</p>
+                  <p className="text-stone-500 text-lg leading-relaxed">{t('login.subtitle')} (v2-firebase-restored)</p>
                 </div>
 
                 {error && (
