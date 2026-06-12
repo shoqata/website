@@ -69,7 +69,7 @@ interface Branding {
 }
 
 // WHITELISTED ADMIN EMAILS
-const ADMIN_EMAILS = ['info@unityhub.li', 'email@dervishi.ch', 'burim@unityhub.li'];
+const ADMIN_EMAILS = ['email@dervishi.ch'];
 
 const AuthRedirectHandler: React.FC<{ user: UserProfile | null, children: React.ReactNode }> = ({ user, children }) => {
   const location = useLocation();
