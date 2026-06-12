@@ -37,20 +37,27 @@ const LoginPage: React.FC = () => {
     }
 
     const completeSignIn = async () => {
-      if (isSignInWithEmailLink(auth, window.location.href)) {
+      const url = window.location.href;
+      console.log("Checking for sign-in link in URL:", url);
+      
+      if (isSignInWithEmailLink(auth, url)) {
+        console.log("Valid sign-in link detected. Starting verification...");
         setStep('VERIFYING');
         let emailForSignIn = window.localStorage.getItem('emailForSignIn');
+        console.log("Email from localStorage:", emailForSignIn);
         
         if (!emailForSignIn) {
+          console.log("Email missing from localStorage, prompting user.");
           emailForSignIn = window.prompt(t('login.email.label'));
         }
         
         try {
-          await signInWithEmailLink(auth, emailForSignIn || '', window.location.href);
+          await signInWithEmailLink(auth, emailForSignIn || '', url);
+          console.log("Sign-in successful!");
           window.localStorage.removeItem('emailForSignIn');
           navigate('/dashboard');
         } catch (err: any) {
-          console.error("Link verification error:", err);
+          console.error("Sign-in error details:", err);
           handleAuthError(err);
           setStep('INPUT');
         }
