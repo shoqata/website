@@ -108,13 +108,18 @@ const LoginPage: React.FC = () => {
 
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      if (!userCredential.user.emailVerified) {
-        setError(t('wizard.success.title')); // Generic message to check email
-        setIsLoading(false);
-        return;
-      }
+      console.log("[Auth] Password login successful for:", email);
+      
+      // If we want to allow login even without verification (for now)
+      // if (!userCredential.user.emailVerified) {
+      //   setError(t('wizard.success.title')); 
+      //   setIsLoading(false);
+      //   return;
+      // }
+      
       navigate('/dashboard');
     } catch (err: any) {
+      console.error("[Auth] Password login failed:", err);
       handleAuthError(err);
     }
   };
@@ -128,7 +133,10 @@ const LoginPage: React.FC = () => {
     setError(null);
     setIsLoading(true);
     try {
-      await sendPasswordResetEmail(auth, email);
+      const actionCodeSettings = {
+        url: window.location.origin + '/#/login',
+      };
+      await sendPasswordResetEmail(auth, email, actionCodeSettings);
       setStep('RESET_SENT');
     } catch (err: any) {
       handleAuthError(err);
