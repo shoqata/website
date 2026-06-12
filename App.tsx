@@ -158,15 +158,24 @@ const AppContent: React.FC = () => {
     const authUnsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (userUnsubscribe) userUnsubscribe();
       if (firebaseUser) {
-        userUnsubscribe = onSnapshot(doc(db, 'users', firebaseUser.uid), async (docSnap) => {
+        console.log("[App] Firebase user detected:", firebaseUser.uid, firebaseUser.email);
+        const userDocRef = doc(db, 'users', firebaseUser.uid);
+        console.log("[App] Looking up user doc:", userDocRef);
+        
+        userUnsubscribe = onSnapshot(userDocRef, async (docSnap) => {
+            console.log("[App] User doc snapshot received. exists:", docSnap.exists());
             const isAdminEmail = ADMIN_EMAILS.includes(firebaseUser.email || '');
+            console.log("[App] Is admin email:", isAdminEmail, "for:", firebaseUser.email);
+            
             if (docSnap.exists()) {
                 const data = docSnap.data() as UserProfile;
                 if (isAdminEmail && data.role !== UserRole.SUPER_ADMIN) {
-                    await updateDoc(docSnap.ref, { role: UserRole.SUPER_ADMIN, profileComplete: true });
+                    await updateDoc(userDocRef, { role: UserRole.SUPER_ADMIN, profileComplete: true });
                 }
+                console.log("[App] Setting user from existing doc:", data.email, data.role);
                 setUser({ id: firebaseUser.uid, ...data });
             } else if (isAdminEmail) {
+                console.log("[App] No profile found for admin. Creating SUPER_ADMIN profile...");
                 const newUser: UserProfile = {
                     id: firebaseUser.uid,
                     tenantId: 'koretini',
@@ -177,7 +186,12 @@ const AppContent: React.FC = () => {
                     joinedAt: new Date().toISOString(),
                     profileComplete: true
                 };
-                await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
+                try {
+                    await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
+                    console.log("[App] Admin profile created successfully");
+                } catch (err) {
+                    console.error("[App] Failed to create admin profile:", err);
+                }
                 setUser(newUser);
             } else {
                 // Check if user was pre-created by admin (has a different document ID)
@@ -195,13 +209,12 @@ const AppContent: React.FC = () => {
                             const newUserProfile: any = {
                                 ...oldData,
                                 id: firebaseUser.uid,
-                                profileComplete: true, // Force true for pre-created members to skip onboarding
-                                migrationRequired: oldDoc.id // Flag for admin to update foreign keys and delete old doc
+                                profileComplete: true,
+                                migrationRequired: oldDoc.id
                             };
                             
                             try {
                                 await setDoc(doc(db, 'users', firebaseUser.uid), newUserProfile);
-                                // The onSnapshot will trigger again and set the user
                                 return;
                             } catch (error) {
                                 console.error("Failed to migrate user profile:", error);
@@ -211,11 +224,13 @@ const AppContent: React.FC = () => {
                 }
                 
                 // Truly new user
+                console.log("[App] New user with no existing profile");
                 setUser({ id: firebaseUser.uid, ...docSnap.data() as UserProfile });
             }
             setLoading(false);
         });
       } else {
+        console.log("[App] No Firebase user (logged out)");
         setUser(null);
         setLoading(false);
       }
