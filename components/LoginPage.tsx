@@ -39,10 +39,24 @@ const LoginPage: React.FC = () => {
     const completeSignIn = async () => {
       // Use window.location.href to capture the full URL including query params
       const currentUrl = window.location.href;
-      console.log("[Auth] Checking for sign-in link. Current URL:", currentUrl);
       
       if (isSignInWithEmailLink(auth, currentUrl)) {
-        console.log("[Auth] Valid magic link detected in URL");
+        console.log("[Auth] === Magic Link Diagnostic ===");
+        console.log("[Auth] Current URL:", currentUrl);
+        
+        // Extract apiKey from URL for comparison
+        const urlParams = new URLSearchParams(window.location.search || window.location.hash.split('?')[1]);
+        const urlApiKey = urlParams.get('apiKey');
+        const urlOobCode = urlParams.get('oobCode');
+        
+        console.log("[Auth] URL API Key:", urlApiKey);
+        console.log("[Auth] Config API Key:", auth.config.apiKey);
+        console.log("[Auth] oobCode present:", !!urlOobCode);
+        
+        if (urlApiKey && auth.config.apiKey && urlApiKey !== auth.config.apiKey) {
+          console.error("[Auth] API Key mismatch detected! URL key doesn't match config.");
+        }
+
         setStep('VERIFYING');
         
         let emailForSignIn = window.localStorage.getItem('emailForSignIn');
@@ -68,9 +82,11 @@ const LoginPage: React.FC = () => {
           navigate('/dashboard');
         } catch (err: any) {
           console.error("[Auth] Detailed sign-in error:", err);
-          // If code is specifically invalid-action-code, it might be an expired link or already used
+          
           if (err.code === 'auth/invalid-action-code') {
             setError("This link is invalid or has already been used. Please request a new one.");
+          } else if (err.code === 'auth/email-mismatch') {
+            setError("The email address provided does not match the one the link was sent to.");
           } else {
             handleAuthError(err);
           }
