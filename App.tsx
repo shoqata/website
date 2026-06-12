@@ -14,9 +14,19 @@ import {
   auth, 
   db, 
   onAuthStateChanged, 
-  signOut 
+  signOut,
+  doc, 
+  getDoc, 
+  onSnapshot, 
+  setDoc, 
+  updateDoc, 
+  collection, 
+  query, 
+  orderBy, 
+  where, 
+  getDocs, 
+  deleteDoc
 } from './services/firebase';
-import { doc, getDoc, onSnapshot, setDoc, updateDoc, collection, query, orderBy, where, getDocs, deleteDoc } from 'firebase/firestore';
 
 
 // Context & Hooks
