@@ -378,9 +378,9 @@ class SupabaseProjectAuth {
   }
 }
 
-export const auth = new SupabaseProjectAuth();
+export const supabaseAuth = new SupabaseProjectAuth();
 
-export function onAuthStateChanged(authObj: any, callback: (user: any) => void) {
+export function supabaseOnAuthStateChanged(authObj: any, callback: (user: any) => void) {
   authObj.listeners.add(callback);
   callback(authObj.currentUser);
   return () => {
@@ -388,13 +388,13 @@ export function onAuthStateChanged(authObj: any, callback: (user: any) => void) 
   };
 }
 
-export async function signOut() {
+export async function supabaseSignOut() {
   if (!supabase) return;
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
 }
 
-export async function signInWithEmailAndPassword(authObj: any, email: string, password: string) {
+export async function supabaseSignInWithEmailAndPassword(authObj: any, email: string, password: string) {
   if (!supabase) throw new Error("Supabase is not configured.");
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) throw error;
@@ -406,7 +406,7 @@ export async function signInWithEmailAndPassword(authObj: any, email: string, pa
   };
 }
 
-export async function createUserWithEmailAndPassword(authObj: any, email: string, password: string) {
+export async function supabaseCreateUserWithEmailAndPassword(authObj: any, email: string, password: string) {
   if (!supabase) throw new Error("Supabase is not configured.");
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -426,7 +426,7 @@ export async function createUserWithEmailAndPassword(authObj: any, email: string
   };
 }
 
-export async function sendPasswordResetEmail(authObj: any, email: string) {
+export async function supabaseSendPasswordResetEmail(authObj: any, email: string) {
   if (!supabase) throw new Error("Supabase is not configured.");
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${window.location.origin}/#/login`
@@ -434,7 +434,7 @@ export async function sendPasswordResetEmail(authObj: any, email: string) {
   if (error) throw error;
 }
 
-export async function sendSignInLinkToEmail(authObj: any, email: string, actionCodeSettings: any) {
+export async function supabaseSendSignInLinkToEmail(authObj: any, email: string, actionCodeSettings: any) {
   if (!supabase) throw new Error("Supabase is not configured.");
   const { error } = await supabase.auth.signInWithOtp({
     email,
@@ -445,15 +445,15 @@ export async function sendSignInLinkToEmail(authObj: any, email: string, actionC
   if (error) throw error;
 }
 
-export function isSignInWithEmailLink(authObj: any, href: string) {
+export function supabaseIsSignInWithEmailLink(authObj: any, href: string) {
   return href.includes("access_token=") || href.includes("type=magiclink");
 }
 
-export async function signInWithEmailLink(authObj: any, email: string, href: string) {
+export async function supabaseSignInWithEmailLink(authObj: any, email: string, href: string) {
   return { user: authObj.currentUser };
 }
 
-export async function signInWithPopup(authObj: any, provider: any) {
+export async function supabaseSignInWithPopup(authObj: any, provider: any) {
   if (!supabase) throw new Error("Supabase is not configured.");
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
@@ -464,6 +464,7 @@ export async function signInWithPopup(authObj: any, provider: any) {
   if (error) throw error;
   return { user: authObj.currentUser };
 }
+
 
 export async function sendEmailVerification(user: any) {
   if (!supabase) throw new Error("Supabase is not configured.");

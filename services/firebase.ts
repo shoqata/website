@@ -1,6 +1,20 @@
 // v3: Firebase Auth Restoration - 2026-06-12 11:13
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { 
+  getAuth,
+  sendSignInLinkToEmail,
+  isSignInWithEmailLink,
+  signInWithEmailLink,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  onAuthStateChanged,
+  signOut,
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+  updateProfile
+} from 'firebase/auth';
 import { 
   db as supabaseDb, 
   storage as supabaseStorage,
@@ -38,6 +52,22 @@ export const auth = getAuth(app);
 export const db = supabaseDb;
 export const storage = supabaseStorage;
 
+// Export Auth helpers
+export {
+  sendSignInLinkToEmail,
+  isSignInWithEmailLink,
+  signInWithEmailLink,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  onAuthStateChanged,
+  signOut,
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+  updateProfile
+};
+
 // Export Firestore/Storage helpers from bridge
 export {
   collection,
@@ -59,5 +89,6 @@ export {
   uploadBytes,
   getDownloadURL
 };
+
 
 export default app;
