@@ -83,9 +83,24 @@ export function collection(dbObj: any, path: string) {
 }
 
 export function doc(dbOrColRef: any, ...paths: string[]) {
-  if (dbOrColRef.type === "collection") {
+  // Called as doc(db, 'collection', 'id') — standard Firestore pattern
+  if (dbOrColRef && dbOrColRef.type === "db") {
+    // paths[0] is collection name, paths[1] is the document id
+    if (paths.length >= 2) {
+      return { type: "document", path: paths[0], id: paths[1] };
+    }
+    // Just a collection reference
+    return { type: "collection", path: paths[0] };
+  }
+  // Called as doc(collectionRef, 'id')
+  if (dbOrColRef && dbOrColRef.type === "collection") {
     return { type: "document", path: dbOrColRef.path, id: paths[0] };
   }
+  // Called as doc(docRef) — just return it
+  if (dbOrColRef && dbOrColRef.type === "document") {
+    return dbOrColRef;
+  }
+  // Fallback: treat first arg as path string (legacy)
   return { type: "document", path: dbOrColRef, id: paths[0] };
 }
 
