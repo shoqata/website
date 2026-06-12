@@ -37,58 +37,50 @@ const LoginPage: React.FC = () => {
     }
 
     const completeSignIn = async () => {
-      // Use window.location.href to capture the full URL including query params
       const currentUrl = window.location.href;
       
       if (isSignInWithEmailLink(auth, currentUrl)) {
         console.log("[Auth] === Magic Link Diagnostic ===");
         console.log("[Auth] Current URL:", currentUrl);
         
-        // Extract apiKey from URL for comparison
         const urlParams = new URLSearchParams(window.location.search || window.location.hash.split('?')[1]);
         const urlApiKey = urlParams.get('apiKey');
-        const urlOobCode = urlParams.get('oobCode');
-        
         console.log("[Auth] URL API Key:", urlApiKey);
         console.log("[Auth] Config API Key:", auth.config.apiKey);
-        console.log("[Auth] oobCode present:", !!urlOobCode);
         
-        if (urlApiKey && auth.config.apiKey && urlApiKey !== auth.config.apiKey) {
-          console.error("[Auth] API Key mismatch detected! URL key doesn't match config.");
-        }
-
         setStep('VERIFYING');
         
         let emailForSignIn = window.localStorage.getItem('emailForSignIn');
         console.log("[Auth] Email from localStorage:", emailForSignIn);
         
-        // If email is missing (e.g., domain change), prompt the user
         if (!emailForSignIn) {
-          console.log("[Auth] Email missing from localStorage (likely domain switch)");
-          emailForSignIn = window.prompt(t('login.email.label') || "Please provide your email for confirmation");
+          console.log("[Auth] Email missing from localStorage. Prompting user...");
+          emailForSignIn = window.prompt("Bitte gib zur Bestätigung deine E-Mail-Adresse ein:");
         }
         
         if (!emailForSignIn) {
-          setError("Email is required to complete sign-in. Please try the link again.");
+          console.warn("[Auth] No email provided, aborting sign-in.");
+          setError("E-Mail erforderlich. Bitte klicke erneut auf den Link in der E-Mail.");
           setStep('INPUT');
           return;
         }
 
         try {
-          console.log("[Auth] Completing sign-in for email:", emailForSignIn);
-          await signInWithEmailLink(auth, emailForSignIn, currentUrl);
-          console.log("[Auth] Sign-in successful!");
+          console.log("[Auth] Attempting signInWithEmailLink for:", emailForSignIn);
+          // Pass the exact email and the full URL
+          await signInWithEmailLink(auth, emailForSignIn.trim(), currentUrl);
+          console.log("[Auth] Sign-in SUCCESS!");
           window.localStorage.removeItem('emailForSignIn');
           navigate('/dashboard');
         } catch (err: any) {
-          console.error("[Auth] Detailed sign-in error:", err);
+          console.error("[Auth] Sign-in FAILED:", err);
           
           if (err.code === 'auth/invalid-action-code') {
-            setError("This link is invalid or has already been used. Please request a new one.");
+            setError("Dieser Link ist ungültig oder wurde bereits verwendet. Bitte fordere einen neuen an.");
           } else if (err.code === 'auth/email-mismatch') {
-            setError("The email address provided does not match the one the link was sent to.");
+            setError("Die angegebene E-Mail stimmt nicht mit der des Links überein.");
           } else {
-            handleAuthError(err);
+            setError(`Fehler: ${err.message}`);
           }
           setStep('INPUT');
         }
