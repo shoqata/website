@@ -25,34 +25,44 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   useEffect(() => {
     const resolveTenant = async () => {
-      const hostname = window.location.hostname;
-      
-      // Check for Super Admin domain/subdomain
-      if (hostname.startsWith('admin.') || hostname.includes('super-admin')) {
-          setIsSuperAdmin(true);
-          setLoading(false);
-          return;
-      }
+      try {
+        const hostname = window.location.hostname;
+        console.log(`[TenantContext] Resolving tenant for hostname: ${hostname}`);
+        
+        // Check for Super Admin domain/subdomain
+        if (hostname.startsWith('admin.') || hostname.includes('super-admin')) {
+            console.log('[TenantContext] Super Admin mode detected');
+            setIsSuperAdmin(true);
+            setLoading(false);
+            return;
+        }
 
-      // Check for 'www' or root domain (Landing Page)
-      if (hostname === 'koretini.org' || hostname === 'www.koretini.org' || hostname === 'localhost') {
-          // For localhost development, we default to a test tenant 'koretini'
-          // In production, root might be the sales page
-          const q = query(collection(db, 'tenants'), where('slug', '==', 'koretini'));
-          const snap = await getDocs(q);
-          if (!snap.empty) {
-              setTenant({ id: snap.docs[0].id, ...snap.docs[0].data() } as Tenant);
-          }
-      } else {
-          // Subdomain logic (e.g. fc-basel.koretini.org)
-          const subdomain = hostname.split('.')[0];
-          const q = query(collection(db, 'tenants'), where('slug', '==', subdomain));
-          const snap = await getDocs(q);
-          if (!snap.empty) {
-              setTenant({ id: snap.docs[0].id, ...snap.docs[0].data() } as Tenant);
-          }
+        let q;
+        // Check for 'www' or root domain (Landing Page)
+        if (hostname === 'koretini.org' || hostname === 'www.koretini.org' || hostname === 'koretini.me' || hostname === 'www.koretini.me' || hostname === 'localhost') {
+            // For localhost development or main landing domains, we default to a test tenant 'koretini'
+            console.log('[TenantContext] Landing domain detected, resolving default tenant');
+            q = query(collection(db, 'tenants'), where('slug', '==', 'koretini'));
+        } else {
+            // Subdomain logic (e.g. fc-basel.koretini.org)
+            const subdomain = hostname.split('.')[0];
+            console.log(`[TenantContext] Subdomain detected: ${subdomain}`);
+            q = query(collection(db, 'tenants'), where('slug', '==', subdomain));
+        }
+
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+            const data = snap.docs[0].data();
+            console.log('[TenantContext] Tenant resolved:', data.name);
+            setTenant({ id: snap.docs[0].id, ...data } as Tenant);
+        } else {
+            console.warn('[TenantContext] No tenant found for this hostname');
+        }
+      } catch (error) {
+        console.error('[TenantContext] Error resolving tenant:', error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     resolveTenant();

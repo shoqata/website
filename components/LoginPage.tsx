@@ -37,28 +37,43 @@ const LoginPage: React.FC = () => {
     }
 
     const completeSignIn = async () => {
-      const url = window.location.href;
-      console.log("Checking for sign-in link in URL:", url);
+      // Use window.location.href to capture the full URL including query params
+      const currentUrl = window.location.href;
+      console.log("[Auth] Checking for sign-in link. Current URL:", currentUrl);
       
-      if (isSignInWithEmailLink(auth, url)) {
-        console.log("Valid sign-in link detected. Starting verification...");
+      if (isSignInWithEmailLink(auth, currentUrl)) {
+        console.log("[Auth] Valid magic link detected in URL");
         setStep('VERIFYING');
-        let emailForSignIn = window.localStorage.getItem('emailForSignIn');
-        console.log("Email from localStorage:", emailForSignIn);
         
+        let emailForSignIn = window.localStorage.getItem('emailForSignIn');
+        console.log("[Auth] Email from localStorage:", emailForSignIn);
+        
+        // If email is missing (e.g., domain change), prompt the user
         if (!emailForSignIn) {
-          console.log("Email missing from localStorage, prompting user.");
-          emailForSignIn = window.prompt(t('login.email.label'));
+          console.log("[Auth] Email missing from localStorage (likely domain switch)");
+          emailForSignIn = window.prompt(t('login.email.label') || "Please provide your email for confirmation");
         }
         
+        if (!emailForSignIn) {
+          setError("Email is required to complete sign-in. Please try the link again.");
+          setStep('INPUT');
+          return;
+        }
+
         try {
-          await signInWithEmailLink(auth, emailForSignIn || '', url);
-          console.log("Sign-in successful!");
+          console.log("[Auth] Completing sign-in for email:", emailForSignIn);
+          await signInWithEmailLink(auth, emailForSignIn, currentUrl);
+          console.log("[Auth] Sign-in successful!");
           window.localStorage.removeItem('emailForSignIn');
           navigate('/dashboard');
         } catch (err: any) {
-          console.error("Sign-in error details:", err);
-          handleAuthError(err);
+          console.error("[Auth] Detailed sign-in error:", err);
+          // If code is specifically invalid-action-code, it might be an expired link or already used
+          if (err.code === 'auth/invalid-action-code') {
+            setError("This link is invalid or has already been used. Please request a new one.");
+          } else {
+            handleAuthError(err);
+          }
           setStep('INPUT');
         }
       }
