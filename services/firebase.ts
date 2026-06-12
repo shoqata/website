@@ -1,3 +1,4 @@
+// v3: Firebase Auth Restoration - 2026-06-12 11:13
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { 
