@@ -292,7 +292,11 @@ export function onSnapshot(ref: any, callback: (snap: any) => void) {
         if (!isCancelled) callback(snap);
       }
     } catch (e) {
-      console.warn("onSnapshot dynamic pull error:", e);
+      console.error("[Bridge] onSnapshot fetch error:", e);
+      // Still call callback with an empty "not found" snapshot so loading never stalls
+      if (!isCancelled) {
+        callback({ exists: () => false, data: () => null });
+      }
     }
   };
 
