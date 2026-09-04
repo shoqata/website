@@ -447,28 +447,41 @@ export async function supabaseCreateUserWithEmailAndPassword(authObj: any, email
 
 export async function supabaseSendPasswordResetEmail(authObj: any, email: string) {
   if (!supabase) throw new Error("Supabase is not configured.");
+  const redirectUrl = `${window.location.origin}/#/login`;
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/#/login`
+    redirectTo: redirectUrl
   });
   if (error) throw error;
 }
 
 export async function supabaseSendSignInLinkToEmail(authObj: any, email: string, actionCodeSettings: any) {
   if (!supabase) throw new Error("Supabase is not configured.");
+  const redirectUrl = actionCodeSettings?.url || `${window.location.origin}/#/login`;
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: actionCodeSettings?.url || window.location.href
+      emailRedirectTo: redirectUrl
     }
   });
   if (error) throw error;
 }
 
 export function supabaseIsSignInWithEmailLink(authObj: any, href: string) {
-  return href.includes("access_token=") || href.includes("type=magiclink");
+  return href.includes("access_token=") || href.includes("type=magiclink") || href.includes("type=recovery") || href.includes("error=");
 }
 
 export async function supabaseSignInWithEmailLink(authObj: any, email: string, href: string) {
+  if (!supabase) return { user: null };
+  const { data, error } = await supabase.auth.getSession();
+  if (error) throw error;
+  if (data?.session?.user) {
+    return {
+      user: {
+        uid: data.session.user.id,
+        email: data.session.user.email || ""
+      }
+    };
+  }
   return { user: authObj.currentUser };
 }
 
