@@ -1,13 +1,12 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { db } from '../services/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db, collection, query, where, getDocs } from '../services/firebase';
 import { Tenant } from '../types';
 
 interface TenantContextType {
   tenant: Tenant | null;
   loading: boolean;
-  isSuperAdmin: boolean; // Flag to indicate if we are in the SuperAdmin dashboard
+  isSuperAdmin: boolean;
 }
 
 const TenantContext = createContext<TenantContextType | undefined>(undefined);
@@ -29,7 +28,6 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const hostname = window.location.hostname;
         console.log(`[TenantContext] Resolving tenant for hostname: ${hostname}`);
         
-        // Check for Super Admin domain/subdomain
         if (hostname.startsWith('admin.') || hostname.includes('super-admin')) {
             console.log('[TenantContext] Super Admin mode detected');
             setIsSuperAdmin(true);
@@ -38,13 +36,10 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
 
         let q;
-        // Check for 'www' or root domain (Landing Page)
         if (hostname === 'koretini.org' || hostname === 'www.koretini.org' || hostname === 'koretini.me' || hostname === 'www.koretini.me' || hostname === 'localhost') {
-            // For localhost development or main landing domains, we default to a test tenant 'koretini'
             console.log('[TenantContext] Landing domain detected, resolving default tenant');
             q = query(collection(db, 'tenants'), where('slug', '==', 'koretini'));
         } else {
-            // Subdomain logic (e.g. fc-basel.koretini.org)
             const subdomain = hostname.split('.')[0];
             console.log(`[TenantContext] Subdomain detected: ${subdomain}`);
             q = query(collection(db, 'tenants'), where('slug', '==', subdomain));
@@ -68,7 +63,6 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     resolveTenant();
   }, []);
 
-  // Inject Branding CSS Variables when tenant changes
   useEffect(() => {
       if (tenant) {
           if (tenant.primaryColor) document.documentElement.style.setProperty('--primary', tenant.primaryColor);

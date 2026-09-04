@@ -5,11 +5,11 @@ import { Mail, ArrowRight, ShieldCheck, Heart, ArrowLeft, AlertCircle, Chrome, L
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from '../context/LanguageContext';
 
-// Firebase
+// Supabase Auth (replaces Firebase Auth)
 import { 
   auth,
-  sendSignInLinkToEmail, 
-  isSignInWithEmailLink, 
+  sendSignInLinkToEmail,
+  isSignInWithEmailLink,
   signInWithEmailLink,
   GoogleAuthProvider,
   signInWithPopup,
@@ -30,7 +30,6 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check for auto-logout session expired flag
     if (localStorage.getItem('koretini_session_expired')) {
         setError(t('auth.session_expired'));
         localStorage.removeItem('koretini_session_expired');
@@ -39,49 +38,28 @@ const LoginPage: React.FC = () => {
     const completeSignIn = async () => {
       const currentUrl = window.location.href;
       
+      // Supabase magic link uses access_token in URL
       if (isSignInWithEmailLink(auth, currentUrl)) {
-        console.log("[Auth] === Magic Link Diagnostic ===");
-        console.log("[Auth] Current URL:", currentUrl);
-        
-        const urlParams = new URLSearchParams(window.location.search || window.location.hash.split('?')[1]);
-        const urlApiKey = urlParams.get('apiKey');
-        console.log("[Auth] URL API Key:", urlApiKey);
-        console.log("[Auth] Config API Key:", auth.config.apiKey);
-        
         setStep('VERIFYING');
-        
         let emailForSignIn = window.localStorage.getItem('emailForSignIn');
-        console.log("[Auth] Email from localStorage:", emailForSignIn);
         
         if (!emailForSignIn) {
-          console.log("[Auth] Email missing from localStorage. Prompting user...");
           emailForSignIn = window.prompt("Bitte gib zur Bestätigung deine E-Mail-Adresse ein:");
         }
         
         if (!emailForSignIn) {
-          console.warn("[Auth] No email provided, aborting sign-in.");
           setError("E-Mail erforderlich. Bitte klicke erneut auf den Link in der E-Mail.");
           setStep('INPUT');
           return;
         }
 
         try {
-          console.log("[Auth] Attempting signInWithEmailLink for:", emailForSignIn);
-          // Pass the exact email and the full URL
           await signInWithEmailLink(auth, emailForSignIn.trim(), currentUrl);
-          console.log("[Auth] Sign-in SUCCESS!");
           window.localStorage.removeItem('emailForSignIn');
           navigate('/dashboard');
         } catch (err: any) {
-          console.error("[Auth] Sign-in FAILED:", err);
-          
-          if (err.code === 'auth/invalid-action-code') {
-            setError("Dieser Link ist ungültig oder wurde bereits verwendet. Bitte fordere einen neuen an.");
-          } else if (err.code === 'auth/email-mismatch') {
-            setError("Die angegebene E-Mail stimmt nicht mit der des Links überein.");
-          } else {
-            setError(`Fehler: ${err.message}`);
-          }
+          console.error("[Auth] Magic link sign-in failed:", err);
+          setError(err.message || "Link ungültig oder abgelaufen. Bitte neu anfordern.");
           setStep('INPUT');
         }
       }
@@ -90,12 +68,13 @@ const LoginPage: React.FC = () => {
   }, [navigate, t]);
 
   const handleAuthError = (err: any) => {
-    if (err.code === 'auth/unauthorized-domain') {
-      setError(`Domain "${window.location.hostname}" not authorized.`);
-    } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-      setError(t('common.error') + ": Email/Password wrong.");
+    const msg = err?.message || '';
+    if (msg.includes('Invalid login credentials') || msg.includes('invalid_credentials')) {
+      setError("E-Mail oder Passwort falsch.");
+    } else if (msg.includes('Email not confirmed')) {
+      setError("Bitte bestätige zuerst deine E-Mail-Adresse.");
     } else {
-      setError(err.message || t('common.error'));
+      setError(msg || t('common.error'));
     }
     setIsLoading(false);
   };
@@ -107,16 +86,8 @@ const LoginPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log("[Auth] Password login successful for:", email);
-      
-      // If we want to allow login even without verification (for now)
-      // if (!userCredential.user.emailVerified) {
-      //   setError(t('wizard.success.title')); 
-      //   setIsLoading(false);
-      //   return;
-      // }
-      
+      await signInWithEmailAndPassword(auth, email, password);
+      console.log("[Auth] Supabase password login successful for:", email);
       navigate('/dashboard');
     } catch (err: any) {
       console.error("[Auth] Password login failed:", err);
@@ -133,10 +104,7 @@ const LoginPage: React.FC = () => {
     setError(null);
     setIsLoading(true);
     try {
-      const actionCodeSettings = {
-        url: window.location.origin + '/#/login',
-      };
-      await sendPasswordResetEmail(auth, email, actionCodeSettings);
+      await sendPasswordResetEmail(auth, email);
       setStep('RESET_SENT');
     } catch (err: any) {
       handleAuthError(err);
@@ -162,6 +130,8 @@ const LoginPage: React.FC = () => {
       setStep('SENT');
     } catch (err: any) {
       handleAuthError(err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -222,7 +192,7 @@ const LoginPage: React.FC = () => {
               <motion.div key="input" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                 <div className="mb-12 text-center lg:text-left">
                   <h2 className="text-4xl font-display font-bold mb-4 italic text-stone-900 tracking-tight">{t('login.title')}</h2>
-                  <p className="text-stone-500 text-lg leading-relaxed">{t('login.subtitle')} (v2-firebase-restored)</p>
+                  <p className="text-stone-500 text-lg leading-relaxed">{t('login.subtitle')}</p>
                 </div>
 
                 {error && (
