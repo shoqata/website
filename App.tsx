@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
-// Firebase
+// Supabase Auth (replaces Firebase Auth)
 import { 
   auth, 
   db, 
@@ -154,32 +154,31 @@ const AppContent: React.FC = () => {
         if (doc.exists()) setSystemSettings(doc.data() as SystemSettings);
     });
 
-    let userUnsubscribe: Unsubscribe | null = null;
-    const authUnsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    let userUnsubscribe: (() => void) | null = null;
+
+    // Use Supabase onAuthStateChanged (same signature as Firebase's)
+    const authUnsubscribe = onAuthStateChanged(auth, (supabaseUser: any) => {
       if (userUnsubscribe) userUnsubscribe();
-      if (firebaseUser) {
-        console.log("[App] Firebase user detected:", firebaseUser.uid, firebaseUser.email);
-        const userDocRef = doc(db, 'users', firebaseUser.uid);
-        console.log("[App] Looking up user doc:", userDocRef);
+      if (supabaseUser) {
+        const uid = supabaseUser.uid;
+        const email = supabaseUser.email || '';
+        console.log("[App] Supabase user detected:", uid, email);
+        const userDocRef = doc(db, 'users', uid);
         
         userUnsubscribe = onSnapshot(userDocRef, async (docSnap) => {
-            console.log("[App] User doc snapshot received. exists:", docSnap.exists());
-            const isAdminEmail = ADMIN_EMAILS.includes(firebaseUser.email || '');
-            console.log("[App] Is admin email:", isAdminEmail, "for:", firebaseUser.email);
+            const isAdminEmail = ADMIN_EMAILS.includes(email);
             
             if (docSnap.exists()) {
                 const data = docSnap.data() as UserProfile;
                 if (isAdminEmail && data.role !== UserRole.SUPER_ADMIN) {
                     await updateDoc(userDocRef, { role: UserRole.SUPER_ADMIN, profileComplete: true });
                 }
-                console.log("[App] Setting user from existing doc:", data.email, data.role);
-                setUser({ id: firebaseUser.uid, ...data });
+                setUser({ id: uid, ...data });
             } else if (isAdminEmail) {
-                console.log("[App] No profile found for admin. Creating SUPER_ADMIN profile...");
                 const newUser: UserProfile = {
-                    id: firebaseUser.uid,
+                    id: uid,
                     tenantId: 'koretini',
-                    email: firebaseUser.email || '',
+                    email,
                     role: UserRole.SUPER_ADMIN,
                     membershipStatus: 'ACTIVE',
                     displayName: 'Administrator',
@@ -187,34 +186,31 @@ const AppContent: React.FC = () => {
                     profileComplete: true
                 };
                 try {
-                    await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
-                    console.log("[App] Admin profile created successfully");
+                    await setDoc(doc(db, 'users', uid), newUser);
                 } catch (err) {
                     console.error("[App] Failed to create admin profile:", err);
                 }
                 setUser(newUser);
             } else {
-                // Check if user was pre-created by admin (has a different document ID)
-                if (firebaseUser.email) {
+                // Check if user was pre-created by admin
+                if (email) {
                     const usersRef = collection(db, 'users');
-                    const q = query(usersRef, where('email', '==', firebaseUser.email));
+                    const q = query(usersRef, where('email', '==', email));
                     const querySnapshot = await getDocs(q);
                     
                     if (!querySnapshot.empty) {
                         const oldDoc = querySnapshot.docs[0];
                         const oldData = oldDoc.data() as UserProfile;
                         
-                        // Only migrate if the old ID is different from the new UID
-                        if (oldDoc.id !== firebaseUser.uid) {
+                        if (oldDoc.id !== uid) {
                             const newUserProfile: any = {
                                 ...oldData,
-                                id: firebaseUser.uid,
+                                id: uid,
                                 profileComplete: true,
                                 migrationRequired: oldDoc.id
                             };
-                            
                             try {
-                                await setDoc(doc(db, 'users', firebaseUser.uid), newUserProfile);
+                                await setDoc(doc(db, 'users', uid), newUserProfile);
                                 return;
                             } catch (error) {
                                 console.error("Failed to migrate user profile:", error);
@@ -224,13 +220,12 @@ const AppContent: React.FC = () => {
                 }
                 
                 // Truly new user
-                console.log("[App] New user with no existing profile");
-                setUser({ id: firebaseUser.uid, ...docSnap.data() as UserProfile });
+                setUser({ id: uid, ...docSnap.data() as UserProfile });
             }
             setLoading(false);
         });
       } else {
-        console.log("[App] No Firebase user (logged out)");
+        console.log("[App] No user (logged out)");
         setUser(null);
         setLoading(false);
       }
@@ -292,6 +287,14 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isActive = (path: string) => location.pathname === path;
 
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+    } catch (e) {
+      console.error("Sign out error:", e);
+    }
+  };
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 p-4 md:p-6 select-none">
       <div className="max-w-7xl mx-auto glass rounded-2xl flex items-center justify-between px-4 py-2 shadow-lg relative">
@@ -328,7 +331,7 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings }) => {
                 <>
                    <Link to="/dashboard" className="text-sm font-bold text-stone-500 hover:text-stone-900">{t('nav.dashboard')}</Link>
                    {(user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN || ADMIN_EMAILS.includes(user.email)) && ( <Link to="/admin" className="w-9 h-9 bg-stone-900 text-white rounded-xl flex items-center justify-center shadow-lg"><ShieldCheck size={16} /></Link> )}
-                   <button onClick={() => signOut(auth)} className="text-stone-400 hover:text-primary"><LogOut size={18} /></button>
+                   <button onClick={handleSignOut} className="text-stone-400 hover:text-primary"><LogOut size={18} /></button>
                 </>
               ) : (
                 <>
@@ -353,7 +356,7 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings }) => {
                     {user ? (
                         <>
                             <Link to="/dashboard" className="flex items-center gap-4 p-4 bg-stone-900 text-white rounded-2xl shadow-lg"><LayoutDashboard size={20} /><span className="font-bold">{t('nav.dashboard')}</span></Link>
-                            <button onClick={() => signOut(auth)} className="flex items-center gap-4 p-4 text-stone-400 justify-center font-bold text-sm"><LogOut size={16} /> Sign Out</button>
+                            <button onClick={handleSignOut} className="flex items-center gap-4 p-4 text-stone-400 justify-center font-bold text-sm"><LogOut size={16} /> Sign Out</button>
                         </>
                     ) : (
                         <div className="flex flex-col gap-3">
@@ -371,7 +374,6 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings }) => {
 
 const ConditionalNavigation = ({ user, branding, systemSettings }: any) => {
   const loc = useLocation();
-  // We only hide nav on specific full-screen utility routes
   const hidePaths = ['/setup-profile', '/super-admin', '/admin'];
   if (hidePaths.some(path => loc.pathname.startsWith(path))) return null;
   return <Navigation user={user} branding={branding} systemSettings={systemSettings} />;

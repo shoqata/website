@@ -1,22 +1,7 @@
-// v3: Firebase Auth Restoration - 2026-06-12 11:13
-import { initializeApp } from 'firebase/app';
-import { 
-  getAuth,
-  sendSignInLinkToEmail,
-  isSignInWithEmailLink,
-  signInWithEmailLink,
-  GoogleAuthProvider,
-  signInWithPopup,
-  signInWithEmailAndPassword,
-  sendPasswordResetEmail,
-  onAuthStateChanged,
-  signOut,
-  createUserWithEmailAndPassword,
-  sendEmailVerification,
-  updateProfile
-} from 'firebase/auth';
-import { 
-  db as supabaseDb, 
+// v4: Full Supabase Auth Migration - 2026-09-04
+// Firebase is no longer used. All auth and DB operations go through Supabase.
+import {
+  db as supabaseDb,
   storage as supabaseStorage,
   collection,
   doc,
@@ -35,40 +20,45 @@ import {
   Timestamp,
   ref,
   uploadBytes,
-  getDownloadURL
+  getDownloadURL,
+  supabase,
+  supabaseAuth,
+  supabaseOnAuthStateChanged,
+  supabaseSignOut,
+  supabaseSignInWithEmailAndPassword,
+  supabaseCreateUserWithEmailAndPassword,
+  supabaseSendPasswordResetEmail,
+  supabaseSendSignInLinkToEmail,
+  supabaseIsSignInWithEmailLink,
+  supabaseSignInWithEmailLink,
+  supabaseSignInWithPopup,
+  GoogleAuthProvider,
+  sendEmailVerification,
+  updateProfile,
 } from './supabase-bridge';
 
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
-};
-
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+// The "auth" object compatible with existing call signatures (auth.currentUser, etc.)
+export const auth = supabaseAuth;
 export const db = supabaseDb;
 export const storage = supabaseStorage;
 
-// Export Auth helpers
+// Auth helpers — re-exported to match the Firebase API surface
 export {
-  sendSignInLinkToEmail,
-  isSignInWithEmailLink,
-  signInWithEmailLink,
+  supabaseOnAuthStateChanged as onAuthStateChanged,
+  supabaseSignOut as signOut,
+  supabaseSignInWithEmailAndPassword as signInWithEmailAndPassword,
+  supabaseCreateUserWithEmailAndPassword as createUserWithEmailAndPassword,
+  supabaseSendPasswordResetEmail as sendPasswordResetEmail,
+  supabaseSendSignInLinkToEmail as sendSignInLinkToEmail,
+  supabaseIsSignInWithEmailLink as isSignInWithEmailLink,
+  supabaseSignInWithEmailLink as signInWithEmailLink,
+  supabaseSignInWithPopup as signInWithPopup,
   GoogleAuthProvider,
-  signInWithPopup,
-  signInWithEmailAndPassword,
-  sendPasswordResetEmail,
-  onAuthStateChanged,
-  signOut,
-  createUserWithEmailAndPassword,
   sendEmailVerification,
-  updateProfile
+  updateProfile,
 };
 
-// Export Firestore/Storage helpers from bridge
+// DB/Storage helpers — re-exported from bridge
 export {
   collection,
   doc,
@@ -87,8 +77,10 @@ export {
   Timestamp,
   ref,
   uploadBytes,
-  getDownloadURL
+  getDownloadURL,
 };
 
+// Raw Supabase client (for advanced usage)
+export { supabase };
 
-export default app;
+export default { name: 'supabase-only' };
