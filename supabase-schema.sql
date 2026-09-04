@@ -351,59 +351,27 @@ CREATE TABLE IF NOT EXISTS security_logs (
 );
 
 -- =====================
--- ROW LEVEL SECURITY
+-- ROW LEVEL SECURITY (RLS)
 -- =====================
 
--- Enable RLS on all tables
-ALTER TABLE tenants ENABLE ROW LEVEL SECURITY;
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE neighborhoods ENABLE ROW LEVEL SECURITY;
-ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE expenses ENABLE ROW LEVEL SECURITY;
-ALTER TABLE news ENABLE ROW LEVEL SECURITY;
-ALTER TABLE events ENABLE ROW LEVEL SECURITY;
-ALTER TABLE event_registrations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE polls ENABLE ROW LEVEL SECURITY;
-ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
-ALTER TABLE board_meetings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE board_members ENABLE ROW LEVEL SECURITY;
-ALTER TABLE accounting_journal ENABLE ROW LEVEL SECURITY;
-ALTER TABLE accounting_accounts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE fiscal_years ENABLE ROW LEVEL SECURITY;
-ALTER TABLE inquiries ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "socialMediaPosts" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE security_logs ENABLE ROW LEVEL SECURITY;
+-- Disable RLS on all tables to allow the app-level bridge (anon API key) full access
+ALTER TABLE tenants DISABLE ROW LEVEL SECURITY;
+ALTER TABLE users DISABLE ROW LEVEL SECURITY;
+ALTER TABLE settings DISABLE ROW LEVEL SECURITY;
+ALTER TABLE neighborhoods DISABLE ROW LEVEL SECURITY;
+ALTER TABLE payments DISABLE ROW LEVEL SECURITY;
+ALTER TABLE expenses DISABLE ROW LEVEL SECURITY;
+ALTER TABLE news DISABLE ROW LEVEL SECURITY;
+ALTER TABLE events DISABLE ROW LEVEL SECURITY;
+ALTER TABLE event_registrations DISABLE ROW LEVEL SECURITY;
+ALTER TABLE polls DISABLE ROW LEVEL SECURITY;
+ALTER TABLE tasks DISABLE ROW LEVEL SECURITY;
+ALTER TABLE board_meetings DISABLE ROW LEVEL SECURITY;
+ALTER TABLE board_members DISABLE ROW LEVEL SECURITY;
+ALTER TABLE accounting_journal DISABLE ROW LEVEL SECURITY;
+ALTER TABLE accounting_accounts DISABLE ROW LEVEL SECURITY;
+ALTER TABLE fiscal_years DISABLE ROW LEVEL SECURITY;
+ALTER TABLE inquiries DISABLE ROW LEVEL SECURITY;
+ALTER TABLE "socialMediaPosts" DISABLE ROW LEVEL SECURITY;
+ALTER TABLE security_logs DISABLE ROW LEVEL SECURITY;
 
--- PUBLIC READ POLICIES (für öffentliche Seiten)
-CREATE POLICY "Public read tenants" ON tenants FOR SELECT USING (true);
-CREATE POLICY "Public read settings" ON settings FOR SELECT USING (true);
-CREATE POLICY "Public read neighborhoods" ON neighborhoods FOR SELECT USING (true);
-CREATE POLICY "Public read news" ON news FOR SELECT USING (status = 'PUBLISHED');
-CREATE POLICY "Public read events" ON events FOR SELECT USING (status = 'PUBLISHED');
-
--- ALL ACCESS FOR AUTHENTICATED USERS (App handles authorization in code)
--- This is a pragmatic approach: RLS allows all CRUD for logged-in users,
--- the app-level code enforces role checks.
-CREATE POLICY "Auth users full access users" ON users FOR ALL USING (auth.uid() IS NOT NULL);
-CREATE POLICY "Auth users full access payments" ON payments FOR ALL USING (auth.uid() IS NOT NULL);
-CREATE POLICY "Auth users full access expenses" ON expenses FOR ALL USING (auth.uid() IS NOT NULL);
-CREATE POLICY "Auth users full access news" ON news FOR ALL USING (auth.uid() IS NOT NULL);
-CREATE POLICY "Auth users full access events" ON events FOR ALL USING (auth.uid() IS NOT NULL);
-CREATE POLICY "Auth users full access event_reg" ON event_registrations FOR ALL USING (auth.uid() IS NOT NULL);
-CREATE POLICY "Auth users full access polls" ON polls FOR ALL USING (auth.uid() IS NOT NULL);
-CREATE POLICY "Auth users full access tasks" ON tasks FOR ALL USING (auth.uid() IS NOT NULL);
-CREATE POLICY "Auth users full access board_meetings" ON board_meetings FOR ALL USING (auth.uid() IS NOT NULL);
-CREATE POLICY "Auth users full access board_members" ON board_members FOR ALL USING (auth.uid() IS NOT NULL);
-CREATE POLICY "Auth users full access accounting_journal" ON accounting_journal FOR ALL USING (auth.uid() IS NOT NULL);
-CREATE POLICY "Auth users full access accounting_accounts" ON accounting_accounts FOR ALL USING (auth.uid() IS NOT NULL);
-CREATE POLICY "Auth users full access fiscal_years" ON fiscal_years FOR ALL USING (auth.uid() IS NOT NULL);
-CREATE POLICY "Auth users full access inquiries" ON inquiries FOR ALL USING (auth.uid() IS NOT NULL);
-CREATE POLICY "Auth users full access socialMediaPosts" ON "socialMediaPosts" FOR ALL USING (auth.uid() IS NOT NULL);
-CREATE POLICY "Auth users full access tenants write" ON tenants FOR ALL USING (auth.uid() IS NOT NULL);
-CREATE POLICY "Auth users full access settings write" ON settings FOR ALL USING (auth.uid() IS NOT NULL);
-CREATE POLICY "Auth users full access neighborhoods write" ON neighborhoods FOR ALL USING (auth.uid() IS NOT NULL);
-
--- Security logs: anyone can insert, only authenticated can read
-CREATE POLICY "Anyone can insert security_logs" ON security_logs FOR INSERT WITH CHECK (true);
-CREATE POLICY "Auth users read security_logs" ON security_logs FOR SELECT USING (auth.uid() IS NOT NULL);
