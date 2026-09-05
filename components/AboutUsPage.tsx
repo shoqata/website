@@ -66,7 +66,7 @@ const AboutUsPage: React.FC = () => {
     });
 
     // 2. Fetch User Locations for Globe
-    const unsubUsers = onSnapshot(collection(db, 'users'), (snap) => {
+    const unsubUsers = onSnapshot(collection(db, 'public_members'), (snap) => {
         setMemberCount(snap.size);
         const markers: { location: [number, number]; size: number }[] = [{ location: [42.54, 21.58], size: 0.1 }];
         const usersMap = new Map<string, UserProfile>();

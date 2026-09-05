@@ -71,7 +71,7 @@ const Hero: React.FC = () => {
       setFeaturedEvents(sorted.slice(0, 3));
     });
 
-    const unsubUsers = onSnapshot(collection(db, 'users'), (snap) => {
+    const unsubUsers = onSnapshot(collection(db, 'public_members'), (snap) => {
         const allMembers = snap.docs.map(d => ({ id: d.id, ...d.data() } as UserProfile));
         const activeMembers = allMembers.filter(m => m.membershipStatus === 'ACTIVE');
         setDiasporaCount(activeMembers.filter(m => !m.livesInKoretin).length);
