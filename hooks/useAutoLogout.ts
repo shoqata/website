@@ -1,6 +1,6 @@
 
 import { useEffect, useRef, useCallback } from 'react';
-import { signOut } from 'firebase/auth';
+import { signOut } from '@/services/supabase-bridge';
 import { auth } from '../services/firebase';
 
 export const useAutoLogout = (user: any) => {

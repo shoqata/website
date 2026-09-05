@@ -14,7 +14,7 @@ import {
   Rocket
 } from 'lucide-react';
 import { db, auth } from '../services/firebase';
-import { collection, addDoc, getDocs, query, where, writeBatch, doc, Timestamp, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, writeBatch, doc, Timestamp, serverTimestamp } from '@/services/supabase-bridge';
 import { useFeedback } from '../context/FeedbackContext';
 
 const AdminData: React.FC = () => {

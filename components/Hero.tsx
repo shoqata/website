@@ -5,7 +5,7 @@ import { ArrowRight, Heart, UserPlus, LogIn, ChevronRight, X, Smartphone } from 
 import { Link } from 'react-router-dom';
 import { useTranslation } from '../context/LanguageContext';
 import { db } from '../services/firebase';
-import { collection, query, where, onSnapshot, doc, getDoc, getDocs } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, getDoc, getDocs } from '@/services/supabase-bridge';
 import { SolidarityEvent, UserProfile, GlobalPaymentSettings } from '../types';
 import { Marquee } from './ui/Marquee';
 import HyperTextParagraph from './ui/HyperText';
