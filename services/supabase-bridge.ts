@@ -212,7 +212,10 @@ export async function addDoc(colRef: any, data: any) {
   const id = crypto.randomUUID();
   const row = { id, ...cleanDataForSupabase(data) };
 
-  const { error } = await supabase.from(table).insert([row]);
+  // Use upsert so duplicate calls don't cause 409 Conflict errors
+  const { error } = await supabase
+    .from(table)
+    .upsert([row], { onConflict: "id", ignoreDuplicates: false });
   if (error) {
     console.error(`Supabase addDoc error for ${table}:`, error);
     throw error;
@@ -225,7 +228,9 @@ export async function setDoc(docRef: any, data: any, options?: any) {
   const { path, id } = docRef;
   const row = { id, ...cleanDataForSupabase(data) };
 
-  const { error } = await supabase.from(path).upsert([row]);
+  const { error } = await supabase
+    .from(path)
+    .upsert([row], { onConflict: "id", ignoreDuplicates: false });
   if (error) {
     console.error(`Supabase setDoc error for ${path}/${id}:`, error);
     throw error;
