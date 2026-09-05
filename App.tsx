@@ -38,22 +38,40 @@ import { useAutoLogout } from './hooks/useAutoLogout';
 
 // Components
 import Hero from './components/Hero';
-import Dashboard from './components/Dashboard';
-import AdminPanel from './components/AdminPanel';
-import BoardDashboard from './components/BoardDashboard';
-import RepresentativeDashboard from './components/RepresentativeDashboard'; 
-import SocialAI from './components/SocialAI';
-import LoginPage from './components/LoginPage';
-import RegistrationWizard from './components/RegistrationWizard';
-import VillageLive from './components/VillageLive';
-import ProfileSetup from './components/ProfileSetup';
-import EventsPage from './components/EventsPage';
-import NewsPage from './components/NewsPage';
-import AboutUsPage from './components/AboutUsPage';
-import LegalPage from './components/LegalPage'; 
+
+// Nur die Startseite wird sofort geladen. Alles andere -- und damit die
+// schweren Admin- und Dashboard-Ansichten samt Charts, 3D und PDF-Erzeugung --
+// kommt erst, wenn die Route tatsaechlich aufgerufen wird.
+const Dashboard = React.lazy(() => import('./components/Dashboard'));
+const AdminPanel = React.lazy(() => import('./components/AdminPanel'));
+const BoardDashboard = React.lazy(() => import('./components/BoardDashboard'));
+const RepresentativeDashboard = React.lazy(() => import('./components/RepresentativeDashboard'));
+const SocialAI = React.lazy(() => import('./components/SocialAI'));
+const LoginPage = React.lazy(() => import('./components/LoginPage'));
+const RegistrationWizard = React.lazy(() => import('./components/RegistrationWizard'));
+const VillageLive = React.lazy(() => import('./components/VillageLive'));
+const ProfileSetup = React.lazy(() => import('./components/ProfileSetup'));
+const EventsPage = React.lazy(() => import('./components/EventsPage'));
+const NewsPage = React.lazy(() => import('./components/NewsPage'));
+const AboutUsPage = React.lazy(() => import('./components/AboutUsPage'));
+const LegalPage = React.lazy(() => import('./components/LegalPage'));
+const SuperAdminDashboard = React.lazy(() => import('./components/SuperAdminDashboard'));
+
+
+
+ 
+
+
+
+
+
+
+
+
+ 
 import CookieConsent from './components/CookieConsent'; 
 import BackToTop from './components/BackToTop';
-import SuperAdminDashboard from './components/SuperAdminDashboard';
+
 import { AntiScrapeProtection } from './components/AntiScrapeProtection';
 
 import { UserRole, UserProfile, GlobalPaymentSettings, SystemSettings } from './types';
@@ -69,6 +87,12 @@ interface Branding {
 }
 
 // WHITELISTED ADMIN EMAILS
+const PageLoader: React.FC = () => (
+  <div className="flex items-center justify-center py-32">
+    <div className="w-8 h-8 border-2 border-stone-200 border-t-stone-900 rounded-full animate-spin" />
+  </div>
+);
+
 const ADMIN_EMAILS = ['email@dervishi.ch'];
 
 const AuthRedirectHandler: React.FC<{ user: UserProfile | null, children: React.ReactNode }> = ({ user, children }) => {
@@ -248,6 +272,7 @@ const AppContent: React.FC = () => {
             <ConditionalNavigation user={user} branding={branding} systemSettings={systemSettings} />
             <main className="flex-grow">
             <AnimatePresence mode="wait">
+                <React.Suspense fallback={<PageLoader />}>
                 <Routes>
                     <Route path="/" element={<Hero />} />
                     <Route path="/about" element={<AboutUsPage />} />
@@ -270,6 +295,7 @@ const AppContent: React.FC = () => {
                     <Route path="/super-admin" element={<ProtectedRoute user={user} superAdminOnly><SuperAdminDashboard /></ProtectedRoute>} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
+                </React.Suspense>
             </AnimatePresence>
             </main>
             <ConditionalFooter branding={branding} user={user} />
