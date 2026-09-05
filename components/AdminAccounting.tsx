@@ -280,7 +280,7 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
 
       const confirmed = await showConfirm({
           title: "Zahlungen verbuchen",
-          message: `${unbookedPayments.length} neue Zahlungen für ${selectedYear} gefunden. \n\nAutomatische Buchung:\nSOLL: 1020 Bank (ZKB)\nHABEN: 3000 Mitgliederbeiträge`,
+          message: `${unbookedPayments.length} neue Zahlungen für ${selectedYear} gefunden. \n\nAutomatische Buchung:\nSOLL: Bank / Kasse\nHABEN: 1100 Forderungen (Mitglieder)`,
           confirmText: "Alle Verbuchen",
           type: 'primary'
       });
@@ -292,18 +292,22 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
           // 1. Create Journal Entry
           const journalRef = doc(collection(db, 'accounting_journal'));
           
-          // Determine Debit Account (Bank or Cash?)
+          // Determine Debit Account (Bank, PayPal or Cash?)
           // If method was CASH, use 1001 (EUR) or 1000 (CHF). Defaulting to 1020 for Bank Transfers.
-          let debitCode = '1020'; 
+          let debitCode = '1020';
           if (p.method === 'CASH') {
               debitCode = p.currency === 'EUR' ? '1001' : '1000';
+          } else if (p.method === 'PAYPAL') {
+              debitCode = '1021';
           }
 
           batch.set(journalRef, {
               date: p.paidAt || getDateString(p.timestamp),
               description: `Zahlungseingang: ${p.description || 'Mitgliederbeitrag'} (${p.invoiceNumber})`,
               debitCode: debitCode, 
-              creditCode: '3000', // Member Fees (Revenue)
+              // Soll-Prinzip: der Ertrag ist bereits bei Rechnungsstellung auf 3000
+              // gebucht, der Zahlungseingang gleicht nur die Forderung aus.
+              creditCode: '1100', // Forderungen (Mitglieder)
               amount: p.amount,
               referenceId: p.id,
               createdAt: serverTimestamp()
