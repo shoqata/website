@@ -35,17 +35,26 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             return;
         }
 
-        let q;
-        if (hostname === 'koretini.org' || hostname === 'www.koretini.org' || hostname === 'koretini.me' || hostname === 'www.koretini.me' || hostname === 'localhost') {
-            console.log('[TenantContext] Landing domain detected, resolving default tenant');
-            q = query(collection(db, 'tenants'), where('slug', '==', 'koretini'));
-        } else {
-            const subdomain = hostname.split('.')[0];
-            console.log(`[TenantContext] Subdomain detected: ${subdomain}`);
-            q = query(collection(db, 'tenants'), where('slug', '==', subdomain));
-        }
+        // Der Mandant wird ueber mehrere Kandidaten aufgeloest, weil die Zeile in
+        // der Datenbank id 'koretini', aber slug 'shoqata-humanitare-koretini'
+        // traegt. Eine Suche allein ueber den slug fand deshalb nie etwas.
+        const LANDING_HOSTS = ['koretini.org', 'www.koretini.org', 'koretini.me', 'www.koretini.me', 'localhost'];
+        const isLandingHost = LANDING_HOSTS.includes(hostname);
+        const subdomain = hostname.split('.')[0];
+        const candidates: Array<[string, string]> = isLandingHost
+            ? [['domain', hostname], ['id', 'koretini'], ['slug', 'koretini']]
+            : [['domain', hostname], ['slug', subdomain], ['id', subdomain]];
 
-        const snap = await getDocs(q);
+        console.log(`[TenantContext] ${isLandingHost ? 'Landing domain' : `Subdomain: ${subdomain}`}`);
+
+        let snap: any = { empty: true, docs: [] };
+        for (const [field, value] of candidates) {
+            snap = await getDocs(query(collection(db, 'tenants'), where(field, '==', value)));
+            if (!snap.empty) {
+                console.log(`[TenantContext] Matched on ${field}=${value}`);
+                break;
+            }
+        }
         if (!snap.empty) {
             const data = snap.docs[0].data();
             console.log('[TenantContext] Tenant resolved:', data.name);
