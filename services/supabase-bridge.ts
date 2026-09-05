@@ -66,6 +66,53 @@ function cleanDataForSupabase(data: any) {
   return cleaned;
 }
 
+// --- Schema-safe write helper ---
+// PostgREST rejects the whole write with PGRST204 when the payload contains a key
+// that is not a column of the target table (e.g. UI-only fields such as `missing`
+// or `score` that get spread into a record before saving). Instead of failing the
+// save, drop the offending key and retry.
+function extractUnknownColumn(error: any): string | null {
+  if (!error || error.code !== "PGRST204") return null;
+  const match = /Could not find the '([^']+)' column/.exec(error.message || "");
+  return match ? match[1] : null;
+}
+
+async function writeWithSchemaRetry(
+  label: string,
+  payload: Record<string, any>,
+  exec: (row: Record<string, any>) => Promise<{ error: any }>
+) {
+  let row = { ...payload };
+  const dropped: string[] = [];
+
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const { error } = await exec(row);
+
+    if (!error) {
+      if (dropped.length) {
+        console.warn(`Supabase ${label}: ignored field(s) that are not columns: ${dropped.join(", ")}`);
+      }
+      return;
+    }
+
+    const column = extractUnknownColumn(error);
+    if (!column || !(column in row)) {
+      console.error(`Supabase ${label} error:`, error);
+      throw error;
+    }
+
+    delete row[column];
+    dropped.push(column);
+
+    if (Object.keys(row).length === 0) {
+      console.error(`Supabase ${label} error: nothing left to write after dropping unknown columns.`, error);
+      throw error;
+    }
+  }
+
+  throw new Error(`Supabase ${label}: too many unknown columns, aborting.`);
+}
+
 // --- Firebase App Interface ---
 export function initializeApp() {
   return { name: "supabase-bridge" };
@@ -213,13 +260,9 @@ export async function addDoc(colRef: any, data: any) {
   const row = { id, ...cleanDataForSupabase(data) };
 
   // Use upsert so duplicate calls don't cause 409 Conflict errors
-  const { error } = await supabase
-    .from(table)
-    .upsert([row], { onConflict: "id", ignoreDuplicates: false });
-  if (error) {
-    console.error(`Supabase addDoc error for ${table}:`, error);
-    throw error;
-  }
+  await writeWithSchemaRetry(`addDoc for ${table}`, row, (payload) =>
+    supabase.from(table).upsert([payload], { onConflict: "id", ignoreDuplicates: false })
+  );
   return { id };
 }
 
@@ -230,13 +273,9 @@ export async function setDoc(docRef: any, data: any, options?: any) {
   const id = docRef.id || crypto.randomUUID();
   const row = { id, ...cleanDataForSupabase(data) };
 
-  const { error } = await supabase
-    .from(path)
-    .upsert([row], { onConflict: "id", ignoreDuplicates: false });
-  if (error) {
-    console.error(`Supabase setDoc error for ${path}/${id}:`, error);
-    throw error;
-  }
+  await writeWithSchemaRetry(`setDoc for ${path}/${id}`, row, (payload) =>
+    supabase.from(path).upsert([payload], { onConflict: "id", ignoreDuplicates: false })
+  );
   return {};
 }
 
@@ -251,12 +290,12 @@ export async function updateDoc(docRef: any, data: any) {
   }
 
   const row = cleanDataForSupabase(data);
+  // Never try to rewrite the primary key of the row we are targeting
+  delete row.id;
 
-  const { error } = await supabase.from(path).update(row).eq("id", id);
-  if (error) {
-    console.error(`Supabase updateDoc error for ${path}/${id}:`, error);
-    throw error;
-  }
+  await writeWithSchemaRetry(`updateDoc for ${path}/${id}`, row, (payload) =>
+    supabase.from(path).update(payload).eq("id", id)
+  );
   return {};
 }
 

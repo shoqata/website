@@ -927,7 +927,9 @@ const AdminDataQuality = ({ users, neighborhoods, onEditUser }: any) => {
             if (!u.email || u.email.includes('@koretini.legacy')) missing.push('Email Valid');
             
             let score = 100 - (missing.length * 20);
-            return { ...u, missing, score };
+            // `user` stays the untouched DB record — `missing`/`score` are UI-only and
+            // must never reach the users table when the drawer saves this record.
+            return { ...u, missing, score, user: u };
         }).sort((a: any, b: any) => a.score - b.score);
     }, [users]);
 
@@ -987,7 +989,7 @@ const AdminDataQuality = ({ users, neighborhoods, onEditUser }: any) => {
                                         </div>
                                     </td>
                                     <td className="px-8 py-4 text-right">
-                                        <button onClick={() => onEditUser(u)} className="p-2 bg-stone-900 text-white rounded-lg hover:bg-primary transition-all shadow-sm">
+                                        <button onClick={() => onEditUser(u.user)} className="p-2 bg-stone-900 text-white rounded-lg hover:bg-primary transition-all shadow-sm">
                                             <ArrowRight size={14}/>
                                         </button>
                                     </td>
