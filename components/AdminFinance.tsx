@@ -32,7 +32,7 @@ import {
   Info
 } from 'lucide-react';
 import { db } from '../services/firebase';
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, writeBatch, setDoc, getDoc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, writeBatch, setDoc, getDoc } from '@/services/supabase-bridge';
 import { Payment, UserProfile, GlobalPaymentSettings, Account } from '../types';
 import { useFeedback } from '../context/FeedbackContext';
 import { motion, AnimatePresence } from 'framer-motion';

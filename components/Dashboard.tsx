@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from '../context/LanguageContext';
 import { UserProfile, Payment, GlobalPaymentSettings, Neighborhood, Inquiry } from '../types';
 import { db } from '../services/firebase';
-import { collection, query, where, orderBy, onSnapshot, doc, getDoc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, doc, getDoc, updateDoc, addDoc, serverTimestamp } from '@/services/supabase-bridge';
 import { 
   History, 
   FileText, 

@@ -6,7 +6,7 @@ import { Neighborhood } from '../types';
 
 // Firebase
 import { db } from '../services/firebase';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy } from '@/services/supabase-bridge';
 
 const Neighborhoods: React.FC = () => {
   const [search, setSearch] = useState('');

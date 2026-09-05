@@ -19,10 +19,10 @@ import {
   Mail
 } from 'lucide-react';
 import { db, auth } from '../services/firebase';
-import { collection, onSnapshot, addDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, serverTimestamp, query, orderBy } from '@/services/supabase-bridge';
 import { Tenant } from '../types';
 import { useFeedback } from '../context/FeedbackContext';
-import { signOut } from 'firebase/auth';
+import { signOut } from '@/services/supabase-bridge';
 import { useNavigate } from 'react-router-dom';
 
 const SuperAdminDashboard: React.FC = () => {

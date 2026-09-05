@@ -13,8 +13,8 @@ import {
   signOut,
   GoogleAuthProvider,
   signInWithPopup
-} from 'firebase/auth';
-import { collection, getDocs, query, orderBy, doc, setDoc } from 'firebase/firestore';
+} from '@/services/supabase-bridge';
+import { collection, getDocs, query, orderBy, doc, setDoc } from '@/services/supabase-bridge';
 import { Neighborhood } from '../types';
 
 const RegistrationWizard: React.FC = () => {

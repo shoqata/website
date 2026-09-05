@@ -17,7 +17,7 @@ import {
   Banknote
 } from 'lucide-react';
 import { db } from '../services/firebase';
-import { doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, serverTimestamp } from '@/services/supabase-bridge';
 import { SystemSettings, GlobalPaymentSettings } from '../types';
 import { useFeedback } from '../context/FeedbackContext';
 

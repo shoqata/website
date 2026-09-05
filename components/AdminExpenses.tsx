@@ -15,8 +15,8 @@ import {
   CreditCard
 } from 'lucide-react';
 import { db, storage } from '../services/firebase';
-import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc } from '@/services/supabase-bridge';
+import { ref, uploadBytes, getDownloadURL } from '@/services/supabase-bridge';
 import { Expense, Account } from '../types';
 import { useFeedback } from '../context/FeedbackContext';
 import { analyzeReceiptImage } from '../services/geminiService';

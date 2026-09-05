@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Lock, Beaker, Shield, Activity, Zap, Database, Play, CheckCircle, XCircle, Loader2, AlertTriangle } from 'lucide-react';
 import { db } from '../services/firebase';
-import { collection, getDocs, limit, query, where } from 'firebase/firestore';
+import { collection, getDocs, limit, query, where } from '@/services/supabase-bridge';
 import { useFeedback } from '../context/FeedbackContext';
 import { UserProfile, Payment } from '../types';
 

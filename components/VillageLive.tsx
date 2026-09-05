@@ -20,7 +20,7 @@ import {
 import { useTranslation } from '../context/LanguageContext';
 import NeighborhoodMap3D from './NeighborhoodMap3D';
 import { db } from '../services/firebase';
-import { collection, query, orderBy, onSnapshot, doc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc } from '@/services/supabase-bridge';
 import { SolidarityEvent } from '../types';
 
 const VillageLive: React.FC = () => {
