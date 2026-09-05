@@ -32,8 +32,8 @@ import {
   Languages
 } from 'lucide-react';
 import { db, storage } from '../services/firebase';
-import { doc, setDoc, onSnapshot, serverTimestamp, collection, deleteDoc, addDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { doc, setDoc, onSnapshot, serverTimestamp, collection, deleteDoc, addDoc } from '@/services/supabase-bridge';
+import { ref, uploadBytes, getDownloadURL } from '@/services/supabase-bridge';
 import { UserProfile, BoardMember } from '../types';
 import HyperTextParagraph from './ui/HyperText'; // Import for Preview
 import { useFeedback } from '../context/FeedbackContext';

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { MapPin, Globe as GlobeIcon, Users, Target, ShieldCheck } from 'lucide-react';
 import { db } from '../services/firebase';
-import { collection, onSnapshot, doc, getDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, getDoc } from '@/services/supabase-bridge';
 import { UserProfile, BoardMember } from '../types';
 import { Globe } from './Globe';
 import { useTranslation } from '../context/LanguageContext';

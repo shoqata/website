@@ -188,8 +188,21 @@ async function buildSupabaseQuery(table: string, constraints: any[] = []) {
         q = q.gte(field, value);
       } else if (op === "<=") {
         q = q.lte(field, value);
+      } else if (op === "!=") {
+        q = q.neq(field, value);
+      } else if (op === "in") {
+        q = q.in(field, Array.isArray(value) ? value : [value]);
+      } else if (op === "not-in") {
+        const list = Array.isArray(value) ? value : [value];
+        q = q.not(field, "in", `(${list.map((v) => JSON.stringify(v)).join(",")})`);
       } else if (op === "array-contains") {
         q = q.contains(field, [value]);
+      } else if (op === "array-contains-any") {
+        q = q.overlaps(field, Array.isArray(value) ? value : [value]);
+      } else {
+        // Never silently drop a filter — an unfiltered query can expose rows the
+        // caller never asked for.
+        throw new Error(`Supabase bridge: unsupported where() operator '${op}' on ${table}.${field}`);
       }
     } else if (c.type === "orderBy") {
       const { field, direction } = c;
@@ -346,9 +359,15 @@ export function onSnapshot(ref: any, callback: (snap: any) => void) {
       }
     } catch (e) {
       console.error("[Bridge] onSnapshot fetch error:", e);
-      // Still call callback with an empty "not found" snapshot so loading never stalls
+      // Still call the callback so loading never stalls — but with a snapshot of the
+      // shape the caller expects. A collection listener that receives a document
+      // snapshot crashes on snap.docs / snap.forEach.
       if (!isCancelled) {
-        callback({ exists: () => false, data: () => null });
+        callback(
+          ref.type === "document"
+            ? { exists: () => false, data: () => null, ref }
+            : { docs: [], empty: true, size: 0, forEach: () => {} }
+        );
       }
     }
   };
@@ -570,6 +589,26 @@ export async function updateProfile(user: any, { displayName, photoURL }: { disp
 }
 
 export class GoogleAuthProvider {}
+
+// --- firebase/auth compatible aliases ---
+// Components import these names directly; without them the app would have to pull
+// in the real Firebase SDK, which is no longer part of this project.
+export {
+  supabaseAuth as auth,
+  supabaseOnAuthStateChanged as onAuthStateChanged,
+  supabaseSignOut as signOut,
+  supabaseSignInWithEmailAndPassword as signInWithEmailAndPassword,
+  supabaseCreateUserWithEmailAndPassword as createUserWithEmailAndPassword,
+  supabaseSendPasswordResetEmail as sendPasswordResetEmail,
+  supabaseSendSignInLinkToEmail as sendSignInLinkToEmail,
+  supabaseIsSignInWithEmailLink as isSignInWithEmailLink,
+  supabaseSignInWithEmailLink as signInWithEmailLink,
+  supabaseSignInWithPopup as signInWithPopup,
+};
+
+export function getAuth() {
+  return supabaseAuth;
+}
 
 // Export default compatibility app
 const app = { name: "supabase-bridge" };

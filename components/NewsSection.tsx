@@ -3,7 +3,7 @@ import { motion, AnimatePresence, useReducedMotion, LayoutGroup, Variants } from
 import React, { useState, useEffect } from "react";
 import { BookmarkIcon, X, Loader2 } from "lucide-react";
 import { db } from "../services/firebase";
-import { collection, query, orderBy, limit, onSnapshot, where, Timestamp } from "firebase/firestore";
+import { collection, query, orderBy, limit, onSnapshot, where, Timestamp } from '@/services/supabase-bridge';
 import { NewsArticle } from "../types";
 import { useTranslation } from "../context/LanguageContext";
 
