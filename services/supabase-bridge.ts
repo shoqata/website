@@ -225,7 +225,9 @@ export async function addDoc(colRef: any, data: any) {
 
 export async function setDoc(docRef: any, data: any, options?: any) {
   if (!supabase) throw new Error("Supabase is not configured.");
-  const { path, id } = docRef;
+  const { path } = docRef;
+  // Auto-generate id if missing (e.g. from writeBatch without explicit doc id)
+  const id = docRef.id || crypto.randomUUID();
   const row = { id, ...cleanDataForSupabase(data) };
 
   const { error } = await supabase
@@ -241,6 +243,13 @@ export async function setDoc(docRef: any, data: any, options?: any) {
 export async function updateDoc(docRef: any, data: any) {
   if (!supabase) throw new Error("Supabase is not configured.");
   const { path, id } = docRef;
+
+  // Guard: if id is missing, we cannot safely update
+  if (!id) {
+    console.error(`Supabase updateDoc called without a valid id for table '${path}'. Skipping.`);
+    return {};
+  }
+
   const row = cleanDataForSupabase(data);
 
   const { error } = await supabase.from(path).update(row).eq("id", id);
