@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Clock, CheckCircle2, MoreHorizontal, User, Trash2, Loader2 } from 'lucide-react';
 import { db, auth } from '../services/firebase';
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc, updateDoc } from '@/services/supabase-bridge';
 import { Task, UserProfile } from '../types';
 import { useFeedback } from '../context/FeedbackContext';
 

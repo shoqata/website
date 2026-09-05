@@ -17,8 +17,6 @@ export default defineConfig(({ mode }) => {
       resolve: {
         alias: {
           '@': path.resolve(__dirname, '.'),
-          'firebase/firestore': path.resolve(__dirname, './services/supabase-bridge.ts'),
-          'firebase/storage': path.resolve(__dirname, './services/supabase-bridge.ts'),
         }
       }
     };

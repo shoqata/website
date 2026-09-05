@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { generateSocialMediaContent, analyzeImageAndSuggestPost } from '../services/geminiService';
 import { db } from '../services/firebase';
-import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, getDoc, setDoc } from '@/services/supabase-bridge';
 import { useFeedback } from '../context/FeedbackContext';
 import { useTranslation } from '../context/LanguageContext';
 

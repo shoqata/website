@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserProfile, Neighborhood, BillingGroup } from '../types';
 import { db } from '../services/firebase';
-import { doc, setDoc, collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { doc, setDoc, collection, getDocs, query, orderBy } from '@/services/supabase-bridge';
 import { MapPin, User, Phone, CheckCircle2, ArrowRight, ArrowLeft, Loader2, Mail, Home, Heart, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../context/LanguageContext';

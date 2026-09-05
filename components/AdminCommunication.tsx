@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Plus, BarChart2, Trash2, Send, HelpCircle, CheckCircle2, MessageSquare, X } from 'lucide-react';
 import { db, auth } from '../services/firebase';
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc, updateDoc } from '@/services/supabase-bridge';
 import { Poll, Inquiry } from '../types';
 import { useFeedback } from '../context/FeedbackContext';
 import { sendEmail } from '../services/mailService';

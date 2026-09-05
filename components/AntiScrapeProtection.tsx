@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AlertOctagon } from 'lucide-react';
 import { db } from '../services/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from '@/services/supabase-bridge';
 
 export const AntiScrapeProtection: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [isTriggered, setIsTriggered] = useState(false);
