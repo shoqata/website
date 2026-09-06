@@ -596,6 +596,20 @@ export async function updateProfile(user: any, { displayName, photoURL }: { disp
   return data;
 }
 
+// Verknuepft die eingeloggte Auth-Identitaet mit der bereits vorhandenen
+// users-Zeile, statt eine zweite anzulegen. Die eigentliche Logik sitzt als
+// SECURITY-DEFINER-Funktion in der Datenbank, damit hier nichts zu umgehen ist.
+// Gibt die id der beanspruchten Zeile zurueck, oder null wenn es keine gibt.
+export async function claimMyProfile(): Promise<string | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase.rpc("claim_my_profile");
+  if (error) {
+    console.error("[Bridge] claim_my_profile failed:", error);
+    return null;
+  }
+  return (data as string) || null;
+}
+
 export class GoogleAuthProvider {}
 
 // --- firebase/auth compatible aliases ---
