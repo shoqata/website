@@ -44,6 +44,7 @@ import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import { useFeedback } from '../context/FeedbackContext';
 import { sendEmail } from '../services/mailService';
 
+import { neighborhoodCity } from '../lib/neighborhood';
 interface DashboardProps {
   user: UserProfile;
 }
@@ -579,7 +580,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                         </div>
                         <h4 className="text-xl font-bold text-stone-900 mb-1">{manager?.displayName || t('dash.manager.none')}</h4>
                         <p className="text-xs text-stone-500 mb-6 flex items-center gap-1">
-                            <MapPin size={10}/> {manager?.city || neighborhood?.location.city}
+                            <MapPin size={10}/> {manager?.city || neighborhoodCity(neighborhood)}
                         </p>
 
                         <div className="flex gap-2 w-full">

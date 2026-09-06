@@ -29,6 +29,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useFeedback } from '../context/FeedbackContext';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 
+import { neighborhoodCity } from '../lib/neighborhood';
 interface BoardDashboardProps {
   user: UserProfile;
 }
@@ -120,7 +121,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
               .filter(p => uIds.includes(p.userId) && p.status === 'PAID')
               .reduce((sum, p) => sum + p.amount, 0);
           
-          return { name: n.name, value: collected, city: n.location.city };
+          return { name: n.name, value: collected, city: neighborhoodCity(n) };
       });
 
       // Sort by Value Descending
@@ -280,7 +281,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                         {searchResults.neighborhoods.map(n => (
                             <div key={n.id} className="flex justify-between items-center text-sm p-2 hover:bg-stone-50 rounded-lg cursor-default">
                                 <span className="font-bold flex items-center gap-1"><MapPin size={12}/> {n.name}</span>
-                                <span className="text-xs text-stone-400">{n.location.city}</span>
+                                <span className="text-xs text-stone-400">{neighborhoodCity(n)}</span>
                             </div>
                         ))}
                         {searchResults.users.length === 0 && searchResults.neighborhoods.length === 0 && (

@@ -8,6 +8,7 @@ import { Neighborhood } from '../types';
 import { db } from '../services/firebase';
 import { collection, onSnapshot, query, orderBy } from '@/services/supabase-bridge';
 
+import { neighborhoodCity, neighborhoodPlace } from '../lib/neighborhood';
 const Neighborhoods: React.FC = () => {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
@@ -32,7 +33,7 @@ const Neighborhoods: React.FC = () => {
 
   const filtered = useMemo(() => {
     return neighborhoods.filter(n => {
-      const matchesSearch = n.name.toLowerCase().includes(search.toLowerCase()) || n.location.city.toLowerCase().includes(search.toLowerCase());
+      const matchesSearch = n.name.toLowerCase().includes(search.toLowerCase()) || neighborhoodCity(n).toLowerCase().includes(search.toLowerCase());
       const matchesFilter = filter === 'ALL' || n.status === filter;
       return matchesSearch && matchesFilter;
     });
@@ -84,7 +85,7 @@ const Neighborhoods: React.FC = () => {
                 <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${n.status === 'ACTIVE' ? 'bg-green-100 text-green-600' : 'bg-stone-100 text-stone-400'}`}>{n.status}</span>
               </div>
               <h3 className="text-xl font-bold mb-2 group-hover:text-rose-600 transition-colors">{n.name}</h3>
-              <p className="text-stone-500 text-sm mb-6 flex items-center gap-1"><Globe size={14} /> {n.location.city}, {n.location.country}</p>
+              <p className="text-stone-500 text-sm mb-6 flex items-center gap-1"><Globe size={14} /> {neighborhoodPlace(n)}</p>
               <div className="space-y-4 mb-8">
                 <div className="flex justify-between text-sm"><span className="text-stone-400 flex items-center gap-2"><Users size={16} /> Members</span><span className="font-bold text-stone-900">{n.memberCount}</span></div>
                 <div className="flex justify-between text-sm"><span className="text-stone-400 flex items-center gap-2"><Activity size={16} /> Last Activity</span><span className="font-medium text-stone-600">{new Date(n.lastActivity).toLocaleDateString()}</span></div>

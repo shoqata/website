@@ -8,6 +8,7 @@ import { MapPin, User, Phone, CheckCircle2, ArrowRight, ArrowLeft, Loader2, Mail
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../context/LanguageContext';
 
+import { neighborhoodCity } from '../lib/neighborhood';
 const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) => void }> = ({ user, onComplete }) => {
   const { t } = useTranslation();
   const [step, setStep] = useState(1);
@@ -223,7 +224,7 @@ const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) =
                     >
                       <div>
                         <p className={`font-bold transition-colors ${formData.neighborhoodId === n.id ? 'text-primary' : 'text-stone-900'}`}>{n.name}</p>
-                        <p className="text-xs text-stone-500 uppercase tracking-widest">{n.location.city}</p>
+                        <p className="text-xs text-stone-500 uppercase tracking-widest">{neighborhoodCity(n)}</p>
                       </div>
                       <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${formData.neighborhoodId === n.id ? 'bg-primary border-primary text-white' : 'border-stone-200'}`}>
                         {formData.neighborhoodId === n.id && <CheckCircle2 size={14} />}
