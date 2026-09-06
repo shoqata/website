@@ -15,6 +15,7 @@ import {
   db, 
   onAuthStateChanged, 
   signOut,
+  claimMyProfile,
   doc, 
   getDoc, 
   onSnapshot, 
@@ -181,70 +182,56 @@ const AppContent: React.FC = () => {
     let userUnsubscribe: (() => void) | null = null;
 
     // Use Supabase onAuthStateChanged (same signature as Firebase's)
-    const authUnsubscribe = onAuthStateChanged(auth, (supabaseUser: any) => {
+    const authUnsubscribe = onAuthStateChanged(auth, async (supabaseUser: any) => {
       if (userUnsubscribe) userUnsubscribe();
       if (supabaseUser) {
         const uid = supabaseUser.uid;
         const email = supabaseUser.email || '';
+        const isAdminEmail = ADMIN_EMAILS.includes(email);
         console.log("[App] Supabase user detected:", uid, email);
-        const userDocRef = doc(db, 'users', uid);
-        
+
+        // Fruehere Fassung legte fuer bestehende Mitglieder eine zweite Zeile mit
+        // der Auth-UID an und kopierte die Daten hinueber. users.email ist aber
+        // eindeutig, der Insert scheiterte deshalb immer mit 23505 und keine
+        // Anmeldung hinterliess je ein Profil. Jetzt wird die vorhandene Zeile
+        // beansprucht -- sie behaelt ihre id, an der Zahlungen und Mandate
+        // haengen, und bekommt die Auth-UID als Merkmal.
+        let profileId = uid;
+        const claimedId = await claimMyProfile();
+        if (claimedId) {
+            profileId = claimedId;
+            console.log("[App] Bestehendes Profil beansprucht:", profileId);
+        }
+
+        const userDocRef = doc(db, 'users', profileId);
+
         userUnsubscribe = onSnapshot(userDocRef, async (docSnap) => {
-            const isAdminEmail = ADMIN_EMAILS.includes(email);
-            
             if (docSnap.exists()) {
                 const data = docSnap.data() as UserProfile;
                 if (isAdminEmail && data.role !== UserRole.SUPER_ADMIN) {
                     await updateDoc(userDocRef, { role: UserRole.SUPER_ADMIN, profileComplete: true });
                 }
-                setUser({ id: uid, ...data });
-            } else if (isAdminEmail) {
-                const newUser: UserProfile = {
+                setUser({ ...data, id: profileId });
+            } else {
+                // Weder eine Zeile unter der Auth-UID noch eine beanspruchbare:
+                // es ist wirklich ein neues Konto.
+                const newUser: any = {
                     id: uid,
+                    authUserId: uid,
                     tenantId: 'koretini',
                     email,
-                    role: UserRole.SUPER_ADMIN,
+                    role: isAdminEmail ? UserRole.SUPER_ADMIN : UserRole.MEMBER,
                     membershipStatus: 'ACTIVE',
-                    displayName: 'Administrator',
+                    displayName: isAdminEmail ? 'Administrator' : (email.split('@')[0] || 'Anëtar'),
                     joinedAt: new Date().toISOString(),
-                    profileComplete: true
+                    profileComplete: isAdminEmail
                 };
                 try {
                     await setDoc(doc(db, 'users', uid), newUser);
                 } catch (err) {
-                    console.error("[App] Failed to create admin profile:", err);
+                    console.error("[App] Profil konnte nicht angelegt werden:", err);
                 }
-                setUser(newUser);
-            } else {
-                // Check if user was pre-created by admin
-                if (email) {
-                    const usersRef = collection(db, 'users');
-                    const q = query(usersRef, where('email', '==', email));
-                    const querySnapshot = await getDocs(q);
-                    
-                    if (!querySnapshot.empty) {
-                        const oldDoc = querySnapshot.docs[0];
-                        const oldData = oldDoc.data() as UserProfile;
-                        
-                        if (oldDoc.id !== uid) {
-                            const newUserProfile: any = {
-                                ...oldData,
-                                id: uid,
-                                profileComplete: true,
-                                migrationRequired: oldDoc.id
-                            };
-                            try {
-                                await setDoc(doc(db, 'users', uid), newUserProfile);
-                                return;
-                            } catch (error) {
-                                console.error("Failed to migrate user profile:", error);
-                            }
-                        }
-                    }
-                }
-                
-                // Truly new user
-                setUser({ id: uid, ...docSnap.data() as UserProfile });
+                setUser(newUser as UserProfile);
             }
             setLoading(false);
         });

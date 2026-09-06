@@ -1,6 +1,7 @@
 // v4: Full Supabase Auth Migration - 2026-09-04
 // Firebase is no longer used. All auth and DB operations go through Supabase.
 import {
+  claimMyProfile,
   db as supabaseDb,
   storage as supabaseStorage,
   collection,
@@ -81,6 +82,7 @@ export {
 };
 
 // Raw Supabase client (for advanced usage)
+export { claimMyProfile };
 export { supabase };
 
 export default { name: 'supabase-only' };
