@@ -284,7 +284,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         amount: payment.amount,
         currency: payment.currency as 'CHF' | 'EUR',
         iban: paymentSettings.qrIban || paymentSettings.iban,
-        creditor: { name: paymentSettings.accountHolder, address: paymentSettings.street + ' ' + (paymentSettings.street.match(/\d+/) ? '' : '1'), zip: paymentSettings.zip, city: paymentSettings.city, country: paymentSettings.country },
+        creditor: { name: paymentSettings.accountHolder, address: (paymentSettings.street || '') + ' ' + ((paymentSettings.street || '').match(/\d+/) ? '' : '1'), zip: paymentSettings.zip, city: paymentSettings.city, country: paymentSettings.country },
         debtor: { name: user.displayName || 'Member', address: user.street || 'Address', zip: user.zip || '0000', city: user.city || 'City', country: user.country || 'CH' },
         reference: payment.reference || '',
         additionalInfo: payment.description
