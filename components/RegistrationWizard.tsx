@@ -17,6 +17,7 @@ import {
 import { collection, getDocs, query, orderBy, doc, setDoc } from '@/services/supabase-bridge';
 import { Neighborhood } from '../types';
 
+import { neighborhoodCity } from '../lib/neighborhood';
 const RegistrationWizard: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -55,7 +56,7 @@ const RegistrationWizard: React.FC = () => {
 
   const filteredNeighborhoods = neighborhoods.filter(n => 
     n.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    n.location.city.toLowerCase().includes(searchTerm.toLowerCase())
+    neighborhoodCity(n).toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleNext = () => {
@@ -430,7 +431,7 @@ const RegistrationWizard: React.FC = () => {
                               </div>
                               <div>
                                 <p className={`font-bold text-xs transition-colors ${formData.neighborhoodId === n.id ? 'text-primary' : 'text-stone-800'}`}>{n.name}</p>
-                                <p className="text-[8px] text-stone-400 uppercase tracking-widest">{n.location.city}</p>
+                                <p className="text-[8px] text-stone-400 uppercase tracking-widest">{neighborhoodCity(n)}</p>
                               </div>
                             </div>
                             {formData.neighborhoodId === n.id && (

@@ -41,6 +41,7 @@ import AdminTasks from './AdminTasks';
 import AdminCommunication from './AdminCommunication';
 import AdminExpenses from './AdminExpenses'; 
 
+import { neighborhoodPlace } from '../lib/neighborhood';
 type AdminTabId = 'USERS' | 'NEIGHBORHOODS' | 'ANALYTICS' | 'STATISTICS' | 'WEBSITE' | 'SOCIAL_AI' | 'EVENTS' | 'NEWS' | 'FINANCE' | 'EXPENSES' | 'DATA' | 'ACCOUNTING' | 'SETTINGS' | 'BOARD' | 'COMMUNICATION' | 'DATA_QUALITY';
 
 interface NavItem {
@@ -400,7 +401,7 @@ const AdminPanel: React.FC = () => {
                                         </div>
                                         <div className="flex justify-between items-start mb-4"><div className="p-3 bg-stone-50 rounded-2xl text-primary group-hover:bg-primary group-hover:text-white transition-colors shadow-inner"><MapPin size={24}/></div></div>
                                         <h4 className="font-bold text-lg text-stone-900 mb-1">{n.name}</h4>
-                                        <p className="text-xs text-stone-400 uppercase tracking-widest mb-6">{n.location.city}, {n.location.country}</p>
+                                        <p className="text-xs text-stone-400 uppercase tracking-widest mb-6">{neighborhoodPlace(n)}</p>
                                         <div className="space-y-3">
                                             <div className="flex justify-between items-center p-3 bg-stone-50 rounded-2xl"><span className="text-xs font-bold text-stone-400 uppercase">Anëtarë</span><span className="font-bold text-stone-900">{users.filter(u => u.neighborhoodId === n.id).length}</span></div>
                                         </div>
@@ -1075,7 +1076,7 @@ const AdminNeighborhoodDetail = ({ neighborhoodId, neighborhoods, users, payment
                             <div className="inline-flex items-center gap-2 bg-rose-50 text-rose-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest mb-4">Njësi Lokale</div>
                             <h2 className="text-5xl font-display font-bold italic text-stone-900 leading-tight mb-2">{neighborhood.name}</h2>
                             <p className="text-stone-400 font-bold uppercase tracking-[0.2em] text-xs flex items-center gap-2">
-                                <MapPin size={14} className="text-primary"/> {neighborhood.location.city}, {neighborhood.location.country}
+                                <MapPin size={14} className="text-primary"/> {neighborhoodPlace(neighborhood)}
                             </p>
                         </div>
                         <div className="bg-stone-50 p-6 rounded-[2rem] border border-stone-100 shadow-inner">

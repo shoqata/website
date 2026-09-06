@@ -89,12 +89,14 @@ export interface Neighborhood {
   tenantId?: string;
   name: string;
   description?: string;
-  location: {
-    lat: number;
-    lng: number;
-    city: string;
-    country: string;
+  // In der Datenbank durchgehend leer; der Ort steht in `city`.
+  location?: {
+    lat?: number;
+    lng?: number;
+    city?: string;
+    country?: string;
   };
+  city?: string;
   managerId?: string;
   memberCount: number;
   contactPerson: string; // Kept for backward compatibility (display string)
