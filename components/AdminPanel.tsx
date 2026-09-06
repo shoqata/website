@@ -109,13 +109,17 @@ const AdminPanel: React.FC = () => {
   }, []);
 
   const incompleteUsersCount = useMemo(() => {
-      return users.filter(u => !u.phone || !u.street || !u.city || !u.zip || !u.birthdate || !u.neighborhoodId).length;
+      return users.filter(u => u.membershipStatus !== 'INACTIVE'
+          && (!u.phone || !u.street || !u.city || !u.zip || !u.birthdate || !u.neighborhoodId)).length;
   }, [users]);
 
   const filteredUsers = useMemo(() => {
       return users.filter(u => {
           const matchSearch = u.displayName?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase());
-          const matchStatus = statusFilter === 'ALL' || u.membershipStatus === statusFilter;
+          // Ohne ausdrueckliche Wahl bleiben entfernte Mitglieder ausgeblendet.
+          const matchStatus = statusFilter === 'ALL'
+              ? u.membershipStatus !== 'INACTIVE'
+              : u.membershipStatus === statusFilter;
           const matchRole = roleFilter === 'ALL' || u.role === roleFilter;
           return matchSearch && matchStatus && matchRole;
       });
@@ -187,6 +191,36 @@ const AdminPanel: React.FC = () => {
           // ohne Ursache kostet bei jedem Fehler eine Testrunde.
           console.error('[AdminPanel] Mitglied speichern fehlgeschlagen:', e);
           showAlert({ type: 'error', message: `Fehler beim Speichern: ${e?.message || e?.code || 'unbekannter Fehler'}` });
+      }
+  };
+
+  // Mitglieder werden nie geloescht, sondern auf INACTIVE gesetzt: an ihnen
+  // haengen Zahlungen, Journalbuchungen und Vorstandsmandate. Entfernte
+  // Mitglieder verschwinden aus der Liste und aus der oeffentlichen Ansicht,
+  // bleiben aber ueber den Statusfilter erreichbar und wiederherstellbar.
+  const handleToggleMembership = async () => {
+      if (!selectedUser?.id) return;
+      const deactivate = selectedUser.membershipStatus !== 'INACTIVE';
+
+      if (deactivate) {
+          const ok = await showConfirm({
+              title: 'Largo anëtarin?',
+              message: `${selectedUser.displayName || 'Anëtari'} do të vendoset joaktiv dhe nuk do të shfaqet më në listë e as publikisht. Të dhënat dhe faturat ruhen. Mund ta rikthesh përmes filtrit "Joaktiv".`,
+              confirmText: 'Largo',
+              type: 'danger'
+          });
+          if (!ok) return;
+      }
+
+      const nextStatus: UserProfile['membershipStatus'] = deactivate ? 'INACTIVE' : 'ACTIVE';
+      try {
+          await updateDoc(doc(db, 'users', selectedUser.id), { membershipStatus: nextStatus });
+          setSelectedUser({ ...selectedUser, membershipStatus: nextStatus });
+          setIsUserDrawerOpen(false);
+          showAlert({ type: 'success', message: deactivate ? 'Anëtari u largua.' : 'Anëtari u riaktivizua.' });
+      } catch (e: any) {
+          console.error('[AdminPanel] Statuswechsel fehlgeschlagen:', e);
+          showAlert({ type: 'error', message: `Dështoi: ${e?.message || e?.code || ''}` });
       }
   };
 
@@ -353,7 +387,7 @@ const AdminPanel: React.FC = () => {
                                 <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-4 rounded-3xl border border-stone-100 shadow-sm">
                                     <div className="flex gap-2 w-full md:w-auto">
                                         <div className="relative flex-1 md:w-64"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={16}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Kërko..." className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-primary/30" /></div>
-                                        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="p-2.5 bg-stone-50 border border-stone-100 rounded-xl text-xs font-bold outline-none"><option value="ALL">Statusi</option><option value="ACTIVE">Aktiv</option><option value="PENDING">Pendent</option></select>
+                                        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="p-2.5 bg-stone-50 border border-stone-100 rounded-xl text-xs font-bold outline-none"><option value="ALL">Statusi</option><option value="ACTIVE">Aktiv</option><option value="PENDING">Pendent</option><option value="INACTIVE">Joaktiv</option></select>
                                     </div>
                                     <button onClick={() => { setSelectedUser({ id: '', email: '', role: UserRole.MEMBER, membershipStatus: 'PENDING', joinedAt: new Date().toISOString(), tenantId: 'koretini' }); setUserDrawerTab('GENERAL'); setIsUserDrawerOpen(true); }} className="bg-stone-900 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-black transition-all shadow-lg"><UserPlus size={16}/> Shto Anëtar</button>
                                 </div>
@@ -928,6 +962,13 @@ const AdminPanel: React.FC = () => {
 
                       {/* Drawer Footer */}
                       <div className="p-10 border-t border-stone-100 bg-white flex gap-4 shrink-0">
+                          {selectedUser.id && (
+                              selectedUser.membershipStatus === 'INACTIVE' ? (
+                                  <button onClick={handleToggleMembership} title="Riaktivizo anëtarin" className="px-5 py-4 bg-emerald-50 text-emerald-700 rounded-2xl font-bold hover:bg-emerald-100 transition-colors flex items-center gap-2"><UserCheck2 size={20}/> Riaktivizo</button>
+                              ) : (
+                                  <button onClick={handleToggleMembership} title="Largo anëtarin" className="px-5 py-4 bg-red-50 text-red-600 rounded-2xl font-bold hover:bg-red-100 transition-colors flex items-center gap-2"><UserMinus size={20}/> Largo</button>
+                              )
+                          )}
                           <button onClick={() => setIsUserDrawerOpen(false)} className="flex-1 py-4 bg-stone-100 text-stone-500 rounded-2xl font-bold hover:bg-stone-200 transition-colors">Anulo</button>
                           <button onClick={handleSaveUser} className="flex-[2] py-4 bg-primary text-white rounded-2xl font-bold shadow-xl shadow-rose-100 flex items-center justify-center gap-2 hover:bg-rose-600 transition-all"><Save size={20}/> Ruaj Ndryshimet</button>
                       </div>
