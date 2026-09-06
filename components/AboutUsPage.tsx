@@ -58,7 +58,7 @@ const AboutUsPage: React.FC = () => {
 
   useEffect(() => {
     // 1. Fetch Branding (Missions & Roadmap)
-    const unsubBranding = onSnapshot(doc(db, 'settings', 'branding'), (snap) => {
+    const unsubBranding = onSnapshot(doc(db, 'public_settings', 'branding'), (snap) => {
         if (snap.exists()) {
             const data = snap.data();
             setBranding(data);

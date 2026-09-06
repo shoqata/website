@@ -222,6 +222,9 @@ async function buildSupabaseQuery(table: string, constraints: any[] = []) {
 // Felder -- weshalb etwa paymentSettings.street undefined war und die
 // Rechnungsansicht beim Rendern abstuerzte.
 const SETTINGS_TABLE = "settings";
+// Die oeffentliche Projektion hat dieselbe Form, nur ohne Zugangsdaten.
+const SETTINGS_PUBLIC_TABLE = "public_settings";
+const isSettingsTable = (t: string) => t === SETTINGS_TABLE || t === SETTINGS_PUBLIC_TABLE;
 const SETTINGS_BODY_COLUMNS = ["payment", "company", "branding", "system"];
 
 function settingsColumnFor(id: string) {
@@ -265,7 +268,7 @@ export async function getDocs(queryOrColRef: any) {
 
   const mappedDocs = (data || []).map((row: any) => {
     const docData = convertToTimestamps(
-      table === SETTINGS_TABLE ? unwrapSettingsRow(row.id, row) : row
+      isSettingsTable(table) ? unwrapSettingsRow(row.id, row) : row
     );
     return {
       id: row.id,
@@ -298,7 +301,7 @@ export async function getDoc(docRef: any) {
   }
 
   const docData = convertToTimestamps(
-    path === SETTINGS_TABLE ? unwrapSettingsRow(id, data) : data
+    isSettingsTable(path) ? unwrapSettingsRow(id, data) : data
   );
   return {
     id,

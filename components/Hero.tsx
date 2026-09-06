@@ -39,7 +39,7 @@ const Hero: React.FC = () => {
 
   // 1. Fetch Branding & Images
   useEffect(() => {
-    const unsubscribe = onSnapshot(doc(db, 'settings', 'branding'), (doc) => {
+    const unsubscribe = onSnapshot(doc(db, 'public_settings', 'branding'), (doc) => {
       if (doc.exists()) {
         const data = doc.data();
         setBranding(data);
@@ -84,7 +84,7 @@ const Hero: React.FC = () => {
   // 4. Fetch Payment Settings
   useEffect(() => {
       const fetchSettings = async () => {
-          const sSnap = await getDoc(doc(db, 'settings', 'payment'));
+          const sSnap = await getDoc(doc(db, 'public_settings', 'payment'));
           if (sSnap.exists()) {
               setPaymentSettings(sSnap.data() as GlobalPaymentSettings);
           }
