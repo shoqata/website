@@ -305,9 +305,11 @@ export async function updateDoc(docRef: any, data: any) {
   // leeres Ergebnis zurueckgegeben -- der Aufrufer hielt das fuer Erfolg und
   // meldete dem Nutzer eine Speicherung, die nie stattgefunden hat.
   if (!id) {
-    throw new Error(
+    const err = new Error(
       `updateDoc auf '${path}' ohne id aufgerufen. Fuer neue Datensaetze addDoc verwenden.`
     );
+    console.error(`Supabase updateDoc for ${path}:`, err.message);
+    throw err;
   }
 
   const row = cleanDataForSupabase(data);

@@ -181,7 +181,12 @@ const AdminPanel: React.FC = () => {
               showAlert({ type: 'success', message: 'Mitglied erfolgreich erfasst.' });
           }
           setIsUserDrawerOpen(false);
-      } catch (e) { showAlert({ type: 'error', message: 'Fehler beim Speichern.' }); }
+      } catch (e: any) {
+          // Den echten Grund zeigen statt ihn zu verschlucken -- eine Meldung
+          // ohne Ursache kostet bei jedem Fehler eine Testrunde.
+          console.error('[AdminPanel] Mitglied speichern fehlgeschlagen:', e);
+          showAlert({ type: 'error', message: `Fehler beim Speichern: ${e?.message || e?.code || 'unbekannter Fehler'}` });
+      }
   };
 
   // --- CONTENT ACTIONS ---
@@ -195,7 +200,10 @@ const AdminPanel: React.FC = () => {
         }
         setShowEventModal(false);
         showAlert({ type: 'success', message: 'Event u ruajt me sukses.' });
-    } catch (e) { showAlert({ type: 'error', message: 'Dështoi ruajtja.' }); }
+    } catch (e: any) {
+        console.error('[AdminPanel] Speichern fehlgeschlagen:', e);
+        showAlert({ type: 'error', message: `Dështoi ruajtja: ${e?.message || e?.code || ''}` });
+    }
   };
 
   const handleSaveNews = async () => {
@@ -213,7 +221,10 @@ const AdminPanel: React.FC = () => {
         }
         setShowNewsModal(false);
         showAlert({ type: 'success', message: 'Lajmi u ruajt me sukses.' });
-    } catch (e) { showAlert({ type: 'error', message: 'Dështoi ruajtja.' }); }
+    } catch (e: any) {
+        console.error('[AdminPanel] Speichern fehlgeschlagen:', e);
+        showAlert({ type: 'error', message: `Dështoi ruajtja: ${e?.message || e?.code || ''}` });
+    }
   };
 
   const handleDeleteContent = async (collectionName: string, id: string) => {
@@ -238,7 +249,10 @@ const AdminPanel: React.FC = () => {
       try {
           await updateDoc(doc(db, 'event_registrations', regId), { status });
           showAlert({ type: 'success', message: `Statusi u përditësua në ${status}.` });
-      } catch (e) { showAlert({ type: 'error', message: 'Dështoi përditësimi.' }); }
+      } catch (e: any) {
+          console.error('[AdminPanel] Aktualisierung fehlgeschlagen:', e);
+          showAlert({ type: 'error', message: `Dështoi përditësimi: ${e?.message || e?.code || ''}` });
+      }
   };
 
   const exportRegistrationsCSV = (event: SolidarityEvent) => {
