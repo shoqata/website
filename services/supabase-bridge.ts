@@ -269,8 +269,11 @@ export async function getDoc(docRef: any) {
 export async function addDoc(colRef: any, data: any) {
   if (!supabase) throw new Error("Supabase is not configured.");
   const table = colRef.path;
-  const id = crypto.randomUUID();
-  const row = { id, ...cleanDataForSupabase(data) };
+  // Reihenfolge zaehlt: frueher stand die erzeugte id vor dem Spread, ein im
+  // Formular mitgeschlepptes id: '' hat sie damit wieder ueberschrieben und der
+  // Insert lief auf einen leeren Primaerschluessel.
+  const row: any = cleanDataForSupabase(data) || {};
+  if (!row.id) row.id = crypto.randomUUID();
 
   // Use upsert so duplicate calls don't cause 409 Conflict errors
   await writeWithSchemaRetry(`addDoc for ${table}`, row, (payload) =>
@@ -282,9 +285,11 @@ export async function addDoc(colRef: any, data: any) {
 export async function setDoc(docRef: any, data: any, options?: any) {
   if (!supabase) throw new Error("Supabase is not configured.");
   const { path } = docRef;
-  // Auto-generate id if missing (e.g. from writeBatch without explicit doc id)
-  const id = docRef.id || crypto.randomUUID();
-  const row = { id, ...cleanDataForSupabase(data) };
+  const row: any = cleanDataForSupabase(data) || {};
+  // Die id aus dem Pfad gewinnt, danach eine im Datensatz mitgelieferte, sonst
+  // eine neue. Ein leeres id-Feld darf nie durchrutschen.
+  const id = docRef.id || row.id || crypto.randomUUID();
+  row.id = id;
 
   await writeWithSchemaRetry(`setDoc for ${path}/${id}`, row, (payload) =>
     supabase.from(path).upsert([payload], { onConflict: "id", ignoreDuplicates: false })
@@ -296,10 +301,13 @@ export async function updateDoc(docRef: any, data: any) {
   if (!supabase) throw new Error("Supabase is not configured.");
   const { path, id } = docRef;
 
-  // Guard: if id is missing, we cannot safely update
+  // Ohne id gibt es nichts zu aktualisieren. Frueher wurde hier still ein
+  // leeres Ergebnis zurueckgegeben -- der Aufrufer hielt das fuer Erfolg und
+  // meldete dem Nutzer eine Speicherung, die nie stattgefunden hat.
   if (!id) {
-    console.error(`Supabase updateDoc called without a valid id for table '${path}'. Skipping.`);
-    return {};
+    throw new Error(
+      `updateDoc auf '${path}' ohne id aufgerufen. Fuer neue Datensaetze addDoc verwenden.`
+    );
   }
 
   const row = cleanDataForSupabase(data);

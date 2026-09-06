@@ -169,8 +169,17 @@ const AdminPanel: React.FC = () => {
 
       try {
           const displayName = `${selectedUser.firstName || ''} ${selectedUser.lastName || ''}`.trim() || selectedUser.displayName;
-          await updateDoc(doc(db, 'users', selectedUser.id), { ...selectedUser, displayName } as any);
-          showAlert({ type: 'success', message: 'Mitglied erfolgreich aktualisiert.' });
+
+          if (selectedUser.id) {
+              await updateDoc(doc(db, 'users', selectedUser.id), { ...selectedUser, displayName } as any);
+              showAlert({ type: 'success', message: 'Mitglied erfolgreich aktualisiert.' });
+          } else {
+              // Neuanlage: der Drawer startet mit id: '', die Datenbank vergibt die id.
+              const { id: _unused, ...newUser } = selectedUser as any;
+              const created = await addDoc(collection(db, 'users'), { ...newUser, displayName });
+              setSelectedUser({ ...selectedUser, id: created.id, displayName } as any);
+              showAlert({ type: 'success', message: 'Mitglied erfolgreich erfasst.' });
+          }
           setIsUserDrawerOpen(false);
       } catch (e) { showAlert({ type: 'error', message: 'Fehler beim Speichern.' }); }
   };
