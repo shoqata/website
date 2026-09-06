@@ -279,7 +279,7 @@ export async function addDoc(colRef: any, data: any) {
   await writeWithSchemaRetry(`addDoc for ${table}`, row, (payload) =>
     supabase.from(table).upsert([payload], { onConflict: "id", ignoreDuplicates: false })
   );
-  return { id };
+  return { id: row.id };
 }
 
 export async function setDoc(docRef: any, data: any, options?: any) {
