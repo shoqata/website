@@ -108,7 +108,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     });
 
     // 2. Settings
-    getDoc(doc(db, 'settings', 'payment')).then(snap => {
+    getDoc(doc(db, 'public_settings', 'payment')).then(snap => {
         if (snap.exists()) setPaymentSettings(snap.data() as GlobalPaymentSettings);
     });
 

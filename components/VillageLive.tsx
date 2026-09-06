@@ -35,7 +35,7 @@ const VillageLive: React.FC = () => {
   };
 
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, 'settings', 'branding'), (snap) => {
+    const unsub = onSnapshot(doc(db, 'public_settings', 'branding'), (snap) => {
       if (snap.exists()) setBranding(snap.data());
     });
     return () => unsub();

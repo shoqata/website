@@ -164,7 +164,7 @@ const AppContent: React.FC = () => {
   }, [loading]);
 
   useEffect(() => {
-    const brandingUnsubscribe = onSnapshot(doc(db, 'settings', 'branding'), (doc) => {
+    const brandingUnsubscribe = onSnapshot(doc(db, 'public_settings', 'branding'), (doc) => {
       if (doc.exists()) {
         const data = doc.data();
         setBranding(data);
@@ -175,7 +175,7 @@ const AppContent: React.FC = () => {
       }
     });
 
-    const settingsUnsubscribe = onSnapshot(doc(db, 'settings', 'system'), (doc) => {
+    const settingsUnsubscribe = onSnapshot(doc(db, 'public_settings', 'system'), (doc) => {
         if (doc.exists()) setSystemSettings(doc.data() as SystemSettings);
     });
 

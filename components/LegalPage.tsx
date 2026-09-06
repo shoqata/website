@@ -24,7 +24,7 @@ const LegalPage: React.FC<LegalPageProps> = ({ type }) => {
   };
 
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, 'settings', 'branding'), (snap) => {
+    const unsub = onSnapshot(doc(db, 'public_settings', 'branding'), (snap) => {
       if (snap.exists()) {
         const data = snap.data();
         const rawContent = type === 'GDPR' ? data.gdprText : data.privacyText;
