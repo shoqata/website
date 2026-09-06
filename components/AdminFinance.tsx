@@ -751,7 +751,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
                                         <div className="max-h-64 overflow-y-auto border border-stone-200 rounded-xl divide-y divide-stone-100">
                                             {multiSelectUsers.map(u => (
                                                 <label key={u.id} className="flex items-center gap-3 p-3 hover:bg-stone-50 cursor-pointer">
-                                                    <input type="checkbox" checked={selectedInvoiceUserIds.has(u.id)} onChange={() => toggleInvoiceUserSelection(u.id)} className="accent-primary w-4 h-4 rounded" />
+                                                    <input type="checkbox" checked={selectedInvoiceUserIds.has(u.id)} onChange={() => toggleUserSelection(u.id)} className="accent-primary w-4 h-4 rounded" />
                                                     <div>
                                                         <p className="font-bold text-sm">{u.displayName}</p>
                                                         <p className="text-xs text-stone-500">{u.email}</p>
