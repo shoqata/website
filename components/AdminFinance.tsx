@@ -419,7 +419,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
             iban: paymentSettings.qrIban || paymentSettings.iban, 
             creditor: { 
                 name: paymentSettings.accountHolder, 
-                address: paymentSettings.street + ' ' + (paymentSettings.street.match(/\d+/) ? '' : '1'), 
+                address: (paymentSettings.street || '') + ' ' + ((paymentSettings.street || '').match(/\d+/) ? '' : '1'), 
                 zip: paymentSettings.zip, 
                 city: paymentSettings.city, 
                 country: paymentSettings.country 

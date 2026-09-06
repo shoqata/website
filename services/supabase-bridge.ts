@@ -214,6 +214,44 @@ async function buildSupabaseQuery(table: string, constraints: any[] = []) {
   return q;
 }
 
+// --- settings: Dokumentinhalt liegt in einer JSONB-Spalte ------------------
+// Ueberbleibsel der Firestore-Migration: dort war das Dokument selbst das
+// Objekt, hier haelt eine Zeile den Inhalt in einer Spalte. settings/payment
+// steckt in der Spalte "payment", settings/system in "system". Ohne diese
+// Zuordnung liefert snap.data() {id, payment:{...}} statt der erwarteten
+// Felder -- weshalb etwa paymentSettings.street undefined war und die
+// Rechnungsansicht beim Rendern abstuerzte.
+const SETTINGS_TABLE = "settings";
+const SETTINGS_BODY_COLUMNS = ["payment", "company", "branding", "system"];
+
+function settingsColumnFor(id: string) {
+  return SETTINGS_BODY_COLUMNS.includes(id) ? id : "data";
+}
+
+function unwrapSettingsRow(id: string, row: any) {
+  if (!row) return row;
+  const body = row[settingsColumnFor(id)];
+  return { id, ...(body && typeof body === "object" ? body : {}) };
+}
+
+async function writeSettingsDoc(id: string, data: any, merge: boolean) {
+  const column = settingsColumnFor(id);
+  const incoming: any = { ...(cleanDataForSupabase(data) || {}) };
+  delete incoming.id;
+
+  let body = incoming;
+  if (merge) {
+    const { data: current } = await supabase
+      .from(SETTINGS_TABLE).select("*").eq("id", id).maybeSingle();
+    const existing = current?.[column];
+    body = { ...(existing && typeof existing === "object" ? existing : {}), ...incoming };
+  }
+
+  await writeWithSchemaRetry(`settings write for ${id}`, { id, [column]: body }, (payload) =>
+    supabase.from(SETTINGS_TABLE).upsert([payload], { onConflict: "id", ignoreDuplicates: false })
+  );
+}
+
 export async function getDocs(queryOrColRef: any) {
   const table = queryOrColRef.path;
   const constraints = queryOrColRef.constraints || [];
@@ -226,7 +264,9 @@ export async function getDocs(queryOrColRef: any) {
   }
 
   const mappedDocs = (data || []).map((row: any) => {
-    const docData = convertToTimestamps(row);
+    const docData = convertToTimestamps(
+      table === SETTINGS_TABLE ? unwrapSettingsRow(row.id, row) : row
+    );
     return {
       id: row.id,
       ref: { id: row.id, path: `${table}/${row.id}` },
@@ -257,7 +297,9 @@ export async function getDoc(docRef: any) {
     return { exists: () => false, data: () => null, ref: docRef };
   }
 
-  const docData = convertToTimestamps(data);
+  const docData = convertToTimestamps(
+    path === SETTINGS_TABLE ? unwrapSettingsRow(id, data) : data
+  );
   return {
     id,
     exists: () => true,
@@ -285,6 +327,12 @@ export async function addDoc(colRef: any, data: any) {
 export async function setDoc(docRef: any, data: any, options?: any) {
   if (!supabase) throw new Error("Supabase is not configured.");
   const { path } = docRef;
+
+  if (path === SETTINGS_TABLE && docRef.id) {
+    await writeSettingsDoc(docRef.id, data, options?.merge === true);
+    return {};
+  }
+
   const row: any = cleanDataForSupabase(data) || {};
   // Die id aus dem Pfad gewinnt, danach eine im Datensatz mitgelieferte, sonst
   // eine neue. Ein leeres id-Feld darf nie durchrutschen.
@@ -310,6 +358,11 @@ export async function updateDoc(docRef: any, data: any) {
     );
     console.error(`Supabase updateDoc for ${path}:`, err.message);
     throw err;
+  }
+
+  if (path === SETTINGS_TABLE) {
+    await writeSettingsDoc(id, data, true);
+    return {};
   }
 
   const row = cleanDataForSupabase(data);
