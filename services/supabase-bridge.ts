@@ -114,12 +114,12 @@ async function writeWithSchemaRetry(
 }
 
 // --- Firebase App Interface ---
-export function initializeApp() {
+export function initializeApp(_config?: any) {
   return { name: "supabase-bridge" };
 }
 
 // --- Firestore Compatibility Layer ---
-export function getFirestore() {
+export function getFirestore(_app?: any) {
   return { type: "db" };
 }
 
@@ -390,11 +390,12 @@ export async function deleteDoc(docRef: any) {
   return {};
 }
 
-export function writeBatch() {
+export function writeBatch(_db?: any) {
   const operations: Array<() => Promise<void>> = [];
   return {
-    set: (docRef: any, data: any) => {
-      operations.push(() => setDoc(docRef, data));
+    set: (docRef: any, data: any, options?: any) => {
+      // options wurde bisher verworfen; { merge: true } blieb damit wirkungslos.
+      operations.push(() => setDoc(docRef, data, options));
     },
     update: (docRef: any, data: any) => {
       operations.push(() => updateDoc(docRef, data));
@@ -410,7 +411,10 @@ export function writeBatch() {
   };
 }
 
-export function onSnapshot(ref: any, callback: (snap: any) => void) {
+// Der dritte Parameter ist Teil der Firestore-Signatur. Er wurde bisher nicht
+// entgegengenommen, sodass jede von Aufrufern geschriebene Fehlerbehandlung
+// stillschweigend nie lief -- etwa in Neighborhoods.tsx.
+export function onSnapshot(ref: any, callback: (snap: any) => void, onError?: (e: any) => void) {
   let isCancelled = false;
 
   const pullAndCallback = async () => {
@@ -425,10 +429,17 @@ export function onSnapshot(ref: any, callback: (snap: any) => void) {
       }
     } catch (e) {
       console.error("[Bridge] onSnapshot fetch error:", e);
-      // Still call the callback so loading never stalls — but with a snapshot of the
-      // shape the caller expects. A collection listener that receives a document
-      // snapshot crashes on snap.docs / snap.forEach.
-      if (!isCancelled) {
+      if (isCancelled) return;
+      // Wie bei Firestore: gibt es eine Fehlerbehandlung, bekommt sie den Fehler
+      // und der Erfolgspfad bleibt aus.
+      if (onError) {
+        onError(e);
+        return;
+      }
+      // Sonst weiter aufrufen, damit ein Ladezustand nicht haengen bleibt -- aber
+      // in der Form, die der Aufrufer erwartet. Ein Collection-Listener, der ein
+      // Dokument-Snapshot bekommt, stirbt an snap.docs / snap.forEach.
+      {
         callback(
           ref.type === "document"
             ? { exists: () => false, data: () => null, ref }
@@ -461,7 +472,7 @@ export function onSnapshot(ref: any, callback: (snap: any) => void) {
 }
 
 // --- Storage Compatibility Layer ---
-export function getStorage() {
+export function getStorage(_app?: any) {
   return { type: "storage" };
 }
 
@@ -545,7 +556,7 @@ export function supabaseOnAuthStateChanged(authObj: any, callback: (user: any) =
   };
 }
 
-export async function supabaseSignOut() {
+export async function supabaseSignOut(_auth?: any) {
   if (!supabase) return;
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
@@ -686,7 +697,7 @@ export {
   supabaseSignInWithPopup as signInWithPopup,
 };
 
-export function getAuth() {
+export function getAuth(_app?: any) {
   return supabaseAuth;
 }
 

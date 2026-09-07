@@ -22,7 +22,7 @@ export interface Tenant {
   subscriptionStatus: 'ACTIVE' | 'PAST_DUE' | 'CANCELLED';
   stripeCustomerId?: string;
   createdAt: string;
-  contactEmail: string;
+  contactEmail?: string;
   memberCount?: number;
 }
 
@@ -39,7 +39,7 @@ export type BillingGroup = 'STANDARD' | 'KOSOVO' | 'REDUCED';
 export interface UserProfile {
   id: string;
   tenantId: string; // Critical for data separation
-  email: string;
+  email?: string;
   role: UserRole;
   isBoardMember?: boolean;
   displayName?: string;
@@ -79,7 +79,7 @@ export interface BoardMember {
   id: string;
   userId: string;
   role: string;
-  quote: string;
+  quote?: string;
   image?: string;
   createdAt: any;
 }
@@ -99,9 +99,9 @@ export interface Neighborhood {
   city?: string;
   managerId?: string;
   memberCount: number;
-  contactPerson: string; // Kept for backward compatibility (display string)
+  contactPerson?: string; // Kept for backward compatibility (display string)
   contactPersonIds?: string[]; // New: List of User IDs
-  contactEmail: string;
+  contactEmail?: string;
   contactPhone?: string;
   website?: string;
   image?: string;
@@ -152,14 +152,14 @@ export interface Payment {
 export interface Expense {
   id: string;
   tenantId?: string;
-  vendor: string;
-  description: string;
+  vendor?: string;
+  description?: string;
   amount: number;
   currency: string;
   date: string; // Document date
   dueDate?: string;
-  categoryAccountCode: string; // e.g. "4000"
-  paymentAccountCode: string; // e.g. "1020" (Bank) or "1000" (Kasse)
+  categoryAccountCode?: string; // e.g. "4000"
+  paymentAccountCode?: string; // e.g. "1020" (Bank) or "1000" (Kasse)
   status: 'PENDING' | 'APPROVED' | 'PAID';
   receiptUrl?: string;
   bookedInJournal?: boolean;
@@ -174,7 +174,7 @@ export interface Poll {
   options: { id: string; text: string; votes: number }[];
   active: boolean;
   allowMultiple: boolean;
-  createdBy: string;
+  createdBy?: string;
   createdAt: any;
   expiresAt?: string;
   userVotes?: string[];
@@ -284,7 +284,7 @@ export interface SolidarityEvent {
   title: string;
   description: string;
   date: string;
-  time: string;
+  time?: string;
   location: string;
   image: string;
   images?: string[];
@@ -298,7 +298,7 @@ export interface SolidarityEvent {
 export interface EventRegistration {
   id: string;
   eventId: string;
-  eventTitle: string;
+  eventTitle?: string;
   userId?: string;
   name: string;
   email: string;
@@ -325,9 +325,9 @@ export interface NewsArticle {
   id: string;
   tenantId?: string;
   title: string;
-  category: string;
-  subcategory: string;
-  location: string;
+  category?: string;
+  subcategory?: string;
+  location?: string;
   image: string;
   content: string[];
   status: ContentStatus; // New: Lifecycle status
@@ -352,8 +352,8 @@ export interface JournalEntry {
   tenantId?: string;
   date: string;
   description: string;
-  debitCode: string;
-  creditCode: string;
+  debitCode?: string;
+  creditCode?: string;
   amount: number;
   referenceId?: string;
   createdAt: any;
@@ -372,8 +372,8 @@ export interface FiscalYear {
 // NEW: Request/Inquiry Interface
 export interface Inquiry {
   id: string;
-  userId: string;
-  userName: string;
+  userId?: string;
+  userName?: string;
   type: 'DONATION' | 'PROJECT' | 'GENERAL';
   subject: string;
   message: string;
