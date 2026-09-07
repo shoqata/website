@@ -228,7 +228,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           await sendEmail({
               to: managedNeighbor.email,
               subject: "Bitte Profil aktualisieren - Shoqata Koretini",
-              html: `<p>Hallo ${managedNeighbor.displayName},</p><p>Dein Nachbarschafts-Manager (${user.displayName}) bittet dich, deine Profildaten (Adresse, Telefon) zu aktualisieren, um die Erreichbarkeit sicherzustellen.</p><p><a href="https://koretini.org">Hier einloggen</a></p>`
+              html: `<p>Hallo ${managedNeighbor.displayName},</p><p>Dein Nachbarschafts-Manager (${user.displayName}) bittet dich, deine Profildaten (Adresse, Telefon) zu aktualisieren, um die Erreichbarkeit sicherzustellen.</p><p><a href="${window.location.origin}/#/login">Hier einloggen</a></p>`
           });
           
           await updateDoc(doc(db, 'users', managedNeighbor.id), { dataUpdateRequested: true });

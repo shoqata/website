@@ -4,6 +4,13 @@ import { QRCodeSVG } from 'qrcode.react';
 import { QrBillData, formatIban, formatReference, generateQrCodeContent } from '../services/qrBillService';
 import { Scissors } from 'lucide-react';
 
+
+// Das Schweizerkreuz gehoert nach der Swiss-QR-Bill-Richtlinie in die Mitte des
+// Codes -- als weisses Kreuz auf schwarzem Grund, nicht als rote Flagge. Es lag
+// bisher als Hotlink auf Wikimedia, das inzwischen 400 zurueckgibt: ein
+// Zahlungsbeleg, dessen Pflichtelement von einem fremden Server abhaengt und
+// beim Drucken fehlen kann. Jetzt inline, ohne Netzwerkzugriff.
+const SWISS_CROSS = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2ZmZmZmZiIvPjxyZWN0IHg9IjUiIHk9IjUiIHdpZHRoPSI5MCIgaGVpZ2h0PSI5MCIgZmlsbD0iIzAwMDAwMCIvPjxyZWN0IHg9IjQwLjYyNSIgeT0iMTguNzUiIHdpZHRoPSIxOC43NSIgaGVpZ2h0PSI2Mi41IiBmaWxsPSIjZmZmZmZmIi8+PHJlY3QgeD0iMTguNzUiIHk9IjQwLjYyNSIgd2lkdGg9IjYyLjUiIGhlaWdodD0iMTguNzUiIGZpbGw9IiNmZmZmZmYiLz48L3N2Zz4=";
 // Style Guide Specs
 // Receipt: 62mm x 105mm
 // Payment Part: 148mm x 105mm
@@ -106,7 +113,7 @@ const SwissQRBill: React.FC<{ data: QrBillData }> = ({ data }) => {
                         style={{ width: '100%', height: '100%' }}
                         level="M"
                         imageSettings={{
-                            src: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Flag_of_Switzerland.svg/512px-Flag_of_Switzerland.svg.png",
+                            src: SWISS_CROSS,
                             height: 28,
                             width: 28,
                             excavate: true,

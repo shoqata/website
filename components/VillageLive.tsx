@@ -109,8 +109,8 @@ const VillageSelector = ({ data, getLoc }: { data?: any[], getLoc: (v: any) => s
   
   const defaultOptions = [
     { title: "Shëndetësia", description: "Përkrahje për ambulancën", image: "https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&w=800&q=80", icon: <HeartPulse size={24} className="text-white" /> },
-    { title: "Uji & Natyra", description: "Mirëmbajtja e ambientit", image: "https://images.unsplash.com/photo-1541819616035-64552467b7e2?auto=format&fit=crop&w=800&q=80", icon: <Droplets size={24} className="text-white" /> },
-    { title: "Energjia", description: "Infrastruktura moderne", image: "https://images.unsplash.com/photo-1509391366360-feaffa64e4c9?auto=format&fit=crop&w=800&q=80", icon: <Sun size={24} className="text-white" /> },
+    { title: "Uji & Natyra", description: "Mirëmbajtja e ambientit", image: "https://images.unsplash.com/photo-1466611653911-95081537e5b7?auto=format&fit=crop&w=800&q=80", icon: <Droplets size={24} className="text-white" /> },
+    { title: "Energjia", description: "Infrastruktura moderne", image: "https://images.unsplash.com/photo-1497436072909-60f360e1d4b1?auto=format&fit=crop&w=800&q=80", icon: <Sun size={24} className="text-white" /> },
     { title: "Arsimi", description: "Edukimi i gjeneratave", image: "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80", icon: <BookOpen size={24} className="text-white" /> },
     { title: "Sporti", description: "Aktivitete sportive", image: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=800&q=80", icon: <Award size={24} className="text-white" /> }
   ];
