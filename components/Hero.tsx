@@ -11,6 +11,7 @@ import { Marquee } from './ui/Marquee';
 import HyperTextParagraph from './ui/HyperText';
 import { QRCodeSVG } from 'qrcode.react';
 
+import { onImageError } from '../lib/imageFallback';
 const DEFAULT_HERO_IMAGES = [
   "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&q=80&w=1000",
   "https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&q=80&w=1000",
@@ -213,7 +214,7 @@ const Hero: React.FC = () => {
                         <div key={member.id} className="mx-4 flex items-center gap-3 bg-white px-6 py-3 rounded-full shadow-sm border border-stone-100">
                             <div className="w-8 h-8 rounded-full bg-stone-100 overflow-hidden border border-stone-200">
                                 {member.photoFileName ? (
-                                    <img src={member.photoFileName} className="w-full h-full object-cover" alt={member.displayName} />
+                                    <img src={member.photoFileName} className="w-full h-full object-cover" alt={member.displayName}  onError={onImageError}/>
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-stone-400">
                                         {member.displayName?.charAt(0)}
@@ -250,7 +251,7 @@ const Hero: React.FC = () => {
                  <div key={event.id} className="bg-white rounded-[2.5rem] overflow-hidden border border-stone-100 shadow-sm hover:shadow-xl transition-all group cursor-pointer">
                     <Link to="/events">
                         <div className="aspect-[16/10] overflow-hidden relative">
-                           <img src={event.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                           <img src={event.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"  onError={onImageError}/>
                            <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl text-center shadow-sm">
                               <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">{new Date(event.date).toLocaleString('default', { month: 'short' })}</p>
                               <p className="text-xl font-bold text-primary">{new Date(event.date).getDate()}</p>

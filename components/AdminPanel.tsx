@@ -42,6 +42,7 @@ import AdminCommunication from './AdminCommunication';
 import AdminExpenses from './AdminExpenses'; 
 
 import { neighborhoodPlace } from '../lib/neighborhood';
+import { onImageError } from '../lib/imageFallback';
 type AdminTabId = 'USERS' | 'NEIGHBORHOODS' | 'ANALYTICS' | 'STATISTICS' | 'WEBSITE' | 'SOCIAL_AI' | 'EVENTS' | 'NEWS' | 'FINANCE' | 'EXPENSES' | 'DATA' | 'ACCOUNTING' | 'SETTINGS' | 'BOARD' | 'COMMUNICATION' | 'DATA_QUALITY';
 
 interface NavItem {
@@ -404,7 +405,7 @@ const AdminPanel: React.FC = () => {
                                                     <td className="px-6 py-4">
                                                         <div className="flex items-center gap-3">
                                                             <div className="w-10 h-10 rounded-full bg-stone-100 overflow-hidden flex items-center justify-center font-bold text-stone-400">
-                                                                {u.photoFileName ? <img src={u.photoFileName} className="w-full h-full object-cover"/> : u.displayName?.charAt(0)}
+                                                                {u.photoFileName ? <img src={u.photoFileName} className="w-full h-full object-cover" onError={onImageError}/> : u.displayName?.charAt(0)}
                                                             </div>
                                                             <div>
                                                                 <p className="font-bold text-stone-900 flex items-center gap-2">
@@ -467,7 +468,7 @@ const AdminPanel: React.FC = () => {
                                         return (
                                             <div key={event.id} className={`bg-white rounded-[2rem] overflow-hidden border transition-all relative group hover:shadow-xl ${event.status === 'ARCHIVED' ? 'opacity-50 border-stone-200' : 'border-stone-100 shadow-sm'}`}>
                                                 <div className="aspect-video relative overflow-hidden">
-                                                    <img src={event.image || 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=800&q=80'} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                                    <img src={event.image || 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=800&q=80'} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"  onError={onImageError}/>
                                                     <div className="absolute top-4 left-4 flex flex-col gap-2">
                                                         <span className={`text-[9px] font-bold px-2 py-1 rounded-lg uppercase tracking-widest shadow-lg ${event.status === 'PUBLISHED' ? 'bg-emerald-500 text-white' : event.status === 'DRAFT' ? 'bg-amber-500 text-white' : 'bg-stone-500 text-white'}`}>
                                                             {event.status}
@@ -521,7 +522,7 @@ const AdminPanel: React.FC = () => {
                                                     <td className="px-6 py-4">
                                                         <div className="flex items-center gap-3">
                                                             <div className="w-12 h-12 rounded-xl bg-stone-100 overflow-hidden shrink-0 border border-stone-200">
-                                                                {item.image ? <img src={item.image} className="w-full h-full object-cover" /> : <LucideImage className="m-auto text-stone-300" size={20}/>}
+                                                                {item.image ? <img src={item.image} className="w-full h-full object-cover"  onError={onImageError}/> : <LucideImage className="m-auto text-stone-300" size={20}/>}
                                                             </div>
                                                             <div><p className="font-bold text-stone-900 line-clamp-1">{item.title}</p><p className="text-[10px] text-stone-400 uppercase">{item.location}</p></div>
                                                         </div>
@@ -770,7 +771,7 @@ const AdminPanel: React.FC = () => {
                           <button onClick={() => setIsUserDrawerOpen(false)} className="absolute top-6 right-6 p-2 hover:bg-white/10 rounded-full text-white/50 hover:text-white transition-colors"><X size={24}/></button>
                           <div className="flex items-center gap-8">
                               <div className="w-28 h-28 rounded-[2rem] bg-white/10 border-2 border-white/20 p-1 flex items-center justify-center text-4xl font-bold shrink-0 overflow-hidden shadow-2xl">
-                                  {selectedUser.photoFileName ? <img src={selectedUser.photoFileName} className="w-full h-full object-cover"/> : selectedUser.displayName?.charAt(0)}
+                                  {selectedUser.photoFileName ? <img src={selectedUser.photoFileName} className="w-full h-full object-cover" onError={onImageError}/> : selectedUser.displayName?.charAt(0)}
                               </div>
                               <div className="flex-1 min-w-0">
                                   <h2 className="text-3xl font-display font-bold italic truncate mb-2">{selectedUser.displayName || 'Anëtar i ri'}</h2>
@@ -1170,7 +1171,7 @@ const AdminNeighborhoodDetail = ({ neighborhoodId, neighborhoods, users, payment
                                         <td className="px-8 py-4">
                                             <div className="flex items-center gap-4">
                                                 <div className="w-10 h-10 rounded-xl bg-stone-100 flex items-center justify-center font-bold text-stone-400 overflow-hidden shadow-sm">
-                                                    {u.photoFileName ? <img src={u.photoFileName} className="w-full h-full object-cover"/> : u.displayName?.charAt(0)}
+                                                    {u.photoFileName ? <img src={u.photoFileName} className="w-full h-full object-cover" onError={onImageError}/> : u.displayName?.charAt(0)}
                                                 </div>
                                                 <div><p className="font-bold text-stone-800">{u.displayName}</p><p className="text-[10px] text-stone-400">{u.phone || 'Pa telefon'}</p></div>
                                             </div>
@@ -1191,7 +1192,7 @@ const AdminNeighborhoodDetail = ({ neighborhoodId, neighborhoods, users, payment
                         <h4 className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em] mb-8">Përgjegjësi i Njësisë</h4>
                         <div className="flex items-center gap-6 mb-8 relative z-10">
                             <div className="w-20 h-20 rounded-[1.5rem] bg-white/10 flex items-center justify-center font-bold text-2xl border border-white/20 shadow-2xl overflow-hidden">
-                                {manager?.photoFileName ? <img src={manager.photoFileName} className="w-full h-full object-cover"/> : manager?.displayName?.charAt(0) || '?'}
+                                {manager?.photoFileName ? <img src={manager.photoFileName} className="w-full h-full object-cover" onError={onImageError}/> : manager?.displayName?.charAt(0) || '?'}
                             </div>
                             <div><p className="font-bold text-xl">{manager?.displayName || 'Pa Manager'}</p><p className="text-xs text-stone-500 font-mono italic">Lagje-Manager</p></div>
                         </div>

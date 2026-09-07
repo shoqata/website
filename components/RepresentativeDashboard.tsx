@@ -30,6 +30,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFeedback } from '../context/FeedbackContext';
 
+import { onImageError } from '../lib/imageFallback';
 interface RepresentativeDashboardProps {
   user: UserProfile;
 }
@@ -586,7 +587,7 @@ const RepresentativeDashboard: React.FC<RepresentativeDashboardProps> = ({ user 
 
                         <div className="space-y-4 mb-6">
                             <div onClick={() => expenseFileRef.current?.click()} className="h-32 bg-stone-50 rounded-xl border-2 border-dashed border-stone-200 flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-colors relative overflow-hidden">
-                                {expenseImage ? <img src={expenseImage} className="w-full h-full object-cover" /> : <div className="flex flex-col items-center text-stone-400"><Camera size={24}/><span className="text-xs font-bold mt-1">Foto</span></div>}
+                                {expenseImage ? <img src={expenseImage} className="w-full h-full object-cover"  onError={onImageError}/> : <div className="flex flex-col items-center text-stone-400"><Camera size={24}/><span className="text-xs font-bold mt-1">Foto</span></div>}
                                 {isUploading && <div className="absolute inset-0 bg-white/50 flex items-center justify-center"><Loader2 className="animate-spin text-primary"/></div>}
                                 <input type="file" ref={expenseFileRef} hidden accept="image/*" onChange={handleExpenseImageUpload} />
                             </div>

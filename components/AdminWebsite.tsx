@@ -38,6 +38,7 @@ import { UserProfile, BoardMember } from '../types';
 import HyperTextParagraph from './ui/HyperText'; // Import for Preview
 import { useFeedback } from '../context/FeedbackContext';
 
+import { onImageError } from '../lib/imageFallback';
 // --- TYPES ---
 // Helper type for localized strings
 type LocalizedString = string | { [key: string]: string };
@@ -397,7 +398,7 @@ const AdminWebsite: React.FC = () => {
                         <div className="p-4 border-2 border-dashed border-stone-100 rounded-2xl flex flex-col gap-4">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    {branding.logoUrl ? <img src={branding.logoUrl} className="h-8 object-contain" /> : <div className="w-8 h-8 bg-stone-100 rounded-lg flex items-center justify-center"><ImageIcon size={16} className="text-stone-300"/></div>}
+                                    {branding.logoUrl ? <img src={branding.logoUrl} className="h-8 object-contain"  onError={onImageError}/> : <div className="w-8 h-8 bg-stone-100 rounded-lg flex items-center justify-center"><ImageIcon size={16} className="text-stone-300"/></div>}
                                     <span className="text-xs font-bold text-stone-500">Logo Asset</span>
                                 </div>
                                 <div className="flex gap-2">
@@ -479,7 +480,7 @@ const AdminWebsite: React.FC = () => {
                                 <div className="grid grid-cols-3 gap-2">
                                     {branding.heroImages.map((img, idx) => (
                                         <div key={idx} className="aspect-video relative rounded-lg overflow-hidden group">
-                                            <img src={img} className="w-full h-full object-cover" />
+                                            <img src={img} className="w-full h-full object-cover"  onError={onImageError}/>
                                             <button onClick={() => updateField('heroImages', branding.heroImages.filter((_, i) => i !== idx))} className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"><Trash2 size={16}/></button>
                                         </div>
                                     ))}
@@ -549,7 +550,7 @@ const AdminWebsite: React.FC = () => {
                                         className="w-16 h-16 bg-white border-2 border-dashed border-stone-200 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-primary overflow-hidden relative"
                                     >
                                         {newBoardMember.image ? (
-                                            <img src={newBoardMember.image} className="w-full h-full object-cover"/> 
+                                            <img src={newBoardMember.image} className="w-full h-full object-cover" onError={onImageError}/> 
                                         ) : (
                                             <div className="flex flex-col items-center gap-1">
                                                 <button onClick={() => boardImageInputRef.current?.click()} className="text-[8px] font-bold text-stone-400 hover:text-primary">Upload</button>
@@ -577,7 +578,7 @@ const AdminWebsite: React.FC = () => {
                                     return (
                                         <div key={bm.id} className="flex items-center justify-between p-3 bg-white border border-stone-100 rounded-xl shadow-sm">
                                             <div className="flex items-center gap-3">
-                                                <img src={bm.image || u?.photoFileName} className="w-8 h-8 rounded-full object-cover bg-stone-200"/>
+                                                <img src={bm.image || u?.photoFileName} className="w-8 h-8 rounded-full object-cover bg-stone-200" onError={onImageError}/>
                                                 <div>
                                                     <p className="text-xs font-bold">{u?.displayName}</p>
                                                     <p className="text-[10px] text-stone-500">{bm.role}</p>
@@ -650,7 +651,7 @@ const AdminWebsite: React.FC = () => {
                                 {/* Image Box */}
                                 <div className="relative group w-16 h-16 shrink-0">
                                      <div className="w-full h-full bg-white rounded-xl border border-stone-200 overflow-hidden flex items-center justify-center">
-                                         {s.image ? <img src={s.image} className="w-full h-full object-cover"/> : <ImageIcon size={16} className="text-stone-300"/>}
+                                         {s.image ? <img src={s.image} className="w-full h-full object-cover" onError={onImageError}/> : <ImageIcon size={16} className="text-stone-300"/>}
                                      </div>
                                      
                                      {/* Hover Overlay with 2 buttons */}
@@ -757,7 +758,7 @@ const AdminWebsite: React.FC = () => {
                {/* Preview Header */}
                <div className="px-8 py-4 border-b border-stone-100 flex justify-between items-center sticky top-0 bg-white/80 backdrop-blur-md z-10">
                   <div className="flex items-center gap-2">
-                     {branding.logoUrl ? <img src={branding.logoUrl} style={{ height: branding.logoHeight || '2.5rem' }} className="w-auto object-contain" /> : <div className="bg-primary p-1 rounded-lg text-white"><Heart size={12} fill="white" /></div>}
+                     {branding.logoUrl ? <img src={branding.logoUrl} style={{ height: branding.logoHeight || '2.5rem' }} className="w-auto object-contain"  onError={onImageError}/> : <div className="bg-primary p-1 rounded-lg text-white"><Heart size={12} fill="white" /></div>}
                      <span className="font-display font-bold italic text-sm text-stone-800">Koretini</span>
                   </div>
                   <div className="flex gap-1">
@@ -776,7 +777,7 @@ const AdminWebsite: React.FC = () => {
                       <p className="text-stone-500 text-sm mb-8 italic leading-relaxed">{getLoc(branding.heroSubtitle)}</p>
                       
                       <div className="w-full aspect-video rounded-3xl bg-stone-200 overflow-hidden mb-12 shadow-xl border-4 border-white relative">
-                          {branding.heroImages[0] && <img src={branding.heroImages[0]} className="w-full h-full object-cover" />}
+                          {branding.heroImages[0] && <img src={branding.heroImages[0]} className="w-full h-full object-cover"  onError={onImageError}/>}
                           <div className="absolute inset-0 bg-gradient-to-t from-stone-900/40 to-transparent" />
                       </div>
                   </div>

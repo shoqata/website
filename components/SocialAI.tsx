@@ -34,6 +34,7 @@ import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, g
 import { useFeedback } from '../context/FeedbackContext';
 import { useTranslation } from '../context/LanguageContext';
 
+import { onImageError } from '../lib/imageFallback';
 interface SocialAIProps {
     viewMode?: 'LIST' | 'GRID' | 'KANBAN';
 }
@@ -230,7 +231,7 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
                         >
                             {previewImage ? (
                             <div className="relative group">
-                                <img src={previewImage} className="max-h-64 rounded-3xl shadow-2xl" />
+                                <img src={previewImage} className="max-h-64 rounded-3xl shadow-2xl"  onError={onImageError}/>
                                 <button onClick={(e) => { e.stopPropagation(); setPreviewImage(null); }} className="absolute -top-3 -right-3 p-3 bg-white text-red-500 rounded-full shadow-xl border border-stone-100"><Trash2 size={20} /></button>
                             </div>
                             ) : (
@@ -361,7 +362,7 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
                         {scheduledPosts.map(p => (
                             <div key={p.id} className="p-4 bg-stone-50 rounded-2xl border border-stone-100 flex gap-4 items-start group hover:bg-white hover:shadow-md transition-all cursor-pointer">
                                 <div className="w-16 h-16 bg-white rounded-xl flex items-center justify-center shrink-0 border border-stone-200 overflow-hidden shadow-inner">
-                                    {p.image ? <img src={p.image} className="w-full h-full object-cover" /> : <ImageIcon className="text-stone-200" size={24} />}
+                                    {p.image ? <img src={p.image} className="w-full h-full object-cover"  onError={onImageError}/> : <ImageIcon className="text-stone-200" size={24} />}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex justify-between items-center mb-1">
