@@ -93,13 +93,36 @@ const getDateString = (dateInput: any): string => {
     return String(dateInput);
 };
 
-const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearClosed }) => {
+const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearClosed: isYearClosedProp }) => {
   const { t } = useTranslation();
   const { showAlert, showConfirm } = useFeedback();
   const [activeTab, setActiveTab] = useState<'JOURNAL' | 'ACCOUNTS' | 'BILANZ' | 'ERFOLG'>('BILANZ');
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [journal, setJournal] = useState<JournalEntry[]>([]);
   const [unbookedPayments, setUnbookedPayments] = useState<Payment[]>([]);
+
+  // Der Abschlussstatus wird hier selbst ermittelt statt auf die Prop zu warten.
+  // AdminPanel rendert <AdminAccounting selectedYear={...} /> ohne isYearClosed,
+  // die Prop war also immer undefined: jede Sperre lief ins Leere, gebucht werden
+  // konnte in abgeschlossene Jahre, und der Jahresabschluss liess sich beliebig
+  // oft ausloesen. Ein Bauteil, das seinen eigenen Zustand kennt, kann von einem
+  // Aufrufer nicht mehr entwaffnet werden.
+  const [yearClosedInDb, setYearClosedInDb] = useState(false);
+  const isYearClosed = isYearClosedProp ?? yearClosedInDb;
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const snap = await getDoc(doc(db, 'fiscal_years', selectedYear.toString()));
+        if (!cancelled) setYearClosedInDb(snap.exists() && snap.data()?.status === 'CLOSED');
+      } catch (e) {
+        console.error('[AdminAccounting] Abschlussstatus nicht ermittelbar:', e);
+        if (!cancelled) setYearClosedInDb(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [selectedYear]);
   
   // New Booking State
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
@@ -368,10 +391,41 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
   };
 
   const performYearClosing = async () => {
-      setClosingStep(1); 
-      const batch = writeBatch(db);
-      batch.update(doc(db, 'fiscal_years', selectedYear.toString()), { status: 'CLOSED', closedAt: new Date().toISOString(), netProfit: currentProfit });
+      if (isYearClosed) {
+          showAlert({ type: 'error', message: `Das Geschäftsjahr ${selectedYear} ist bereits abgeschlossen.` });
+          return;
+      }
+
       const nextYear = selectedYear + 1;
+
+      // Zweiter Riegel: wenn die Eroeffnungsbuchungen schon existieren, wurde der
+      // Abschluss bereits ausgefuehrt. Ein zweiter Lauf wuerde die Vortraege
+      // verdoppeln, und genau das war moeglich, solange die Sperre nicht griff.
+      try {
+          const existing = await getDocs(query(
+              collection(db, 'accounting_journal'),
+              where('date', '==', `${nextYear}-01-01`),
+              where('isSystemEntry', '==', true)
+          ));
+          if (!existing.empty) {
+              showAlert({ type: 'error', message: `Für ${nextYear} bestehen bereits Eröffnungsbuchungen. Abschluss abgebrochen.` });
+              return;
+          }
+      } catch (e) {
+          console.error('[AdminAccounting] Prüfung auf bestehende Eröffnungsbuchungen fehlgeschlagen:', e);
+          showAlert({ type: 'error', message: 'Vorprüfung fehlgeschlagen, Abschluss abgebrochen.' });
+          return;
+      }
+
+      setClosingStep(1);
+      const batch = writeBatch(db);
+      // set statt update: die fiscal_years-Zeile muss nicht existieren. Ein update
+      // auf eine fehlende Zeile trifft null Datensaetze und meldet trotzdem Erfolg
+      // -- der Abschluss waere dann nie vermerkt worden, waehrend die Vortraege
+      // bereits geschrieben sind.
+      batch.set(doc(db, 'fiscal_years', selectedYear.toString()),
+          { id: selectedYear.toString(), year: selectedYear, status: 'CLOSED', closedAt: new Date().toISOString(), netProfit: currentProfit },
+          { merge: true });
       batch.set(doc(db, 'fiscal_years', nextYear.toString()), { id: nextYear.toString(), year: nextYear, status: 'OPEN' }, { merge: true });
       const balanceSheetAccounts = accountBalances.filter(b => b.class === 'ASSET' || b.class === 'LIABILITY');
       balanceSheetAccounts.forEach(acc => {
@@ -392,7 +446,15 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
           }
       });
       setClosingStep(2);
-      await batch.commit();
+      try {
+          await batch.commit();
+      } catch (e: any) {
+          console.error('[AdminAccounting] Jahresabschluss fehlgeschlagen:', e);
+          setClosingStep(0);
+          showAlert({ type: 'error', message: `Abschluss fehlgeschlagen: ${e?.message || e?.code || 'unbekannter Fehler'}` });
+          return;
+      }
+      setYearClosedInDb(true);
       setClosingStep(3);
       setTimeout(() => { setShowClosingWizard(false); setClosingStep(0); showAlert({ type: 'success', message: `Geschäftsjahr ${selectedYear} erfolgreich abgeschlossen.` }); }, 2000);
   };

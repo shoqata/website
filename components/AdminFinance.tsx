@@ -330,6 +330,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
 
         try {
             const batch = writeBatch(db);
+            let createdSummary = 'Rechnung erstellt.';
             const baseData = { description: newInvoice.description || 'Mitgliederbeitrag ' + selectedYear, dueDate: newInvoice.dueDate, status: 'PENDING', type: 'FEE', billingYear: selectedYear };
             
             if (invoiceMode === 'SINGLE') {
@@ -343,23 +344,55 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
                 }
                 const method = determinePaymentMethod(country);
 
-                batch.set(docRef, { ...baseData, method, amount: newInvoice.amount, currency: newInvoice.currency, timestamp: serverTimestamp(), invoiceNumber: `INV-${Date.now().toString().slice(-6)}`, userId: recipientMode === 'MEMBER' ? newInvoice.userId : 'EXTERNAL', deliveryMethod: 'EMAIL', customRecipient: recipientMode === 'EXTERNAL' ? { ...customRecipient, address: `${customRecipient.street}, ${customRecipient.zip} ${customRecipient.city}` } : null });
+                batch.set(docRef, { ...baseData, method, amount: newInvoice.amount, currency: newInvoice.currency, timestamp: serverTimestamp(), invoiceNumber: `INV-${Date.now().toString().slice(-6)}-${Math.floor(Math.random()*1000).toString().padStart(3, '0')}`, userId: recipientMode === 'MEMBER' ? newInvoice.userId : 'EXTERNAL', deliveryMethod: 'EMAIL', customRecipient: recipientMode === 'EXTERNAL' ? { ...customRecipient, address: `${customRecipient.street}, ${customRecipient.zip} ${customRecipient.city}` } : null });
             } else {
-                const targetUserIds = invoiceMode === 'MULTI' ? Array.from(selectedInvoiceUserIds) : users.filter(u => u.membershipStatus === 'ACTIVE').map(u => u.id);
+                // Wer fuer dieses Jahr schon eine Beitragsrechnung hat, wird
+                // uebersprungen. Ohne diese Pruefung erzeugt ein zweiter Lauf des
+                // Sammellaufs fuer jedes aktive Mitglied eine zweite Rechnung --
+                // bei ueber 300 Mitgliedern still und schwer rueckgaengig zu machen.
+                const alreadyInvoiced = new Set(
+                    payments
+                        .filter(p => p.type === 'FEE' && p.billingYear === selectedYear && p.userId)
+                        .map(p => p.userId as string)
+                );
+                const candidateIds = invoiceMode === 'MULTI'
+                    ? Array.from(selectedInvoiceUserIds)
+                    : users.filter(u => u.membershipStatus === 'ACTIVE').map(u => u.id);
+                const targetUserIds = candidateIds.filter(id => !alreadyInvoiced.has(id));
+                const skippedCount = candidateIds.length - targetUserIds.length;
+
+                if (targetUserIds.length === 0) {
+                    showAlert({ type: 'error', message: `Alle ${candidateIds.length} ausgewählten Mitglieder haben für ${selectedYear} bereits eine Beitragsrechnung.` });
+                    return;
+                }
                 const standardFee = paymentSettings.fees?.STANDARD?.amount || 120;
                 const standardCurr = paymentSettings.fees?.STANDARD?.currency || 'CHF';
                 targetUserIds.forEach((uid, index) => {
                     const u = users.find(user => user.id === uid);
                     if (!u) return;
-                    let amount = u.customAnnualFee || (u.billingGroup === 'KOSOVO' ? paymentSettings.fees?.KOSOVO?.amount : u.billingGroup === 'REDUCED' ? paymentSettings.fees?.REDUCED?.amount : standardFee) || standardFee;
-                    let currency = (u.customAnnualFee ? u.currency : u.billingGroup === 'KOSOVO' ? paymentSettings.fees?.KOSOVO?.currency : u.billingGroup === 'REDUCED' ? paymentSettings.fees?.REDUCED?.currency : standardCurr) || standardCurr;
+                    // Der hinterlegte Eigenbeitrag wird mit ?? geprueft, nicht mit ||.
+                    // Ein Betrag von 0 -- Ehrenmitglied, Beitragsbefreiung -- ist eine
+                    // Aussage und kein fehlender Wert; mit || waere daraus still der
+                    // volle Standardbeitrag geworden.
+                    const groupFee = u.billingGroup === 'KOSOVO' ? paymentSettings.fees?.KOSOVO?.amount
+                        : u.billingGroup === 'REDUCED' ? paymentSettings.fees?.REDUCED?.amount
+                        : standardFee;
+                    const groupCurr = u.billingGroup === 'KOSOVO' ? paymentSettings.fees?.KOSOVO?.currency
+                        : u.billingGroup === 'REDUCED' ? paymentSettings.fees?.REDUCED?.currency
+                        : standardCurr;
+                    const hasOwnFee = u.customAnnualFee !== undefined && u.customAnnualFee !== null;
+                    let amount = hasOwnFee ? u.customAnnualFee : (groupFee ?? standardFee);
+                    let currency = (hasOwnFee ? u.currency : groupCurr) || standardCurr;
                     const hasValidEmail = u.email && !u.email.includes('@koretini.legacy') && u.email.includes('@');
                     let deliveryMethod = (!hasValidEmail || u.invoiceDeliveryMethod === 'POST') ? 'POST' : (u.invoiceDeliveryMethod === 'BOTH' ? 'BOTH' : 'EMAIL');
                     const method = determinePaymentMethod(u.country);
                     
                     const docRef = doc(collection(db, 'payments'));
-                    batch.set(docRef, { ...baseData, method, userId: uid, amount, currency, deliveryMethod, timestamp: serverTimestamp(), invoiceNumber: `INV-${Date.now().toString().slice(-5)}${index}` });
+                    batch.set(docRef, { ...baseData, method, userId: uid, amount, currency, deliveryMethod, timestamp: serverTimestamp(), invoiceNumber: `INV-${Date.now().toString().slice(-6)}-${String(index).padStart(3, '0')}${Math.floor(Math.random()*100).toString().padStart(2, '0')}` });
                 });
+                createdSummary = skippedCount > 0
+                    ? `${targetUserIds.length} Rechnungen erstellt, ${skippedCount} übersprungen (bereits für ${selectedYear} verrechnet).`
+                    : `${targetUserIds.length} Rechnungen erstellt.`;
             }
             await batch.commit();
             setShowCreateModal(false);
@@ -367,7 +400,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
             setMemberSearchTerm('');
             setCustomRecipient({ name: '', email: '', street: '', zip: '', city: '', country: 'Switzerland' });
             setSelectedInvoiceUserIds(new Set());
-            showAlert({ type: 'success', message: 'Invoices created.' });
+            showAlert({ type: 'success', message: createdSummary });
         } catch (error) { showAlert({ type: 'error', message: 'Failed to create invoice.' }); }
     };
 
