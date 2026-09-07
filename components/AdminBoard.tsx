@@ -8,6 +8,7 @@ import { ref, uploadBytes, getDownloadURL } from '@/services/supabase-bridge';
 import { BoardMeeting, UserProfile, BoardMember, ProtocolAttendee, ProtocolAgendaItem, Task } from '../types';
 import { useFeedback } from '../context/FeedbackContext';
 
+import { onImageError } from '../lib/imageFallback';
 interface AdminBoardProps {
     users: UserProfile[];
 }
@@ -397,7 +398,7 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                         onClick={() => fileInputRef.current?.click()}
                                         className="w-24 h-24 bg-white border-2 border-dashed border-stone-200 rounded-2xl flex items-center justify-center cursor-pointer hover:border-primary overflow-hidden relative shrink-0"
                                     >
-                                        {newBoardMember.image ? <img src={newBoardMember.image} className="w-full h-full object-cover"/> : <Upload size={20} className="text-stone-300"/>}
+                                        {newBoardMember.image ? <img src={newBoardMember.image} className="w-full h-full object-cover" onError={onImageError}/> : <Upload size={20} className="text-stone-300"/>}
                                         <input type="file" ref={fileInputRef} hidden accept="image/*" onChange={handleBoardImageUpload} />
                                     </div>
                                     <div className="flex-1 space-y-4">
@@ -435,7 +436,7 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                     const u = users.find(user => user.id === bm.userId);
                                     return (
                                         <div key={bm.id} className="flex items-center gap-4 p-4 bg-white border border-stone-100 rounded-2xl shadow-sm group hover:shadow-md transition-all">
-                                            <img src={bm.image || u?.photoFileName} className="w-12 h-12 rounded-xl object-cover bg-stone-100"/>
+                                            <img src={bm.image || u?.photoFileName} className="w-12 h-12 rounded-xl object-cover bg-stone-100" onError={onImageError}/>
                                             <div className="flex-1">
                                                 <p className="font-bold text-stone-900">{u?.displayName}</p>
                                                 <p className="text-xs text-primary font-bold uppercase tracking-wide">{bm.role}</p>

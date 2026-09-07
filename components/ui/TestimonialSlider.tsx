@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
+import { onImageError } from '../../lib/imageFallback';
 // Utility for class merging
 function cn(...classes: (string | undefined | null | false)[]) {
   return classes.filter(Boolean).join(' ');
@@ -129,7 +130,7 @@ export const TestimonialSlider = ({
                     src={review.thumbnailSrc}
                     alt={review.name}
                     className="w-full h-full object-cover"
-                  />
+                   onError={onImageError}/>
                 </button>
               );
             })}

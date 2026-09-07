@@ -23,6 +23,7 @@ import { db } from '../services/firebase';
 import { collection, query, orderBy, onSnapshot, doc } from '@/services/supabase-bridge';
 import { SolidarityEvent } from '../types';
 
+import { onImageError } from '../lib/imageFallback';
 const VillageLive: React.FC = () => {
   const { t, language } = useTranslation();
   const [branding, setBranding] = useState<any>({});
@@ -187,7 +188,7 @@ const EventTimeline = () => {
             <div key={e.id} className="flex gap-6 items-start group">
               <div className="w-12 h-12 bg-white rounded-xl border border-stone-100 flex items-center justify-center shadow-sm shrink-0 overflow-hidden">
                 {e.image ? (
-                   <img src={e.image} className="w-full h-full object-cover" alt="icon" />
+                   <img src={e.image} className="w-full h-full object-cover" alt="icon"  onError={onImageError}/>
                 ) : (
                    <Award className="text-rose-500" />
                 )}

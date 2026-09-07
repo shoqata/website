@@ -77,6 +77,7 @@ import { AntiScrapeProtection } from './components/AntiScrapeProtection';
 
 import { UserRole, UserProfile, GlobalPaymentSettings, SystemSettings } from './types';
 
+import { onImageError } from './lib/imageFallback';
 interface Branding {
   primary?: string;
   secondary?: string;
@@ -126,7 +127,7 @@ const MaintenanceScreen = ({ branding }: { branding: Branding }) => (
       <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.8 }} className="relative mb-12">
           <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full" />
           {branding.logoUrl ? (
-              <img src={branding.logoUrl} className="h-40 w-auto object-contain relative z-10 drop-shadow-2xl animate-pulse" alt="Logo" />
+              <img src={branding.logoUrl} className="h-40 w-auto object-contain relative z-10 drop-shadow-2xl animate-pulse" alt="Logo"  onError={onImageError}/>
           ) : (
               <Heart size={120} className="text-primary relative z-10 animate-pulse" fill="currentColor" />
           )}
@@ -313,7 +314,7 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings }) => {
       <div className="max-w-7xl mx-auto glass rounded-2xl flex items-center justify-between px-4 py-2 shadow-lg relative">
         <Link to="/" className="flex items-center gap-3 pr-4 group relative z-50">
           {branding.logoUrl ? (
-            <img src={branding.logoUrl} style={{ height: branding.logoHeight || '2.5rem' }} className="w-auto object-contain" alt="Logo" />
+            <img src={branding.logoUrl} style={{ height: branding.logoHeight || '2.5rem' }} className="w-auto object-contain" alt="Logo"  onError={onImageError}/>
           ) : (
             <div className="bg-primary p-2 rounded-xl text-white shadow-lg"><Heart size={24} fill="white" /></div>
           )}
@@ -402,7 +403,7 @@ const ConditionalFooter = ({ branding, user }: any) => {
       <div className="max-w-7xl mx-auto relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12 border-b border-white/10 pb-12">
           <div className="lg:col-span-2 space-y-8">
-            {branding.logoUrl ? <img src={branding.logoUrl} style={{ height: branding.logoHeight || '3rem' }} className="w-auto mb-6 object-contain" alt="Logo" /> : <h3 className="font-display text-3xl font-bold italic mb-6">Koretini</h3>}
+            {branding.logoUrl ? <img src={branding.logoUrl} style={{ height: branding.logoHeight || '3rem' }} className="w-auto mb-6 object-contain" alt="Logo"  onError={onImageError}/> : <h3 className="font-display text-3xl font-bold italic mb-6">Koretini</h3>}
             <p className="text-white/50 text-lg leading-relaxed max-w-md italic">{branding.footerText || "Bashkë për vendlindjen tonë. Diaspora dhe Koretini në një hap drejt të ardhmes."}</p>
           </div>
           <div className="space-y-4">

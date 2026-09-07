@@ -30,6 +30,7 @@ import { useFeedback } from '../context/FeedbackContext';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 
 import { neighborhoodCity } from '../lib/neighborhood';
+import { onImageError } from '../lib/imageFallback';
 interface BoardDashboardProps {
   user: UserProfile;
 }
@@ -417,7 +418,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                         
                         <div className="flex flex-col items-center mb-6">
                             <div className="w-24 h-24 bg-stone-100 rounded-full flex items-center justify-center text-3xl font-bold text-stone-400 mb-4 overflow-hidden border-4 border-white shadow-md">
-                                {selectedMember.photoFileName ? <img src={selectedMember.photoFileName} className="w-full h-full object-cover"/> : selectedMember.displayName?.charAt(0)}
+                                {selectedMember.photoFileName ? <img src={selectedMember.photoFileName} className="w-full h-full object-cover" onError={onImageError}/> : selectedMember.displayName?.charAt(0)}
                             </div>
                             <h3 className="text-2xl font-bold text-stone-900">{selectedMember.displayName}</h3>
                             <span className={`text-xs font-bold px-3 py-1 rounded-full mt-2 ${selectedMember.membershipStatus === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-stone-100 text-stone-500'}`}>

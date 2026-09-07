@@ -7,6 +7,7 @@ import { collection, query, orderBy, limit, onSnapshot, where, Timestamp } from 
 import { NewsArticle } from "../types";
 import { useTranslation } from "../context/LanguageContext";
 
+import { onImageError } from '../lib/imageFallback';
 // Utility function to replace 'cn'
 function cn(...classes: (string | undefined | null | false)[]) {
   return classes.filter(Boolean).join(' ');
@@ -222,7 +223,7 @@ export function NewsSection() {
                      src={card.image}
                      alt={card.title}
                      className="w-full h-full object-cover transform-gpu group-hover:scale-105 transition-transform duration-700 ease-out"
-                   />
+                    onError={onImageError}/>
                    <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent"></div>
                    <motion.div 
                      className="absolute top-4 right-4 z-10"
@@ -303,7 +304,7 @@ export function NewsSection() {
                         src={selectedCard.image}
                         alt={selectedCard.title}
                         className="w-full h-full object-cover"
-                    />
+                     onError={onImageError}/>
                     <div className="absolute inset-0 bg-gradient-to-t from-stone-900/80 via-transparent to-transparent md:bg-gradient-to-r"></div>
                     <div className="absolute bottom-8 left-8 text-white">
                         <motion.div 

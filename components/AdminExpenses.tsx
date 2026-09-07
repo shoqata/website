@@ -22,6 +22,7 @@ import { useFeedback } from '../context/FeedbackContext';
 import { analyzeReceiptImage } from '../services/geminiService';
 import { useTranslation } from '../context/LanguageContext';
 
+import { onImageError } from '../lib/imageFallback';
 const AdminExpenses: React.FC = () => {
     const { t } = useTranslation();
     const { showAlert, showConfirm, showPrompt } = useFeedback();
@@ -314,7 +315,7 @@ const AdminExpenses: React.FC = () => {
                                 >
                                     {receiptPreview && (
                                         <div className="mb-6 h-32 w-full bg-stone-50 rounded-xl border border-stone-100 overflow-hidden relative group">
-                                            <img src={receiptPreview} className="w-full h-full object-contain" />
+                                            <img src={receiptPreview} className="w-full h-full object-contain"  onError={onImageError}/>
                                             <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded backdrop-blur-sm">Beleg Vorschau</div>
                                         </div>
                                     )}

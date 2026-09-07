@@ -45,6 +45,7 @@ import { useFeedback } from '../context/FeedbackContext';
 import { sendEmail } from '../services/mailService';
 
 import { neighborhoodCity } from '../lib/neighborhood';
+import { onImageError } from '../lib/imageFallback';
 interface DashboardProps {
   user: UserProfile;
 }
@@ -573,7 +574,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                     <div className="flex flex-col items-center text-center mt-4">
                         <div className="w-20 h-20 rounded-full border-4 border-white shadow-lg overflow-hidden mb-4 bg-stone-200">
                             {manager?.photoFileName ? (
-                                <img src={manager.photoFileName} className="w-full h-full object-cover" />
+                                <img src={manager.photoFileName} className="w-full h-full object-cover"  onError={onImageError}/>
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-stone-400">{manager?.displayName?.charAt(0) || '?'}</div>
                             )}
@@ -682,7 +683,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                                 )}
                                                 
                                                 {m.photoFileName ? (
-                                                    <img src={m.photoFileName} className="w-5 h-5 rounded-full object-cover" />
+                                                    <img src={m.photoFileName} className="w-5 h-5 rounded-full object-cover"  onError={onImageError}/>
                                                 ) : (
                                                     <div className="w-5 h-5 rounded-full bg-stone-100 flex items-center justify-center text-[8px] font-bold text-stone-400">
                                                         {m.firstName?.charAt(0) || m.displayName?.charAt(0)}
@@ -716,7 +717,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                     >
                                         <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-bold border-2 transition-all shadow-sm overflow-hidden relative ${n.membershipStatus === 'ACTIVE' ? 'border-emerald-100 bg-emerald-50 text-emerald-600' : 'border-stone-100 bg-stone-50 text-stone-400 grayscale'}`}>
                                             {n.photoFileName ? (
-                                                <img src={n.photoFileName} className="w-full h-full object-cover" />
+                                                <img src={n.photoFileName} className="w-full h-full object-cover"  onError={onImageError}/>
                                             ) : (
                                                 n.displayName?.charAt(0)
                                             )}

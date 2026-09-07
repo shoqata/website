@@ -8,6 +8,7 @@ import { SolidarityEvent, UserProfile, EventRegistration } from '../types';
 import { useTranslation } from '../context/LanguageContext';
 import { useFeedback } from '../context/FeedbackContext';
 
+import { onImageError } from '../lib/imageFallback';
 const EventsPage: React.FC = () => {
   const { t } = useTranslation();
   const { showAlert } = useFeedback();
@@ -121,7 +122,7 @@ const EventsPage: React.FC = () => {
                    className="bg-white rounded-[2.5rem] overflow-hidden border border-stone-100 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group"
                  >
                     <div className="aspect-[4/3] overflow-hidden relative">
-                       <img src={event.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={event.title} />
+                       <img src={event.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={event.title}  onError={onImageError}/>
                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60" />
                        <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl text-center shadow-sm z-10">
                           <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">{new Date(event.date).toLocaleString('default', { month: 'short' })}</p>
