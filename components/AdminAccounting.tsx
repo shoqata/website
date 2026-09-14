@@ -77,12 +77,17 @@ interface AdminAccountingProps {
 }
 
 // Helper to reliably extract a Year from any date format
+// Gibt NaN zurueck, wenn sich kein Jahr bestimmen laesst. Frueher war das
+// laufende Jahr der Rueckfallwert: eine Buchung ohne oder mit unlesbarem Datum
+// rutschte damit still in die aktuelle Periode und verfaelschte deren Abschluss.
+// NaN vergleicht sich mit keinem Jahr, der Datensatz faellt also sichtbar aus
+// der Auswertung statt sie unbemerkt zu verschieben.
 const getYearFromEntry = (dateInput: any): number => {
-    if (!dateInput) return new Date().getFullYear();
+    if (!dateInput) return NaN;
     if (dateInput instanceof Timestamp) return dateInput.toDate().getFullYear();
-    if (typeof dateInput === 'string') return new Date(dateInput).getFullYear();
     if (dateInput instanceof Date) return dateInput.getFullYear();
-    return new Date().getFullYear();
+    if (typeof dateInput === 'string') return new Date(dateInput).getFullYear();
+    return NaN;
 };
 
 const getDateString = (dateInput: any): string => {

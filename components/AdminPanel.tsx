@@ -74,6 +74,11 @@ const AdminPanel: React.FC = () => {
   const [events, setEvents] = useState<SolidarityEvent[]>([]);
   const [news, setNews] = useState<NewsArticle[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
+  // Die Beitragssaetze kommen aus den Einstellungen, damit der Drawer denselben
+  // Betrag vorschlaegt wie der Sammellauf in AdminFinance. Vorher stand hier
+  // eine fest verdrahtete 100, waehrend konfiguriert 120 gilt -- eine aus dem
+  // Mitglieder-Drawer erstellte Rechnung lautete also ueber 20 Franken zu wenig.
+  const [feeSettings, setFeeSettings] = useState<any>(null);
   const [registrations, setRegistrations] = useState<EventRegistration[]>([]);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
@@ -106,6 +111,10 @@ const AdminPanel: React.FC = () => {
     const unsubNews = onSnapshot(query(collection(db, 'news'), orderBy('timestamp', 'desc')), (snap) => setNews(snap.docs.map(d => ({ id: d.id, ...d.data() } as NewsArticle))));
     const unsubPayments = onSnapshot(collection(db, 'payments'), (snap) => { setPayments(snap.docs.map(d => ({ id: d.id, ...d.data() } as Payment))); setIsLoading(false); });
     const unsubRegs = onSnapshot(collection(db, 'event_registrations'), (snap) => setRegistrations(snap.docs.map(d => ({ id: d.id, ...d.data() } as EventRegistration))));
+    getDoc(doc(db, 'public_settings', 'payment'))
+      .then(snap => { if (snap.exists()) setFeeSettings(snap.data()); })
+      .catch(e => console.error('[AdminPanel] Beitragssätze nicht ladbar:', e));
+
     return () => { unsubUsers(); unsubNeighborhoods(); unsubEvents(); unsubNews(); unsubPayments(); unsubRegs(); };
   }, []);
 
@@ -164,6 +173,18 @@ const AdminPanel: React.FC = () => {
           ]
       }
   ];
+
+  // Derselbe Vorrang wie im Sammellauf: eigener Beitrag, sonst Gruppensatz,
+  // sonst Standard. Ein eigener Beitrag von 0 bleibt 0 -- er wird mit ?? statt
+  // mit || geprueft, sonst wuerde eine Beitragsbefreiung still ueberschrieben.
+  const suggestedFeeFor = (u: UserProfile | null): number => {
+      if (u?.customAnnualFee !== undefined && u?.customAnnualFee !== null) return u.customAnnualFee;
+      const fees = feeSettings?.fees;
+      const groupFee = u?.billingGroup === 'KOSOVO' ? fees?.KOSOVO?.amount
+          : u?.billingGroup === 'REDUCED' ? fees?.REDUCED?.amount
+          : fees?.STANDARD?.amount;
+      return groupFee ?? feeSettings?.annualFeeAmount ?? 120;
+  };
 
   const handleSaveUser = async () => {
       if(!selectedUser) return;
@@ -876,7 +897,7 @@ const AdminPanel: React.FC = () => {
                                               <div>
                                                   <label className="text-[10px] font-bold text-stone-400 uppercase block mb-1">Shuma</label>
                                                   <div className="relative">
-                                                      <input type="number" id="invoice-amount" defaultValue={selectedUser.customAnnualFee || 100} className="w-full pl-4 pr-12 py-3 bg-stone-50 border border-stone-200 rounded-xl outline-none font-mono font-bold text-sm" />
+                                                      <input type="number" id="invoice-amount" defaultValue={suggestedFeeFor(selectedUser)} className="w-full pl-4 pr-12 py-3 bg-stone-50 border border-stone-200 rounded-xl outline-none font-mono font-bold text-sm" />
                                                       <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-stone-400">CHF</span>
                                                   </div>
                                               </div>
@@ -891,7 +912,7 @@ const AdminPanel: React.FC = () => {
                                                   const amount = parseFloat((document.getElementById('invoice-amount') as HTMLInputElement).value);
                                                   const due = (document.getElementById('invoice-due') as HTMLInputElement).value;
                                                   
-                                                  if (!desc || !amount || !due) {
+                                                  if (!desc || Number.isNaN(amount) || !due) {
                                                       showAlert({ type: 'error', message: 'Ju lutem plotësoni të gjitha fushat.' });
                                                       return;
                                                   }
