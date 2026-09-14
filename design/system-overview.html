@@ -166,14 +166,15 @@ footer{border-top:1px solid var(--rule); padding:26px 0 0; margin-top:14px; colo
 
 <header class="masthead">
   <div class="masthead-inner">
-    <p class="eyebrow">Systemübersicht · Stand 14. September 2026</p>
+    <p class="eyebrow">Systemübersicht · Stand 14. September 2026, abends</p>
     <h1>Koretini Plattform</h1>
-    <p class="standfirst">Was die Seite kann, wer was darf, und was fehlt, bevor ein zweiter Verein dazukommt.</p>
+    <p class="standfirst">Was die Seite kann, wer was darf, und wie die Vereine voneinander getrennt sind.</p>
     <div class="metaline">
       <span><b>Repository</b> shoqata/website</span>
       <span><b>Stack</b> React 19 · Vite · Supabase</span>
       <span><b>Domain</b> www.koretini.me</span>
       <span><b>Mitglieder</b> 350</span>
+      <span><b>Vereine</b> 1 von beliebig vielen</span>
     </div>
   </div>
 </header>
@@ -189,7 +190,7 @@ footer{border-top:1px solid var(--rule); padding:26px 0 0; margin-top:14px; colo
       <li><a href="#rollen">Rollenmodell</a></li>
       <li><a href="#daten">Datenmodell</a></li>
       <li><a href="#mandanten">Mandantenfähigkeit</a></li>
-      <li><a href="#weg">Weg dorthin</a></li>
+      <li><a href="#weg">Verein anlegen</a></li>
       <li><a href="#offen">Offene Punkte</a></li>
     </ol>
   </nav>
@@ -203,13 +204,13 @@ footer{border-top:1px solid var(--rule); padding:26px 0 0; margin-top:14px; colo
     <div class="figures">
       <div class="fig"><div class="v">9</div><div class="k">Öffentliche Seiten</div></div>
       <div class="fig"><div class="v">16</div><div class="k">Admin-Bereiche</div></div>
-      <div class="fig"><div class="v">7</div><div class="k">Rollen</div></div>
-      <div class="fig"><div class="v">21</div><div class="k">Tabellen</div></div>
-      <div class="fig"><div class="v">350</div><div class="k">Mitglieder</div></div>
+      <div class="fig"><div class="v">8</div><div class="k">Rollen</div></div>
+      <div class="fig"><div class="v">23</div><div class="k">Tabellen</div></div>
+      <div class="fig"><div class="v">38</div><div class="k">Zugriffsregeln</div></div>
     </div>
 
     <p>Die Datenhaltung liegt in Supabase. Der Anwendungscode spricht sie über <code>services/supabase-bridge.ts</code> an — eine Kompatibilitätsschicht, die die Firestore-API auf PostgREST abbildet. Sie stammt aus der Migration von Firebase und ist der Grund, warum der Code weiterhin <code>collection()</code> und <code>onSnapshot()</code> verwendet.</p>
-    <p>Der Zugriffsschutz sitzt seit September 2026 in der Datenbank selbst: jede Tabelle hat Row Level Security, öffentliche Seiten lesen über eigens beschnittene Sichten statt direkt auf die Rohdaten.</p>
+    <p>Der Zugriffsschutz sitzt in der Datenbank selbst: jede Tabelle hat Row Level Security, öffentliche Seiten lesen über eigens beschnittene Sichten statt direkt auf die Rohdaten. Seit dem 14. September trennt dieselbe Schicht zusätzlich die Vereine voneinander — nachgewiesen, nicht behauptet.</p>
   </section>
 
   <section id="oeffentlich">
@@ -328,17 +329,31 @@ footer{border-top:1px solid var(--rule); padding:26px 0 0; margin-top:14px; colo
 
     <p>Serverseitig gilt: <code>is_staff()</code> umfasst SUPER_ADMIN, ADMIN und BOARD; <code>is_member_manager()</code> zusätzlich Repräsentanten und Quartiersverantwortliche. Niemand kann sich selbst oder andere höher stufen — Einfüge- und Änderungsregeln binden die Rolle an das, was <code>app_role()</code> bereits ausweist.</p>
 
-    <div class="note crit">
-      <h4>SUPER_ADMIN existiert serverseitig nicht</h4>
-      <p>Die Unterscheidung zwischen Plattformbetreiber und Vereinsadministrator lebt ausschliesslich im Browser. In der Datenbank sind beide <code>is_staff()</code> — ein Vereinsadministrator darf damit die Tabelle <code>tenants</code> schreiben. Solange es einen Verein gibt, fällt das nicht auf. Mit dem zweiten Verein ist es ein Konstruktionsfehler.</p>
+    <h3>Der Betreiber der Plattform</h3>
+    <p>Über allen Vereinsrollen steht eine achte, die nicht zu einem Verein gehört: der Plattformbetreiber. Er legt Vereine an und verwaltet deren Domains — und er ist der Einzige, der das darf.</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th class="mono">Prüfung</th><th>Umfasst</th><th>Quelle</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">is_platform_admin()</td><td>Betreiber der Plattform</td><td class="mono">platform_admins</td></tr>
+          <tr><td class="mono">is_staff()</td><td>SUPER_ADMIN, ADMIN, BOARD</td><td class="mono">admin_emails oder users.role</td></tr>
+          <tr><td class="mono">is_member_manager()</td><td>zusätzlich REPRESENTATIVE, NEIGHBORHOOD_MANAGER</td><td class="mono">users.role</td></tr>
+        </tbody>
+      </table>
     </div>
 
-    <p>Zwei E-Mail-Adressen sind im Code fest verdrahtet: <code>email@dervishi.ch</code> als Administrator und <code>info@unityhub.li</code> als Plattformbetreiber. Die erste ist zusätzlich serverseitig in <code>admin_emails</code> hinterlegt und wirkt dort tatsächlich; die zweite wirkt nur im Browser.</p>
+    <p><code>platform_admins</code> ist bewusst eine eigene Tabelle und nicht <code>admin_emails</code>: die Plattform zu betreiben und einen Verein zu verwalten sind zwei verschiedene Dinge und dürfen sich keine Liste teilen. Eingetragen ist <code>email@dervishi.ch</code>.</p>
+
+    <div class="note">
+      <h4>Was sich dadurch geändert hat</h4>
+      <p>Vorher lebte die Unterscheidung nur im Browser — in der Datenbank waren Betreiber und Vereinsadministrator beide <code>is_staff()</code>, ein Vereinsadministrator konnte also die Mandantentabelle schreiben. Im Code stand ausserdem eine zweite Adresse, <code>info@unityhub.li</code>, die serverseitig nie etwas durfte: wer sich damit anmeldete, sah die Verwaltungsmasken, während jeder Schreibvorgang dahinter abgewiesen wurde. Beides ist bereinigt.</p>
+    </div>
   </section>
 
   <section id="daten">
     <h2>Datenmodell</h2>
-    <p class="lede">21 Tabellen und drei Sichten. Die Sichten sind die Zugriffsgrenze zur Öffentlichkeit.</p>
+    <p class="lede">23 Tabellen und fünf Sichten. Die Sichten sind die Zugriffsgrenze zur Öffentlichkeit, 32 Fremdschlüssel halten die Beziehungen zusammen.</p>
 
     <div class="tablewrap">
       <table>
@@ -349,98 +364,162 @@ footer{border-top:1px solid var(--rule); padding:26px 0 0; margin-top:14px; colo
           <tr><td>Organisation</td><td class="mono">board_meetings, board_members, tasks, neighborhoods</td><td><span class="pill warn">gemischt</span></td></tr>
           <tr><td>Inhalte</td><td class="mono">events, news, polls, socialmediaposts, settings</td><td><span class="pill ok">lesen öffentlich</span></td></tr>
           <tr><td>Interaktion</td><td class="mono">event_registrations, inquiries</td><td><span class="pill warn">eigene Zeile</span></td></tr>
-          <tr><td>Plattform</td><td class="mono">tenants, admin_emails, security_logs</td><td><span class="pill crit">nur Verwaltung</span></td></tr>
+          <tr><td>Plattform</td><td class="mono">tenants, tenant_domains, platform_admins, admin_emails, security_logs</td><td><span class="pill crit">nur Betreiber</span></td></tr>
         </tbody>
       </table>
     </div>
 
     <h3>Öffentliche Sichten</h3>
     <ul class="plain">
-      <li><code>public_members</code> — sieben Spalten aus <code>users</code>: Name, Bild, Ort, Land, Status. Ohne Adresse, Geburtsdatum, Telefon, interne Notizen. Entfernte Mitglieder fallen heraus.</li>
-      <li><code>public_settings</code> — die Einstellungen ohne PayPal-Zugangsdaten.</li>
+      <li><code>public_members</code> — Name, Bild, Ort, Land, Status. Ohne Adresse, Geburtsdatum, Telefon, interne Notizen. Entfernte Mitglieder fallen heraus, und es erscheint nur der Verein der aufrufenden Adresse.</li>
+      <li><code>public_settings</code> — die Einstellungen ohne PayPal-Zugangsdaten, ebenfalls auf den Verein begrenzt.</li>
+      <li><code>public_tenants</code> und <code>public_tenant_domains</code> — Adresse, Kennung und Erscheinungsbild. Ohne sie könnte sich keine Website identifizieren; Abrechnungs- und Kontaktdaten enthalten sie nicht.</li>
       <li><code>socialMediaPosts</code> — Schreibweisen-Brücke auf <code>socialmediaposts</code>.</li>
     </ul>
+
+    <p>Bis zum 14. September gab es im gesamten Schema <strong>keinen einzigen Fremdschlüssel</strong> und drei Indizes. Dass die Daten trotzdem sauber waren, war Glück, keine Zusicherung — alle 31 geprüften Beziehungen gingen ohne einen einzigen Verweis ins Leere aus und tragen den Schlüssel jetzt. <code>ON DELETE RESTRICT</code> statt <code>CASCADE</code>: ein Mitglied mit Zahlungen lässt sich nicht löschen, sondern nur auf inaktiv setzen. Dazu 37 Indizes statt drei.</p>
   </section>
 
   <section id="mandanten">
     <h2>Mandantenfähigkeit</h2>
-    <p class="lede">Das System ist für mehrere Vereine <em>geformt</em>, aber nicht dafür <em>eingerichtet</em>. Der Unterschied ist erheblich.</p>
+    <p class="lede">Am 14. September von „geformt, aber nicht eingerichtet" auf durchgesetzt und nachgewiesen gebracht.</p>
 
     <div class="figures">
-      <div class="fig"><div class="v">13</div><div class="k">Tabellen mit tenantId</div></div>
-      <div class="fig"><div class="v">8</div><div class="k">Tabellen ohne</div></div>
-      <div class="fig"><div class="v">0</div><div class="k">Zeilen mit Wert</div></div>
-      <div class="fig"><div class="v">0</div><div class="k">Stellen, die filtern</div></div>
+      <div class="fig"><div class="v">19</div><div class="k">Tabellen je Verein</div></div>
+      <div class="fig"><div class="v">0</div><div class="k">Zeilen ohne Verein</div></div>
+      <div class="fig"><div class="v">38</div><div class="k">Regeln, alle gebunden</div></div>
+      <div class="fig"><div class="v">10</div><div class="k">Prüfungen bestanden</div></div>
     </div>
 
-    <p>Dreizehn Tabellen tragen eine Spalte <code>tenantId</code>. In den Daten steht sie überall auf <code>NULL</code>. Im gesamten Anwendungscode gibt es keine einzige Abfrage, die danach filtert, und keine einzige Sicherheitsregel, die sie berücksichtigt.</p>
+    <p>Jede Zeile gehört einem Verein. Die sechs Tabellen, denen die Spalte fehlte, haben sie bekommen; der gesamte Bestand ist <code>koretini</code> zugeordnet; <code>tenantId</code> ist auf allen 19 Tabellen <code>NOT NULL</code>. Ein Trigger trägt den Verein beim Einfügen nach — der Anwendungscode setzte ihn nur an vier Stellen, und alle anzufassen hätte die nächste vergessene Stelle nicht verhindert.</p>
 
-    <div class="note crit">
-      <h4>Was das praktisch bedeutet</h4>
-      <p>Legt man heute einen zweiten Verein an, sehen dessen Administratoren die Mitglieder, Zahlungen und Buchhaltung des ersten — und umgekehrt. Nicht durch eine Lücke, sondern weil die Trennung nirgends stattfindet.</p>
-    </div>
+    <p>Jede Zugriffsregel liest jetzt <em>„ist Verwaltung dieses Mandanten"</em> statt <em>„ist Verwaltung"</em>.</p>
 
-    <p>Vorhanden ist bereits: eine Tabelle <code>tenants</code> mit zwei Einträgen, ein <code>TenantContext</code>, der den Mandanten aus dem Hostnamen auflöst, und ein Super-Admin-Dashboard, das neue Mandanten anlegen kann. Das Gerüst steht also. Was fehlt, ist die Durchsetzung.</p>
-
-    <h3>Tabellen ohne Mandantenbezug</h3>
-    <p>Acht Tabellen haben die Spalte gar nicht — sie müssten sie bekommen, bevor ein zweiter Verein dazukommt:</p>
-    <ul class="plain">
-      <li><code>accounting_accounts</code> — jeder Verein braucht seinen eigenen Kontenplan</li>
-      <li><code>board_members</code>, <code>event_registrations</code>, <code>inquiries</code>, <code>security_logs</code></li>
-      <li><code>settings</code> — Bankverbindung und Beitragssätze sind heute global</li>
-      <li><code>admin_emails</code> — sonst gilt eine Freischaltung für alle Vereine</li>
-      <li><code>tenants</code> selbst — braucht keinen, ist das Verzeichnis</li>
-    </ul>
-  </section>
-
-  <section id="weg">
-    <h2>Weg dorthin</h2>
-    <p class="lede">Die Reihenfolge ist hier keine Gliederung, sondern eine Abhängigkeitskette: jeder Schritt setzt den vorigen voraus.</p>
-
-    <ol class="steps">
-      <li><b>Plattformrolle serverseitig einführen</b><span>Eine Rolle oberhalb von ADMIN, die nur der Betreiber hat, mit eigener Prüffunktion. <code>tenants</code> und <code>admin_emails</code> werden ausschliesslich für sie schreibbar. Ohne diesen Schritt kann jeder Vereinsadministrator Mandanten anlegen und ändern.</span></li>
-      <li><b>Bestand einem Mandanten zuordnen</b><span>Alle vorhandenen Zeilen auf <code>tenantId = 'koretini'</code> setzen, danach die Spalte auf <code>NOT NULL</code> mit Vorgabewert. Solange <code>NULL</code> erlaubt ist, entsteht bei jedem Schreibvorgang ein Datensatz ohne Zugehörigkeit.</span></li>
-      <li><b>Fehlende Spalten ergänzen</b><span>Die acht Tabellen ohne Mandantenbezug nachrüsten, insbesondere Kontenplan und Einstellungen — sonst teilen sich alle Vereine eine Bankverbindung.</span></li>
-      <li><b>Mandant aus der Sitzung ableiten</b><span>Eine Funktion nach dem Muster von <code>app_role()</code>, die den Mandanten des angemeldeten Nutzers liefert. Sie wird zur Grundlage jeder weiteren Regel.</span></li>
-      <li><b>Jede Sicherheitsregel um den Mandanten erweitern</b><span>Aus „ist Verwaltung" wird „ist Verwaltung <em>dieses</em> Mandanten". Das betrifft jede bestehende Regel; ausgelassene Tabellen bleiben offen und fallen im Betrieb nicht auf.</span></li>
-      <li><b>Öffentliche Sichten nach Mandant trennen</b><span><code>public_members</code> und <code>public_settings</code> liefern heute alles. Sie müssen nach der aufgerufenen Domain filtern, sonst zeigt die Startseite eines Vereins die Mitglieder aller.</span></li>
-      <li><b>Domainzuordnung sauberstellen</b><span>Die Auflösung läuft über <code>domain</code>, dann ID, dann Slug. Für mehrere Vereine muss <code>domain</code> je Mandant gesetzt und eindeutig sein.</span></li>
-      <li><b>Trennung nachweisen</b><span>Zwei Testmandanten anlegen und belegen, dass keiner die Daten des anderen sieht — lesend und schreibend. Vorher ist die Mandantenfähigkeit eine Behauptung.</span></li>
-    </ol>
-
-    <div class="note">
-      <h4>Aufwandseinschätzung</h4>
-      <p>Die Schritte 1 bis 4 sind Datenbankarbeit mit überschaubarem Umfang. Schritt 5 ist der grösste Posten, weil jede bestehende Regel angefasst wird. Schritt 6 erfordert zusätzlich Änderungen am Anwendungscode, weil die öffentlichen Seiten den Hostnamen an die Abfrage übergeben müssen.</p>
-    </div>
-  </section>
-
-  <section id="offen">
-    <h2>Offene Punkte</h2>
-    <p class="lede">Unabhängig von der Mandantenfrage, nach Dringlichkeit.</p>
+    <h3>Der Nachweis</h3>
+    <p>Zwei Testvereine, je ein Administrator, ein Mitglied und eine Zahlung. Die Sitzung wird nacheinander in beide Administratoren versetzt:</p>
 
     <div class="tablewrap">
       <table>
-        <thead><tr><th>Punkt</th><th>Wirkung</th><th class="mono">Status</th></tr></thead>
+        <thead><tr><th>Prüfung</th><th class="mono num">Ist</th><th class="mono num">Soll</th></tr></thead>
         <tbody>
-          <tr><td><b>service_role-Schlüssel rotieren</b><br><span style="color:var(--ink-3);font-size:13px">Lag bis September im ausgelieferten Code und umgeht jede Zugriffsregel</span></td><td>Vollzugriff auf die gesamte Datenbank für jeden, der ihn hat</td><td><span class="pill crit">offen</span></td></tr>
-          <tr><td><b>PayPal-Geheimnis erneuern</b><br><span style="color:var(--ink-3);font-size:13px">War über die öffentliche Schnittstelle abrufbar</span></td><td>Zugriff auf das Zahlungskonto</td><td><span class="pill crit">offen</span></td></tr>
-          <tr><td><b>E-Mail-Versand</b><br><span style="color:var(--ink-3);font-size:13px">Die Firebase-Erweiterung ist beim Umzug verlorengegangen</span></td><td>Kein Rechnungsversand, kein Mahnlauf, keine Mitgliederkommunikation</td><td><span class="pill crit">Entscheidung nötig</span></td></tr>
-          <tr><td><b>Überzählige Mitgliederzeilen</b><br><span style="color:var(--ink-3);font-size:13px">Aus einer Phase, in der das Speichern fälschlich Misserfolg meldete</span></td><td>Rund neun Dubletten in der Liste</td><td><span class="pill warn">aufräumen</span></td></tr>
-          <tr><td><b>Production-Branch in Vercel</b><br><span style="color:var(--ink-3);font-size:13px">Ein Push auf <code>main</code> erzeugt nur eine Vorschau</span></td><td>Änderungen gehen still nicht live</td><td><span class="pill warn">Einstellung</span></td></tr>
-          <tr><td><b>Zwei Mandantenzeilen</b><br><span style="color:var(--ink-3);font-size:13px">Nahezu identisch, nur eine wird genutzt</span></td><td>Vor der Mandantentrennung zu klären</td><td><span class="pill warn">klären</span></td></tr>
-          <tr><td><b>framer-motion und React 19</b><br><span style="color:var(--ink-3);font-size:13px">121 Typmeldungen aus der Unverträglichkeit</span></td><td>Rauschen in der Typprüfung, keine Defekte</td><td><span class="pill none">niedrig</span></td></tr>
+          <tr><td><b>Zeilensicherheit greift überhaupt</b> — sonst misst der Test als Eigentümer und beweist nichts</td><td class="mono num">0</td><td class="mono num">0</td></tr>
+          <tr><td>A sieht eigene Mitglieder</td><td class="mono num">2</td><td class="mono num">2</td></tr>
+          <tr><td>A sieht fremde Mitglieder</td><td class="mono num">0</td><td class="mono num">0</td></tr>
+          <tr><td>A sieht fremde Zahlungen</td><td class="mono num">0</td><td class="mono num">0</td></tr>
+          <tr><td>A sieht fremde Buchungen</td><td class="mono num">0</td><td class="mono num">0</td></tr>
+          <tr><td>A schreibt in Verein B — wird abgewiesen</td><td class="mono num">1</td><td class="mono num">1</td></tr>
+          <tr><td>B sieht fremde Mitglieder</td><td class="mono num">0</td><td class="mono num">0</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <h4>Warum die erste Zeile die wichtigste ist</h4>
+      <p>Drei frühere Anläufe hätten bestanden, ohne irgendetwas zu prüfen: der Migrationslauf führt Anweisungen ausserhalb einer Transaktion aus, dort ist der Rollenwechsel wirkungslos und der Test misst in Wahrheit als Eigentümer. Dass die 350 bestehenden Mitglieder als <strong>0</strong> gezählt werden, ist der Beleg, dass die Regeln tatsächlich griffen.</p>
+    </div>
+
+    <h3>Eigene Domain je Verein</h3>
+    <p><code>tenant_domains</code> ersetzt die frühere einzelne Spalte. Ein Verein braucht mehrere Adressen — mit und ohne <code>www</code>, die Vorschau-Adresse, später eine eigene Domain. Vergeben darf sie nur der Betreiber; sonst könnte ein Vereinsadministrator die Adresse eines anderen auf sich umbiegen.</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th class="mono">Aufruf</th><th>Ergebnis</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">www.koretini.me</td><td><span class="pill ok">koretini</span></td></tr>
+          <tr><td class="mono">koretini.me</td><td><span class="pill ok">koretini</span></td></tr>
+          <tr><td class="mono">shoqatawebsite.vercel.app</td><td><span class="pill ok">koretini</span></td></tr>
+          <tr><td class="mono">fremde-domain.ch</td><td><span class="pill none">nichts</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Öffentliche Inhalte</h3>
+    <p>Nicht der Client entscheidet, nach welchem Verein er fragt, sondern die Anfrage selbst: bei Angemeldeten der Verein der Sitzung, sonst der Verein der aufrufenden Adresse.</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Herkunft der Anfrage</th><th>Was sie bekommt</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">www.koretini.me</td><td>350 Mitglieder, 3 Veranstaltungen, 3 Beiträge, 27 Quartiere, 7 Vorstandsmandate</td></tr>
+          <tr><td class="mono">fremde-domain.ch</td><td><span class="pill none">nichts</span></td></tr>
+          <tr><td>ohne erkennbare Herkunft</td><td><span class="pill none">nichts</span></td></tr>
         </tbody>
       </table>
     </div>
 
     <div class="note warn">
-      <h4>Vor dem zweiten Verein</h4>
-      <p>Die drei kritischen Punkte oben sollten erledigt sein, bevor fremde Vereinsdaten ins System kommen. Ein exponierter Schlüssel, der jede Zugriffsregel umgeht, wird mit dem zweiten Mandanten von einem eigenen Problem zu einem fremden.</p>
+      <h4>Die Grenze dieser Zusicherung</h4>
+      <p>Ein Browser kann die Herkunft einer Anfrage nicht fälschen — für das Web hält das. Ein Aufrufer ausserhalb eines Browsers kann sie frei setzen, und öffentliche Inhalte bleiben, was das Wort sagt: veröffentlicht. Beendet ist der Fall, dass die Seite eines Vereins still die Inhalte eines anderen ausliefert.</p>
+      <p>Mitglieder-, Finanz- und Organisationsdaten sind davon nicht betroffen: sie hängen an der Anmeldung, nicht an der Adresse, und sind in beiden Richtungen nachweislich getrennt.</p>
     </div>
   </section>
 
+  <section id="weg">
+    <h2>Einen Verein anlegen</h2>
+    <p class="lede">Drei Dinge gehören zusammen, sonst entsteht ein Verein, den niemand erreichen oder verwalten kann.</p>
+
+    <ol class="steps">
+      <li><b>Verein</b><span>Name und Kennung. Ist die Kennung vergeben, wird sie eindeutig gemacht.</span></li>
+      <li><b>Primärdomain</b><span>Ohne sie ist die Website nicht auffindbar. Eine bereits vergebene Adresse wird abgewiesen, nicht stillschweigend übernommen.</span></li>
+      <li><b>Erster Administrator</b><span>Wird als Mitglied des neuen Vereins angelegt, noch ohne Anmeldedaten. Registriert er sich mit dieser Adresse, verbindet die Anwendung beides — derselbe Weg, den Bestandsmitglieder beim ersten Login gehen.</span></li>
+    </ol>
+
+    <div class="note">
+      <h4>Entweder alles oder nichts</h4>
+      <p>Die drei Schritte laufen serverseitig in einer Funktion, die zugleich prüft, ob der Aufrufer die Plattform betreibt. Vorher schrieb das Dashboard nur die Vereinszeile — ohne Domain und ohne Administrator war der Verein im selben Zug angelegt und unbrauchbar, und die Erfolgsmeldung versprach eine Adresse, die nirgends existierte.</p>
+      <p>Eine Einschränkung, die dabei sichtbar wurde: E-Mail-Adressen sind projektweit eindeutig. Dieselbe Person kann nicht in zwei Vereinen Mitglied sein. Das scheitert beim Anlegen mit klarer Meldung, statt später als etwas Unerklärliches aufzutauchen.</p>
+    </div>
+
+    <h3>Was ein neuer Verein noch nicht mitbringt</h3>
+    <ul class="plain">
+      <li>Bankverbindung und Beitragssätze — die Felder sind da, aber leer.</li>
+      <li>Kontenplan — wird beim ersten Aufruf der Buchhaltung angelegt.</li>
+      <li>Die Domain muss zusätzlich auf die Anwendung zeigen; der Eintrag allein genügt nicht.</li>
+    </ul>
+  </section>
+
+  <section id="offen">
+    <h2>Offene Punkte</h2>
+    <p class="lede">Nach Dringlichkeit. Die beiden ersten liegen ausserhalb dessen, was sich im Code lösen lässt.</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Punkt</th><th>Wirkung</th><th class="mono">Status</th></tr></thead>
+        <tbody>
+          <tr><td><b>service_role-Schlüssel rotieren</b><br><span style="color:var(--ink-3);font-size:13px">Lag bis September im ausgelieferten Code und umgeht jede Zugriffsregel</span></td><td>Vollzugriff auf die gesamte Datenbank für jeden, der ihn hat — und mit dem zweiten Verein auf dessen Daten mit</td><td><span class="pill crit">offen</span></td></tr>
+          <tr><td><b>PayPal-Geheimnis erneuern</b><br><span style="color:var(--ink-3);font-size:13px">War über die öffentliche Schnittstelle abrufbar</span></td><td>Zugriff auf das Zahlungskonto</td><td><span class="pill crit">offen</span></td></tr>
+          <tr><td><b>E-Mail-Versand</b><br><span style="color:var(--ink-3);font-size:13px">Die Firebase-Erweiterung ist beim Umzug verlorengegangen</span></td><td>Kein Rechnungsversand, kein Mahnlauf. Mit mehreren Vereinen dringlicher: ein neuer Administrator muss sich registrieren können, und dazu braucht es die Bestätigungsmail</td><td><span class="pill crit">Entscheidung nötig</span></td></tr>
+          <tr><td><b>Überzählige Mitgliederzeilen</b><br><span style="color:var(--ink-3);font-size:13px">Aus einer Phase, in der das Speichern fälschlich Misserfolg meldete</span></td><td>Rund neun Dubletten in der Liste</td><td><span class="pill warn">aufräumen</span></td></tr>
+          <tr><td><b>Production-Branch in Vercel</b><br><span style="color:var(--ink-3);font-size:13px">Ein Push auf <code>main</code> erzeugt nur eine Vorschau</span></td><td>Änderungen gehen still nicht live</td><td><span class="pill warn">Einstellung</span></td></tr>
+          <tr><td><b>Zwei Mandantenzeilen</b><br><span style="color:var(--ink-3);font-size:13px">Nahezu identisch, nur eine wird genutzt</span></td><td>Verwirrend, sobald echte Vereine dazukommen</td><td><span class="pill warn">klären</span></td></tr>
+          <tr><td><b>framer-motion und React 19</b><br><span style="color:var(--ink-3);font-size:13px">121 Typmeldungen aus der Unverträglichkeit</span></td><td>Rauschen in der Typprüfung, keine Defekte</td><td><span class="pill none">niedrig</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note crit">
+      <h4>Vor dem zweiten Verein</h4>
+      <p>Die drei kritischen Punkte gehören erledigt, bevor fremde Vereinsdaten ins System kommen. Der exponierte Schlüssel umgeht jede der 38 Zugriffsregeln, die diese Trennung tragen — mit dem zweiten Mandanten wird er von einem eigenen Problem zu einem fremden.</p>
+    </div>
+
+    <h3>Was seit der ersten Fassung dieses Dokuments dazukam</h3>
+    <ul class="plain">
+      <li>Plattformrolle serverseitig, Mandantenverzeichnis nur noch für den Betreiber schreibbar</li>
+      <li>Mandantentrennung in allen Zugriffsregeln, in beiden Richtungen nachgewiesen</li>
+      <li>Eigene Domains je Verein, mehrere Adressen möglich</li>
+      <li>Öffentliche Inhalte an die aufrufende Adresse gebunden</li>
+      <li>Vereinsanlage mit Domain und erstem Administrator in einem Schritt</li>
+      <li>32 Fremdschlüssel und 37 Indizes, wo es vorher keine und drei gab</li>
+      <li>Der Zahlteil der QR-Rechnung erzeugte 29 statt 31 Pflichtfeldern und war für keine Bank einlesbar</li>
+      <li>Jahresabschluss liess sich beliebig oft auslösen und verdoppelte dabei die Vorträge</li>
+      <li>Ein zweiter Sammellauf verrechnete allen aktiven Mitgliedern ein zweites Mal</li>
+      <li>Rechnungen aus dem Mitglieder-Drawer lauteten 20 Franken zu tief</li>
+      <li>Die Sicherheitsprüfung beim Bereinigen hätte das eigene Administratorkonto mitgelöscht</li>
+    </ul>
+  </section>
+
   <footer>
-    <p>Erstellt aus dem Stand des Repositories und der Produktivdatenbank vom 14. September 2026. Zahlen zu Mitgliedern, Tabellen und Mandantenspalten sind gemessen, nicht geschätzt.</p>
+    <p>Erstellt aus dem Stand des Repositories und der Produktivdatenbank vom 14. September 2026. Alle Zahlen sind gemessen, nicht geschätzt — die Prüfergebnisse zur Mandantentrennung stammen aus Testläufen gegen die Produktivdatenbank, die ihre Testdaten selbst wieder entfernen.</p>
   </footer>
 
   </main>
