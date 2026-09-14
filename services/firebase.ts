@@ -2,6 +2,7 @@
 // Firebase is no longer used. All auth and DB operations go through Supabase.
 import {
   claimMyProfile,
+  createTenant,
   db as supabaseDb,
   storage as supabaseStorage,
   collection,
@@ -82,7 +83,7 @@ export {
 };
 
 // Raw Supabase client (for advanced usage)
-export { claimMyProfile };
+export { claimMyProfile, createTenant };
 export { supabase };
 
 export default { name: 'supabase-only' };
