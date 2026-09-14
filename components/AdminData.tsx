@@ -451,6 +451,7 @@ const AdminData: React.FC = () => {
       setLoading(true);
       addLog('info', 'Starting Go-Live Clean...');
       const currentUserId = auth.currentUser?.uid;
+      const currentUserEmail = (auth.currentUser?.email || '').toLowerCase();
 
       // Collections to wipe completely
       const operationalCollections = ['payments', 'accounting_journal', 'expenses', 'invoices', 'event_registrations'];
@@ -494,10 +495,22 @@ const AdminData: React.FC = () => {
           let count = 0;
           let deletedUsers = 0;
 
+          let protectedRows = 0;
           for (const docSnap of snapUsers.docs) {
-              // SAFETY CHECK: Do not delete current admin
-              if (docSnap.id === currentUserId) {
-                  addLog('info', 'Skipping current admin user (SAFE).');
+              // Die eigene Zeile darf nicht mitgeloescht werden. Der Vergleich auf
+              // docSnap.id allein hat das nie geleistet: die Zeilen-id ist die alte
+              // Firestore-Kennung, auth.currentUser.uid dagegen die Auth-UUID --
+              // die beiden konnten gar nicht uebereinstimmen. Seit der
+              // Profilverknuepfung traegt authUserId die UUID; die E-Mail ist der
+              // dritte Weg, weil die Admin-Freischaltung ohnehin darueber laeuft.
+              const row: any = docSnap.data() || {};
+              const isSelf =
+                  docSnap.id === currentUserId ||
+                  (row.authUserId && row.authUserId === currentUserId) ||
+                  (!!currentUserEmail && (row.email || '').toLowerCase() === currentUserEmail);
+              if (isSelf) {
+                  addLog('info', `Skipping own account (${row.email || docSnap.id}).`);
+                  protectedRows++;
                   continue;
               }
 
@@ -512,6 +525,9 @@ const AdminData: React.FC = () => {
               }
           }
           if (count > 0) await batch.commit();
+          if (protectedRows === 0) {
+              addLog('error', 'Achtung: es wurde keine eigene Zeile erkannt und damit keine geschützt.');
+          }
           addLog('success', `Deleted ${deletedUsers} test users.`);
       } catch (e: any) {
           addLog('error', `Failed to clean users: ${e.message}`);
