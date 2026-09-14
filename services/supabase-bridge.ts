@@ -737,6 +737,21 @@ export async function claimMyProfile(): Promise<string | null> {
   return (data as string) || null;
 }
 
+// Legt einen Verein samt Domain und erstem Administrator an. Die drei Schritte
+// gehoeren zusammen -- ein Verein ohne Domain ist nicht auffindbar, einer ohne
+// Administrator nicht verwaltbar -- und laufen deshalb serverseitig in einer
+// Funktion, die zugleich prueft, ob der Aufrufer die Plattform betreibt.
+export async function createTenant(
+  name: string, slug: string, domain: string, adminEmail: string
+): Promise<string> {
+  if (!supabase) throw new Error("Supabase is not configured.");
+  const { data, error } = await supabase.rpc("create_tenant", {
+    p_name: name, p_slug: slug, p_domain: domain, p_admin_email: adminEmail,
+  });
+  if (error) throw error;
+  return data as string;
+}
+
 export class GoogleAuthProvider {}
 
 // --- firebase/auth compatible aliases ---

@@ -19,7 +19,7 @@ import {
   Mail
 } from 'lucide-react';
 import { db, auth } from '../services/firebase';
-import { collection, onSnapshot, addDoc, serverTimestamp, query, orderBy } from '@/services/supabase-bridge';
+import { collection, onSnapshot, addDoc, serverTimestamp, query, orderBy, createTenant } from '@/services/supabase-bridge';
 import { Tenant } from '../types';
 import { useFeedback } from '../context/FeedbackContext';
 import { signOut } from '@/services/supabase-bridge';
@@ -44,26 +44,37 @@ const SuperAdminDashboard: React.FC = () => {
 
   const handleCreateTenant = async () => {
       const name = await showPrompt({
-          title: "New Association",
-          message: "Enter the name of the new association (e.g. FC Basel):"
+          title: "Neuer Verein",
+          message: "Name des Vereins (z.B. FC Basel):"
       });
       if (!name) return;
 
-      const slug = name.toLowerCase().replace(/[^a-z0-9]/g, '-');
-      
+      // Ohne Domain ist die Website des Vereins nicht auffindbar, ohne
+      // Administrator ist er nicht verwaltbar. Beides wird deshalb gleich hier
+      // abgefragt, statt einen Verein anzulegen, den niemand erreichen kann.
+      const domain = await showPrompt({
+          title: "Domain",
+          message: `Unter welcher Adresse ist ${name} erreichbar? (z.B. fcbasel.ch)`
+      });
+      if (!domain) return;
+
+      const adminEmail = await showPrompt({
+          title: "Administrator",
+          message: "E-Mail des ersten Administrators. Er meldet sich damit an und übernimmt den Verein."
+      });
+      if (!adminEmail) return;
+
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
       try {
-          await addDoc(collection(db, 'tenants'), {
-              name,
-              slug,
-              subscriptionPlan: 'FREE',
-              subscriptionStatus: 'ACTIVE',
-              createdAt: serverTimestamp(),
-              contactEmail: '',
-              memberCount: 0
+          const id = await createTenant(name, slug, domain.trim(), adminEmail.trim());
+          showAlert({
+              type: 'success',
+              message: `Verein "${name}" angelegt (${id}). Erreichbar über ${domain.trim()}, sobald die Domain auf die Anwendung zeigt. ${adminEmail.trim()} kann sich jetzt registrieren und übernimmt ihn.`
           });
-          showAlert({ type: 'success', message: `Tenant "${name}" created. URL: ${slug}.unityhub.li` });
       } catch (e: any) {
-          showAlert({ type: 'error', message: e.message });
+          console.error('[SuperAdmin] Verein anlegen fehlgeschlagen:', e);
+          showAlert({ type: 'error', message: `Anlegen fehlgeschlagen: ${e?.message || e?.code || 'unbekannter Fehler'}` });
       }
   };
 
