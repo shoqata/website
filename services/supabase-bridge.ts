@@ -171,9 +171,52 @@ export function serverTimestamp() {
   return { constructor: { name: "FieldValueImpl" } };
 }
 
+// --- Mandant der aufgerufenen Domain ------------------------------------
+// Jeder Verein hat eine eigene Website unter eigener Adresse. Welche Zeilen
+// dazugehoeren, entscheidet deshalb die Domain -- und zwar hier, an einer
+// Stelle, statt in jeder Komponente einzeln. Eine vergessene Filterung waere
+// sonst genau die Sorte Fehler, die im Betrieb erst auffaellt, wenn ein Verein
+// die Inhalte eines anderen sieht.
+//
+// Fuer angemeldete Nutzer filtert zusaetzlich die Datenbank selbst; dieser
+// Filter deckt den Fall ab, in dem noch niemand angemeldet ist.
+const TENANT_SCOPED = new Set([
+  "users", "payments", "expenses", "accounting_journal", "accounting_accounts",
+  "fiscal_years", "fiscal_budgets", "board_meetings", "board_members", "tasks",
+  "neighborhoods", "events", "news", "polls", "socialmediaposts",
+  "event_registrations", "inquiries", "security_logs", "settings",
+  "public_members", "public_settings",
+]);
+
+let tenantLookup: Promise<string | null> | null = null;
+
+export function resolveTenantId(): Promise<string | null> {
+  if (!tenantLookup) {
+    tenantLookup = (async () => {
+      if (!supabase) return null;
+      const host = (typeof window !== "undefined" ? window.location.hostname : "") || "";
+      const candidates = [host, host.replace(/^www\./, ""), "www." + host.replace(/^www\./, "")];
+      for (const h of candidates) {
+        if (!h) continue;
+        const { data } = await supabase
+          .from("public_tenant_domains").select("tenantId").eq("domain", h).maybeSingle();
+        if (data?.tenantId) return data.tenantId as string;
+      }
+      console.warn(`[Bridge] Keine Domain-Zuordnung fuer '${host}' -- Inhalte bleiben ungefiltert.`);
+      return null;
+    })();
+  }
+  return tenantLookup;
+}
+
 async function buildSupabaseQuery(table: string, constraints: any[] = []) {
   if (!supabase) throw new Error("Supabase is not configured. Go to settings/env to configure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY");
   let q = supabase.from(table).select("*");
+
+  if (TENANT_SCOPED.has(table)) {
+    const tenantId = await resolveTenantId();
+    if (tenantId) q = q.eq("tenantId", tenantId);
+  }
 
   for (const c of constraints) {
     if (c.type === "where") {
@@ -289,7 +332,14 @@ export async function getDocs(queryOrColRef: any) {
 export async function getDoc(docRef: any) {
   if (!supabase) throw new Error("Supabase is not configured.");
   const { path, id } = docRef;
-  const { data, error } = await supabase.from(path).select("*").eq("id", id).maybeSingle();
+  // Auch der Einzelabruf braucht den Filter: settings/payment etwa existiert
+  // pro Verein einmal, ohne Einschraenkung kaeme eine beliebige Zeile zurueck.
+  let sel = supabase.from(path).select("*").eq("id", id);
+  if (TENANT_SCOPED.has(path)) {
+    const tenantId = await resolveTenantId();
+    if (tenantId) sel = sel.eq("tenantId", tenantId);
+  }
+  const { data, error } = await sel.maybeSingle();
 
   if (error) {
     console.error(`Supabase getDoc error for ${path}/${id}:`, error);
@@ -319,6 +369,10 @@ export async function addDoc(colRef: any, data: any) {
   // Insert lief auf einen leeren Primaerschluessel.
   const row: any = cleanDataForSupabase(data) || {};
   if (!row.id) row.id = crypto.randomUUID();
+  if (TENANT_SCOPED.has(table) && !row.tenantId) {
+    const tenantId = await resolveTenantId();
+    if (tenantId) row.tenantId = tenantId;
+  }
 
   // Use upsert so duplicate calls don't cause 409 Conflict errors
   await writeWithSchemaRetry(`addDoc for ${table}`, row, (payload) =>
@@ -341,6 +395,10 @@ export async function setDoc(docRef: any, data: any, options?: any) {
   // eine neue. Ein leeres id-Feld darf nie durchrutschen.
   const id = docRef.id || row.id || crypto.randomUUID();
   row.id = id;
+  if (TENANT_SCOPED.has(path) && !row.tenantId) {
+    const tenantId = await resolveTenantId();
+    if (tenantId) row.tenantId = tenantId;
+  }
 
   await writeWithSchemaRetry(`setDoc for ${path}/${id}`, row, (payload) =>
     supabase.from(path).upsert([payload], { onConflict: "id", ignoreDuplicates: false })

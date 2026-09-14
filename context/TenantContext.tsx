@@ -41,6 +41,17 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const LANDING_HOSTS = ['koretini.org', 'www.koretini.org', 'koretini.me', 'www.koretini.me', 'localhost'];
         const isLandingHost = LANDING_HOSTS.includes(hostname);
         const subdomain = hostname.split('.')[0];
+        // Zuerst die Domain-Zuordnung: ein Verein kann mehrere Adressen haben
+        // (mit und ohne www, Vorschau-Adresse, eigene Domain).
+        const byDomain = await getDocs(query(collection(db, 'public_tenant_domains'), where('domain', '==', hostname)));
+        if (!byDomain.empty) {
+            const d = byDomain.docs[0].data();
+            console.log(`[TenantContext] Matched on domain=${hostname}`);
+            setTenant({ id: d.tenantId, ...d } as Tenant);
+            setLoading(false);
+            return;
+        }
+
         const candidates: Array<[string, string]> = isLandingHost
             ? [['domain', hostname], ['id', 'koretini'], ['slug', 'koretini']]
             : [['domain', hostname], ['slug', subdomain], ['id', subdomain]];
