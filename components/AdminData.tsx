@@ -454,7 +454,10 @@ const AdminData: React.FC = () => {
       const currentUserEmail = (auth.currentUser?.email || '').toLowerCase();
 
       // Collections to wipe completely
-      const operationalCollections = ['payments', 'accounting_journal', 'expenses', 'invoices', 'event_registrations'];
+      // Reihenfolge zaehlt: seit es Fremdschluessel gibt, laesst sich eine Zeile
+      // nicht loeschen, solange etwas auf sie zeigt. Abhaengiges zuerst.
+      // 'invoices' ist raus -- eine Tabelle dieses Namens gibt es nicht.
+      const operationalCollections = ['accounting_journal', 'payments', 'expenses', 'event_registrations'];
       
       let totalDeleted = 0;
 
@@ -550,7 +553,12 @@ const AdminData: React.FC = () => {
       setLoading(true);
       addLog('info', 'Starting complete wipe...');
 
-      const collections = ['users', 'neighborhoods', 'payments', 'events', 'accounting_journal', 'socialMediaPosts', 'news', 'expenses'];
+      // Von den Blaettern zur Wurzel: Buchungen und Zahlungen haengen an
+      // Mitgliedern, Mitglieder an Quartieren. Umgekehrt weist die Datenbank
+      // das Loeschen jetzt zurueck -- zu Recht.
+      const collections = ['accounting_journal', 'payments', 'expenses', 'event_registrations',
+                           'inquiries', 'board_members', 'tasks', 'socialMediaPosts',
+                           'news', 'events', 'polls', 'users', 'neighborhoods'];
       let totalDeleted = 0;
 
       for (const colName of collections) {
