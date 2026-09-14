@@ -365,8 +365,8 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
                     showAlert({ type: 'error', message: `Alle ${candidateIds.length} ausgewählten Mitglieder haben für ${selectedYear} bereits eine Beitragsrechnung.` });
                     return;
                 }
-                const standardFee = paymentSettings.fees?.STANDARD?.amount || 120;
-                const standardCurr = paymentSettings.fees?.STANDARD?.currency || 'CHF';
+                const standardFee = paymentSettings.fees?.STANDARD?.amount ?? 120;
+                const standardCurr = paymentSettings.fees?.STANDARD?.currency ?? 'CHF';
                 targetUserIds.forEach((uid, index) => {
                     const u = users.find(user => user.id === uid);
                     if (!u) return;
