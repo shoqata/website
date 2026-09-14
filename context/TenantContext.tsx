@@ -49,7 +49,10 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
         let snap: any = { empty: true, docs: [] };
         for (const [field, value] of candidates) {
-            snap = await getDocs(query(collection(db, 'tenants'), where(field, '==', value)));
+            // public_tenants statt tenants: das Verzeichnis selbst ist abgeriegelt
+            // und enthaelt Abrechnungs- und Kontaktdaten. Oeffentlich sichtbar ist
+            // nur, was die Seite zum Branding braucht.
+            snap = await getDocs(query(collection(db, 'public_tenants'), where(field, '==', value)));
             if (!snap.empty) {
                 console.log(`[TenantContext] Matched on ${field}=${value}`);
                 break;
