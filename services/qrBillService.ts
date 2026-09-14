@@ -95,7 +95,7 @@ export const generateQrCodeContent = (data: QrBillData): string => {
 
   // 2. Reference Logic Enforcement
   let refType: 'QRR' | 'SCOR' | 'NON' = 'NON';
-  let reference = data.reference.replace(/\s/g, '');
+  let reference = (data.reference || '').replace(/\s/g, '');
 
   if (isQrIban) {
     // A QR-IBAN MUST use a QR-Reference (QRR)
@@ -121,10 +121,17 @@ export const generateQrCodeContent = (data: QrBillData): string => {
   content += cleanIban + br;  // Account
 
   // Creditor (Address Type K - Combined)
+  // Ein Adressblock hat nach der Spezifikation immer sieben Felder, auch bei
+  // Typ K: AdrTp, Name, AdrLine1, AdrLine2, PstCd, TwnNm, Ctry. Bei K bleiben
+  // PstCd und TwnNm leer, weil Postleitzahl und Ort in AdrLine2 stehen -- aber
+  // sie muessen als leere Felder dastehen. Ohne sie verschiebt sich alles
+  // Nachfolgende und der Beleg ist nicht einlesbar.
   content += 'K' + br;
   content += sanitize(data.creditor.name) + br;
-  content += (sanitize(data.creditor.address) || 'Street 1') + br; 
+  content += (sanitize(data.creditor.address) || 'Street 1') + br;
   content += (sanitize(data.creditor.zip) + ' ' + sanitize(data.creditor.city)).trim() + br;
+  content += '' + br; // PstCd - bei Typ K leer
+  content += '' + br; // TwnNm - bei Typ K leer
   content += normalizeCountry(data.creditor.country) + br; 
 
   // Ultimate Creditor (Empty)
@@ -134,11 +141,13 @@ export const generateQrCodeContent = (data: QrBillData): string => {
   content += (data.amount ? data.amount.toFixed(2) : '') + br;
   content += data.currency + br;
 
-  // Ultimate Debtor (Address Type K)
+  // Debtor (Address Type K) -- ebenfalls sieben Felder.
   content += 'K' + br;
   content += sanitize(data.debtor.name) + br;
   content += (sanitize(data.debtor.address) || 'Unknown St.') + br;
   content += (sanitize(data.debtor.zip) + ' ' + sanitize(data.debtor.city)).trim() + br;
+  content += '' + br; // PstCd - bei Typ K leer
+  content += '' + br; // TwnNm - bei Typ K leer
   content += normalizeCountry(data.debtor.country) + br;
 
   // Reference
@@ -148,10 +157,9 @@ export const generateQrCodeContent = (data: QrBillData): string => {
   // Unstructured Message
   content += sanitize(data.additionalInfo) + br;
 
-  // Trailer
-  content += 'EPD' + br;
-  content += '' + br;
-  content += ''; 
+  // Trailer. Die optionalen Felder danach (Rechnungsinformationen, alternative
+  // Verfahren) entfallen, damit der Beleg mit genau den 31 Pflichtfeldern endet.
+  content += 'EPD';
 
   return content;
 };
