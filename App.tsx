@@ -97,6 +97,12 @@ const PageLoader: React.FC = () => (
 
 const ADMIN_EMAILS = ['email@dervishi.ch'];
 
+// Betreiber der Plattform: darf Vereine anlegen und verwalten. Serverseitig
+// entscheidet allein die Tabelle platform_admins -- diese Liste steuert nur,
+// ob die Oberflaeche den Bereich zeigt. Frueher stand hier zusaetzlich
+// info@unityhub.li, eine Adresse, die serverseitig nie etwas durfte.
+const PLATFORM_EMAILS = ['email@dervishi.ch'];
+
 const AuthRedirectHandler: React.FC<{ user: UserProfile | null, children: React.ReactNode }> = ({ user, children }) => {
   const location = useLocation();
   if (user && (location.pathname === '/login' || location.pathname === '/register')) {
@@ -111,7 +117,7 @@ const ProtectedRoute: React.FC<{ user: UserProfile | null, children: React.React
   if (!user) return <Navigate to="/login" replace />;
   
   const isAdmin = user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN || ADMIN_EMAILS.includes(user.email);
-  const isSuper = user.role === UserRole.SUPER_ADMIN || user.email === 'info@unityhub.li';
+  const isSuper = user.role === UserRole.SUPER_ADMIN || PLATFORM_EMAILS.includes(user.email);
   
   if (superAdminOnly && !isSuper) return <Navigate to="/" replace />;
   if (isAdmin) return <>{children}</>;
