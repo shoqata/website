@@ -166,7 +166,7 @@ footer{border-top:1px solid var(--rule); padding:26px 0 0; margin-top:14px; colo
 
 <header class="masthead">
   <div class="masthead-inner">
-    <p class="eyebrow">Systemübersicht · Stand 14. September 2026, abends</p>
+    <p class="eyebrow">Systemübersicht · Stand 15. September 2026</p>
     <h1>Koretini Plattform</h1>
     <p class="standfirst">Was die Seite kann, wer was darf, und wie die Vereine voneinander getrennt sind.</p>
     <div class="metaline">
@@ -492,7 +492,7 @@ footer{border-top:1px solid var(--rule); padding:26px 0 0; margin-top:14px; colo
           <tr><td><b>Überzählige Mitgliederzeilen</b><br><span style="color:var(--ink-3);font-size:13px">Aus einer Phase, in der das Speichern fälschlich Misserfolg meldete</span></td><td>Rund neun Dubletten in der Liste</td><td><span class="pill warn">aufräumen</span></td></tr>
           <tr><td><b>Production-Branch in Vercel</b><br><span style="color:var(--ink-3);font-size:13px">Ein Push auf <code>main</code> erzeugt nur eine Vorschau</span></td><td>Änderungen gehen still nicht live</td><td><span class="pill warn">Einstellung</span></td></tr>
           <tr><td><b>Zwei Mandantenzeilen</b><br><span style="color:var(--ink-3);font-size:13px">Nahezu identisch, nur eine wird genutzt</span></td><td>Verwirrend, sobald echte Vereine dazukommen</td><td><span class="pill warn">klären</span></td></tr>
-          <tr><td><b>framer-motion und React 19</b><br><span style="color:var(--ink-3);font-size:13px">121 Typmeldungen aus der Unverträglichkeit</span></td><td>Rauschen in der Typprüfung, keine Defekte</td><td><span class="pill none">niedrig</span></td></tr>
+          
         </tbody>
       </table>
     </div>
@@ -515,11 +515,17 @@ footer{border-top:1px solid var(--rule); padding:26px 0 0; margin-top:14px; colo
       <li>Ein zweiter Sammellauf verrechnete allen aktiven Mitgliedern ein zweites Mal</li>
       <li>Rechnungen aus dem Mitglieder-Drawer lauteten 20 Franken zu tief</li>
       <li>Die Sicherheitsprüfung beim Bereinigen hätte das eigene Administratorkonto mitgelöscht</li>
+      <li>Alle Oberflächentexte in drei Sprachen: 968 Schlüssel in Albanisch, Deutsch und Englisch, zuvor lag besonders der Adminbereich fest verdrahtet und sprachlich gemischt vor</li>
+      <li>Der Vereinsname stand an fünf Stellen fest im Code — auf dem Rechnungsbeleg des Mitglieds, in der Rechnungsvorschau der Verwaltung, im Protokollkopf, in der Vorschau des Website-Editors und in der Kopfzeile. Ein zweiter Verein hätte überall „Shoqata Koretini“ gelesen</li>
+      <li>Jeder Aufruf ausser der Startseite lieferte auf Vercel einen 404: es fehlte die Umschreibung auf <code>index.html</code></li>
+      <li>Die Über-uns-Seite wurde weiss, sobald WebGL fehlte — der Globus riss die ganze Anwendung mit. Jetzt fängt eine Fehlergrenze den Fall ab, und beide 3D-Bereiche prüfen WebGL vorher</li>
+      <li>Die Typprüfung läuft fehlerfrei durch (vorher 121 Meldungen aus framer-motion 11 gegen React 19)</li>
+      <li>Die Beschriftungen des QR-Zahlteils folgen der Oberflächensprache, aber nur innerhalb der vier laut Richtlinie zulässigen Sprachen</li>
     </ul>
   </section>
 
   <footer>
-    <p>Erstellt aus dem Stand des Repositories und der Produktivdatenbank vom 14. September 2026. Alle Zahlen sind gemessen, nicht geschätzt — die Prüfergebnisse zur Mandantentrennung stammen aus Testläufen gegen die Produktivdatenbank, die ihre Testdaten selbst wieder entfernen.</p>
+    <p>Erstellt aus dem Stand des Repositories und der Produktivdatenbank, zuletzt ergänzt am 15. September 2026. Alle Zahlen sind gemessen, nicht geschätzt — die Prüfergebnisse zur Mandantentrennung stammen aus Testläufen gegen die Produktivdatenbank, die ihre Testdaten selbst wieder entfernen.</p>
   </footer>
 
   </main>
