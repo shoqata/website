@@ -381,6 +381,10 @@ const translations: Translations = {
   'cat.donor': { en: 'Donor', de: 'Spender', sq: 'Donator' },
 
   'btn.save': { en: 'Save', de: 'Speichern', sq: 'Ruaj' },
+
+  'error.boundary.title': { en: 'This page could not be loaded', de: 'Diese Seite konnte nicht geladen werden', sq: 'Kjo faqe nuk mund të ngarkohej' },
+  'error.boundary.text': { en: 'Something went wrong while displaying this page. Your data is unaffected.', de: 'Beim Anzeigen dieser Seite ist etwas schiefgelaufen. Ihre Daten sind davon nicht betroffen.', sq: 'Diçka shkoi keq gjatë shfaqjes së kësaj faqeje. Të dhënat tuaja nuk janë prekur.' },
+  'error.boundary.retry': { en: 'Try again', de: 'Erneut versuchen', sq: 'Provo përsëri' },
 };
 
 interface LanguageContextType {

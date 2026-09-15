@@ -37,6 +37,7 @@ export function Globe({ className, markers }: GlobeProps) {
   const pointerInteracting = useRef<number | null>(null);
   const pointerInteractionMovement = useRef(0);
   const [r, setR] = useState(0);
+  const [unavailable, setUnavailable] = useState(false);
 
   const updatePointerInteraction = (value: number | null) => {
     pointerInteracting.current = value;
@@ -70,6 +71,7 @@ export function Globe({ className, markers }: GlobeProps) {
   };
 
   useEffect(() => {
+    if (!canvasRef.current) return;
     window.addEventListener("resize", onResize);
     onResize();
 
@@ -81,11 +83,42 @@ export function Globe({ className, markers }: GlobeProps) {
       onRender,
     };
 
-    const globe = createGlobe(canvasRef.current!, config);
+    // cobe braucht WebGL. Ist der Kontext nicht verfuegbar (alte Geraete,
+    // deaktiviertes WebGL, Headless-Browser), wirft createGlobe und riss frueher
+    // die ganze Seite mit in einen weissen Bildschirm.
+    const supportsWebGL = (() => {
+      try {
+        const probe = document.createElement("canvas");
+        return !!(
+          probe.getContext("webgl") || probe.getContext("experimental-webgl")
+        );
+      } catch {
+        return false;
+      }
+    })();
 
-    setTimeout(() => (canvasRef.current!.style.opacity = "1"));
-    return () => globe.destroy();
+    let globe: { destroy: () => void } | null = null;
+    try {
+      if (!supportsWebGL) throw new Error("WebGL context unavailable");
+      globe = createGlobe(canvasRef.current, config);
+    } catch (e) {
+      console.warn("[Globe] WebGL nicht verfuegbar, Globus wird ausgeblendet:", e);
+      setUnavailable(true);
+      window.removeEventListener("resize", onResize);
+      return () => {};
+    }
+
+    const fadeIn = setTimeout(() => {
+      if (canvasRef.current) canvasRef.current.style.opacity = "1";
+    });
+    return () => {
+      clearTimeout(fadeIn);
+      window.removeEventListener("resize", onResize);
+      globe?.destroy();
+    };
   }, [markers]);
+
+  if (unavailable) return null;
 
   return (
     <div

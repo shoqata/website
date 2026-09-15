@@ -32,6 +32,7 @@ import {
 
 // Context & Hooks
 import { LanguageProvider, useTranslation } from './context/LanguageContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { FeedbackProvider } from './context/FeedbackContext';
 import { TenantProvider, useTenant } from './context/TenantContext';
 import { useSecurity } from './hooks/useSecurity';
@@ -270,6 +271,7 @@ const AppContent: React.FC = () => {
             <ConditionalNavigation user={user} branding={branding} systemSettings={systemSettings} />
             <main className="flex-grow">
             <AnimatePresence mode="wait">
+                <ErrorBoundary>
                 <React.Suspense fallback={<PageLoader />}>
                 <Routes>
                     <Route path="/" element={<Hero />} />
@@ -294,6 +296,7 @@ const AppContent: React.FC = () => {
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
                 </React.Suspense>
+                </ErrorBoundary>
             </AnimatePresence>
             </main>
             <ConditionalFooter branding={branding} user={user} />
