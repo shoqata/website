@@ -128,7 +128,9 @@ const ProtectedRoute: React.FC<{ user: UserProfile | null, children: React.React
   return <>{children}</>;
 };
 
-const MaintenanceScreen = ({ branding }: { branding: Branding }) => (
+const MaintenanceScreen = ({ branding }: { branding: Branding }) => {
+  const { t } = useTranslation();
+  return (
   <div className="fixed inset-0 z-[9999] bg-stone-900 flex flex-col items-center justify-center text-white p-6">
       <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.8 }} className="relative mb-12">
           <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full" />
@@ -138,13 +140,14 @@ const MaintenanceScreen = ({ branding }: { branding: Branding }) => (
               <Heart size={120} className="text-primary relative z-10 animate-pulse" fill="currentColor" />
           )}
       </motion.div>
-      <h1 className="text-5xl md:text-7xl font-display font-bold italic mb-6 text-center">Under Maintenance</h1>
-      <p className="text-stone-400 text-lg md:text-xl max-w-xl text-center leading-relaxed mb-12">Përmirësim i sistemit në rrjedhë e sipër. Ju lutem kthehuni më vonë.</p>
+      <h1 className="text-5xl md:text-7xl font-display font-bold italic mb-6 text-center">{t('app.maintenance.title')}</h1>
+      <p className="text-stone-400 text-lg md:text-xl max-w-xl text-center leading-relaxed mb-12">{t('app.maintenance.desc')}</p>
       <Link to="/login" className="px-8 py-3 rounded-full border border-white/10 hover:bg-white/10 hover:border-white/30 transition-all font-bold text-sm uppercase tracking-widest flex items-center gap-2">
           <ShieldCheck size={16} /> Staff Login
       </Link>
   </div>
 );
+};
 
 const MaintenanceGuard = ({ children, maintenanceMode, user, branding }: { children?: React.ReactNode, maintenanceMode: boolean, user: UserProfile | null, branding: Branding }) => {
     const location = useLocation();
@@ -154,6 +157,7 @@ const MaintenanceGuard = ({ children, maintenanceMode, user, branding }: { child
 };
 
 const AppContent: React.FC = () => {
+  const { t } = useTranslation();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [branding, setBranding] = useState<Branding>({});
@@ -255,7 +259,7 @@ const AppContent: React.FC = () => {
   if (loading) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#faf9f6]">
       <Loader2 className="animate-spin text-primary" size={40} />
-      <p className="mt-4 text-stone-400 animate-pulse">Duke u lidhur...</p>
+      <p className="mt-4 text-stone-400 animate-pulse">{t('app.connecting')}</p>
     </div>
   );
 
@@ -329,7 +333,7 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings }) => {
 
         <div className="hidden md:flex items-center gap-1 lg:gap-2">
             <Link to="/about" className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${isActive('/about') ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}>
-                <Info size={16} className="text-emerald-600"/><span className="font-bold text-sm">Rreth Nesh</span>
+                <Info size={16} className="text-emerald-600"/><span className="font-bold text-sm">{t('nav.about')}</span>
             </Link>
             <Link to="/events" className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${isActive('/events') ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}>
                 <Calendar size={16} className="text-primary"/><span className="font-bold text-sm">{t('nav.events.title')}</span>
@@ -368,7 +372,7 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings }) => {
         <AnimatePresence>
             {isMenuOpen && (
                 <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute top-full left-0 right-0 mt-3 mx-2 p-4 bg-white/95 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-white/20 md:hidden flex flex-col gap-2 z-40">
-                    <Link to="/about" className="flex items-center gap-4 p-4 bg-stone-50 rounded-2xl"><Info size={20}/><span className="font-bold">Rreth Nesh</span></Link>
+                    <Link to="/about" className="flex items-center gap-4 p-4 bg-stone-50 rounded-2xl"><Info size={20}/><span className="font-bold">{t('nav.about')}</span></Link>
                     <Link to="/events" className="flex items-center gap-4 p-4 bg-stone-50 rounded-2xl"><Calendar size={20}/><span className="font-bold">{t('nav.events.title')}</span></Link>
                     <Link to="/news" className="flex items-center gap-4 p-4 bg-stone-50 rounded-2xl"><Newspaper size={20}/><span className="font-bold">{t('nav.news.title')}</span></Link>
                     <Link to="/live" className="flex items-center gap-4 p-4 bg-stone-50 rounded-2xl"><Zap size={20}/><span className="font-bold">{t('nav.live')}</span></Link>
@@ -376,7 +380,7 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings }) => {
                     {user ? (
                         <>
                             <Link to="/dashboard" className="flex items-center gap-4 p-4 bg-stone-900 text-white rounded-2xl shadow-lg"><LayoutDashboard size={20} /><span className="font-bold">{t('nav.dashboard')}</span></Link>
-                            <button onClick={handleSignOut} className="flex items-center gap-4 p-4 text-stone-400 justify-center font-bold text-sm"><LogOut size={16} /> Sign Out</button>
+                            <button onClick={handleSignOut} className="flex items-center gap-4 p-4 text-stone-400 justify-center font-bold text-sm"><LogOut size={16} /> {t('nav.signout')}</button>
                         </>
                     ) : (
                         <div className="flex flex-col gap-3">
@@ -400,6 +404,7 @@ const ConditionalNavigation = ({ user, branding, systemSettings }: any) => {
 };
 
 const ConditionalFooter = ({ branding, user }: any) => {
+  const { t } = useTranslation();
   const loc = useLocation();
   const hidePaths = ['/setup-profile', '/super-admin', '/admin'];
   if (hidePaths.some(path => loc.pathname.startsWith(path))) return null;
@@ -413,19 +418,19 @@ const ConditionalFooter = ({ branding, user }: any) => {
             <p className="text-white/50 text-lg leading-relaxed max-w-md italic">{branding.footerText || "Bashkë për vendlindjen tonë. Diaspora dhe Koretini në një hap drejt të ardhmes."}</p>
           </div>
           <div className="space-y-4">
-            <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Kontakt</h4>
+            <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-primary">{t('footer.contact')}</h4>
             <div className="space-y-3 text-white/60">
                <p className="flex items-center gap-3"><MapPin size={18} className="text-primary" /> {branding.footerAddress || "Koretin, Kosovë"}</p>
                <p className="flex items-center gap-3"><Mail size={18} className="text-primary" /> {branding.footerEmail || "info@koretini.org"}</p>
             </div>
           </div>
           <div className="space-y-4">
-            <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Linke</h4>
+            <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-primary">{t('footer.links')}</h4>
             <div className="flex flex-col gap-3 text-white/60">
-              <Link to="/" className="hover:text-white transition-colors">Ballina</Link>
-              <Link to="/about" className="hover:text-white transition-colors">Rreth Nesh</Link>
+              <Link to="/" className="hover:text-white transition-colors">{t('nav.home')}</Link>
+              <Link to="/about" className="hover:text-white transition-colors">{t('nav.about')}</Link>
               <Link to="/live" className="hover:text-white transition-colors">Koretini Live</Link>
-              <Link to="/login" className="hover:text-white transition-colors">Anëtarësimi</Link>
+              <Link to="/login" className="hover:text-white transition-colors">{t('nav.membership')}</Link>
             </div>
           </div>
         </div>

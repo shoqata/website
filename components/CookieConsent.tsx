@@ -4,7 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+import { useTranslation } from '../context/LanguageContext';
 const CookieConsent: React.FC = () => {
+  const { t } = useTranslation();
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -40,10 +42,10 @@ const CookieConsent: React.FC = () => {
                     <ShieldCheck size={24} />
                 </div>
                 <div>
-                    <h4 className="font-bold text-lg mb-1 italic">Privatësia & Cookies</h4>
+                    <h4 className="font-bold text-lg mb-1 italic">{t('cookie.title')}</h4>
                     <p className="text-stone-400 text-xs leading-relaxed">
                         Ne përdorim cookies për të përmirësuar përvojën tuaj. Duke vazhduar, ju pranoni kushtet tona. 
-                        Lexoni më shumë te <Link to="/privacy" onClick={() => setIsVisible(false)} className="text-white underline hover:text-primary transition-colors">Privatësia</Link>.
+                        Lexoni më shumë te <Link to="/privacy" onClick={() => setIsVisible(false)} className="text-white underline hover:text-primary transition-colors">{t('cookie.privacy_link')}</Link>.
                     </p>
                 </div>
              </div>
