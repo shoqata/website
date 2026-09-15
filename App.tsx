@@ -144,7 +144,7 @@ const MaintenanceScreen = ({ branding }: { branding: Branding }) => {
       <h1 className="text-5xl md:text-7xl font-display font-bold italic mb-6 text-center">{t('app.maintenance.title')}</h1>
       <p className="text-stone-400 text-lg md:text-xl max-w-xl text-center leading-relaxed mb-12">{t('app.maintenance.desc')}</p>
       <Link to="/login" className="px-8 py-3 rounded-full border border-white/10 hover:bg-white/10 hover:border-white/30 transition-all font-bold text-sm uppercase tracking-widest flex items-center gap-2">
-          <ShieldCheck size={16} /> Staff Login
+          <ShieldCheck size={16} /> {t('nav.staff_login')}
       </Link>
   </div>
 );
@@ -309,7 +309,7 @@ const AppContent: React.FC = () => {
 };
 
 const Navigation: React.FC<any> = ({ user, branding, systemSettings }) => {
-  const { t, setLanguage, language } = useTranslation();
+  const { t, loc, setLanguage, language } = useTranslation();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isActive = (path: string) => location.pathname === path;
@@ -331,7 +331,7 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings }) => {
           ) : (
             <div className="bg-primary p-2 rounded-xl text-white shadow-lg"><Heart size={24} fill="white" /></div>
           )}
-          <span className="font-display font-bold text-xl italic hidden xl:block text-stone-800">Koretini</span>
+          <span className="font-display font-bold text-xl italic hidden xl:block text-stone-800">{loc(branding.associationName) || 'Koretini'}</span>
         </Link>
 
         <div className="hidden md:flex items-center gap-1 lg:gap-2">

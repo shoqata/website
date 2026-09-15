@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { AlertOctagon } from 'lucide-react';
+import { useTranslation } from '../context/LanguageContext';
 import { db } from '../services/firebase';
 import { collection, addDoc, serverTimestamp } from '@/services/supabase-bridge';
 
 export const AntiScrapeProtection: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const { t } = useTranslation();
     const [isTriggered, setIsTriggered] = useState(false);
     const [ipAddress, setIpAddress] = useState<string>('Detecting...');
     const [violation, setViolation] = useState<string>('');
@@ -84,34 +86,32 @@ export const AntiScrapeProtection: React.FC<{ children: React.ReactNode }> = ({ 
             <div className="fixed inset-0 z-[99999] bg-red-950 flex flex-col items-center justify-center p-6 text-white text-center overflow-y-auto">
                 <AlertOctagon size={100} className="text-red-500 mb-8 animate-pulse" />
                 <h1 className="text-3xl md:text-5xl font-black mb-6 uppercase tracking-widest text-red-500">
-                    Security Violation Detected
+                    {t('guard.title')}
                 </h1>
                 <div className="bg-black/80 p-8 rounded-3xl max-w-3xl border border-red-500/50 shadow-2xl shadow-red-900/50 backdrop-blur-xl">
                     <h2 className="text-2xl font-bold mb-6 text-white">
-                        Unauthorized Access / Scraping is Strictly Prohibited
+                        {t('guard.subtitle')}
                     </h2>
                     <p className="text-lg mb-8 text-red-200 leading-relaxed">
-                        Our security systems have detected an attempt to inspect, scrape, or reverse-engineer this application 
-                        (<span className="font-mono text-red-400">{violation}</span>). 
-                        This action violates our Terms of Service and intellectual property rights.
+                        {t('guard.text', { reason: violation })}
                     </p>
                     
                     <div className="bg-red-950/80 p-6 rounded-2xl border border-red-800/50 text-left font-mono text-sm md:text-base mb-8 shadow-inner">
-                        <p className="text-red-500 font-bold mb-4 border-b border-red-900/50 pb-2">--- INCIDENT LOGGED ---</p>
+                        <p className="text-red-500 font-bold mb-4 border-b border-red-900/50 pb-2">{t('guard.logged')}</p>
                         <div className="space-y-3">
-                            <p><span className="text-stone-500 w-32 inline-block">IP Address:</span> <span className="text-white font-bold bg-red-900/50 px-2 py-1 rounded">{ipAddress}</span></p>
-                            <p><span className="text-stone-500 w-32 inline-block">User Agent:</span> <span className="text-stone-300">{navigator.userAgent}</span></p>
-                            <p><span className="text-stone-500 w-32 inline-block">Timestamp:</span> <span className="text-stone-300">{new Date().toISOString()}</span></p>
-                            <p><span className="text-stone-500 w-32 inline-block">Action:</span> <span className="text-red-400">Data extraction attempt blocked</span></p>
+                            <p><span className="text-stone-500 w-32 inline-block">{t('guard.ip')}</span> <span className="text-white font-bold bg-red-900/50 px-2 py-1 rounded">{ipAddress}</span></p>
+                            <p><span className="text-stone-500 w-32 inline-block">{t('guard.agent')}</span> <span className="text-stone-300">{navigator.userAgent}</span></p>
+                            <p><span className="text-stone-500 w-32 inline-block">{t('guard.time')}</span> <span className="text-stone-300">{new Date().toISOString()}</span></p>
+                            <p><span className="text-stone-500 w-32 inline-block">{t('guard.action')}</span> <span className="text-red-400">{t('guard.blocked')}</span></p>
                         </div>
                     </div>
                     
                     <div className="bg-red-900/20 p-6 rounded-2xl border border-red-500/30">
                         <p className="font-bold text-red-400 text-lg">
-                            WARNING: Your IP address and session data have been recorded. 
+                            {t('guard.warning')}
                         </p>
                         <p className="text-red-300 mt-2">
-                            Any further attempts will result in immediate legal action and permanent blacklisting of your network.
+                            {t('guard.warning_more')}
                         </p>
                     </div>
                 </div>
