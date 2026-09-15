@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from '../context/LanguageContext';
 import { motion } from 'framer-motion';
 import { 
   Settings, 
@@ -22,6 +23,7 @@ import { SystemSettings, GlobalPaymentSettings } from '../types';
 import { useFeedback } from '../context/FeedbackContext';
 
 const AdminSettings: React.FC = () => {
+  const { t } = useTranslation();
   const { showAlert } = useFeedback();
   const [loading, setLoading] = useState(false);
   
@@ -41,9 +43,9 @@ const AdminSettings: React.FC = () => {
   const [paymentSettings, setPaymentSettings] = useState<GlobalPaymentSettings>({
       iban: '', bankName: '', bic: '', accountHolder: '', street: '', zip: '', city: '', country: '', paypalEmail: '', currency: 'CHF', annualFeeAmount: 100,
       fees: {
-          STANDARD: { amount: 120, currency: 'CHF', label: 'Standard (Diaspora)' },
-          KOSOVO: { amount: 12, currency: 'EUR', label: 'Resident (Kosovo)' },
-          REDUCED: { amount: 100, currency: 'EUR', label: 'Reduced (Special)' }
+          STANDARD: { amount: 120, currency: 'CHF', label: t('admin.members.billing.standard') },
+          KOSOVO: { amount: 12, currency: 'EUR', label: t('admin.members.billing.kosovo') },
+          REDUCED: { amount: 100, currency: 'EUR', label: t('admin.members.billing.reduced') }
       }
   });
 
@@ -66,9 +68,9 @@ const AdminSettings: React.FC = () => {
                 ...prev,
                 ...data,
                 fees: {
-                    STANDARD: { amount: 120, currency: 'CHF', label: 'Standard', ...data.fees?.STANDARD },
-                    KOSOVO: { amount: 12, currency: 'EUR', label: 'Resident', ...data.fees?.KOSOVO },
-                    REDUCED: { amount: 100, currency: 'EUR', label: 'Reduced', ...data.fees?.REDUCED },
+                    STANDARD: { amount: 120, currency: 'CHF', label: t('admin.members.billing.standard'), ...data.fees?.STANDARD },
+                    KOSOVO: { amount: 12, currency: 'EUR', label: t('admin.members.billing.kosovo'), ...data.fees?.KOSOVO },
+                    REDUCED: { amount: 100, currency: 'EUR', label: t('admin.members.billing.reduced'), ...data.fees?.REDUCED },
                 }
             }));
         }
@@ -87,10 +89,10 @@ const AdminSettings: React.FC = () => {
 
       await setDoc(doc(db, 'settings', 'payment'), paymentSettings, { merge: true });
       
-      showAlert({ type: 'success', message: 'System settings updated successfully.' });
+      showAlert({ type: 'success', message: t('set.saved') });
     } catch (err) {
       console.error(err);
-      showAlert({ type: 'error', message: 'Failed to update settings.' });
+      showAlert({ type: 'error', message: t('set.save_failed') });
     } finally {
       setLoading(false);
     }
@@ -116,14 +118,14 @@ const AdminSettings: React.FC = () => {
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div>
-                <h2 className="text-3xl font-display font-bold italic mb-2">System Control</h2>
-                <p className="text-stone-500">Global platform configuration and feature flags.</p>
+                <h2 className="text-3xl font-display font-bold italic mb-2">{t('set.title')}</h2>
+                <p className="text-stone-500">{t('set.subtitle')}</p>
             </div>
             
             <div className={`px-6 py-3 rounded-2xl border flex items-center gap-3 ${settings.maintenanceMode ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-green-50 border-green-200 text-green-700'}`}>
                 <Server size={20} />
                 <div>
-                    <p className="text-xs font-bold uppercase tracking-widest">System Status</p>
+                    <p className="text-xs font-bold uppercase tracking-widest">{t('set.status')}</p>
                     <p className="font-bold">{settings.maintenanceMode ? 'MAINTENANCE MODE' : 'OPERATIONAL'}</p>
                 </div>
                 <div className={`w-3 h-3 rounded-full ml-2 ${settings.maintenanceMode ? 'bg-amber-500' : 'bg-green-500'} animate-pulse`} />
@@ -136,17 +138,17 @@ const AdminSettings: React.FC = () => {
             <section className="space-y-4">
                 <div className="flex items-center gap-2 mb-2">
                     <Shield size={18} className="text-stone-400" />
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500">Access & Security</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500">{t('set.access')}</h3>
                 </div>
                 <div className="bg-stone-50 p-6 rounded-3xl border border-stone-100 space-y-4">
                     <Toggle 
-                        label="Maintenance Mode" 
+                        label={t('set.maintenance')} 
                         description="Only admins can access the dashboard."
                         checked={settings.maintenanceMode} 
                         onChange={v => setSettings({...settings, maintenanceMode: v})} 
                     />
                     <Toggle 
-                        label="Allow Registration" 
+                        label={t('set.allow_registration')} 
                         description="New users can sign up via the wizard."
                         checked={settings.allowRegistration} 
                         onChange={v => setSettings({...settings, allowRegistration: v})} 
@@ -158,21 +160,21 @@ const AdminSettings: React.FC = () => {
             <section className="space-y-4">
                 <div className="flex items-center gap-2 mb-2">
                     <LayoutTemplate size={18} className="text-stone-400" />
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500">Module Visibility</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500">{t('set.modules')}</h3>
                 </div>
                 <div className="bg-stone-50 p-6 rounded-3xl border border-stone-100 space-y-4">
                     <Toggle 
-                        label="Village Live 3D" 
+                        label={t('set.mod_live')} 
                         checked={settings.modules.villageLive} 
                         onChange={v => setSettings({...settings, modules: {...settings.modules, villageLive: v}})} 
                     />
                     <Toggle 
-                        label="Events Calendar" 
+                        label={t('set.mod_events')} 
                         checked={settings.modules.events} 
                         onChange={v => setSettings({...settings, modules: {...settings.modules, events: v}})} 
                     />
                     <Toggle 
-                        label="News Feed" 
+                        label={t('set.mod_news')} 
                         checked={settings.modules.news} 
                         onChange={v => setSettings({...settings, modules: {...settings.modules, news: v}})} 
                     />
@@ -183,7 +185,7 @@ const AdminSettings: React.FC = () => {
             <section className="space-y-4 md:col-span-2">
                 <div className="flex items-center gap-2 mb-2">
                     <Banknote size={18} className="text-stone-400" />
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500">Fee Structure (Billing Groups)</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500">{t('set.fees')}</h3>
                 </div>
                 <div className="bg-white p-6 rounded-3xl border border-stone-100 shadow-sm grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* STANDARD */}
@@ -191,7 +193,7 @@ const AdminSettings: React.FC = () => {
                         <div className="mb-2">
                             <span className="text-[10px] font-bold bg-stone-200 text-stone-500 px-2 py-1 rounded">STANDARD</span>
                         </div>
-                        <p className="text-xs text-stone-400 mb-2">Diaspora & Switzerland</p>
+                        <p className="text-xs text-stone-400 mb-2">{t('set.fee_standard_desc')}</p>
                         <div className="flex gap-2">
                             <input 
                                 type="number" 
@@ -213,9 +215,9 @@ const AdminSettings: React.FC = () => {
                     {/* KOSOVO */}
                     <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200">
                         <div className="mb-2">
-                            <span className="text-[10px] font-bold bg-blue-100 text-blue-600 px-2 py-1 rounded">RESIDENT (XK)</span>
+                            <span className="text-[10px] font-bold bg-blue-100 text-blue-600 px-2 py-1 rounded">{t('set.fee_resident')}</span>
                         </div>
-                        <p className="text-xs text-stone-400 mb-2">Locals in Kosovo</p>
+                        <p className="text-xs text-stone-400 mb-2">{t('set.fee_resident_desc')}</p>
                         <div className="flex gap-2">
                             <input 
                                 type="number" 
@@ -237,9 +239,9 @@ const AdminSettings: React.FC = () => {
                     {/* REDUCED */}
                     <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200">
                         <div className="mb-2">
-                            <span className="text-[10px] font-bold bg-amber-100 text-amber-600 px-2 py-1 rounded">REDUCED</span>
+                            <span className="text-[10px] font-bold bg-amber-100 text-amber-600 px-2 py-1 rounded">{t('set.fee_reduced')}</span>
                         </div>
-                        <p className="text-xs text-stone-400 mb-2">Students / Special</p>
+                        <p className="text-xs text-stone-400 mb-2">{t('set.fee_reduced_desc')}</p>
                         <div className="flex gap-2">
                             <input 
                                 type="number" 
@@ -264,24 +266,24 @@ const AdminSettings: React.FC = () => {
             <section className="space-y-4 md:col-span-2">
                 <div className="flex items-center gap-2 mb-2">
                     <Mail size={18} className="text-stone-400" />
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500">Communication</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500">{t('set.communication')}</h3>
                 </div>
                 <div className="bg-stone-50 p-6 rounded-3xl border border-stone-100 grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-2 block">System Reply-To Email</label>
+                        <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-2 block">{t('set.reply_to')}</label>
                         <input 
                             type="email" 
                             value={settings.systemEmail} 
                             onChange={e => setSettings({...settings, systemEmail: e.target.value})}
                             className="w-full p-4 bg-white border border-stone-200 rounded-xl font-bold text-stone-700 outline-none focus:border-primary/50"
                         />
-                        <p className="text-xs text-stone-400 mt-2">Used for automated invoice notifications.</p>
+                        <p className="text-xs text-stone-400 mt-2">{t('set.reply_to_hint')}</p>
                     </div>
                     <div className="flex items-center justify-center p-4 bg-amber-50 rounded-2xl border border-amber-100">
                         <div className="flex gap-4 items-start">
                             <AlertTriangle className="text-amber-500 shrink-0" size={24} />
                             <div>
-                                <p className="font-bold text-amber-800 text-sm">SMTP Configuration</p>
+                                <p className="font-bold text-amber-800 text-sm">{t('set.smtp')}</p>
                                 <p className="text-xs text-amber-600/80 mt-1">
                                     Email delivery relies on the Firebase Extension "Trigger Email". 
                                     Configure SMTP directly in the Firebase Console.

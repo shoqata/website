@@ -1,5 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useTranslation } from '../context/LanguageContext';
 import Papa from 'papaparse';
 import { 
   Database, 
@@ -18,6 +19,7 @@ import { collection, addDoc, getDocs, query, where, writeBatch, doc, Timestamp, 
 import { useFeedback } from '../context/FeedbackContext';
 
 const AdminData: React.FC = () => {
+  const { t } = useTranslation();
   const { showAlert, showPrompt, showConfirm } = useFeedback();
   const [loading, setLoading] = useState(false);
   const [migrating, setMigrating] = useState(false);
@@ -440,8 +442,8 @@ const AdminData: React.FC = () => {
   // --- GO LIVE RESET ---
   const handleGoLiveReset = async () => {
       const confirmText = await showPrompt({
-          title: "GO LIVE PREPARATION",
-          message: "This will delete ALL test Members, Payments, Expenses, and Accounting Data. \n\nYOUR ADMIN ACCOUNT WILL BE KEPT SAFE.\n\nType 'GO-LIVE' to confirm.",
+          title: t('data.golive_title'),
+          message: t('data.golive_text'),
           placeholder: "GO-LIVE",
           confirmText: "RESET OPERATIONAL DATA"
       });
@@ -537,13 +539,13 @@ const AdminData: React.FC = () => {
       }
 
       setLoading(false);
-      showAlert({ type: 'success', message: "Ready for Go Live! Operational data cleared." });
+      showAlert({ type: 'success', message: t('data.golive_done') });
   };
 
   const handleWipeData = async () => {
       const confirmText = await showPrompt({
-          title: "WARNING: FACTORY RESET",
-          message: "This will delete ALL data including your admin account settings potentially. Type 'DELETE-ALL' to confirm.",
+          title: t('data.factory_title'),
+          message: t('data.factory_text'),
           placeholder: "DELETE-ALL",
           confirmText: "WIPE EVERYTHING"
       });
@@ -590,15 +592,15 @@ const AdminData: React.FC = () => {
       
       setLoading(false);
       addLog('success', `Factory Reset complete.`);
-      showAlert({ type: 'success', message: "System reset complete." });
+      showAlert({ type: 'success', message: t('data.factory_done') });
   };
 
   return (
     <div className="bg-white rounded-[2.5rem] border border-stone-100 shadow-sm p-10 min-h-[600px]">
       <div className="flex justify-between items-center mb-10">
         <div>
-            <h2 className="text-3xl font-display font-bold italic mb-2">Data Center</h2>
-            <p className="text-stone-500">Import and Export system data via CSV.</p>
+            <h2 className="text-3xl font-display font-bold italic mb-2">{t('data.title')}</h2>
+            <p className="text-stone-500">{t('data.subtitle')}</p>
         </div>
         <div className="flex items-center gap-4">
             {migrating && (
@@ -619,15 +621,15 @@ const AdminData: React.FC = () => {
               <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                   <Users size={24} />
               </div>
-              <h3 className="font-bold text-lg mb-2">Members</h3>
+              <h3 className="font-bold text-lg mb-2">{t('admin.members.count')}</h3>
               <p className="text-xs text-stone-500 mb-6 h-10">Import members. If email is missing, a placeholder will be generated. Duplicates are checked by Name or Email.</p>
               
               <div className="flex gap-2">
                   <button onClick={() => triggerImport('USERS')} disabled={loading} className="flex-1 py-2 bg-stone-900 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-stone-800 transition-all">
-                      <Upload size={14} /> Import
+                      <Upload size={14} /> {t('data.import')}
                   </button>
                   <button onClick={() => handleExport('users')} disabled={loading} className="flex-1 py-2 bg-stone-100 text-stone-600 rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-stone-200 transition-all">
-                      <Download size={14} /> Export
+                      <Download size={14} /> {t('data.export')}
                   </button>
               </div>
           </div>
@@ -637,15 +639,15 @@ const AdminData: React.FC = () => {
               <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                   <MapPin size={24} />
               </div>
-              <h3 className="font-bold text-lg mb-2">Neighborhoods</h3>
-              <p className="text-xs text-stone-500 mb-6 h-10">Manage locations and community groups.</p>
+              <h3 className="font-bold text-lg mb-2">{t('admin.tab.neighborhoods')}</h3>
+              <p className="text-xs text-stone-500 mb-6 h-10">{t('data.nb_desc')}</p>
               
               <div className="flex gap-2">
                   <button onClick={() => triggerImport('NEIGHBORHOODS')} disabled={loading} className="flex-1 py-2 bg-stone-900 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-stone-800 transition-all">
-                      <Upload size={14} /> Import
+                      <Upload size={14} /> {t('data.import')}
                   </button>
                   <button onClick={() => handleExport('neighborhoods')} disabled={loading} className="flex-1 py-2 bg-stone-100 text-stone-600 rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-stone-200 transition-all">
-                      <Download size={14} /> Export
+                      <Download size={14} /> {t('data.export')}
                   </button>
               </div>
           </div>
@@ -655,15 +657,15 @@ const AdminData: React.FC = () => {
               <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                   <CreditCard size={24} />
               </div>
-              <h3 className="font-bold text-lg mb-2">Payments</h3>
-              <p className="text-xs text-stone-500 mb-6 h-10">Import bank CSVs. Matches user by Email or Reference.</p>
+              <h3 className="font-bold text-lg mb-2">{t('data.payments')}</h3>
+              <p className="text-xs text-stone-500 mb-6 h-10">{t('data.payments_desc')}</p>
               
               <div className="flex gap-2">
                   <button onClick={() => triggerImport('PAYMENTS')} disabled={loading} className="flex-1 py-2 bg-stone-900 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-stone-800 transition-all">
-                      <Upload size={14} /> Import
+                      <Upload size={14} /> {t('data.import')}
                   </button>
                   <button onClick={() => handleExport('payments')} disabled={loading} className="flex-1 py-2 bg-stone-100 text-stone-600 rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-stone-200 transition-all">
-                      <Download size={14} /> Export
+                      <Download size={14} /> {t('data.export')}
                   </button>
               </div>
           </div>
@@ -676,12 +678,12 @@ const AdminData: React.FC = () => {
               <div className="flex items-center gap-4 mb-6">
                   <div className="p-3 bg-emerald-100 rounded-xl text-emerald-600"><Rocket size={24} /></div>
                   <div>
-                      <h3 className="font-bold text-emerald-900">Go Live Preparation</h3>
-                      <p className="text-emerald-700 text-sm">Delete test data (Users, Payments, Journal) but keep Admin account.</p>
+                      <h3 className="font-bold text-emerald-900">{t('data.golive')}</h3>
+                      <p className="text-emerald-700 text-sm">{t('data.golive_desc')}</p>
                   </div>
               </div>
               <button onClick={handleGoLiveReset} className="w-full bg-white border border-emerald-200 text-emerald-700 px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-600 hover:text-white transition-all shadow-sm">
-                  <Trash2 size={18} /> Reset Operational Data
+                  <Trash2 size={18} /> {t('data.golive_button')}
               </button>
           </div>
 
@@ -690,12 +692,12 @@ const AdminData: React.FC = () => {
               <div className="flex items-center gap-4 mb-6">
                   <div className="p-3 bg-red-100 rounded-xl text-red-600"><AlertTriangle size={24} /></div>
                   <div>
-                      <h3 className="font-bold text-red-900">Factory Reset</h3>
-                      <p className="text-red-700 text-sm">Irreversible. Deletes EVERYTHING including neighborhoods and settings.</p>
+                      <h3 className="font-bold text-red-900">{t('data.factory')}</h3>
+                      <p className="text-red-700 text-sm">{t('data.factory_desc')}</p>
                   </div>
               </div>
               <button onClick={handleWipeData} className="w-full bg-white border border-red-200 text-red-600 px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-red-600 hover:text-white transition-all shadow-sm">
-                  <Trash2 size={18} /> Wipe All Data
+                  <Trash2 size={18} /> {t('data.factory_button')}
               </button>
           </div>
       </div>
@@ -706,11 +708,11 @@ const AdminData: React.FC = () => {
       {/* Console / Log */}
       <div className="bg-stone-900 rounded-2xl p-6 text-stone-400 font-mono text-xs h-64 overflow-y-auto">
           <div className="flex justify-between items-center mb-4 border-b border-stone-800 pb-2">
-              <span className="font-bold uppercase tracking-widest text-stone-500">System Log</span>
+              <span className="font-bold uppercase tracking-widest text-stone-500">{t('data.log')}</span>
               {loading && <Loader2 className="animate-spin text-primary" size={14} />}
           </div>
           <div className="space-y-1">
-              {log.length === 0 && <span className="opacity-30">Waiting for actions...</span>}
+              {log.length === 0 && <span className="opacity-30">{t('data.log_waiting')}</span>}
               {log.map((l, i) => (
                   <div key={i} className={`flex gap-2 ${l.type === 'error' ? 'text-red-400' : l.type === 'success' ? 'text-green-400' : l.type === 'warning' ? 'text-amber-400' : 'text-stone-300'}`}>
                       <span className="opacity-50">[{new Date().toLocaleTimeString()}]</span>
