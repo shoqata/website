@@ -1,5 +1,5 @@
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Sphere, MeshDistortMaterial, Float, Text } from '@react-three/drei';
 import * as THREE from 'three';
@@ -76,7 +76,27 @@ const Globe = () => {
   );
 };
 
+// Ohne WebGL wirft der Canvas beim Aufbau ("Error creating WebGL context").
+// Betroffen sind aeltere Geraete, Browser mit deaktiviertem WebGL und
+// Vorschau-Dienste. Statt eines Fehlers wird der Bereich dann ausgelassen.
+const supportsWebGL = () => {
+  try {
+    const probe = document.createElement('canvas');
+    return !!(probe.getContext('webgl') || probe.getContext('experimental-webgl'));
+  } catch {
+    return false;
+  }
+};
+
 const NeighborhoodMap3D: React.FC = () => {
+  const [available, setAvailable] = useState(true);
+
+  useEffect(() => {
+    setAvailable(supportsWebGL());
+  }, []);
+
+  if (!available) return null;
+
   return (
     <div className="w-full h-[500px] bg-transparent cursor-grab active:cursor-grabbing">
       <Canvas camera={{ position: [0, 0, 6], fov: 45 }}>
