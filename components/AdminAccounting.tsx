@@ -251,11 +251,11 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
   // --- CORE BOOKING LOGIC ---
   const handleBooking = async () => {
       if (!newBooking.debitCode || !newBooking.creditCode || !newBooking.amount || !newBooking.description) {
-          showAlert({ type: 'error', message: 'Bitte alle Felder ausfüllen.' });
+          showAlert({ type: 'error', message: t('acc.fill_all') });
           return;
       }
       if (isYearClosed) {
-          showAlert({ type: 'error', message: 'Das Geschäftsjahr ist bereits abgeschlossen.' });
+          showAlert({ type: 'error', message: t('acc.year_closed') });
           return;
       }
       
@@ -267,16 +267,16 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
           });
           setIsBookingModalOpen(false);
           setNewBooking({ date: new Date().toISOString().split('T')[0], description: '', debitCode: '', creditCode: '', amount: '' });
-          showAlert({ type: 'success', message: 'Buchung erfolgreich.' });
+          showAlert({ type: 'success', message: t('acc.booked') });
       } catch (e) {
           console.error(e);
-          showAlert({ type: 'error', message: "Fehler beim Buchen." });
+          showAlert({ type: 'error', message: t('acc.book_failed') });
       }
   };
 
   const handleTransfer = async () => {
       if (!transferData.sourceCode || !transferData.targetCode || !transferData.amountOut) {
-          showAlert({ type: 'error', message: 'Bitte Konten und Ausgangsbetrag wählen.' });
+          showAlert({ type: 'error', message: t('acc.pick_accounts') });
           return;
       }
 
@@ -296,9 +296,9 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
               createdAt: serverTimestamp()
           });
           setIsTransferModalOpen(false);
-          showAlert({ type: 'success', message: 'Übertrag erfolgreich verbucht.' });
+          showAlert({ type: 'success', message: t('acc.transfer_ok') });
       } catch (e) {
-          showAlert({ type: 'error', message: 'Fehler beim Übertrag.' });
+          showAlert({ type: 'error', message: t('acc.transfer_failed') });
       }
   };
 
@@ -307,7 +307,7 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
       if (isYearClosed) return;
 
       const confirmed = await showConfirm({
-          title: "Zahlungen verbuchen",
+          title: t('acc.book_payments'),
           message: `${unbookedPayments.length} neue Zahlungen für ${selectedYear} gefunden. \n\nAutomatische Buchung:\nSOLL: Bank / Kasse\nHABEN: 1100 Forderungen (Mitglieder)`,
           confirmText: "Alle Verbuchen",
           type: 'primary'
@@ -418,7 +418,7 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
           }
       } catch (e) {
           console.error('[AdminAccounting] Prüfung auf bestehende Eröffnungsbuchungen fehlgeschlagen:', e);
-          showAlert({ type: 'error', message: 'Vorprüfung fehlgeschlagen, Abschluss abgebrochen.' });
+          showAlert({ type: 'error', message: t('acc.precheck_failed') });
           return;
       }
 
@@ -482,7 +482,7 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
                     <div className="text-center mb-8"><h3 className="text-3xl font-display font-bold italic text-stone-900">{t('admin.accounting.balanceSheet')} {selectedYear}</h3><p className="text-stone-400 text-sm font-medium">Stichtag 31.12.{selectedYear}</p></div>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         <div className="bg-white p-8 rounded-[2.5rem] border border-stone-200 shadow-sm flex flex-col h-full">
-                            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-stone-100"><div className="bg-emerald-100 text-emerald-700 p-3 rounded-xl"><Wallet size={24}/></div><div><h4 className="text-lg font-bold text-stone-900">{t('admin.accounting.assets')}</h4><p className="text-xs text-stone-400 uppercase tracking-widest">Mittelverwendung</p></div></div>
+                            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-stone-100"><div className="bg-emerald-100 text-emerald-700 p-3 rounded-xl"><Wallet size={24}/></div><div><h4 className="text-lg font-bold text-stone-900">{t('admin.accounting.assets')}</h4><p className="text-xs text-stone-400 uppercase tracking-widest">{t('acc.use_of_funds')}</p></div></div>
                             <div className="space-y-1 flex-1">
                                 {accountBalances.filter(b => b.class === 'ASSET').map(acc => (
                                     <div key={acc.id} className="flex justify-between text-sm py-3 border-b border-stone-50 last:border-0 hover:bg-stone-50 px-2 rounded-lg transition-colors"><div className="flex items-center gap-3"><span className="font-mono text-xs text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded">{acc.code}</span><span className="text-stone-700 font-medium">{acc.name}</span></div><span className="font-mono font-bold text-stone-900">{acc.balance.toLocaleString('de-CH', { minimumFractionDigits: 2 })}</span></div>
@@ -491,7 +491,7 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
                             <div className="mt-8 pt-6 border-t-2 border-stone-100 flex justify-between items-end"><span className="text-xs font-bold text-stone-400 uppercase tracking-widest">Total {t('admin.accounting.assets')}</span><span className="text-2xl font-mono font-bold text-emerald-600">{totalAssets.toLocaleString('de-CH', { minimumFractionDigits: 2 })}</span></div>
                         </div>
                         <div className="bg-white p-8 rounded-[2.5rem] border border-stone-200 shadow-sm flex flex-col h-full">
-                            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-stone-100"><div className="bg-rose-100 text-rose-700 p-3 rounded-xl"><Landmark size={24}/></div><div><h4 className="text-lg font-bold text-stone-900">{t('admin.accounting.liabilities')}</h4><p className="text-xs text-stone-400 uppercase tracking-widest">Mittelherkunft</p></div></div>
+                            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-stone-100"><div className="bg-rose-100 text-rose-700 p-3 rounded-xl"><Landmark size={24}/></div><div><h4 className="text-lg font-bold text-stone-900">{t('admin.accounting.liabilities')}</h4><p className="text-xs text-stone-400 uppercase tracking-widest">{t('acc.source_of_funds')}</p></div></div>
                             <div className="space-y-1 flex-1">
                                 {accountBalances.filter(b => b.class === 'LIABILITY').map(acc => (
                                     <div key={acc.id} className="flex justify-between text-sm py-3 border-b border-stone-50 last:border-0 hover:bg-stone-50 px-2 rounded-lg transition-colors"><div className="flex items-center gap-3"><span className="font-mono text-xs text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded">{acc.code}</span><span className="text-stone-700 font-medium">{acc.name}</span></div><span className="font-mono font-bold text-stone-900">{acc.balance.toLocaleString('de-CH', { minimumFractionDigits: 2 })}</span></div>
@@ -523,7 +523,7 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
                             </div>
                             <div className="flex justify-between font-bold mt-6 pt-4 border-t border-rose-200 text-rose-900 text-lg"><span>Total {t('admin.accounting.expense')}</span><span>{totalExpense.toLocaleString('de-CH', { minimumFractionDigits: 2 })}</span></div>
                         </div>
-                        <div className="p-8 bg-stone-900 text-white flex justify-between items-center"><div className="flex flex-col"><span className="font-display italic text-2xl">Unternehmenserfolg</span><span className="text-stone-400 text-xs uppercase tracking-widest">{t('admin.accounting.profit')}</span></div><span className={`font-mono text-3xl font-bold ${currentProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{currentProfit >= 0 ? '+' : ''}{currentProfit.toLocaleString('de-CH', { minimumFractionDigits: 2 })} CHF</span></div>
+                        <div className="p-8 bg-stone-900 text-white flex justify-between items-center"><div className="flex flex-col"><span className="font-display italic text-2xl">{t('acc.result')}</span><span className="text-stone-400 text-xs uppercase tracking-widest">{t('admin.accounting.profit')}</span></div><span className={`font-mono text-3xl font-bold ${currentProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{currentProfit >= 0 ? '+' : ''}{currentProfit.toLocaleString('de-CH', { minimumFractionDigits: 2 })} CHF</span></div>
                     </div>
                 </motion.div>
             )}
@@ -531,10 +531,10 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
             {activeTab === 'JOURNAL' && (
                 <div className="space-y-6">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-[2rem] border border-stone-100 shadow-sm">
-                        <div><h3 className="text-xl font-bold text-stone-900">Buchungsjournal</h3><p className="text-stone-500 text-sm">Chronologische Liste aller Transaktionen.</p></div>
+                        <div><h3 className="text-xl font-bold text-stone-900">{t('acc.journal')}</h3><p className="text-stone-500 text-sm">{t('acc.journal_desc')}</p></div>
                         <div className="flex gap-3">
                             {unbookedPayments.length > 0 && !isYearClosed && ( <button onClick={handleSyncPayments} className="bg-amber-100 text-amber-800 px-5 py-3 rounded-xl font-bold text-xs flex items-center gap-2 hover:bg-amber-200 transition-colors shadow-sm animate-pulse border border-amber-200"><RefreshCw size={16}/> {t('admin.accounting.importPayments')} ({unbookedPayments.length})</button> )}
-                            <button onClick={() => setIsTransferModalOpen(true)} disabled={isYearClosed} className="bg-white border border-stone-200 text-stone-700 px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-stone-50 transition-all disabled:opacity-50"><ArrowLeftRight size={18} /> Kontoübertrag</button>
+                            <button onClick={() => setIsTransferModalOpen(true)} disabled={isYearClosed} className="bg-white border border-stone-200 text-stone-700 px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-stone-50 transition-all disabled:opacity-50"><ArrowLeftRight size={18} /> {t('acc.transfer')}</button>
                             <button onClick={() => setIsBookingModalOpen(true)} disabled={isYearClosed} className="bg-stone-900 text-white px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-stone-800 transition-all disabled:opacity-50 shadow-lg"><Plus size={18} /> {t('admin.accounting.newBooking')}</button>
                         </div>
                     </div>
@@ -543,7 +543,7 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
                             <thead className="bg-stone-50 text-stone-500 font-bold uppercase text-[10px] tracking-widest border-b border-stone-200"><tr><th className="px-6 py-4">{t('admin.finance.date')}</th><th className="px-6 py-4">{t('admin.expenses.description')}</th><th className="px-6 py-4">{t('admin.accounting.debit')}</th><th className="px-6 py-4">{t('admin.accounting.credit')}</th><th className="px-6 py-4 text-right">{t('admin.finance.amount')}</th></tr></thead>
                             <tbody className="divide-y divide-stone-100">
                                 {journal.map(entry => (
-                                    <tr key={entry.id} className={`hover:bg-stone-50 transition-colors ${entry.isSystemEntry ? 'bg-blue-50/30' : ''}`}><td className="px-6 py-4 font-mono text-xs text-stone-500">{entry.date}</td><td className="px-6 py-4 font-medium text-stone-800">{entry.description}{entry.isSystemEntry && <span className="ml-2 inline-block bg-blue-100 text-blue-600 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">System</span>}</td><td className="px-6 py-4 text-stone-600"><span className="bg-stone-100 border border-stone-200 px-2 py-1 rounded text-[10px] font-mono font-bold mr-2 text-stone-500">{entry.debitCode}</span>{getAccountName(entry.debitCode)}</td><td className="px-6 py-4 text-stone-600"><span className="bg-stone-100 border border-stone-200 px-2 py-1 rounded text-[10px] font-mono font-bold mr-2 text-stone-500">{entry.creditCode}</span>{getAccountName(entry.creditCode)}</td><td className="px-6 py-4 text-right font-mono font-bold text-stone-900">{entry.amount.toFixed(2)}</td></tr>
+                                    <tr key={entry.id} className={`hover:bg-stone-50 transition-colors ${entry.isSystemEntry ? 'bg-blue-50/30' : ''}`}><td className="px-6 py-4 font-mono text-xs text-stone-500">{entry.date}</td><td className="px-6 py-4 font-medium text-stone-800">{entry.description}{entry.isSystemEntry && <span className="ml-2 inline-block bg-blue-100 text-blue-600 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">{t('acc.system')}</span>}</td><td className="px-6 py-4 text-stone-600"><span className="bg-stone-100 border border-stone-200 px-2 py-1 rounded text-[10px] font-mono font-bold mr-2 text-stone-500">{entry.debitCode}</span>{getAccountName(entry.debitCode)}</td><td className="px-6 py-4 text-stone-600"><span className="bg-stone-100 border border-stone-200 px-2 py-1 rounded text-[10px] font-mono font-bold mr-2 text-stone-500">{entry.creditCode}</span>{getAccountName(entry.creditCode)}</td><td className="px-6 py-4 text-right font-mono font-bold text-stone-900">{entry.amount.toFixed(2)}</td></tr>
                                 ))}
                                 {journal.length === 0 && ( <tr><td colSpan={5} className="px-6 py-12 text-center text-stone-400 italic">Keine Buchungen für {selectedYear} vorhanden.</td></tr> )}
                             </tbody>
@@ -557,7 +557,7 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
                     {accountBalances.map(acc => (
                         <div key={acc.id} onClick={() => setViewAccount(acc)} className="bg-white border border-stone-200 p-6 rounded-[2rem] flex justify-between items-center shadow-sm hover:shadow-md hover:border-primary/50 transition-all cursor-pointer group">
                             <div className="flex items-center gap-4"><div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-mono font-bold text-sm ${acc.class === 'ASSET' ? 'bg-emerald-100 text-emerald-700' : acc.class === 'LIABILITY' ? 'bg-orange-100 text-orange-700' : acc.class === 'REVENUE' ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'}`}>{acc.code}</div><div><p className="font-bold text-stone-900 group-hover:text-primary transition-colors">{acc.name}</p><p className="text-[10px] text-stone-400 uppercase tracking-widest">{acc.category}</p></div></div>
-                            <div className="text-right"><p className="font-mono font-bold text-stone-800 text-lg">{acc.balance.toFixed(2)}</p><p className="text-[10px] text-stone-400 uppercase tracking-widest">Saldo</p></div>
+                            <div className="text-right"><p className="font-mono font-bold text-stone-800 text-lg">{acc.balance.toFixed(2)}</p><p className="text-[10px] text-stone-400 uppercase tracking-widest">{t('acc.balance')}</p></div>
                         </div>
                     ))}
                 </div>
@@ -570,16 +570,16 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
                     <motion.div initial={{opacity:0, scale:0.95}} animate={{opacity:1, scale:1}} exit={{opacity:0, scale:0.95}} className="bg-white h-[90vh] w-full max-w-4xl rounded-2xl flex flex-col overflow-hidden relative">
                         <div className="bg-stone-50 border-b border-stone-200 p-4 flex justify-between items-center shrink-0 no-print">
                             <h3 className="font-bold text-stone-800">Kontoauszug: {viewAccount.code} {viewAccount.name}</h3>
-                            <div className="flex gap-2"><button onClick={() => handleExportStatement(viewAccount)} className="flex items-center gap-2 px-4 py-2 bg-white border border-stone-200 rounded-lg text-sm font-bold text-stone-600 hover:text-primary transition-colors"><Download size={16}/> CSV Export</button><button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 bg-stone-900 text-white rounded-lg text-sm font-bold hover:bg-black transition-colors"><Printer size={16}/> Drucken</button><button onClick={() => setViewAccount(null)} className="p-2 hover:bg-stone-200 rounded-lg text-stone-500"><X size={20}/></button></div>
+                            <div className="flex gap-2"><button onClick={() => handleExportStatement(viewAccount)} className="flex items-center gap-2 px-4 py-2 bg-white border border-stone-200 rounded-lg text-sm font-bold text-stone-600 hover:text-primary transition-colors"><Download size={16}/> {t('acc.csv_export')}</button><button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 bg-stone-900 text-white rounded-lg text-sm font-bold hover:bg-black transition-colors"><Printer size={16}/> {t('acc.print')}</button><button onClick={() => setViewAccount(null)} className="p-2 hover:bg-stone-200 rounded-lg text-stone-500"><X size={20}/></button></div>
                         </div>
                         <div className="flex-1 overflow-y-auto bg-stone-100 p-8 flex justify-center printable-scroll-area">
                             <div className="bg-white shadow-xl w-[210mm] min-h-[297mm] p-[20mm] text-stone-900 printable-account-sheet">
                                 <style>{` @media print { body * { visibility: hidden; } .printable-account-sheet, .printable-account-sheet * { visibility: visible; } .printable-account-sheet { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 10mm; box-shadow: none; } @page { size: A4; margin: 0; } .no-print { display: none !important; } } `}</style>
                                 <div className="border-b-2 border-stone-900 pb-4 mb-8 flex justify-between items-end"><div><h1 className="text-2xl font-display font-bold italic mb-1">Kontoauszug {selectedYear}</h1><h2 className="text-lg font-bold">{viewAccount.code} {viewAccount.name}</h2></div><div className="text-right text-sm"><p className="font-bold">Klasse: {viewAccount.class}</p><p className="text-stone-500">Kategorie: {viewAccount.category}</p></div></div>
                                 <table className="w-full text-left text-xs">
-                                    <thead className="border-b-2 border-stone-200 font-bold uppercase"><tr><th className="py-2">Datum</th><th className="py-2">Buchungstext</th><th className="py-2">Gegenkonto</th><th className="py-2 text-right">Soll</th><th className="py-2 text-right">Haben</th></tr></thead>
+                                    <thead className="border-b-2 border-stone-200 font-bold uppercase"><tr><th className="py-2">{t('field.date')}</th><th className="py-2">{t('acc.entry_text')}</th><th className="py-2">{t('acc.contra_account')}</th><th className="py-2 text-right">{t('admin.accounting.debit')}</th><th className="py-2 text-right">{t('admin.accounting.credit')}</th></tr></thead>
                                     <tbody className="divide-y divide-stone-100">{journal.filter(j => String(j.debitCode) === String(viewAccount.code) || String(j.creditCode) === String(viewAccount.code)).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).map(t => { const isDebit = String(t.debitCode) === String(viewAccount.code); return ( <tr key={t.id}><td className="py-2 font-mono text-stone-500">{t.date}</td><td className="py-2 max-w-[200px] truncate">{t.description}</td><td className="py-2 font-mono text-stone-500">{isDebit ? t.creditCode : t.debitCode}</td><td className="py-2 text-right font-mono">{isDebit ? t.amount.toFixed(2) : '-'}</td><td className="py-2 text-right font-mono">{!isDebit ? t.amount.toFixed(2) : '-'}</td></tr> )})}</tbody>
-                                    <tfoot className="border-t-2 border-stone-900 font-bold"><tr><td colSpan={3} className="py-4 text-right">Saldo</td><td className="py-4 text-right font-mono text-base">{viewAccount.class === 'ASSET' || viewAccount.class === 'EXPENSE' ? viewAccount.balance.toFixed(2) : ''}</td><td className="py-4 text-right font-mono text-base">{viewAccount.class === 'LIABILITY' || viewAccount.class === 'REVENUE' ? viewAccount.balance.toFixed(2) : ''}</td></tr></tfoot>
+                                    <tfoot className="border-t-2 border-stone-900 font-bold"><tr><td colSpan={3} className="py-4 text-right">{t('acc.balance')}</td><td className="py-4 text-right font-mono text-base">{viewAccount.class === 'ASSET' || viewAccount.class === 'EXPENSE' ? viewAccount.balance.toFixed(2) : ''}</td><td className="py-4 text-right font-mono text-base">{viewAccount.class === 'LIABILITY' || viewAccount.class === 'REVENUE' ? viewAccount.balance.toFixed(2) : ''}</td></tr></tfoot>
                                 </table>
                             </div>
                         </div>
@@ -598,7 +598,7 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
                                 <div><label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('admin.finance.date')}</label><input type="date" min={`${selectedYear}-01-01`} max={`${selectedYear}-12-31`} value={newBooking.date} onChange={e => setNewBooking({...newBooking, date: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-primary/50" /></div>
                                 <div><label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('admin.finance.amount')}</label><input type="number" placeholder="0.00" value={newBooking.amount} onChange={e => setNewBooking({...newBooking, amount: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-primary/50 font-mono font-bold" /></div>
                             </div>
-                            <div><label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('admin.expenses.description')}</label><input type="text" placeholder="Zweck der Buchung..." value={newBooking.description} onChange={e => setNewBooking({...newBooking, description: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-primary/50" /></div>
+                            <div><label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('admin.expenses.description')}</label><input type="text" placeholder={t('acc.purpose_ph')} value={newBooking.description} onChange={e => setNewBooking({...newBooking, description: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-primary/50" /></div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div><label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('admin.accounting.debit')}</label><select value={newBooking.debitCode} onChange={e => setNewBooking({...newBooking, debitCode: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none font-medium"><option value="">{t('common.select')}</option>{accounts.map(a => <option key={a.id} value={a.code}>{a.code} {a.name}</option>)}</select></div>
                                 <div><label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('admin.accounting.credit')}</label><select value={newBooking.creditCode} onChange={e => setNewBooking({...newBooking, creditCode: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none font-medium"><option value="">{t('common.select')}</option>{accounts.map(a => <option key={a.id} value={a.code}>{a.code} {a.name}</option>)}</select></div>
@@ -615,21 +615,21 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
             {isTransferModalOpen && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-stone-900/60 backdrop-blur-sm">
                     <motion.div initial={{scale:0.95, opacity:0}} animate={{scale:1, opacity:1}} exit={{scale:0.95, opacity:0}} className="bg-white w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl">
-                        <h3 className="text-2xl font-bold mb-2 text-stone-900">Kontoübertrag / Wechsel</h3>
-                        <p className="text-stone-500 text-sm mb-6">Transfer von liquiden Mitteln (z.B. Bank zu Kasse oder Währungswechsel).</p>
+                        <h3 className="text-2xl font-bold mb-2 text-stone-900">{t('acc.transfer_title')}</h3>
+                        <p className="text-stone-500 text-sm mb-6">{t('acc.transfer_desc')}</p>
                         
                         <div className="space-y-4">
-                            <div><label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">Datum</label><input type="date" value={transferData.date} onChange={e => setTransferData({...transferData, date: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none" /></div>
+                            <div><label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('field.date')}</label><input type="date" value={transferData.date} onChange={e => setTransferData({...transferData, date: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none" /></div>
                             
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">Von (Haben)</label>
+                                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('acc.from_credit')}</label>
                                     <select value={transferData.sourceCode} onChange={e => setTransferData({...transferData, sourceCode: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold outline-none">
                                         {accounts.filter(a => a.category === 'Flüssige Mittel').map(a => <option key={a.id} value={a.code}>{a.name}</option>)}
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">Nach (Soll)</label>
+                                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('acc.to_debit')}</label>
                                     <select value={transferData.targetCode} onChange={e => setTransferData({...transferData, targetCode: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold outline-none">
                                         {accounts.filter(a => a.category === 'Flüssige Mittel').map(a => <option key={a.id} value={a.code}>{a.name}</option>)}
                                     </select>
@@ -638,14 +638,14 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">Betrag Ausgang</label>
+                                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('acc.amount_out')}</label>
                                     <input type="number" placeholder="0.00" value={transferData.amountOut} onChange={e => setTransferData({...transferData, amountOut: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none font-mono font-bold" />
-                                    <p className="text-[10px] text-stone-400 mt-1">Betrag in Quellwährung</p>
+                                    <p className="text-[10px] text-stone-400 mt-1">{t('acc.amount_out_hint')}</p>
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">Betrag Eingang</label>
+                                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('acc.amount_in')}</label>
                                     <input type="number" placeholder="0.00" value={transferData.amountIn} onChange={e => setTransferData({...transferData, amountIn: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none font-mono font-bold" />
-                                    <p className="text-[10px] text-stone-400 mt-1">Betrag in Zielwährung</p>
+                                    <p className="text-[10px] text-stone-400 mt-1">{t('acc.amount_in_hint')}</p>
                                 </div>
                             </div>
 
@@ -653,7 +653,7 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
                                 <p>Hinweis: Bei Währungswechsel wird der "Betrag Ausgang" (in Basiswährung) verbucht. Der "Betrag Eingang" dient der Information für den Kassenbestand.</p>
                             </div>
 
-                            <div className="flex gap-4 mt-8 pt-4 border-t border-stone-100"><button onClick={() => setIsTransferModalOpen(false)} className="flex-1 py-3 bg-stone-100 font-bold rounded-xl text-stone-500 hover:bg-stone-200 transition-colors">{t('common.cancel')}</button><button onClick={handleTransfer} className="flex-1 py-3 bg-stone-900 text-white font-bold rounded-xl hover:bg-black transition-colors shadow-lg">Umbuchen</button></div>
+                            <div className="flex gap-4 mt-8 pt-4 border-t border-stone-100"><button onClick={() => setIsTransferModalOpen(false)} className="flex-1 py-3 bg-stone-100 font-bold rounded-xl text-stone-500 hover:bg-stone-200 transition-colors">{t('common.cancel')}</button><button onClick={handleTransfer} className="flex-1 py-3 bg-stone-900 text-white font-bold rounded-xl hover:bg-black transition-colors shadow-lg">{t('acc.do_transfer')}</button></div>
                         </div>
                     </motion.div>
                 </div>
@@ -678,7 +678,7 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
                                 <div className="flex gap-4"><button onClick={() => setShowClosingWizard(false)} className="flex-1 py-4 bg-stone-100 rounded-xl font-bold text-stone-500 hover:bg-stone-200 transition-colors">{t('common.cancel')}</button><button onClick={performYearClosing} className="flex-1 py-4 bg-stone-900 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-black transition-colors shadow-lg">{t('admin.accounting.closeYear')} <ArrowRight size={16} /></button></div>
                             </>
                         )}
-                        {closingStep > 0 && closingStep < 3 && ( <div className="py-8"><p className="font-bold text-stone-900 text-lg">Verarbeite Daten...</p><p className="text-xs text-stone-400 mt-2">Erstelle Eröffnungsbilanz {selectedYear + 1}...</p></div> )}
+                        {closingStep > 0 && closingStep < 3 && ( <div className="py-8"><p className="font-bold text-stone-900 text-lg">{t('acc.processing')}</p><p className="text-xs text-stone-400 mt-2">Erstelle Eröffnungsbilanz {selectedYear + 1}...</p></div> )}
                         {closingStep === 3 && ( <div className="py-4"><p className="text-green-600 font-bold text-lg mb-2">{t('common.success')}</p><p className="text-stone-400 text-sm">Das Jahr {selectedYear} ist nun gesperrt.</p></div> )}
                     </motion.div>
                 </div>

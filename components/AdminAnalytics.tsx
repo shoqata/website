@@ -214,7 +214,7 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ payments = [], users = 
                          <th className="pb-3">{t('admin.tab.neighborhoods')}</th>
                          <th className="pb-3 text-right">{t('admin.tab.users')}</th>
                          <th className="pb-3 text-right">{t('admin.finance.collected')}</th>
-                         <th className="pb-3 text-right">Health</th>
+                         <th className="pb-3 text-right">{t('stats.health')}</th>
                       </tr>
                    </thead>
                    <tbody className="divide-y divide-stone-50">
