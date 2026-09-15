@@ -7,6 +7,7 @@ import { collection, query, orderBy, onSnapshot, addDoc, doc, updateDoc, deleteD
 import { ref, uploadBytes, getDownloadURL } from '@/services/supabase-bridge';
 import { BoardMeeting, UserProfile, BoardMember, ProtocolAttendee, ProtocolAgendaItem, Task } from '../types';
 import { useFeedback } from '../context/FeedbackContext';
+import { useTranslation } from '../context/LanguageContext';
 
 import { onImageError } from '../lib/imageFallback';
 interface AdminBoardProps {
@@ -15,6 +16,7 @@ interface AdminBoardProps {
 
 // --- WYSIWYG EDITOR COMPONENT ---
 const RichTextEditor = ({ value, onChange, placeholder }: { value: string, onChange: (val: string) => void, placeholder?: string }) => {
+    const { t } = useTranslation();
     const contentRef = useRef<HTMLDivElement>(null);
 
     const exec = (command: string) => {
@@ -37,10 +39,10 @@ const RichTextEditor = ({ value, onChange, placeholder }: { value: string, onCha
     return (
         <div className="border border-stone-200 rounded-xl overflow-hidden bg-white">
             <div className="flex gap-2 p-2 bg-stone-50 border-b border-stone-100">
-                <button onClick={() => exec('bold')} className="p-1.5 rounded hover:bg-stone-200 text-stone-600" title="Bold"><Bold size={14}/></button>
-                <button onClick={() => exec('italic')} className="p-1.5 rounded hover:bg-stone-200 text-stone-600" title="Italic"><Italic size={14}/></button>
+                <button onClick={() => exec('bold')} className="p-1.5 rounded hover:bg-stone-200 text-stone-600" title={t('ed.bold')}><Bold size={14}/></button>
+                <button onClick={() => exec('italic')} className="p-1.5 rounded hover:bg-stone-200 text-stone-600" title={t('ed.italic')}><Italic size={14}/></button>
                 <div className="w-px bg-stone-300 mx-1 h-6 self-center" />
-                <button onClick={() => exec('insertUnorderedList')} className="p-1.5 rounded hover:bg-stone-200 text-stone-600" title="Bullet List"><List size={14}/></button>
+                <button onClick={() => exec('insertUnorderedList')} className="p-1.5 rounded hover:bg-stone-200 text-stone-600" title={t('ed.bullets')}><List size={14}/></button>
             </div>
             <div 
                 ref={contentRef}
@@ -54,8 +56,11 @@ const RichTextEditor = ({ value, onChange, placeholder }: { value: string, onCha
 };
 
 const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
+    const { t, loc } = useTranslation();
     const { showAlert, showConfirm } = useFeedback();
     const [activeTab, setActiveTab] = useState<'PROTOCOLS' | 'MEMBERS'>('PROTOCOLS');
+    // Vereinsname im Protokollkopf; stand fest auf "Shoqata Koretini".
+    const [branding, setBranding] = useState<any>({});
     
     // Protocol State
     const [meetings, setMeetings] = useState<BoardMeeting[]>([]);
@@ -101,7 +106,11 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
             setTasks(snap.docs.map(d => ({ id: d.id, ...d.data() } as Task)));
         });
 
-        return () => { unsubMeetings(); unsubMembers(); unsubTasks(); };
+        const unsubBranding = onSnapshot(doc(db, 'public_settings', 'branding'), (snap) => {
+            if (snap.exists()) setBranding(snap.data());
+        });
+
+        return () => { unsubMeetings(); unsubMembers(); unsubTasks(); unsubBranding(); };
     }, []);
 
     // --- PROTOCOL ACTIONS ---
@@ -119,7 +128,7 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
         });
 
         const newMeeting = {
-            title: "Mbledhja e Kryesisë",
+            title: t('minutes.default_title'),
             date: new Date().toISOString().split('T')[0],
             status: "PLANNED",
             agendaItems: [],
@@ -133,11 +142,11 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
     const saveProtocol = async () => {
         if (!selectedMeeting) return;
         await updateDoc(doc(db, 'board_meetings', selectedMeeting.id), selectedMeeting as any);
-        showAlert({ type: 'success', message: 'Protokolli u ruajt.' });
+        showAlert({ type: 'success', message: t('minutes.saved') });
     };
 
     const deleteMeeting = async (id: string) => {
-        if (await showConfirm({ title: "Fshij Protokollin", message: "A jeni i sigurt?", type: 'danger' })) {
+        if (await showConfirm({ title: t('minutes.delete_title'), message: t('admin.confirm_delete'), type: 'danger' })) {
             await deleteDoc(doc(db, 'board_meetings', id));
             if (selectedMeeting?.id === id) setSelectedMeeting(null);
         }
@@ -159,7 +168,7 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
 
         // Check if already in list
         if (selectedMeeting.attendees.some(a => a.userId === userToAdd.id)) {
-            showAlert({ type: 'info', message: 'Ky person është tashmë në listë.' });
+            showAlert({ type: 'info', message: t('board.already_in_list') });
             return;
         }
 
@@ -237,7 +246,7 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
     const handleCreateTask = async () => {
         if (currentAgendaIndex === null || !selectedMeeting) return;
         if (!newTaskData.title || !newTaskData.assignedToUserId) {
-            showAlert({ type: 'error', message: "Ju lutem plotësoni titullin dhe personin përgjegjës." });
+            showAlert({ type: 'error', message: t('minutes.fill_title_owner') });
             return;
         }
 
@@ -274,7 +283,7 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
         await updateDoc(doc(db, 'board_meetings', selectedMeeting.id), updatedMeeting as any);
 
         setShowTaskModal(false);
-        showAlert({ type: 'success', message: "Detyra u krijua me sukses!" });
+        showAlert({ type: 'success', message: t('task.created') });
     };
 
     // --- MEMBER MANAGEMENT ACTIONS ---
@@ -305,11 +314,11 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
         });
 
         setNewBoardMember({ userId: '', role: '', quote: '', image: '' });
-        showAlert({ type: 'success', message: 'Anëtari u shtua dhe u përditësua roli.' });
+        showAlert({ type: 'success', message: t('board.member_added') });
     };
 
     const handleDeleteBoardMember = async (id: string) => {
-        if (await showConfirm({ title: "Fshij Anëtarin", message: "A jeni i sigurt?", type: 'danger' })) {
+        if (await showConfirm({ title: t('board.delete_member'), message: t('admin.confirm_delete'), type: 'danger' })) {
             const memberToDelete = boardMembers.find(bm => bm.id === id);
             
             await deleteDoc(doc(db, 'board_members', id));
@@ -320,7 +329,7 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                     role: 'MEMBER'
                 });
             }
-            showAlert({ type: 'success', message: 'Anëtari u fshi dhe roli u kthye në Member.' });
+            showAlert({ type: 'success', message: t('board.member_removed') });
         }
     };
 
@@ -352,7 +361,7 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
             }
         } else {
             navigator.clipboard.writeText(text);
-            showAlert({ type: 'success', message: 'Përmbledhja u kopjua në clipboard!' });
+            showAlert({ type: 'success', message: t('minutes.copied') });
         }
     };
 
@@ -368,13 +377,13 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                     onClick={() => setActiveTab('PROTOCOLS')} 
                     className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${activeTab === 'PROTOCOLS' ? 'bg-white text-primary shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
                 >
-                    <FileText size={16} /> Protokolle & Mbledhje
+                    <FileText size={16} /> {t('minutes.tab')}
                 </button>
                 <button 
                     onClick={() => setActiveTab('MEMBERS')} 
                     className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${activeTab === 'MEMBERS' ? 'bg-white text-primary shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
                 >
-                    <Users size={16} /> Anëtarët e Kryesisë
+                    <Users size={16} /> {t('board.members_title')}
                 </button>
             </div>
 
@@ -387,12 +396,12 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                             
                             <div className="flex justify-end">
                                 <button onClick={handleSyncRoles} className="text-xs font-bold text-stone-400 hover:text-primary flex items-center gap-2">
-                                    <RefreshCw size={12}/> Sinkronizo Rolet
+                                    <RefreshCw size={12}/> {t('board.sync_roles')}
                                 </button>
                             </div>
 
                             <div className="bg-stone-50 p-6 rounded-3xl border border-stone-200">
-                                <h4 className="font-bold text-stone-900 mb-6 flex items-center gap-2"><Plus size={18} /> Shto Anëtar të Ri</h4>
+                                <h4 className="font-bold text-stone-900 mb-6 flex items-center gap-2"><Plus size={18} /> {t('board.add_member')}</h4>
                                 <div className="flex gap-6 items-start">
                                     <div 
                                         onClick={() => fileInputRef.current?.click()}
@@ -408,24 +417,24 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                                 onChange={e => setNewBoardMember({...newBoardMember, userId: e.target.value})} 
                                                 className="w-full p-3 bg-white rounded-xl text-sm border border-stone-200 outline-none"
                                             >
-                                                <option value="">Zgjidh Anëtarin...</option>
+                                                <option value="">{t('board.choose_member')}</option>
                                                 {users.map(u => <option key={u.id} value={u.id}>{u.displayName} ({u.email})</option>)}
                                             </select>
                                             <input 
-                                                placeholder="Funksioni (psh. Kryetar)" 
+                                                placeholder={t('board.function_ph')} 
                                                 value={newBoardMember.role} 
                                                 onChange={e => setNewBoardMember({...newBoardMember, role: e.target.value})} 
                                                 className="w-full p-3 bg-white rounded-xl text-sm border border-stone-200 outline-none" 
                                             />
                                         </div>
                                         <textarea 
-                                            placeholder="Citat ose Përshkrim..." 
+                                            placeholder={t('board.quote_ph')} 
                                             value={newBoardMember.quote} 
                                             onChange={e => setNewBoardMember({...newBoardMember, quote: e.target.value})} 
                                             className="w-full p-3 bg-white rounded-xl text-sm border border-stone-200 outline-none h-20" 
                                         />
                                         <button onClick={handleAddBoardMember} disabled={!newBoardMember.userId} className="px-6 py-3 bg-stone-900 text-white rounded-xl text-sm font-bold disabled:opacity-50 hover:bg-black transition-all">
-                                            Ruaj Anëtarin
+                                            {t('board.save_member')}
                                         </button>
                                     </div>
                                 </div>
@@ -455,9 +464,9 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                         {/* Sidebar: Archive */}
                         <div className="col-span-3 border-r border-stone-100 bg-stone-50/50 p-4 overflow-y-auto">
                             <button onClick={createMeeting} className="w-full py-3 bg-stone-900 text-white rounded-xl font-bold text-sm mb-6 flex items-center justify-center gap-2 hover:bg-black shadow-lg">
-                                <Plus size={16} /> Protokoll i Ri
+                                <Plus size={16} /> {t('minutes.new')}
                             </button>
-                            <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-3 px-2">Arkiva</h4>
+                            <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-3 px-2">{t('minutes.archive')}</h4>
                             <div className="space-y-2">
                                 {meetings.map(m => (
                                     <div 
@@ -486,7 +495,7 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                                 value={selectedMeeting.title} 
                                                 onChange={e => setSelectedMeeting({...selectedMeeting, title: e.target.value})} 
                                                 className="text-3xl font-display font-bold bg-transparent outline-none w-full placeholder-stone-300" 
-                                                placeholder="Titulli i Mbledhjes"
+                                                placeholder={t('minutes.title_ph')}
                                             />
                                             <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-stone-200 w-fit">
                                                 <Calendar size={14} className="text-stone-400" />
@@ -500,10 +509,10 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                         </div>
                                         <div className="flex gap-2">
                                             <button onClick={() => setShowPreview(true)} className="bg-white border border-stone-200 text-stone-600 px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-stone-50 transition-all">
-                                                <Eye size={18} /> Preview / PDF
+                                                <Eye size={18} /> {t('minutes.preview_pdf')}
                                             </button>
                                             <button onClick={saveProtocol} className="bg-primary text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-rose-200 hover:scale-105 transition-all">
-                                                <Save size={18} /> Ruaj
+                                                <Save size={18} /> {t('btn.save')}
                                             </button>
                                         </div>
                                     </div>
@@ -511,7 +520,7 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                     {/* 1. Pjesëmarrësit (Attendees) */}
                                     <div className="bg-white p-6 rounded-3xl border border-stone-100 shadow-sm">
                                         <div className="flex justify-between items-center mb-4">
-                                            <h4 className="font-bold text-stone-900 flex items-center gap-2"><Users size={18} className="text-primary" /> Pjesëmarrësit</h4>
+                                            <h4 className="font-bold text-stone-900 flex items-center gap-2"><Users size={18} className="text-primary" /> {t('board.attendees')}</h4>
                                             
                                             {/* Manual Add Selection */}
                                             <div className="flex items-center gap-2">
@@ -520,14 +529,14 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                                     onChange={(e) => setSelectedUserIdToAdd(e.target.value)}
                                                     className="p-2 bg-stone-50 border border-stone-200 rounded-lg text-xs font-medium outline-none w-48"
                                                 >
-                                                    <option value="">Shto Pjesëmarrës...</option>
-                                                    <optgroup label="Anëtarët e Kryesisë">
+                                                    <option value="">{t('minutes.add_attendee')}</option>
+                                                    <optgroup label={t('board.members_title')}>
                                                         {users.filter(u => boardMembers.some(bm => bm.userId === u.id)).map(u => {
                                                              const role = boardMembers.find(bm => bm.userId === u.id)?.role;
                                                              return <option key={u.id} value={u.id}>{u.displayName} ({role})</option>
                                                         })}
                                                     </optgroup>
-                                                    <optgroup label="Mysafirë & Të Tjerë">
+                                                    <optgroup label={t('minutes.guests_others')}>
                                                         {users.filter(u => !boardMembers.some(bm => bm.userId === u.id)).map(u => (
                                                             <option key={u.id} value={u.id}>{u.displayName}</option>
                                                         ))}
@@ -543,9 +552,9 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                             <table className="w-full text-left text-sm">
                                                 <thead className="bg-stone-50 text-stone-500 font-bold uppercase text-[10px] tracking-widest border-b border-stone-100">
                                                     <tr>
-                                                        <th className="px-4 py-3 rounded-tl-xl">Emri</th>
-                                                        <th className="px-4 py-3">Funksioni</th>
-                                                        <th className="px-4 py-3 text-center">Të pranishëm</th>
+                                                        <th className="px-4 py-3 rounded-tl-xl">{t('field.name')}</th>
+                                                        <th className="px-4 py-3">{t('board.function')}</th>
+                                                        <th className="px-4 py-3 text-center">{t('minutes.present')}</th>
                                                         <th className="px-4 py-3 rounded-tr-xl w-10"></th>
                                                     </tr>
                                                 </thead>
@@ -576,7 +585,7 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
 
                                     {/* 2. Rendi i Ditës (Agenda Overview) */}
                                     <div className="bg-white p-6 rounded-3xl border border-stone-100 shadow-sm">
-                                        <h4 className="font-bold text-stone-900 mb-4 flex items-center gap-2"><List size={18} className="text-primary" /> Rendi i Ditës</h4>
+                                        <h4 className="font-bold text-stone-900 mb-4 flex items-center gap-2"><List size={18} className="text-primary" /> {t('minutes.agenda')}</h4>
                                         <div className="space-y-2 mb-4">
                                             {selectedMeeting.agendaItems?.map((item, idx) => (
                                                 <div key={item.id} className="flex items-center gap-3 p-2 bg-stone-50 rounded-xl border border-stone-100">
@@ -584,13 +593,13 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                                     <input 
                                                         value={item.title}
                                                         onChange={(e) => updateAgendaItem(idx, 'title', e.target.value)}
-                                                        placeholder="Pika e rendit të ditës..."
+                                                        placeholder={t('minutes.agenda_item_ph')}
                                                         className="flex-1 bg-transparent outline-none font-medium text-stone-800"
                                                     />
                                                     <input 
                                                         value={item.responsible}
                                                         onChange={(e) => updateAgendaItem(idx, 'responsible', e.target.value)}
-                                                        placeholder="Përgjegjësi"
+                                                        placeholder={t('field.responsible')}
                                                         className="w-32 bg-white px-2 py-1 rounded-lg border border-stone-200 text-xs outline-none"
                                                     />
                                                     <button onClick={() => removeAgendaItem(idx)} className="text-stone-300 hover:text-red-500"><X size={16}/></button>
@@ -598,14 +607,14 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                             ))}
                                         </div>
                                         <button onClick={addAgendaItem} className="text-xs font-bold text-stone-400 hover:text-primary flex items-center gap-1">
-                                            <Plus size={14}/> Shto pikë
+                                            <Plus size={14}/> {t('minutes.add_item')}
                                         </button>
                                     </div>
 
                                     {/* 3. Detailed Topics (WYSIWYG) */}
                                     <div className="space-y-6">
-                                        <h4 className="font-bold text-stone-900 text-lg border-b border-stone-200 pb-2">Detajet e Temave</h4>
-                                        {selectedMeeting.agendaItems?.length === 0 && <p className="text-stone-400 italic text-sm">Shtoni pika në rendin e ditës për të shkruar detajet.</p>}
+                                        <h4 className="font-bold text-stone-900 text-lg border-b border-stone-200 pb-2">{t('minutes.topic_details')}</h4>
+                                        {selectedMeeting.agendaItems?.length === 0 && <p className="text-stone-400 italic text-sm">{t('minutes.topic_hint')}</p>}
                                         
                                         {selectedMeeting.agendaItems?.map((item, idx) => (
                                             <div key={item.id} className="bg-white p-6 rounded-3xl border border-stone-100 shadow-sm relative">
@@ -640,12 +649,12 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                                 {/* --- LINKED TASKS SECTION --- */}
                                                 <div className="mt-6 pt-4 border-t border-stone-100">
                                                     <div className="flex justify-between items-center mb-3">
-                                                        <h6 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest flex items-center gap-1"><CheckSquare size={12}/> Veprime / Detyra</h6>
+                                                        <h6 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest flex items-center gap-1"><CheckSquare size={12}/> {t('task.actions')}</h6>
                                                         <button 
                                                             onClick={() => openTaskModal(idx)}
                                                             className="text-[10px] bg-stone-50 hover:bg-stone-100 text-primary font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
                                                         >
-                                                            <Plus size={12}/> Krijo Detyrë
+                                                            <Plus size={12}/> {t('task.create')}
                                                         </button>
                                                     </div>
                                                     
@@ -667,7 +676,7 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                                             })}
                                                         </div>
                                                     ) : (
-                                                        <p className="text-xs text-stone-300 italic">Asnjë detyrë e krijuar për këtë pikë.</p>
+                                                        <p className="text-xs text-stone-300 italic">{t('task.none_for_item')}</p>
                                                     )}
                                                 </div>
                                             </div>
@@ -678,7 +687,7 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                             ) : (
                                 <div className="h-full flex flex-col items-center justify-center text-stone-400 opacity-60">
                                     <FileText size={64} className="mb-4 stroke-1"/>
-                                    <p>Zgjidhni një protokoll ose krijoni të ri.</p>
+                                    <p>{t('minutes.pick_or_create')}</p>
                                 </div>
                             )}
                         </div>
@@ -693,13 +702,13 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                         <motion.div initial={{opacity:0, scale:0.95}} animate={{opacity:1, scale:1}} exit={{opacity:0, scale:0.95}} className="bg-white h-[90vh] w-full max-w-4xl rounded-2xl flex flex-col overflow-hidden">
                             {/* Toolbar */}
                             <div className="bg-stone-50 border-b border-stone-200 p-4 flex justify-between items-center shrink-0">
-                                <h3 className="font-bold text-stone-800">Protokoll Preview</h3>
+                                <h3 className="font-bold text-stone-800">{t('minutes.preview')}</h3>
                                 <div className="flex gap-2">
                                     <button onClick={handleShare} className="flex items-center gap-2 px-4 py-2 bg-white border border-stone-200 rounded-lg text-sm font-bold text-stone-600 hover:text-primary transition-colors">
-                                        <Share2 size={16}/> Share
+                                        <Share2 size={16}/> {t('minutes.share')}
                                     </button>
                                     <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-stone-900 text-white rounded-lg text-sm font-bold hover:bg-black transition-colors">
-                                        <Printer size={16}/> Download / Print PDF
+                                        <Printer size={16}/> {t('minutes.download_pdf')}
                                     </button>
                                     <button onClick={() => setShowPreview(false)} className="p-2 hover:bg-stone-200 rounded-lg text-stone-500">
                                         <X size={20}/>
@@ -722,18 +731,18 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
 
                                     <div className="border-b-2 border-stone-900 pb-4 mb-8 flex justify-between items-end">
                                         <div>
-                                            <h1 className="text-3xl font-display font-bold italic mb-2">Protokoll</h1>
+                                            <h1 className="text-3xl font-display font-bold italic mb-2">{t('minutes.heading')}</h1>
                                             <h2 className="text-xl font-bold">{selectedMeeting.title}</h2>
                                         </div>
                                         <div className="text-right text-sm">
-                                            <p className="font-bold">Shoqata Koretini</p>
+                                            <p className="font-bold">{loc(branding.associationName) || 'Shoqata Koretini'}</p>
                                             <p className="text-stone-500">{new Date(selectedMeeting.date).toLocaleDateString('sq-AL', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                                         </div>
                                     </div>
 
                                     {/* Attendees */}
                                     <div className="mb-8">
-                                        <h3 className="text-sm font-bold uppercase tracking-widest border-b border-stone-200 pb-2 mb-4 text-stone-500">Pjesëmarrësit</h3>
+                                        <h3 className="text-sm font-bold uppercase tracking-widest border-b border-stone-200 pb-2 mb-4 text-stone-500">{t('board.attendees')}</h3>
                                         <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
                                             {selectedMeeting.attendees.map((att, i) => (
                                                 <div key={i} className="flex justify-between border-b border-stone-100 py-1">
@@ -746,7 +755,7 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
 
                                     {/* Agenda */}
                                     <div className="space-y-8">
-                                        <h3 className="text-sm font-bold uppercase tracking-widest border-b border-stone-200 pb-2 mb-4 text-stone-500">Rendi i Ditës & Diskutimet</h3>
+                                        <h3 className="text-sm font-bold uppercase tracking-widest border-b border-stone-200 pb-2 mb-4 text-stone-500">{t('minutes.agenda_discussions')}</h3>
                                         {selectedMeeting.agendaItems.map((item, i) => (
                                             <div key={i} className="mb-6 break-inside-avoid">
                                                 <div className="flex items-baseline gap-3 mb-2">
@@ -770,10 +779,10 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                     {/* Footer / Signatures */}
                                     <div className="mt-20 pt-8 border-t border-stone-200 flex justify-between break-inside-avoid">
                                         <div className="w-40 border-t border-stone-900 pt-2 text-xs text-center">
-                                            <p className="font-bold">Kryesuesi</p>
+                                            <p className="font-bold">{t('minutes.chair')}</p>
                                         </div>
                                         <div className="w-40 border-t border-stone-900 pt-2 text-xs text-center">
-                                            <p className="font-bold">Protokollisti</p>
+                                            <p className="font-bold">{t('minutes.secretary')}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -795,11 +804,11 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                         >
                             <button onClick={() => setShowTaskModal(false)} className="absolute top-6 right-6 p-2 text-stone-400 hover:text-stone-900"><X size={20}/></button>
                             
-                            <h3 className="text-xl font-bold mb-6 flex items-center gap-2"><CheckSquare className="text-primary"/> Krijo Detyrë</h3>
+                            <h3 className="text-xl font-bold mb-6 flex items-center gap-2"><CheckSquare className="text-primary"/> {t('task.create')}</h3>
                             
                             <div className="space-y-4">
                                 <div>
-                                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">Titulli i Detyrës</label>
+                                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('task.title')}</label>
                                     <input 
                                         value={newTaskData.title} 
                                         onChange={e => setNewTaskData({...newTaskData, title: e.target.value})} 
@@ -807,20 +816,20 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">Personi Përgjegjës</label>
+                                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('task.owner')}</label>
                                     <select 
                                         value={newTaskData.assignedToUserId} 
                                         onChange={e => setNewTaskData({...newTaskData, assignedToUserId: e.target.value})} 
                                         className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl font-medium outline-none focus:border-primary/50"
                                     >
-                                        <option value="">Zgjidh...</option>
+                                        <option value="">{t('common.select')}</option>
                                         {users.map(u => (
                                             <option key={u.id} value={u.id}>{u.displayName}</option>
                                         ))}
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">Afati (Due Date)</label>
+                                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('task.due')}</label>
                                     <input 
                                         type="date"
                                         value={newTaskData.dueDate} 
@@ -829,22 +838,22 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">Prioriteti</label>
+                                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('task.priority')}</label>
                                     <select 
                                         value={newTaskData.priority} 
                                         onChange={e => setNewTaskData({...newTaskData, priority: e.target.value as any})} 
                                         className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl font-medium outline-none focus:border-primary/50"
                                     >
-                                        <option value="LOW">Low</option>
-                                        <option value="MEDIUM">Medium</option>
-                                        <option value="HIGH">High</option>
+                                        <option value="LOW">{t('prio.low')}</option>
+                                        <option value="MEDIUM">{t('prio.medium')}</option>
+                                        <option value="HIGH">{t('prio.high')}</option>
                                     </select>
                                 </div>
                             </div>
 
                             <div className="flex gap-3 mt-8">
-                                <button onClick={() => setShowTaskModal(false)} className="flex-1 py-3 bg-stone-100 rounded-xl font-bold text-stone-500 hover:bg-stone-200 transition-colors">Anulo</button>
-                                <button onClick={handleCreateTask} className="flex-1 py-3 bg-stone-900 text-white rounded-xl font-bold hover:bg-black transition-colors shadow-lg">Krijo</button>
+                                <button onClick={() => setShowTaskModal(false)} className="flex-1 py-3 bg-stone-100 rounded-xl font-bold text-stone-500 hover:bg-stone-200 transition-colors">{t('common.cancel')}</button>
+                                <button onClick={handleCreateTask} className="flex-1 py-3 bg-stone-900 text-white rounded-xl font-bold hover:bg-black transition-colors shadow-lg">{t('common.create')}</button>
                             </div>
                         </motion.div>
                     </div>
