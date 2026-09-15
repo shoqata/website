@@ -6,6 +6,7 @@ import {
   motion,
 } from "framer-motion";
 import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "../../context/LanguageContext";
 
 interface TimelineEntry {
   title: string;
@@ -13,6 +14,7 @@ interface TimelineEntry {
 }
 
 export const Timeline = ({ data }: { data: TimelineEntry[] }) => {
+  const { t } = useTranslation();
   const ref = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState(0);
@@ -39,10 +41,10 @@ export const Timeline = ({ data }: { data: TimelineEntry[] }) => {
     >
       <div className="max-w-7xl mx-auto py-20 px-4 md:px-8 lg:px-10">
         <h2 className="text-4xl md:text-5xl font-display font-bold mb-4 text-stone-900 italic">
-          Rrugëtimi Ynë
+          {t('timeline.title')}
         </h2>
         <p className="text-stone-500 text-lg md:text-xl max-w-sm italic">
-          Historia e Shoqatës Koretini ndër vite. Nga hapat e parë deri tek sukseset e sotme.
+          {t('timeline.subtitle')}
         </p>
       </div>
 

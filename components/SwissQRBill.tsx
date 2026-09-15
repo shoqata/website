@@ -3,6 +3,7 @@ import React from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { QrBillData, formatIban, formatReference, generateQrCodeContent } from '../services/qrBillService';
 import { Scissors } from 'lucide-react';
+import { useTranslation } from '../context/LanguageContext';
 
 
 // Das Schweizerkreuz gehoert nach der Swiss-QR-Bill-Richtlinie in die Mitte des
@@ -11,6 +12,25 @@ import { Scissors } from 'lucide-react';
 // Zahlungsbeleg, dessen Pflichtelement von einem fremden Server abhaengt und
 // beim Drucken fehlen kann. Jetzt inline, ohne Netzwerkzugriff.
 const SWISS_CROSS = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2ZmZmZmZiIvPjxyZWN0IHg9IjUiIHk9IjUiIHdpZHRoPSI5MCIgaGVpZ2h0PSI5MCIgZmlsbD0iIzAwMDAwMCIvPjxyZWN0IHg9IjQwLjYyNSIgeT0iMTguNzUiIHdpZHRoPSIxOC43NSIgaGVpZ2h0PSI2Mi41IiBmaWxsPSIjZmZmZmZmIi8+PHJlY3QgeD0iMTguNzUiIHk9IjQwLjYyNSIgd2lkdGg9IjYyLjUiIGhlaWdodD0iMTguNzUiIGZpbGw9IiNmZmZmZmYiLz48L3N2Zz4=";
+// Die Beschriftungen des Zahlteils sind in den Swiss-QR-Bill-Richtlinien
+// woertlich vorgegeben, und zwar nur in Deutsch, Franzoesisch, Italienisch und
+// Englisch. Albanisch ist keine zulaessige Belegsprache; fuer SQ wird deshalb
+// die deutsche Fassung verwendet, wie sie bei einer Schweizer Bank erwartet wird.
+const QR_LABELS = {
+  de: {
+    receipt: 'Empfangsschein', paymentPart: 'Zahlteil',
+    account: 'Konto / Zahlbar an', reference: 'Referenz',
+    payableBy: 'Zahlbar durch', currency: 'Währung', amount: 'Betrag',
+    additional: 'Zusätzliche Informationen', acceptance: 'Annahmestelle',
+  },
+  en: {
+    receipt: 'Receipt', paymentPart: 'Payment part',
+    account: 'Account / Payable to', reference: 'Reference',
+    payableBy: 'Payable by', currency: 'Currency', amount: 'Amount',
+    additional: 'Additional information', acceptance: 'Acceptance point',
+  },
+} as const;
+
 // Style Guide Specs
 // Receipt: 62mm x 105mm
 // Payment Part: 148mm x 105mm
@@ -25,6 +45,8 @@ const Value = ({ children }: { children?: React.ReactNode }) => (
 );
 
 const SwissQRBill: React.FC<{ data: QrBillData }> = ({ data }) => {
+  const { language } = useTranslation();
+  const L = language === 'en' ? QR_LABELS.en : QR_LABELS.de;
   const qrContent = generateQrCodeContent(data);
   
   // Recalculate reference type for display formatting based on content logic
@@ -66,9 +88,9 @@ const SwissQRBill: React.FC<{ data: QrBillData }> = ({ data }) => {
         {/* 1. EMPFANGSSCHEIN (Receipt) - Left Side (62mm) */}
         <div className="flex-none p-[5mm] flex flex-col justify-between border-r border-dashed border-black" style={{ width: '62mm' }}>
           <div>
-            <h2 className="text-[11pt] font-bold mb-[2mm] leading-none">Empfangsschein</h2>
+            <h2 className="text-[11pt] font-bold mb-[2mm] leading-none">{L.receipt}</h2>
             
-            <Label>Konto / Zahlbar an</Label>
+            <Label>{L.account}</Label>
             <Value>{formatIban(data.iban)}</Value>
             <Value>{data.creditor.name}</Value>
             <Value>{data.creditor.address}</Value>
@@ -76,12 +98,12 @@ const SwissQRBill: React.FC<{ data: QrBillData }> = ({ data }) => {
 
             {refType !== 'NON' && (
               <>
-                <Label>Referenz</Label>
+                <Label>{L.reference}</Label>
                 <Value>{formatReference(data.reference, refType)}</Value>
               </>
             )}
 
-            <Label>Zahlbar durch</Label>
+            <Label>{L.payableBy}</Label>
             <Value>{data.debtor.name}</Value>
             <Value>{data.debtor.address}</Value>
             <Value>{data.debtor.zip} {data.debtor.city}</Value>
@@ -89,11 +111,11 @@ const SwissQRBill: React.FC<{ data: QrBillData }> = ({ data }) => {
 
           <div className="flex justify-between items-end">
             <div className="w-[30%]">
-              <Label>Währung</Label>
+              <Label>{L.currency}</Label>
               <Value>{data.currency}</Value>
             </div>
             <div className="w-[70%]">
-              <Label>Betrag</Label>
+              <Label>{L.amount}</Label>
               <Value>{data.amount.toFixed(2)}</Value>
             </div>
           </div>
@@ -105,7 +127,7 @@ const SwissQRBill: React.FC<{ data: QrBillData }> = ({ data }) => {
             
             {/* QR Section */}
             <div className="w-[46mm] mr-[5mm]">
-                <h2 className="text-[11pt] font-bold mb-[5mm] leading-none">Zahlteil</h2>
+                <h2 className="text-[11pt] font-bold mb-[5mm] leading-none">{L.paymentPart}</h2>
                 <div style={{ width: '46mm', height: '46mm' }} className="border border-black/10 relative">
                     <QRCodeSVG 
                         value={qrContent} 
@@ -123,11 +145,11 @@ const SwissQRBill: React.FC<{ data: QrBillData }> = ({ data }) => {
                 
                 <div className="mt-4 flex gap-2">
                     <div className="w-12">
-                        <Label>Währung</Label>
+                        <Label>{L.currency}</Label>
                         <Value>{data.currency}</Value>
                     </div>
                     <div>
-                        <Label>Betrag</Label>
+                        <Label>{L.amount}</Label>
                         <Value>{data.amount.toFixed(2)}</Value>
                     </div>
                 </div>
@@ -136,7 +158,7 @@ const SwissQRBill: React.FC<{ data: QrBillData }> = ({ data }) => {
             {/* Information Section */}
             <div className="flex-1">
                 {/* Account */}
-                <Label>Konto / Zahlbar an</Label>
+                <Label>{L.account}</Label>
                 <Value>{formatIban(data.iban)}</Value>
                 <Value>{data.creditor.name}</Value>
                 <Value>{data.creditor.address}</Value>
@@ -145,7 +167,7 @@ const SwissQRBill: React.FC<{ data: QrBillData }> = ({ data }) => {
                 {/* Reference */}
                 {refType !== 'NON' && (
                     <>
-                        <Label>Referenz</Label>
+                        <Label>{L.reference}</Label>
                         <Value>{formatReference(data.reference, refType)}</Value>
                     </>
                 )}
@@ -153,13 +175,13 @@ const SwissQRBill: React.FC<{ data: QrBillData }> = ({ data }) => {
                 {/* Additional Info */}
                 {data.additionalInfo && (
                     <>
-                        <Label>Zusätzliche Informationen</Label>
+                        <Label>{L.additional}</Label>
                         <Value>{data.additionalInfo}</Value>
                     </>
                 )}
 
                 {/* Debtor */}
-                <Label>Zahlbar durch</Label>
+                <Label>{L.payableBy}</Label>
                 <Value>{data.debtor.name}</Value>
                 <Value>{data.debtor.address}</Value>
                 <Value>{data.debtor.zip} {data.debtor.city}</Value>

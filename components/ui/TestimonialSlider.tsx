@@ -1,5 +1,6 @@
 
 import * as React from "react";
+import { useTranslation } from "../../context/LanguageContext";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight } from "lucide-react";
@@ -34,6 +35,7 @@ export const TestimonialSlider = ({
   reviews,
   className,
 }: TestimonialSliderProps) => {
+  const { t } = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(0);
   // 'direction' helps framer-motion understand slide direction (next vs. prev)
   const [direction, setDirection] = useState<"left" | "right">("right");
@@ -108,7 +110,7 @@ export const TestimonialSlider = ({
             </span>
             {/* Vertical "Reviews" Text */}
             <h2 className="text-sm font-medium tracking-widest uppercase [writing-mode:vertical-rl] md:rotate-180 hidden md:block text-stone-300">
-              Vorstand
+              {t('slider.board')}
             </h2>
           </div>
 
@@ -191,14 +193,14 @@ export const TestimonialSlider = ({
             <button
               className="rounded-full w-14 h-14 border border-stone-200 flex items-center justify-center hover:bg-stone-100 transition-colors"
               onClick={handlePrev}
-              aria-label="Previous review"
+              aria-label={t('a11y.prev')}
             >
               <ArrowLeft className="w-6 h-6 text-stone-600" />
             </button>
             <button
               className="rounded-full w-14 h-14 bg-stone-900 text-white flex items-center justify-center hover:bg-stone-800 transition-colors shadow-lg"
               onClick={handleNext}
-              aria-label="Next review"
+              aria-label={t('a11y.next')}
             >
               <ArrowRight className="w-6 h-6" />
             </button>
