@@ -234,7 +234,7 @@ const AppContent: React.FC = () => {
                     email,
                     role: isAdminEmail ? UserRole.SUPER_ADMIN : UserRole.MEMBER,
                     membershipStatus: 'ACTIVE',
-                    displayName: isAdminEmail ? 'Administrator' : (email.split('@')[0] || 'Anëtar'),
+                    displayName: isAdminEmail ? 'Administrator' : (email.split('@')[0] || 'Member'),
                     joinedAt: new Date().toISOString(),
                     profileComplete: isAdminEmail
                 };
@@ -400,17 +400,17 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings }) => {
 };
 
 const ConditionalNavigation = ({ user, branding, systemSettings }: any) => {
-  const loc = useLocation();
+  const routeLoc = useLocation();
   const hidePaths = ['/setup-profile', '/super-admin', '/admin'];
-  if (hidePaths.some(path => loc.pathname.startsWith(path))) return null;
+  if (hidePaths.some(path => routeLoc.pathname.startsWith(path))) return null;
   return <Navigation user={user} branding={branding} systemSettings={systemSettings} />;
 };
 
 const ConditionalFooter = ({ branding, user }: any) => {
-  const { t } = useTranslation();
-  const loc = useLocation();
+  const { t, loc } = useTranslation();
+  const routeLoc = useLocation();
   const hidePaths = ['/setup-profile', '/super-admin', '/admin'];
-  if (hidePaths.some(path => loc.pathname.startsWith(path))) return null;
+  if (hidePaths.some(path => routeLoc.pathname.startsWith(path))) return null;
   
   return (
     <footer className="bg-secondary text-white py-16 px-6 relative">
@@ -418,13 +418,13 @@ const ConditionalFooter = ({ branding, user }: any) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12 border-b border-white/10 pb-12">
           <div className="lg:col-span-2 space-y-8">
             {branding.logoUrl ? <img src={branding.logoUrl} style={{ height: branding.logoHeight || '3rem' }} className="w-auto mb-6 object-contain" alt="Logo"  onError={onImageError}/> : <h3 className="font-display text-3xl font-bold italic mb-6">Koretini</h3>}
-            <p className="text-white/50 text-lg leading-relaxed max-w-md italic">{branding.footerText || "Bashkë për vendlindjen tonë. Diaspora dhe Koretini në një hap drejt të ardhmes."}</p>
+            <p className="text-white/50 text-lg leading-relaxed max-w-md italic">{loc(branding.footerText) || t('footer.tagline')}</p>
           </div>
           <div className="space-y-4">
             <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-primary">{t('footer.contact')}</h4>
             <div className="space-y-3 text-white/60">
-               <p className="flex items-center gap-3"><MapPin size={18} className="text-primary" /> {branding.footerAddress || "Koretin, Kosovë"}</p>
-               <p className="flex items-center gap-3"><Mail size={18} className="text-primary" /> {branding.footerEmail || "info@koretini.org"}</p>
+               <p className="flex items-center gap-3"><MapPin size={18} className="text-primary" /> {loc(branding.footerAddress) || t('footer.address.fallback')}</p>
+               <p className="flex items-center gap-3"><Mail size={18} className="text-primary" /> {loc(branding.footerEmail) || t('footer.email.fallback')}</p>
             </div>
           </div>
           <div className="space-y-4">
@@ -432,13 +432,13 @@ const ConditionalFooter = ({ branding, user }: any) => {
             <div className="flex flex-col gap-3 text-white/60">
               <Link to="/" className="hover:text-white transition-colors">{t('nav.home')}</Link>
               <Link to="/about" className="hover:text-white transition-colors">{t('nav.about')}</Link>
-              <Link to="/live" className="hover:text-white transition-colors">Koretini Live</Link>
+              <Link to="/live" className="hover:text-white transition-colors">{t('nav.live')}</Link>
               <Link to="/login" className="hover:text-white transition-colors">{t('nav.membership')}</Link>
             </div>
           </div>
         </div>
         <div className="flex flex-col md:flex-row justify-between items-center gap-6 text-white/30 text-xs font-medium uppercase tracking-widest">
-          <p>© {new Date().getFullYear()} Shoqata Koretini. Të gjitha të drejtat e rezervuara.</p>
+          <p>© {new Date().getFullYear()} {loc(branding.associationName) || 'Shoqata Koretini'}. {t('footer.rights')}</p>
         </div>
       </div>
     </footer>

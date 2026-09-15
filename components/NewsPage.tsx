@@ -11,7 +11,7 @@ const NewsPage: React.FC = () => {
     <div className="bg-[#faf9f6] min-h-screen pt-32 pb-20">
       <div className="max-w-7xl mx-auto px-6 mb-8">
          <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-2 rounded-full text-xs font-bold mb-6">
-             <Newspaper size={14} /> Diaspora News
+             <Newspaper size={14} /> {t('news.page.badge')}
           </div>
           <h1 className="font-display text-5xl md:text-6xl font-bold italic mb-6 text-stone-900">{t('nav.news.title')}</h1>
           <p className="text-xl text-stone-500 max-w-2xl leading-relaxed italic">

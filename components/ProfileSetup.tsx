@@ -126,7 +126,7 @@ const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) =
                       type="text" 
                       value={formData.name}
                       onChange={(e) => setFormData({...formData, name: e.target.value})}
-                      placeholder="Emri Mbiemri"
+                      placeholder={t('ph.fullname')}
                       className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-primary/30 transition-all text-lg font-medium"
                     />
                   </div>
@@ -138,7 +138,7 @@ const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) =
                       type="tel" 
                       value={formData.phone}
                       onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                      placeholder="+41 79 123 45 67"
+                      placeholder={t('ph.phone')}
                       className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-primary/30 transition-all text-lg font-medium"
                     />
                   </div>
@@ -165,7 +165,7 @@ const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) =
                   <textarea 
                     value={formData.address}
                     onChange={(e) => setFormData({...formData, address: e.target.value})}
-                    placeholder="Rruga shembull 1, 8000 Zürich"
+                    placeholder={t('ph.address_full')}
                     className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-primary/30 transition-all text-lg font-medium h-32"
                   />
                 </div>
@@ -179,15 +179,15 @@ const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) =
                             type="text"
                             value={formData.country}
                             onChange={(e) => setFormData({...formData, country: e.target.value})}
-                            placeholder="Switzerland"
+                            placeholder={t('ph.country')}
                             className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-primary/30 transition-all text-lg font-medium"
                         />
-                        <p className="text-xs text-stone-400 italic">Determines your membership fee.</p>
+                        <p className="text-xs text-stone-400 italic">{t('form.fee_hint')}</p>
                     </div>
 
                     <div className="space-y-3">
                         <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2">
-                            <FileText size={14} className="text-primary" /> Invoice Preference
+                            <FileText size={14} className="text-primary" /> {t('form.invoice_preference')}
                         </label>
                         <div className="grid grid-cols-3 gap-4">
                             {(['EMAIL', 'POST', 'BOTH'] as const).map(method => (

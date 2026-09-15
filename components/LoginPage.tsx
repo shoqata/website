@@ -154,7 +154,7 @@ const LoginPage: React.FC = () => {
         <div className="absolute inset-0">
           <img 
             src="https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&q=80&w=2070" 
-            alt="Humanitarian mission" 
+            alt={t('auth.image_alt')} 
             className="w-full h-full object-cover opacity-40 mix-blend-overlay" 
           />
           <div className="absolute inset-0 bg-gradient-to-br from-rose-600/40 to-stone-900/60" />
@@ -250,7 +250,7 @@ const LoginPage: React.FC = () => {
                           <input 
                             type={showPassword ? "text" : "password"} 
                             required 
-                            placeholder="••••••••"
+                            placeholder={t('ph.password')}
                             value={password} 
                             onChange={(e) => setPassword(e.target.value)} 
                             className="w-full pl-16 pr-14 py-5 bg-white border-2 border-stone-100 rounded-2xl outline-none focus:border-rose-500/30 transition-all text-lg shadow-sm font-medium" 

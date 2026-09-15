@@ -49,7 +49,7 @@ const Neighborhoods: React.FC = () => {
           <p className="text-stone-500">{t('nb.subtitle')}</p>
         </div>
         <button className="bg-rose-500 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-rose-600 transition-all shadow-lg shadow-rose-200">
-          <Plus size={20} /> Register Neighborhood
+          <Plus size={20} /> {t('neighborhood.register')}
         </button>
       </div>
 
@@ -93,7 +93,7 @@ const Neighborhoods: React.FC = () => {
                 <div className="flex justify-between text-sm"><span className="text-stone-400 flex items-center gap-2"><Activity size={16} /> {t('nb.last_activity')}</span><span className="font-medium text-stone-600">{new Date(n.lastActivity).toLocaleDateString()}</span></div>
               </div>
               <button className="w-full flex items-center justify-between p-4 bg-stone-50 rounded-2xl font-bold group-hover:bg-rose-500 group-hover:text-white transition-all duration-300">
-                View Details <ChevronRight size={18} />
+                {t('neighborhood.details')} <ChevronRight size={18} />
               </button>
             </motion.div>
           ))}

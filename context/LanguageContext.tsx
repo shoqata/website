@@ -385,12 +385,87 @@ const translations: Translations = {
   'error.boundary.title': { en: 'This page could not be loaded', de: 'Diese Seite konnte nicht geladen werden', sq: 'Kjo faqe nuk mund të ngarkohej' },
   'error.boundary.text': { en: 'Something went wrong while displaying this page. Your data is unaffected.', de: 'Beim Anzeigen dieser Seite ist etwas schiefgelaufen. Ihre Daten sind davon nicht betroffen.', sq: 'Diçka shkoi keq gjatë shfaqjes së kësaj faqeje. Të dhënat tuaja nuk janë prekur.' },
   'error.boundary.retry': { en: 'Try again', de: 'Erneut versuchen', sq: 'Provo përsëri' },
+
+  // --- FOOTER ---
+  'footer.tagline': { en: 'Together for our home. The diaspora and Koretin, one step towards the future.', de: 'Gemeinsam für unsere Heimat. Die Diaspora und Koretin, einen Schritt in die Zukunft.', sq: 'Bashkë për vendlindjen tonë. Diaspora dhe Koretini në një hap drejt të ardhmes.' },
+  'footer.rights': { en: 'All rights reserved.', de: 'Alle Rechte vorbehalten.', sq: 'Të gjitha të drejtat e rezervuara.' },
+  'footer.address.fallback': { en: 'Koretin, Kosovo', de: 'Koretin, Kosovo', sq: 'Koretin, Kosovë' },
+  'footer.email.fallback': { en: 'info@koretini.org', de: 'info@koretini.org', sq: 'info@koretini.org' },
+
+  // --- UEBER UNS ---
+  'about.badge': { en: 'Global network', de: 'Globales Netzwerk', sq: 'Rrjet global' },
+  'about.title': { en: 'About us', de: 'Über uns', sq: 'Rreth Nesh' },
+  'about.intro': { en: 'The association is a bridge between the home village and the diaspora. We are committed to developing our community through concrete projects and solidarity.', de: 'Der Verein ist die Brücke zwischen der Heimat und der Diaspora. Wir setzen uns mit konkreten Projekten und Solidarität für die Entwicklung unserer Gemeinschaft ein.', sq: 'Shoqata është urë lidhëse mes vendlindjes dhe diasporës. Ne jemi të përkushtuar për zhvillimin e komunitetit tonë përmes projekteve konkrete dhe solidaritetit.' },
+
+  // --- KORETINI LIVE / PROJEKTE ---
+  'live.cat.health': { en: 'Health', de: 'Gesundheit', sq: 'Shëndetësia' },
+  'live.cat.health.desc': { en: 'Support for the local clinic', de: 'Unterstützung für die Ambulanz', sq: 'Përkrahje për ambulancën' },
+  'live.cat.water': { en: 'Water & nature', de: 'Wasser & Natur', sq: 'Uji & Natyra' },
+  'live.cat.water.desc': { en: 'Caring for the environment', de: 'Pflege der Umwelt', sq: 'Mirëmbajtja e ambientit' },
+  'live.cat.energy': { en: 'Energy', de: 'Energie', sq: 'Energjia' },
+  'live.cat.energy.desc': { en: 'Modern infrastructure', de: 'Moderne Infrastruktur', sq: 'Infrastruktura moderne' },
+  'live.cat.education': { en: 'Education', de: 'Bildung', sq: 'Arsimi' },
+  'live.cat.education.desc': { en: 'Educating the next generation', de: 'Bildung für die nächste Generation', sq: 'Edukimi i gjeneratave' },
+  'live.cat.sport': { en: 'Sport', de: 'Sport', sq: 'Sporti' },
+  'live.cat.sport.desc': { en: 'Sporting activities', de: 'Sportliche Aktivitäten', sq: 'Aktivitete sportive' },
+
+  // --- EVENTS & NEWS (oeffentlich) ---
+  'events.badge': { en: 'Koretini Events', de: 'Koretini Events', sq: 'Koretini Events' },
+  'events.info_only': { en: 'Info only', de: 'Nur Information', sq: 'Vetëm informacion' },
+  'events.soon': { en: 'Coming soon', de: 'Demnächst', sq: 'Së shpejti' },
+  'events.free_entry': { en: 'Entry is free & public', de: 'Eintritt frei & öffentlich', sq: 'Hyrja është e lirë & publike' },
+  'events.registration_failed': { en: 'Registration failed', de: 'Anmeldung fehlgeschlagen', sq: 'Regjistrimi dështoi' },
+  'news.page.badge': { en: 'Diaspora News', de: 'Diaspora News', sq: 'Diaspora News' },
+
+  // --- TWINT / SPENDEN ---
+  'twint.support': { en: 'Support us with TWINT', de: 'Mit TWINT unterstützen', sq: 'Na përkrahni me TWINT' },
+  'twint.open_app': { en: 'Open TWINT app', de: 'TWINT-App öffnen', sq: 'Hap aplikacionin TWINT' },
+
+  // --- ANMELDUNG / REGISTRIERUNG ---
+  'auth.image_alt': { en: 'Humanitarian mission', de: 'Humanitäre Mission', sq: 'Mision humanitar' },
+  'auth.join_title': { en: 'Join us', de: 'Mitmachen', sq: 'Bashkohu me ne' },
+  'auth.join_desc': { en: 'Secure passwordless login with a magic link.', de: 'Sichere Anmeldung ohne Passwort per Magic Link.', sq: 'Qasje e sigurt pa fjalëkalim me Magic Link.' },
+  'auth.email_label': { en: 'Email address', de: 'E-Mail-Adresse', sq: 'Adresa e e-mailit' },
+  'auth.send_link': { en: 'Send magic link', de: 'Magic Link senden', sq: 'Dërgo Magic Link' },
+  'auth.link_sent': { en: 'Link sent!', de: 'Link gesendet!', sq: 'Linku u dërgua!' },
+  'auth.link_sent_desc': { en: 'Check your inbox for a secure login link. It expires in 15 minutes.', de: 'Prüfen Sie Ihr Postfach: Der sichere Anmeldelink ist 15 Minuten gültig.', sq: 'Kontrolloni postën tuaj për linkun e sigurt. Ai skadon pas 15 minutash.' },
+
+  // --- FORMULARE: BEISPIELWERTE ---
+  'ph.password': { en: '••••••••', de: '••••••••', sq: '••••••••' },
+  'ph.firstname': { en: 'John', de: 'Hans', sq: 'Filan' },
+  'ph.lastname': { en: 'Doe', de: 'Muster', sq: 'Fisteku' },
+  'ph.fullname': { en: 'First name and surname', de: 'Vor- und Nachname', sq: 'Emri Mbiemri' },
+  'ph.phone': { en: '+41 79 000 00 00', de: '+41 79 000 00 00', sq: '+41 79 000 00 00' },
+  'ph.street': { en: 'Bahnhofstrasse 12', de: 'Bahnhofstrasse 12', sq: 'Bahnhofstrasse 12' },
+  'ph.zip': { en: '8000', de: '8000', sq: '8000' },
+  'ph.city': { en: 'Zurich', de: 'Zürich', sq: 'Zürich' },
+  'ph.country': { en: 'Switzerland', de: 'Schweiz', sq: 'Zvicër' },
+  'ph.address_full': { en: 'Example Street 1, 8000 Zurich', de: 'Musterstrasse 1, 8000 Zürich', sq: 'Rruga shembull 1, 8000 Zürich' },
+  'ph.email_example': { en: 'name@example.com', de: 'name@beispiel.ch', sq: 'emri@shembull.com' },
+  'ph.search_neighborhood': { en: 'Search neighborhood...', de: 'Nachbarschaft suchen...', sq: 'Kërko lagjen...' },
+  'salutation.ms': { en: 'Ms.', de: 'Frau', sq: 'Znj.' },
+
+  'form.invoice_delivery': { en: 'Invoice delivery', de: 'Rechnungsversand', sq: 'Dërgimi i faturës' },
+  'form.invoice_preference': { en: 'Invoice preference', de: 'Rechnungsversand', sq: 'Preferenca e faturës' },
+  'form.fee_hint': { en: 'Determines your membership fee.', de: 'Bestimmt Ihren Mitgliederbeitrag.', sq: 'Përcakton shumën e anëtarësisë tuaj.' },
+  'form.email_invoice_hint': { en: 'Your email address is used to send the annual membership invoice.', de: 'Ihre E-Mail-Adresse wird für den jährlichen Beitragsversand verwendet.', sq: 'E-maili juaj do të përdoret për të dërguar faturën e anëtarësisë çdo vit.' },
+
+  // --- DIVERSES ---
+  'nav.back_home': { en: 'Back to home', de: 'Zurück zur Startseite', sq: 'Kthehu në ballinë' },
+  'neighborhood.register': { en: 'Register neighborhood', de: 'Nachbarschaft anmelden', sq: 'Regjistro lagjen' },
+  'neighborhood.details': { en: 'View details', de: 'Details ansehen', sq: 'Shiko detajet' },
 };
 
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
   t: (key: string, params?: Record<string, string | number>) => string;
+  /**
+   * Loest einen aus der Datenbank stammenden Wert auf, der entweder ein
+   * einfacher String oder ein Objekt { de, en, sq } sein kann. Fallback-Kette:
+   * gewaehlte Sprache -> Deutsch -> Albanisch -> Englisch -> erster Eintrag.
+   */
+  loc: (value: any) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -417,8 +492,19 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return text;
   };
 
+  const loc = (value: any): string => {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value !== 'object') return String(value);
+    const candidates = [value[language], value.de, value.sq, value.en];
+    const hit = candidates.find((v) => typeof v === 'string' && v.trim() !== '');
+    if (hit) return hit;
+    const first = Object.values(value).find((v) => typeof v === 'string' && (v as string).trim() !== '');
+    return (first as string) || '';
+  };
+
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t, loc }}>
       {children}
     </LanguageContext.Provider>
   );

@@ -39,7 +39,7 @@ const LegalPage: React.FC<LegalPageProps> = ({ type }) => {
     <div className="bg-[#faf9f6] min-h-screen pt-40 pb-20">
       <div className="max-w-4xl mx-auto px-6">
         <Link to="/" className="inline-flex items-center gap-2 text-stone-400 hover:text-primary font-bold text-xs uppercase tracking-widest mb-12 transition-colors">
-            <ArrowLeft size={16} /> Back to Home
+            <ArrowLeft size={16} /> {t('nav.back_home')}
         </Link>
 
         <motion.div 

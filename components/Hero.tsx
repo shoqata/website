@@ -130,7 +130,7 @@ const Hero: React.FC = () => {
             {paymentSettings?.twintUrl && (
                 <div className="mt-6 flex items-center gap-4">
                     <button onClick={() => setShowTwintModal(true)} className="flex items-center gap-3 bg-[#eb3333] text-white px-6 py-3 rounded-xl font-bold text-sm shadow-lg hover:bg-[#d62d2d] transition-all group">
-                       <Smartphone size={18} /> Support us with TWINT
+                       <Smartphone size={18} /> {t('twint.support')}
                     </button>
                     <span className="text-xs text-stone-400 font-medium italic">{t('hero.donate.hint')}</span>
                 </div>
@@ -300,7 +300,7 @@ const Hero: React.FC = () => {
                       </div>
 
                       <a href={paymentSettings.twintUrl} target="_blank" rel="noreferrer" className="w-full bg-[#eb3333] text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-[#d62d2d] transition-all shadow-xl">
-                          Open TWINT App <ArrowRight size={18} />
+                          {t('twint.open_app')} <ArrowRight size={18} />
                       </a>
                   </motion.div>
               </div>

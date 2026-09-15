@@ -81,7 +81,7 @@ const EventsPage: React.FC = () => {
           console.error("Registration failed", err);
           showAlert({ 
             type: 'error', 
-            title: 'Registration Failed',
+            title: t('events.registration_failed'),
             message: err.message || t('common.error') 
           });
       } finally {
@@ -94,7 +94,7 @@ const EventsPage: React.FC = () => {
       <div className="max-w-7xl mx-auto px-6">
         <div className="mb-16">
           <div className="inline-flex items-center gap-2 bg-rose-50 text-primary px-4 py-2 rounded-full text-xs font-bold mb-6">
-             <Calendar size={14} /> Koretini Events
+             <Calendar size={14} /> {t('events.badge')}
           </div>
           <h1 className="font-display text-5xl md:text-6xl font-bold italic mb-6 text-stone-900">{t('events.title')}</h1>
           <p className="text-xl text-stone-500 max-w-2xl leading-relaxed italic">
@@ -136,12 +136,12 @@ const EventsPage: React.FC = () => {
                           )}
                           {!event.isRegistrable && (
                             <div className="bg-blue-500/90 backdrop-blur-md text-white px-3 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg flex items-center gap-1">
-                               <Info size={12} /> Info Only
+                               <Info size={12} /> {t('events.info_only')}
                             </div>
                           )}
                           {diffDays > 30 && (
                             <div className="bg-emerald-500/90 backdrop-blur-md text-white px-3 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg">
-                               Së shpejti
+                               {t('events.soon')}
                             </div>
                           )}
                        </div>
@@ -168,7 +168,7 @@ const EventsPage: React.FC = () => {
                           </button>
                        ) : (
                           <div className="w-full mt-6 bg-stone-50 text-stone-400 py-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border border-stone-100">
-                             <Info size={14} /> Entry is free & public
+                             <Info size={14} /> {t('events.free_entry')}
                           </div>
                        )}
                     </div>
