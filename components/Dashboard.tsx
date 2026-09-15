@@ -46,12 +46,16 @@ import { sendEmail } from '../services/mailService';
 
 import { neighborhoodCity } from '../lib/neighborhood';
 import { onImageError } from '../lib/imageFallback';
+// Kuerzel aus dem Vereinsnamen, z. B. "Shoqata Koretini" -> "SK".
+const initialsOf = (name: string) =>
+  name.trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || 'V';
+
 interface DashboardProps {
   user: UserProfile;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ user }) => {
-  const { t } = useTranslation();
+  const { t, loc } = useTranslation();
   const { showAlert, showConfirm } = useFeedback();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [paymentSettings, setPaymentSettings] = useState<GlobalPaymentSettings | null>(null);
@@ -60,6 +64,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [neighbors, setNeighbors] = useState<UserProfile[]>([]);
   const [manager, setManager] = useState<UserProfile | null>(null);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+  // Vereinsname und Kuerzel auf dem Rechnungsbeleg kamen fest verdrahtet aus
+  // Koretini; in einer zweiten Installation stand dort der falsche Verein.
+  const [branding, setBranding] = useState<any>({});
   
   // Neighborhood Manager Specific State
   const [neighborhoodInvoices, setNeighborhoodInvoices] = useState<Payment[]>([]);
@@ -78,6 +85,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
   // Missing Fields State
   const [missingFields, setMissingFields] = useState<string[]>([]);
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'public_settings', 'branding'), (snap) => {
+      if (snap.exists()) setBranding(snap.data());
+    });
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
       // Check data quality on mount/update
@@ -212,7 +226,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
               address,
               dataUpdateRequested: false // Reset flag as data is now provided
           });
-          showAlert({ type: 'success', message: 'Daten erfolgreich aktualisiert.' });
+          showAlert({ type: 'success', message: t('dash.saved') });
           setManagedNeighbor(null);
       } catch (e) {
           showAlert({ type: 'error', message: t('common.error') });
@@ -222,19 +236,19 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   // MANAGER: Send Update Request Email
   const handleSendUpdateRequest = async () => {
       if (!managedNeighbor || !managedNeighbor.email) {
-          showAlert({ type: 'error', message: 'Keine E-Mail vorhanden.' });
+          showAlert({ type: 'error', message: t('dash.no_email') });
           return;
       }
       try {
           await sendEmail({
               to: managedNeighbor.email,
               subject: "Bitte Profil aktualisieren - Shoqata Koretini",
-              html: `<p>Hallo ${managedNeighbor.displayName},</p><p>Dein Nachbarschafts-Manager (${user.displayName}) bittet dich, deine Profildaten (Adresse, Telefon) zu aktualisieren, um die Erreichbarkeit sicherzustellen.</p><p><a href="${window.location.origin}/#/login">Hier einloggen</a></p>`
+              html: `<p>Hallo ${managedNeighbor.displayName},</p><p>Dein Nachbarschafts-Manager (${user.displayName}) bittet dich, deine Profildaten (Adresse, Telefon) zu aktualisieren, um die Erreichbarkeit sicherzustellen.</p><p><a href="${window.location.origin}/#/login">{t('dash.login_here')}</a></p>`
           });
           
           await updateDoc(doc(db, 'users', managedNeighbor.id), { dataUpdateRequested: true });
           
-          showAlert({ type: 'success', message: 'Aufforderung gesendet.' });
+          showAlert({ type: 'success', message: t('dash.request_sent') });
           setManagedNeighbor(null);
       } catch (e) {
           showAlert({ type: 'error', message: t('common.error') });
@@ -245,7 +259,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   // Re-inserting required helpers for the component to function
   const handleSubmitRequest = async () => {
       if (!newRequest.subject || !newRequest.message) {
-          showAlert({ type: 'error', message: "Please fill all fields." });
+          showAlert({ type: 'error', message: t('dash.fill_all') });
           return;
       }
       try {
@@ -339,14 +353,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
               <div className="flex items-center gap-4">
                   <div className="p-3 bg-amber-100 text-amber-600 rounded-xl"><AlertTriangle size={24} /></div>
                   <div>
-                      <h4 className="font-bold text-amber-900 text-lg">Update Required</h4>
+                      <h4 className="font-bold text-amber-900 text-lg">{t('dash.update.title')}</h4>
                       <p className="text-amber-700 text-sm">
-                          {user.dataUpdateRequested ? 'The admin has requested you to verify your profile details.' : `Please complete your profile. Missing: ${missingFields.join(', ')}`}
+                          {user.dataUpdateRequested ? t('dash.update.requested') : t('dash.update.missing', { fields: missingFields.join(', ') })}
                       </p>
                   </div>
               </div>
               <button onClick={handleOpenProfile} className="px-6 py-2 bg-amber-600 text-white font-bold rounded-xl hover:bg-amber-700 transition-colors shadow-lg">
-                  Update Now
+                  {t('dash.update.now')}
               </button>
           </motion.div>
       )}
@@ -355,7 +369,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-12 flex flex-col md:flex-row justify-between items-end gap-6">
         <div>
             <div className="inline-flex items-center gap-2 bg-white border border-stone-200 px-3 py-1 rounded-full text-xs font-bold text-stone-500 mb-4 shadow-sm">
-                <Shield size={12} className="text-primary"/> Member Dashboard
+                <Shield size={12} className="text-primary"/> {t('dash.badge')}
             </div>
             <div className="flex items-center gap-4 mb-2">
                 <h1 className="text-4xl md:text-5xl font-display font-bold italic text-stone-900">
@@ -455,7 +469,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 <div className="space-y-4">
                     {payments.length === 0 ? (
                         <div className="text-center py-8 border-2 border-dashed border-stone-100 rounded-2xl">
-                            <p className="text-stone-400 text-sm italic">Ende asnjë pagesë.</p>
+                            <p className="text-stone-400 text-sm italic">{t('dash.no_payments')}</p>
                         </div>
                     ) : (
                         payments.map(p => (
@@ -471,7 +485,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                 </div>
                                 <div className="text-right">
                                     <p className="font-bold text-sm text-stone-900">{p.amount} {p.currency}</p>
-                                    <span className="text-[10px] font-bold text-stone-400 group-hover:text-primary transition-colors">PDF &gt;</span>
+                                    <span className="text-[10px] font-bold text-stone-400 group-hover:text-primary transition-colors">{t('dash.download_pdf')}</span>
                                 </div>
                             </div>
                         ))
@@ -488,10 +502,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 <div className="bg-white p-8 rounded-[2.5rem] border border-stone-100 shadow-sm">
                     <div className="flex justify-between items-center mb-6">
                         <h4 className="font-bold text-xl text-stone-900 flex items-center gap-2">
-                            <CreditCard className="text-primary"/> Quartier Finanzen
+                            <CreditCard className="text-primary"/> {t('dash.nb_finance')}
                         </h4>
                         <div className="text-xs font-bold bg-stone-50 px-3 py-1 rounded-lg text-stone-400">
-                            Manager View
+                            {t('dash.manager_view')}
                         </div>
                     </div>
                     <div className="space-y-2">
@@ -516,7 +530,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                             );
                         })}
                         {neighborhoodInvoices.filter(p => p.status === 'PENDING' || p.status === 'OVERDUE').length === 0 && (
-                            <p className="text-center text-stone-400 italic text-sm py-4">Alles bezahlt! Keine offenen Rechnungen im Quartier.</p>
+                            <p className="text-center text-stone-400 italic text-sm py-4">{t('dash.all_paid')}</p>
                         )}
                     </div>
                 </div>
@@ -612,7 +626,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 <div className="space-y-3">
                     {inquiries.length === 0 ? (
                         <div className="text-center py-8 bg-stone-50 rounded-2xl border border-dashed border-stone-200">
-                            <p className="text-stone-400 italic text-sm">No inquiries yet.</p>
+                            <p className="text-stone-400 italic text-sm">{t('dash.no_inquiries')}</p>
                         </div>
                     ) : (
                         inquiries.map(req => (
@@ -677,7 +691,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                             >
                                                 {/* DATA QUALITY INDICATOR FOR MANAGER */}
                                                 {user.role === 'NEIGHBORHOOD_MANAGER' && isProfileIncomplete(m) && (
-                                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-amber-500 rounded-full flex items-center justify-center z-10 border border-white" title="Incomplete Profile">
+                                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-amber-500 rounded-full flex items-center justify-center z-10 border border-white" title={t('dash.incomplete_profile')}>
                                                         <AlertTriangle size={8} className="text-white"/>
                                                     </div>
                                                 )}
@@ -730,7 +744,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                         
                                         {/* DATA QUALITY INDICATOR FOR MANAGER */}
                                         {user.role === 'NEIGHBORHOOD_MANAGER' && isProfileIncomplete(n) && (
-                                            <div className="absolute top-0 right-2 w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center z-10 border-2 border-white shadow-sm" title="Incomplete Profile">
+                                            <div className="absolute top-0 right-2 w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center z-10 border-2 border-white shadow-sm" title={t('dash.incomplete_profile')}>
                                                 <AlertTriangle size={10} className="text-white"/>
                                             </div>
                                         )}
@@ -770,7 +784,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                             </div>
                             <div>
                                 <h3 className="font-bold text-lg text-stone-900">{managedNeighbor.displayName}</h3>
-                                <p className="text-xs text-stone-500">Profil verwalten</p>
+                                <p className="text-xs text-stone-500">{t('dash.manage_profile')}</p>
                             </div>
                         </div>
                         <button onClick={() => setManagedNeighbor(null)} className="p-2 hover:bg-stone-200 rounded-full text-stone-500 transition-colors">
@@ -799,54 +813,54 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
                         <div className="space-y-4">
                             <div>
-                                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">Email</label>
+                                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('field.email')}</label>
                                 <input 
                                     value={managedData.email || ''}
                                     onChange={e => setManagedData({...managedData, email: e.target.value})}
-                                    placeholder="email@example.com"
+                                    placeholder={t('ph.email_example')}
                                     className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none"
                                 />
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">Telefon</label>
+                                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('field.phone')}</label>
                                 <input 
                                     value={managedData.phone || ''}
                                     onChange={e => setManagedData({...managedData, phone: e.target.value})}
-                                    placeholder="+41..."
+                                    placeholder={t('ph.phone_short')}
                                     className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none"
                                 />
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">Adresse</label>
+                                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('field.address')}</label>
                                 <input 
                                     value={managedData.street || ''}
                                     onChange={e => setManagedData({...managedData, street: e.target.value})}
-                                    placeholder="Strasse"
+                                    placeholder={t('ph.street_short')}
                                     className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none mb-2"
                                 />
                                 <div className="flex gap-2 mb-2">
                                     <input 
                                         value={managedData.zip || ''}
                                         onChange={e => setManagedData({...managedData, zip: e.target.value})}
-                                        placeholder="PLZ"
+                                        placeholder={t('ph.zip_short')}
                                         className="w-24 p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none"
                                     />
                                     <input 
                                         value={managedData.city || ''}
                                         onChange={e => setManagedData({...managedData, city: e.target.value})}
-                                        placeholder="Ort"
+                                        placeholder={t('ph.city_short')}
                                         className="flex-1 p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none"
                                     />
                                 </div>
                                 <input 
                                     value={managedData.country || ''}
                                     onChange={e => setManagedData({...managedData, country: e.target.value})}
-                                    placeholder="Land (z.B. Schweiz)"
+                                    placeholder={t('ph.country_hint')}
                                     className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none"
                                 />
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">Geburtsdatum</label>
+                                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('field.birthdate')}</label>
                                 <input 
                                     type="date"
                                     value={managedData.birthdate || ''}
@@ -858,15 +872,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
                         <div className="pt-4 border-t border-stone-100 flex flex-col gap-3">
                             <button onClick={handleSaveManagedNeighbor} className="w-full py-3 bg-stone-900 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-black transition-all">
-                                <Save size={16}/> Daten speichern
+                                <Save size={16}/> {t('dash.save_data')}
                             </button>
                             <div className="relative py-2 flex items-center">
                                 <div className="flex-grow border-t border-stone-200"></div>
-                                <span className="flex-shrink-0 mx-4 text-stone-400 text-xs font-bold uppercase">ODER</span>
+                                <span className="flex-shrink-0 mx-4 text-stone-400 text-xs font-bold uppercase">{t('common.or')}</span>
                                 <div className="flex-grow border-t border-stone-200"></div>
                             </div>
                             <button onClick={handleSendUpdateRequest} className="w-full py-3 bg-white border border-stone-200 text-stone-600 rounded-xl font-bold flex items-center justify-center gap-2 hover:border-primary hover:text-primary transition-all">
-                                <Send size={16}/> Zur Aktualisierung einladen
+                                <Send size={16}/> {t('dash.invite_update')}
                             </button>
                         </div>
                     </div>
@@ -978,7 +992,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                     >
                                         <option value="">...</option>
                                         <option value="Z.">Z.</option>
-                                        <option value="Znj.">Znj.</option>
+                                        <option value="Znj.">{t('salutation.ms')}</option>
                                     </select>
                                 </div>
                                 <div>
@@ -1113,7 +1127,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                         <h3 className="font-bold text-stone-800">Fatura #{viewInvoice.invoiceNumber}</h3>
                         <div className="flex gap-2">
                             <button onClick={handleDownloadPdf} className="px-4 py-2 bg-stone-900 text-white rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-black transition-colors">
-                                <Download size={14} /> Shkarko PDF
+                                <Download size={14} /> {t('dash.download_pdf')}
                             </button>
                             <button onClick={() => setViewInvoice(null)} className="p-2 hover:bg-stone-100 rounded-lg text-stone-500"><X size={20}/></button>
                         </div>
@@ -1125,12 +1139,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                              <div className="flex justify-between mb-12">
                                 <div>
                                    <div className="flex items-center gap-2 mb-4">
-                                       <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold text-xs">SK</div>
-                                       <span className="font-display font-bold italic text-xl">Shoqata Koretini</span>
+                                       <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold text-xs">{initialsOf(loc(branding.associationName) || 'Shoqata Koretini')}</div>
+                                       <span className="font-display font-bold italic text-xl">{loc(branding.associationName) || 'Shoqata Koretini'}</span>
                                    </div>
-                                   <h1 className="text-4xl font-bold text-stone-900 mb-2">INVOICE</h1>
+                                   <h1 className="text-4xl font-bold text-stone-900 mb-2">{t('invoice.heading')}</h1>
                                    <p className="text-sm text-stone-500 font-mono">#{viewInvoice.invoiceNumber}</p>
-                                   <p className="text-sm text-stone-500 mt-1">Data: {new Date(viewInvoice.timestamp?.toDate()).toLocaleDateString()}</p>
+                                   <p className="text-sm text-stone-500 mt-1">{t('field.date')}: {new Date(viewInvoice.timestamp?.toDate()).toLocaleDateString()}</p>
                                 </div>
                                 <div className="text-right text-sm leading-relaxed">
                                    <p className="font-bold text-lg mb-1">{paymentSettings.accountHolder}</p>
@@ -1143,7 +1157,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
                              {/* Recipient */}
                              <div className="mb-16 bg-stone-50 p-6 rounded-xl border border-stone-100">
-                                <p className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-3">Faturuar për:</p>
+                                <p className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-3">{t('invoice.billed_to')}</p>
                                 <p className="font-bold text-xl">{user.displayName}</p>
                                 <p className="text-stone-600 text-lg whitespace-pre-line">{user.address}</p>
                              </div>
@@ -1152,8 +1166,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                              <table className="w-full mb-12">
                                 <thead>
                                    <tr className="border-b-2 border-stone-900 text-left text-xs font-bold uppercase tracking-widest">
-                                      <th className="py-3">Përshkrimi</th>
-                                      <th className="py-3 text-right">Shuma</th>
+                                      <th className="py-3">{t('invoice.description')}</th>
+                                      <th className="py-3 text-right">{t('invoice.amount')}</th>
                                    </tr>
                                 </thead>
                                 <tbody>
@@ -1164,14 +1178,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                 </tbody>
                                 <tfoot>
                                    <tr>
-                                      <td className="py-6 font-bold text-right text-lg">Total për pagesë</td>
+                                      <td className="py-6 font-bold text-right text-lg">{t('invoice.total')}</td>
                                       <td className="py-6 text-right font-bold text-3xl">{viewInvoice.amount.toFixed(2)} {viewInvoice.currency}</td>
                                    </tr>
                                 </tfoot>
                              </table>
 
                              <div className="mt-auto">
-                                <p className="text-sm text-stone-500 mb-8 italic text-center">Faleminderit që mbështesni komunitetin tonë. Kontributi juaj është i çmuar.</p>
+                                <p className="text-sm text-stone-500 mb-8 italic text-center">{t('invoice.thanks')}</p>
                                 {/* Swiss QR Bill (Bottom) */}
                                 <div className="border-t-2 border-dashed border-stone-300 pt-8">
                                    <SwissQRBill data={getQrData(viewInvoice)!} />
