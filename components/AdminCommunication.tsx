@@ -146,7 +146,7 @@ const AdminCommunication: React.FC = () => {
                                 )}
                                 <div className="flex justify-end">
                                     <button onClick={() => addAdminNote(req)} className="text-xs font-bold text-stone-400 hover:text-primary transition-colors">
-                                        {req.adminNote ? 'Edit Response' : '+ Add Response'}
+                                        {req.adminNote ? t('comm.edit_response') : t('comm.add_response')}
                                     </button>
                                 </div>
                             </div>

@@ -749,7 +749,7 @@ const AdminWebsite: React.FC = () => {
                 className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all ${isSaved ? 'bg-green-500 text-white' : 'bg-primary text-white shadow-xl shadow-rose-200 hover:scale-[1.02]'}`}
               >
                 {isSaving || isUploading ? <Loader2 className="animate-spin" /> : isSaved ? <Check /> : <Save />} 
-                {isUploading ? 'Uploading...' : 'Publish Changes'}
+                {isUploading ? t('web.uploading') : t('web.publish')}
               </button>
           </div>
       </div>

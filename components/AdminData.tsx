@@ -606,11 +606,11 @@ const AdminData: React.FC = () => {
             {migrating && (
                 <div className="bg-amber-50 px-4 py-2 rounded-xl text-xs font-mono text-amber-600 border border-amber-200 flex items-center gap-2">
                     <Loader2 size={14} className="animate-spin" />
-                    Migrating Users...
+                    {t('data.migrating')}
                 </div>
             )}
             <div className="bg-stone-50 px-4 py-2 rounded-xl text-xs font-mono text-stone-400 border border-stone-200">
-                Supports .csv files
+                {t('data.csv_only')}
             </div>
         </div>
       </div>

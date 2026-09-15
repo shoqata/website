@@ -239,7 +239,7 @@ const AdminPanel: React.FC = () => {
           await updateDoc(doc(db, 'users', selectedUser.id), { membershipStatus: nextStatus });
           setSelectedUser({ ...selectedUser, membershipStatus: nextStatus });
           setIsUserDrawerOpen(false);
-          showAlert({ type: 'success', message: deactivate ? 'Anëtari u largua.' : 'Anëtari u riaktivizua.' });
+          showAlert({ type: 'success', message: deactivate ? t('admin.members.removed') : t('admin.members.reactivated') });
       } catch (e: any) {
           console.error('[AdminPanel] Statuswechsel fehlgeschlagen:', e);
           showAlert({ type: 'error', message: `Dështoi: ${e?.message || e?.code || ''}` });
@@ -812,7 +812,7 @@ const AdminPanel: React.FC = () => {
                                     onClick={() => setUserDrawerTab(tab)}
                                     className={`pb-3 text-[10px] font-bold uppercase tracking-widest transition-colors relative ${userDrawerTab === tab ? 'text-primary' : 'text-stone-400 hover:text-white'}`}
                                   >
-                                      {tab === 'GENERAL' ? 'Identiteti' : tab === 'ADDRESS' ? 'Adresa' : tab === 'FINANCE' ? 'Financat' : tab === 'HISTORY' ? 'Historia' : 'Intern'}
+                                      {tab === 'GENERAL' ? t('admin.drawer.identity') : tab === 'ADDRESS' ? t('admin.drawer.address') : tab === 'FINANCE' ? t('admin.drawer.finance') : tab === 'HISTORY' ? t('admin.drawer.history') : t('admin.drawer.internal')}
                                       {userDrawerTab === tab && <motion.div layoutId="drawerTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
                                   </button>
                               ))}

@@ -166,7 +166,7 @@ const AdminTestLab: React.FC<AdminTestLabProps> = ({ users, payments }) => {
                         <div className={`p-4 rounded-xl text-sm flex flex-col gap-2 font-mono ${results.integrity.status === 'success' ? 'bg-green-50 text-green-700 border border-green-100' : results.integrity.status === 'warning' ? 'bg-amber-50 text-amber-700 border border-amber-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
                             <div className="flex items-center gap-3 font-bold">
                                 {results.integrity.status === 'success' ? <CheckCircle size={18} /> : <AlertTriangle size={18} />}
-                                {results.integrity.status === 'success' ? 'All checks passed' : 'Anomalies detected'}
+                                {results.integrity.status === 'success' ? t('lab.all_passed') : t('lab.anomalies')}
                             </div>
                             <div className="text-xs opacity-80 pl-7">
                                 <div>Orphaned Payments: {results.integrity.orphanedPayments}</div>
