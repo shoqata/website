@@ -127,7 +127,7 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
     if (!content) return;
     
     if (isScheduling && !scheduledTime) {
-        showAlert({ type: 'warning', message: 'Ju lutem zgjidhni datën dhe orën.' });
+        showAlert({ type: 'warning', message: t('ai.pick_datetime') });
         return;
     }
 
@@ -136,7 +136,7 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
     if (triggerAutoPost) {
         const confirm = await showConfirm({
             title: t('social.publish'),
-            message: "Ky postim do të dërgohet direkt në Facebook/Instagram përmes API. A dëshironi të vazhdoni?",
+            message: t('ai.publish_confirm'),
             confirmText: t('social.publish'),
             type: 'primary'
         });
@@ -219,8 +219,8 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
                     <div className="flex items-center gap-3 mb-8">
                         <div className="bg-rose-50 text-primary p-3 rounded-2xl"><Sparkles size={24} /></div>
                         <div>
-                            <h3 className="text-2xl font-display font-bold italic">AI Content Studio</h3>
-                            <p className="text-xs text-stone-400">Gemini Pro content engine.</p>
+                            <h3 className="text-2xl font-display font-bold italic">{t('ai.title')}</h3>
+                            <p className="text-xs text-stone-400">{t('ai.subtitle')}</p>
                         </div>
                     </div>
 
@@ -238,8 +238,8 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
                             <>
                                 <div className="w-20 h-20 bg-stone-50 rounded-[2rem] flex items-center justify-center text-stone-300"><Upload size={40} /></div>
                                 <div className="text-center">
-                                    <p className="font-bold text-stone-600">Ngarkoni foto për analizë</p>
-                                    <p className="text-xs text-stone-400 mt-1">AI do të shkruajë një përshkrim bazuar në pamje.</p>
+                                    <p className="font-bold text-stone-600">{t('ai.upload_photo')}</p>
+                                    <p className="text-xs text-stone-400 mt-1">{t('ai.upload_hint')}</p>
                                 </div>
                             </>
                             )}
@@ -267,10 +267,10 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
                             <div>
                                 <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-2 px-1">{t('social.tone.label')}</label>
                                 <select value={tone} onChange={(e) => setTone(e.target.value)} className="w-full p-4 bg-stone-50 border border-stone-100 rounded-xl text-sm font-bold outline-none cursor-pointer">
-                                    <option value="inspiring">Frymëzues / Inspiring</option>
-                                    <option value="professional">Profesional</option>
-                                    <option value="emotional">Emocional</option>
-                                    <option value="urgent">Urgjent / Aksion</option>
+                                    <option value="inspiring">{t('ai.tone_inspiring')}</option>
+                                    <option value="professional">{t('ai.tone_professional')}</option>
+                                    <option value="emotional">{t('ai.tone_emotional')}</option>
+                                    <option value="urgent">{t('ai.tone_urgent')}</option>
                                 </select>
                             </div>
                             <div>
@@ -279,7 +279,7 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
                                     <option value="sq">Shqip</option>
                                     <option value="de">Deutsch</option>
                                     <option value="en">English</option>
-                                    <option value="mixed">Mixed (Diaspora Context)</option>
+                                    <option value="mixed">{t('ai.lang_mixed')}</option>
                                 </select>
                             </div>
                         </div>
@@ -306,7 +306,7 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
                                         <button onClick={() => togglePlatform('INSTAGRAM')} className={`p-2.5 rounded-xl transition-all ${platforms.includes('INSTAGRAM') ? 'bg-gradient-to-tr from-yellow-500 via-rose-500 to-purple-600 text-white' : 'bg-stone-800 text-stone-500'}`}><Instagram size={18} /></button>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        {socialConfig.autoPostingEnabled && <span className="flex items-center gap-1 text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-full uppercase tracking-widest"><Zap size={10}/> Auto-Post On</span>}
+                                        {socialConfig.autoPostingEnabled && <span className="flex items-center gap-1 text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-full uppercase tracking-widest"><Zap size={10}/> {t('ai.autopost_on')}</span>}
                                     </div>
                                 </div>
                                 <div className="min-h-[150px] bg-white/5 p-6 rounded-2xl border border-white/5 text-stone-300 text-sm leading-relaxed mb-8 whitespace-pre-wrap italic">
@@ -378,7 +378,7 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
                                     <p className="text-xs font-medium text-stone-800 line-clamp-2 italic leading-relaxed">"{p.content}"</p>
                                     <div className="flex gap-2 items-center mt-2">
                                         {p.status === 'SCHEDULED' && <span className="text-[8px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded uppercase flex items-center gap-1"><Clock size={8}/> {new Date(p.scheduledFor).toLocaleString()}</span>}
-                                        {p.autoPosted && <span className="text-[8px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded inline-block uppercase">Auto-Posted</span>}
+                                        {p.autoPosted && <span className="text-[8px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded inline-block uppercase">{t('ai.autoposted')}</span>}
                                     </div>
                                 </div>
                             </div>
@@ -386,7 +386,7 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
                         {scheduledPosts.length === 0 && (
                             <div className="text-center py-20 bg-stone-50/50 rounded-3xl border border-dashed border-stone-200">
                                 <History size={40} className="mx-auto text-stone-200 mb-4" />
-                                <p className="text-stone-400 text-sm">No post history yet.</p>
+                                <p className="text-stone-400 text-sm">{t('ai.no_history')}</p>
                             </div>
                         )}
                     </div>
@@ -408,7 +408,7 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
                           <div className="bg-blue-50 text-blue-600 p-3 rounded-2xl"><Facebook size={24}/></div>
                           <div>
                               <h4 className="font-bold text-stone-900">{t('social.api.fb.title')}</h4>
-                              <p className="text-xs text-stone-400">Meta Graph API Settings</p>
+                              <p className="text-xs text-stone-400">{t('ai.meta_settings')}</p>
                           </div>
                       </div>
 
@@ -444,7 +444,7 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
                           <div className="bg-rose-50 text-rose-600 p-3 rounded-2xl"><Instagram size={24}/></div>
                           <div>
                               <h4 className="font-bold text-stone-900">{t('social.api.ig.title')}</h4>
-                              <p className="text-xs text-stone-400">Business Login Required</p>
+                              <p className="text-xs text-stone-400">{t('ai.business_login')}</p>
                           </div>
                       </div>
 
@@ -518,7 +518,7 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
               <div className="bg-blue-50 border border-blue-100 p-8 rounded-3xl flex gap-6 items-start">
                   <div className="p-3 bg-blue-100 text-blue-600 rounded-2xl"><Globe size={24}/></div>
                   <div className="space-y-4">
-                      <h5 className="font-bold text-blue-900">Udhëzime / Instructions / Anleitung</h5>
+                      <h5 className="font-bold text-blue-900">{t('ai.instructions')}</h5>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="space-y-2">
                             <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Deutsch</p>
