@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from '../context/LanguageContext';
 import { AnimatePresence, motion } from 'framer-motion';
 import { 
   Save, 
@@ -85,6 +86,7 @@ type Tab = 'GLOBAL' | 'HOME' | 'ABOUT' | 'LIVE' | 'LEGAL';
 type LangCode = 'de' | 'en' | 'sq';
 
 const AdminWebsite: React.FC = () => {
+  const { t } = useTranslation();
   const { showAlert, showPrompt } = useFeedback();
   const [activeTab, setActiveTab] = useState<Tab>('HOME');
   const [editLang, setEditLang] = useState<LangCode>('de'); // Editor Language State
@@ -169,7 +171,7 @@ const AdminWebsite: React.FC = () => {
       setTimeout(() => setIsSaved(false), 3000);
     } catch (error) {
       console.error(error);
-      showAlert({ type: 'error', message: 'Speichern fehlgeschlagen.' });
+      showAlert({ type: 'error', message: t('web.save_failed') });
     } finally {
       setIsSaving(false);
     }
@@ -186,7 +188,7 @@ const AdminWebsite: React.FC = () => {
           callback(url);
       } catch (err: any) { 
           console.error(err);
-          showAlert({ type: 'error', message: 'Upload Failed' });
+          showAlert({ type: 'error', message: t('web.upload_failed') });
       } finally { 
           setIsUploading(false); 
       }
@@ -194,8 +196,8 @@ const AdminWebsite: React.FC = () => {
 
   const handleManualLink = async (field: 'logo' | 'hero' | 'board') => {
       const url = await showPrompt({
-          title: "Image URL",
-          message: "Enter the direct link to the image:",
+          title: t('web.image_url'),
+          message: t('web.image_url_prompt'),
           placeholder: "https://example.com/image.jpg"
       });
       
@@ -209,6 +211,14 @@ const AdminWebsite: React.FC = () => {
   // --- LOCALIZATION HELPERS ---
   
   // Get value for current edit language
+  // Name im Vorschaufenster: bisher fest "Koretini", also fuer jeden anderen
+  // Verein falsch.
+  const previewName = (() => {
+      const v: any = (branding as any).associationName;
+      if (!v) return 'Koretini';
+      return typeof v === 'string' ? v : (v[editLang] || v.de || v.sq || v.en || 'Koretini');
+  })();
+
   const getLoc = (val: LocalizedString | undefined): string => {
       if (!val) return '';
       if (typeof val === 'string') return val; // Legacy string support
@@ -370,7 +380,7 @@ const AdminWebsite: React.FC = () => {
                   ))}
               </div>
               <p className="text-[10px] text-stone-400 text-center mt-2 italic">
-                  Editing content for: <span className="font-bold uppercase text-stone-600">{editLang}</span>
+                  {t('web.editing_for')} <span className="font-bold uppercase text-stone-600">{editLang}</span>
               </p>
           </div>
 
@@ -378,17 +388,17 @@ const AdminWebsite: React.FC = () => {
             
             {activeTab === 'GLOBAL' && (
                 <>
-                    <BuilderSection id="branding" title="Identity & Colors" icon={<Palette size={18}/>}>
+                    <BuilderSection id="branding" title={t('web.identity')} icon={<Palette size={18}/>}>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="text-[10px] font-bold text-stone-400 uppercase mb-2 block">Primary Color</label>
+                                <label className="text-[10px] font-bold text-stone-400 uppercase mb-2 block">{t('web.primary_color')}</label>
                                 <div className="flex items-center gap-2 bg-stone-50 p-2 rounded-xl border border-stone-100">
                                     <input type="color" value={branding.primary} onChange={(e) => updateField('primary', e.target.value)} className="w-8 h-8 rounded-lg cursor-pointer bg-transparent" />
                                     <span className="text-[10px] font-mono">{branding.primary}</span>
                                 </div>
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold text-stone-400 uppercase mb-2 block">Secondary Color</label>
+                                <label className="text-[10px] font-bold text-stone-400 uppercase mb-2 block">{t('web.secondary_color')}</label>
                                 <div className="flex items-center gap-2 bg-stone-50 p-2 rounded-xl border border-stone-100">
                                     <input type="color" value={branding.secondary} onChange={(e) => updateField('secondary', e.target.value)} className="w-8 h-8 rounded-lg cursor-pointer bg-transparent" />
                                     <span className="text-[10px] font-mono">{branding.secondary}</span>
@@ -399,42 +409,42 @@ const AdminWebsite: React.FC = () => {
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     {branding.logoUrl ? <img src={branding.logoUrl} className="h-8 object-contain"  onError={onImageError}/> : <div className="w-8 h-8 bg-stone-100 rounded-lg flex items-center justify-center"><ImageIcon size={16} className="text-stone-300"/></div>}
-                                    <span className="text-xs font-bold text-stone-500">Logo Asset</span>
+                                    <span className="text-xs font-bold text-stone-500">{t('web.logo')}</span>
                                 </div>
                                 <div className="flex gap-2">
-                                    <button onClick={() => handleManualLink('logo')} className="text-[10px] font-bold bg-white border border-stone-200 px-3 py-1.5 rounded-lg hover:bg-stone-50 transition-colors flex items-center gap-1"><LinkIcon size={12}/> URL</button>
-                                    <button onClick={() => fileInputRef.current?.click()} className="text-[10px] font-bold bg-stone-100 px-3 py-1.5 rounded-lg hover:bg-stone-200 transition-colors flex items-center gap-1"><Upload size={12}/> Upload</button>
+                                    <button onClick={() => handleManualLink('logo')} className="text-[10px] font-bold bg-white border border-stone-200 px-3 py-1.5 rounded-lg hover:bg-stone-50 transition-colors flex items-center gap-1"><LinkIcon size={12}/> {t('web.image_url')}</button>
+                                    <button onClick={() => fileInputRef.current?.click()} className="text-[10px] font-bold bg-stone-100 px-3 py-1.5 rounded-lg hover:bg-stone-200 transition-colors flex items-center gap-1"><Upload size={12}/> {t('web.upload')}</button>
                                 </div>
                                 <input type="file" ref={fileInputRef} hidden accept="image/*" onChange={(e) => handleFileUpload(e, 'branding', (url) => updateField('logoUrl', url))} />
                             </div>
                             
                             <div className="pt-4 border-t border-stone-100">
-                                <label className="text-[10px] font-bold text-stone-400 uppercase mb-2 block">Logo Height</label>
+                                <label className="text-[10px] font-bold text-stone-400 uppercase mb-2 block">{t('web.logo_height')}</label>
                                 <div className="flex gap-4 items-center">
                                     <input 
                                         value={branding.logoHeight} 
                                         onChange={e => updateField('logoHeight', e.target.value)} 
                                         className="flex-1 p-2 bg-stone-50 rounded-lg text-sm border border-stone-100 outline-none" 
-                                        placeholder="e.g. 40px, 3rem"
+                                        placeholder={t('web.logo_height_ph')}
                                     />
-                                    <div className="text-xs text-stone-400">Default: 2.5rem</div>
+                                    <div className="text-xs text-stone-400">{t('web.default_value', { value: '2.5rem' })}</div>
                                 </div>
                             </div>
                         </div>
                     </BuilderSection>
 
-                    <BuilderSection id="footer" title="Footer & Contact" icon={<Mail size={18}/>}>
+                    <BuilderSection id="footer" title={t('web.footer_contact')} icon={<Mail size={18}/>}>
                         <div className="space-y-4">
                             <div>
-                                <label className="text-[10px] font-bold text-stone-400 uppercase mb-1 block">Address</label>
+                                <label className="text-[10px] font-bold text-stone-400 uppercase mb-1 block">{t('field.address')}</label>
                                 <input value={branding.footerAddress} onChange={e => updateField('footerAddress', e.target.value)} className="w-full p-3 bg-stone-50 rounded-xl text-sm border border-stone-100 outline-none focus:border-primary/30" />
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold text-stone-400 uppercase mb-1 block">Public Email</label>
+                                <label className="text-[10px] font-bold text-stone-400 uppercase mb-1 block">{t('web.public_email')}</label>
                                 <input value={branding.footerEmail} onChange={e => updateField('footerEmail', e.target.value)} className="w-full p-3 bg-stone-50 rounded-xl text-sm border border-stone-100 outline-none focus:border-primary/30" />
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold text-stone-400 uppercase mb-1 flex items-center gap-1">Mission Text (Footer) <Languages size={10} className="text-primary"/></label>
+                                <label className="text-[10px] font-bold text-stone-400 uppercase mb-1 flex items-center gap-1">{t('web.mission_footer')} <Languages size={10} className="text-primary"/></label>
                                 <textarea 
                                     value={getLoc(branding.footerText)} 
                                     onChange={e => updateField('footerText', e.target.value, true)} 
@@ -448,10 +458,10 @@ const AdminWebsite: React.FC = () => {
 
             {activeTab === 'HOME' && (
                 <>
-                    <BuilderSection id="hero" title="Hero Section" icon={<LayoutTemplate size={18}/>}>
+                    <BuilderSection id="hero" title={t('web.hero')} icon={<LayoutTemplate size={18}/>}>
                         <div className="space-y-4">
                             <div>
-                                <label className="text-[10px] font-bold text-stone-400 uppercase mb-1 flex items-center gap-1">Top Badge <Languages size={10} className="text-primary"/></label>
+                                <label className="text-[10px] font-bold text-stone-400 uppercase mb-1 flex items-center gap-1">{t('web.top_badge')} <Languages size={10} className="text-primary"/></label>
                                 <input 
                                     value={getLoc(branding.heroBadge)} 
                                     onChange={e => updateField('heroBadge', e.target.value, true)} 
@@ -459,7 +469,7 @@ const AdminWebsite: React.FC = () => {
                                 />
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold text-stone-400 uppercase mb-1 flex items-center gap-1">Headline <Languages size={10} className="text-primary"/></label>
+                                <label className="text-[10px] font-bold text-stone-400 uppercase mb-1 flex items-center gap-1">{t('web.headline')} <Languages size={10} className="text-primary"/></label>
                                 <input 
                                     value={getLoc(branding.heroTitle)} 
                                     onChange={e => updateField('heroTitle', e.target.value, true)} 
@@ -467,7 +477,7 @@ const AdminWebsite: React.FC = () => {
                                 />
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold text-stone-400 uppercase mb-1 flex items-center gap-1">Subtitle <Languages size={10} className="text-primary"/></label>
+                                <label className="text-[10px] font-bold text-stone-400 uppercase mb-1 flex items-center gap-1">{t('web.subtitle')} <Languages size={10} className="text-primary"/></label>
                                 <textarea 
                                     value={getLoc(branding.heroSubtitle)} 
                                     onChange={e => updateField('heroSubtitle', e.target.value, true)} 
@@ -476,7 +486,7 @@ const AdminWebsite: React.FC = () => {
                             </div>
                             
                             <div>
-                                <label className="text-[10px] font-bold text-stone-400 uppercase mb-2 block">Slideshow Images</label>
+                                <label className="text-[10px] font-bold text-stone-400 uppercase mb-2 block">{t('web.slideshow')}</label>
                                 <div className="grid grid-cols-3 gap-2">
                                     {branding.heroImages.map((img, idx) => (
                                         <div key={idx} className="aspect-video relative rounded-lg overflow-hidden group">
@@ -486,10 +496,10 @@ const AdminWebsite: React.FC = () => {
                                     ))}
                                     <div className="flex flex-col gap-2">
                                         <button onClick={() => heroInputRef.current?.click()} className="flex-1 aspect-video border-2 border-dashed border-stone-200 rounded-lg flex items-center justify-center text-stone-300 hover:text-primary hover:border-primary/50 transition-all flex-col gap-1 text-[10px] font-bold">
-                                            <Plus size={16}/> Upload
+                                            <Plus size={16}/> {t('web.upload')}
                                         </button>
                                         <button onClick={() => handleManualLink('hero')} className="py-2 bg-stone-100 text-stone-500 rounded-lg text-[10px] font-bold hover:bg-stone-200">
-                                            Add URL
+                                            {t('web.add_url')}
                                         </button>
                                     </div>
                                     <input type="file" ref={heroInputRef} hidden accept="image/*" onChange={(e) => handleFileUpload(e, 'hero', (url) => updateField('heroImages', [...branding.heroImages, url]))} />
@@ -498,28 +508,28 @@ const AdminWebsite: React.FC = () => {
                         </div>
                     </BuilderSection>
 
-                    <BuilderSection id="hypertext" title="Interactive Mission" icon={<Type size={18}/>}>
+                    <BuilderSection id="hypertext" title={t('web.mission_interactive')} icon={<Type size={18}/>}>
                         <div className="space-y-6">
                             <div className="p-4 bg-primary/5 border border-primary/10 rounded-2xl">
-                                <p className="text-xs text-primary/80 italic">This text appears below the hero. Words added to the <strong>Highlights</strong> list will animate on hover.</p>
+                                <p className="text-xs text-primary/80 italic">{t('web.highlights_hint')}</p>
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold text-stone-400 uppercase mb-1 flex items-center gap-1">Main Paragraph <Languages size={10} className="text-primary"/></label>
+                                <label className="text-[10px] font-bold text-stone-400 uppercase mb-1 flex items-center gap-1">{t('web.main_paragraph')} <Languages size={10} className="text-primary"/></label>
                                 <textarea 
                                     value={getLoc(branding.whyJoinText)} 
                                     onChange={e => updateField('whyJoinText', e.target.value, true)} 
                                     className="w-full p-4 bg-stone-50 rounded-2xl text-sm border border-stone-100 h-32 focus:border-primary/30 outline-none leading-relaxed"
-                                    placeholder="Enter your mission text here..."
+                                    placeholder={t('web.mission_ph')}
                                 />
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold text-stone-400 uppercase mb-2 block">Magic Words (Highlights)</label>
+                                <label className="text-[10px] font-bold text-stone-400 uppercase mb-2 block">{t('web.magic_words')}</label>
                                 <div className="flex gap-2 mb-3">
                                     <input 
                                         value={newHighlightWord}
                                         onChange={(e) => setNewHighlightWord(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && addHighlightWord()}
-                                        placeholder="Type word & press Enter..."
+                                        placeholder={t('web.magic_words_ph')}
                                         className="flex-1 p-3 bg-white border border-stone-200 rounded-xl text-sm outline-none focus:border-primary"
                                     />
                                     <button onClick={addHighlightWord} className="p-3 bg-stone-900 text-white rounded-xl"><Plus size={18}/></button>
@@ -531,7 +541,7 @@ const AdminWebsite: React.FC = () => {
                                             <button onClick={() => removeHighlightWord(word)} className="text-stone-300 hover:text-red-500"><X size={12}/></button>
                                         </div>
                                     ))}
-                                    {branding.whyJoinHighlightWords.length === 0 && <span className="text-xs text-stone-400 italic">No highlights added yet.</span>}
+                                    {branding.whyJoinHighlightWords.length === 0 && <span className="text-xs text-stone-400 italic">{t('web.no_highlights')}</span>}
                                 </div>
                             </div>
                         </div>
@@ -541,10 +551,10 @@ const AdminWebsite: React.FC = () => {
 
             {activeTab === 'ABOUT' && (
                 <>
-                    <BuilderSection id="board" title="Board Members" icon={<Briefcase size={18}/>}>
+                    <BuilderSection id="board" title={t('web.board')} icon={<Briefcase size={18}/>}>
                         <div className="space-y-6">
                             <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 space-y-3">
-                                <h5 className="text-[10px] font-bold uppercase tracking-widest text-stone-500">New Entry</h5>
+                                <h5 className="text-[10px] font-bold uppercase tracking-widest text-stone-500">{t('web.new_entry')}</h5>
                                 <div className="flex gap-3">
                                     <div 
                                         className="w-16 h-16 bg-white border-2 border-dashed border-stone-200 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-primary overflow-hidden relative"
@@ -553,23 +563,23 @@ const AdminWebsite: React.FC = () => {
                                             <img src={newBoardMember.image} className="w-full h-full object-cover" onError={onImageError}/> 
                                         ) : (
                                             <div className="flex flex-col items-center gap-1">
-                                                <button onClick={() => boardImageInputRef.current?.click()} className="text-[8px] font-bold text-stone-400 hover:text-primary">Upload</button>
+                                                <button onClick={() => boardImageInputRef.current?.click()} className="text-[8px] font-bold text-stone-400 hover:text-primary">{t('web.upload')}</button>
                                                 <div className="h-px w-8 bg-stone-200" />
-                                                <button onClick={() => handleManualLink('board')} className="text-[8px] font-bold text-stone-400 hover:text-primary">URL</button>
+                                                <button onClick={() => handleManualLink('board')} className="text-[8px] font-bold text-stone-400 hover:text-primary">{t('web.image_url')}</button>
                                             </div>
                                         )}
                                         <input type="file" ref={boardImageInputRef} hidden accept="image/*" onChange={handleBoardImageUpload} />
                                     </div>
                                     <div className="flex-1 space-y-2">
                                         <select value={newBoardMember.userId} onChange={e => setNewBoardMember({...newBoardMember, userId: e.target.value})} className="w-full p-2 bg-white rounded-lg text-xs border border-stone-200 outline-none">
-                                            <option value="">Select User...</option>
+                                            <option value="">{t('web.select_user')}</option>
                                             {users.map(u => <option key={u.id} value={u.id}>{u.displayName}</option>)}
                                         </select>
-                                        <input placeholder="Role (e.g. Kryetar)" value={newBoardMember.role} onChange={e => setNewBoardMember({...newBoardMember, role: e.target.value})} className="w-full p-2 bg-white rounded-lg text-xs border border-stone-200 outline-none" />
+                                        <input placeholder={t('web.role_ph')} value={newBoardMember.role} onChange={e => setNewBoardMember({...newBoardMember, role: e.target.value})} className="w-full p-2 bg-white rounded-lg text-xs border border-stone-200 outline-none" />
                                     </div>
                                 </div>
-                                <textarea placeholder="Quote..." value={newBoardMember.quote} onChange={e => setNewBoardMember({...newBoardMember, quote: e.target.value})} className="w-full p-2 bg-white rounded-lg text-xs border border-stone-200 outline-none h-16" />
-                                <button onClick={handleAddBoardMember} disabled={!newBoardMember.userId} className="w-full py-2 bg-stone-900 text-white rounded-lg text-xs font-bold disabled:opacity-50">Add Member</button>
+                                <textarea placeholder={t('web.quote_ph')} value={newBoardMember.quote} onChange={e => setNewBoardMember({...newBoardMember, quote: e.target.value})} className="w-full p-2 bg-white rounded-lg text-xs border border-stone-200 outline-none h-16" />
+                                <button onClick={handleAddBoardMember} disabled={!newBoardMember.userId} className="w-full py-2 bg-stone-900 text-white rounded-lg text-xs font-bold disabled:opacity-50">{t('web.add_member')}</button>
                             </div>
 
                             <div className="space-y-3">
@@ -592,7 +602,7 @@ const AdminWebsite: React.FC = () => {
                         </div>
                     </BuilderSection>
 
-                    <BuilderSection id="missions" title="Mission Cards" icon={<Activity size={18}/>}>
+                    <BuilderSection id="missions" title={t('web.mission_cards')} icon={<Activity size={18}/>}>
                         <div className="space-y-4">
                             {branding.missions.map((m, idx) => (
                                 <div key={idx} className="p-4 bg-stone-50 rounded-2xl border border-stone-200">
@@ -616,7 +626,7 @@ const AdminWebsite: React.FC = () => {
                         </div>
                     </BuilderSection>
 
-                    <BuilderSection id="roadmap" title="Timeline / Roadmap" icon={<Milestone size={18}/>}>
+                    <BuilderSection id="roadmap" title={t('web.timeline')} icon={<Milestone size={18}/>}>
                         <div className="space-y-4">
                             {branding.roadmap.map((r, idx) => (
                                 <div key={idx} className="flex gap-2">
@@ -644,7 +654,7 @@ const AdminWebsite: React.FC = () => {
             )}
 
             {activeTab === 'LIVE' && (
-                <BuilderSection id="selectors" title="Live Features" icon={<Zap size={18}/>}>
+                <BuilderSection id="selectors" title={t('web.live_features')} icon={<Zap size={18}/>}>
                     <div className="space-y-4">
                         {branding.liveSelectors.map((s, idx) => (
                             <div key={idx} className="p-4 bg-stone-50 rounded-2xl border border-stone-200 flex gap-4">
@@ -664,22 +674,22 @@ const AdminWebsite: React.FC = () => {
                                                 input.click();
                                             }}
                                             className="p-1 bg-white/20 hover:bg-white text-white hover:text-stone-900 rounded-full"
-                                            title="Upload"
+                                            title={t('web.upload')}
                                          >
                                             <Upload size={10}/>
                                          </button>
                                          <button 
                                             onClick={() => {
                                                 showPrompt({
-                                                    title: "Image URL",
-                                                    message: "Enter direct link:",
+                                                    title: t('web.image_url'),
+                                                    message: t('web.image_url_prompt'),
                                                     placeholder: "https://..."
                                                 }).then(url => {
                                                     if(url) updateArrayField('liveSelectors', idx, 'image', url);
                                                 })
                                             }}
                                             className="p-1 bg-white/20 hover:bg-white text-white hover:text-stone-900 rounded-full"
-                                            title="Paste URL"
+                                            title={t('web.paste_url')}
                                          >
                                             <LinkIcon size={10}/>
                                          </button>
@@ -706,10 +716,10 @@ const AdminWebsite: React.FC = () => {
             )}
 
             {activeTab === 'LEGAL' && (
-                <BuilderSection id="legal" title="Privacy & GDPR" icon={<ShieldAlert size={18}/>}>
+                <BuilderSection id="legal" title={t('web.privacy')} icon={<ShieldAlert size={18}/>}>
                     <div className="space-y-4">
                         <div>
-                            <label className="text-[10px] font-bold text-stone-400 uppercase mb-1 flex items-center gap-1">GDPR Text <Languages size={10} className="text-primary"/></label>
+                            <label className="text-[10px] font-bold text-stone-400 uppercase mb-1 flex items-center gap-1">{t('web.gdpr_text')} <Languages size={10} className="text-primary"/></label>
                             <textarea 
                                 value={getLoc(branding.gdprText)} 
                                 onChange={e => updateField('gdprText', e.target.value, true)} 
@@ -718,7 +728,7 @@ const AdminWebsite: React.FC = () => {
                             />
                         </div>
                         <div>
-                            <label className="text-[10px] font-bold text-stone-400 uppercase mb-1 flex items-center gap-1">Privacy Policy <Languages size={10} className="text-primary"/></label>
+                            <label className="text-[10px] font-bold text-stone-400 uppercase mb-1 flex items-center gap-1">{t('web.privacy_policy')} <Languages size={10} className="text-primary"/></label>
                             <textarea 
                                 value={getLoc(branding.privacyText)} 
                                 onChange={e => updateField('privacyText', e.target.value, true)} 
@@ -759,7 +769,7 @@ const AdminWebsite: React.FC = () => {
                <div className="px-8 py-4 border-b border-stone-100 flex justify-between items-center sticky top-0 bg-white/80 backdrop-blur-md z-10">
                   <div className="flex items-center gap-2">
                      {branding.logoUrl ? <img src={branding.logoUrl} style={{ height: branding.logoHeight || '2.5rem' }} className="w-auto object-contain"  onError={onImageError}/> : <div className="bg-primary p-1 rounded-lg text-white"><Heart size={12} fill="white" /></div>}
-                     <span className="font-display font-bold italic text-sm text-stone-800">Koretini</span>
+                     <span className="font-display font-bold italic text-sm text-stone-800">{previewName}</span>
                   </div>
                   <div className="flex gap-1">
                       <div className="w-8 h-3 bg-stone-200 rounded-full" />
@@ -786,7 +796,7 @@ const AdminWebsite: React.FC = () => {
                   {getLoc(branding.whyJoinText) && (
                       <div className="mb-16 text-center relative">
                           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-rose-100/30 blur-3xl rounded-full -z-10" />
-                          <p className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em] mb-4">Mission Interactive Preview</p>
+                          <p className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em] mb-4">{t('web.mission_preview')}</p>
                           <div className="bg-white/50 backdrop-blur-sm p-8 rounded-3xl border border-white/50 shadow-sm">
                               <HyperTextParagraph 
                                   text={getLoc(branding.whyJoinText)}
@@ -800,7 +810,7 @@ const AdminWebsite: React.FC = () => {
                   <div className="h-px bg-gradient-to-r from-transparent via-stone-200 to-transparent mb-12" />
 
                   {/* About Preview */}
-                  <h4 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-6 text-center">Section: About & Values</h4>
+                  <h4 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-6 text-center">{t('web.section_about')}</h4>
                   <div className="grid grid-cols-1 gap-4 mb-12">
                       {branding.missions.map((m, i) => (
                           <div key={i} className="p-6 bg-white rounded-3xl border border-stone-100 shadow-sm">
@@ -812,7 +822,7 @@ const AdminWebsite: React.FC = () => {
 
                   {/* Footer Preview */}
                   <div className="bg-stone-900 text-white p-8 rounded-3xl mt-8 text-center">
-                      <h4 className="font-display italic text-xl mb-4">Koretini</h4>
+                      <h4 className="font-display italic text-xl mb-4">{previewName}</h4>
                       <p className="text-white/50 text-xs mb-6 italic">{getLoc(branding.footerText)}</p>
                       <div className="flex justify-center gap-4 text-[10px] text-white/30 uppercase tracking-widest">
                           <span>{branding.footerEmail}</span>

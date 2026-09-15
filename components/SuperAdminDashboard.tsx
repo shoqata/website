@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from '../context/LanguageContext';
 import { 
   Users, 
   CreditCard, 
@@ -26,6 +27,7 @@ import { signOut } from '@/services/supabase-bridge';
 import { useNavigate } from 'react-router-dom';
 
 const SuperAdminDashboard: React.FC = () => {
+  const { t } = useTranslation();
   const { showAlert, showPrompt } = useFeedback();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'CRM' | 'FINANCES' | 'CONFIG'>('OVERVIEW');
@@ -44,8 +46,8 @@ const SuperAdminDashboard: React.FC = () => {
 
   const handleCreateTenant = async () => {
       const name = await showPrompt({
-          title: "Neuer Verein",
-          message: "Name des Vereins (z.B. FC Basel):"
+          title: t('sa.new_tenant'),
+          message: t('sa.new_tenant_prompt')
       });
       if (!name) return;
 
@@ -53,14 +55,14 @@ const SuperAdminDashboard: React.FC = () => {
       // Administrator ist er nicht verwaltbar. Beides wird deshalb gleich hier
       // abgefragt, statt einen Verein anzulegen, den niemand erreichen kann.
       const domain = await showPrompt({
-          title: "Domain",
+          title: t('sa.domain'),
           message: `Unter welcher Adresse ist ${name} erreichbar? (z.B. fcbasel.ch)`
       });
       if (!domain) return;
 
       const adminEmail = await showPrompt({
-          title: "Administrator",
-          message: "E-Mail des ersten Administrators. Er meldet sich damit an und übernimmt den Verein."
+          title: t('sa.administrator'),
+          message: t('sa.admin_prompt')
       });
       if (!adminEmail) return;
 
@@ -92,12 +94,12 @@ const SuperAdminDashboard: React.FC = () => {
               return (
                   <div className="space-y-6">
                       <div className="flex justify-between items-center">
-                          <h2 className="text-2xl font-bold">Customer Relationship Management</h2>
+                          <h2 className="text-2xl font-bold">{t('sa.crm')}</h2>
                           <button className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-bold">+ New Lead</button>
                       </div>
                       <div className="grid grid-cols-3 gap-6">
                           <div className="bg-white/5 p-4 rounded-2xl border border-white/5 h-[500px]">
-                              <h3 className="font-bold text-stone-400 text-xs uppercase tracking-widest mb-4">Potential Leads</h3>
+                              <h3 className="font-bold text-stone-400 text-xs uppercase tracking-widest mb-4">{t('sa.leads')}</h3>
                               <div className="space-y-2">
                                   <div className="bg-white/5 p-3 rounded-xl hover:bg-white/10 cursor-pointer transition-colors">
                                       <p className="font-bold text-sm">Verein Albanischer Lehrer</p>
@@ -110,7 +112,7 @@ const SuperAdminDashboard: React.FC = () => {
                               </div>
                           </div>
                           <div className="bg-white/5 p-4 rounded-2xl border border-white/5 h-[500px]">
-                              <h3 className="font-bold text-blue-400 text-xs uppercase tracking-widest mb-4">In Discussion</h3>
+                              <h3 className="font-bold text-blue-400 text-xs uppercase tracking-widest mb-4">{t('sa.in_discussion')}</h3>
                               <div className="space-y-2">
                                   <div className="bg-white/5 p-3 rounded-xl hover:bg-white/10 cursor-pointer transition-colors border-l-2 border-blue-500">
                                       <p className="font-bold text-sm">Moschee Will</p>
@@ -119,12 +121,12 @@ const SuperAdminDashboard: React.FC = () => {
                               </div>
                           </div>
                           <div className="bg-white/5 p-4 rounded-2xl border border-white/5 h-[500px]">
-                              <h3 className="font-bold text-emerald-400 text-xs uppercase tracking-widest mb-4">Onboarding</h3>
+                              <h3 className="font-bold text-emerald-400 text-xs uppercase tracking-widest mb-4">{t('sa.onboarding')}</h3>
                               <div className="space-y-2">
-                                  {tenants.slice(0,2).map(t => (
-                                      <div key={t.id} className="bg-white/5 p-3 rounded-xl hover:bg-white/10 cursor-pointer transition-colors border-l-2 border-emerald-500">
-                                          <p className="font-bold text-sm">{t.name}</p>
-                                          <p className="text-xs text-stone-500 mt-1">Setup in progress</p>
+                                  {tenants.slice(0,2).map(tn => (
+                                      <div key={tn.id} className="bg-white/5 p-3 rounded-xl hover:bg-white/10 cursor-pointer transition-colors border-l-2 border-emerald-500">
+                                          <p className="font-bold text-sm">{tn.name}</p>
+                                          <p className="text-xs text-stone-500 mt-1">{t('sa.setup_progress')}</p>
                                       </div>
                                   ))}
                               </div>
@@ -135,41 +137,41 @@ const SuperAdminDashboard: React.FC = () => {
           case 'FINANCES':
               return (
                   <div className="space-y-8">
-                      <h2 className="text-2xl font-bold">Platform Revenue</h2>
+                      <h2 className="text-2xl font-bold">{t('sa.revenue')}</h2>
                       <div className="grid grid-cols-3 gap-6">
                           <div className="bg-emerald-500/10 border border-emerald-500/20 p-6 rounded-3xl">
-                              <p className="text-emerald-400 text-xs font-bold uppercase tracking-widest mb-2">Total MRR</p>
+                              <p className="text-emerald-400 text-xs font-bold uppercase tracking-widest mb-2">{t('sa.mrr')}</p>
                               <p className="text-4xl font-mono font-bold text-white">CHF 4,250</p>
                           </div>
                           <div className="bg-white/5 border border-white/10 p-6 rounded-3xl">
-                              <p className="text-stone-400 text-xs font-bold uppercase tracking-widest mb-2">Pending Invoices</p>
+                              <p className="text-stone-400 text-xs font-bold uppercase tracking-widest mb-2">{t('sa.pending_invoices')}</p>
                               <p className="text-4xl font-mono font-bold text-white">CHF 850</p>
                           </div>
                           <div className="bg-white/5 border border-white/10 p-6 rounded-3xl">
-                              <p className="text-stone-400 text-xs font-bold uppercase tracking-widest mb-2">Active Subscriptions</p>
+                              <p className="text-stone-400 text-xs font-bold uppercase tracking-widest mb-2">{t('sa.active_subs')}</p>
                               <p className="text-4xl font-mono font-bold text-white">{tenants.filter(t => t.subscriptionStatus === 'ACTIVE').length}</p>
                           </div>
                       </div>
                       
                       <div className="bg-white/5 border border-white/10 rounded-3xl overflow-hidden">
                           <div className="p-6 border-b border-white/10">
-                              <h3 className="font-bold">Recent Transactions</h3>
+                              <h3 className="font-bold">{t('sa.recent_transactions')}</h3>
                           </div>
                           <table className="w-full text-left text-sm">
                               <thead className="text-stone-500 font-bold uppercase text-[10px]">
                                   <tr>
-                                      <th className="p-6">Tenant</th>
-                                      <th className="p-6">Plan</th>
-                                      <th className="p-6">Date</th>
-                                      <th className="p-6 text-right">Amount</th>
+                                      <th className="p-6">{t('sa.tenant')}</th>
+                                      <th className="p-6">{t('sa.plan')}</th>
+                                      <th className="p-6">{t('field.date')}</th>
+                                      <th className="p-6 text-right">{t('field.amount')}</th>
                                   </tr>
                               </thead>
                               <tbody className="divide-y divide-white/5">
-                                  {tenants.slice(0,5).map(t => (
-                                      <tr key={t.id}>
-                                          <td className="p-6 font-bold">{t.name}</td>
-                                          <td className="p-6 text-stone-400">{t.subscriptionPlan} Monthly</td>
-                                          <td className="p-6 text-stone-500">Today</td>
+                                  {tenants.slice(0,5).map(tn => (
+                                      <tr key={tn.id}>
+                                          <td className="p-6 font-bold">{tn.name}</td>
+                                          <td className="p-6 text-stone-400">{tn.subscriptionPlan}</td>
+                                          <td className="p-6 text-stone-500">{t('sa.today')}</td>
                                           <td className="p-6 text-right font-mono text-emerald-400">+ CHF 49.00</td>
                                       </tr>
                                   ))}
@@ -181,32 +183,32 @@ const SuperAdminDashboard: React.FC = () => {
           case 'CONFIG':
               return (
                   <div className="space-y-8">
-                      <h2 className="text-2xl font-bold">Global Configuration</h2>
+                      <h2 className="text-2xl font-bold">{t('sa.global_config')}</h2>
                       <div className="grid grid-cols-2 gap-8">
                           <div className="bg-white/5 border border-white/10 p-8 rounded-3xl space-y-6">
-                              <h3 className="font-bold flex items-center gap-2"><Settings size={18}/> Pricing Plans</h3>
+                              <h3 className="font-bold flex items-center gap-2"><Settings size={18}/> {t('sa.pricing')}</h3>
                               <div className="space-y-4">
                                   <div>
-                                      <label className="text-xs font-bold text-stone-400 block mb-1">Free Plan Limit (Members)</label>
+                                      <label className="text-xs font-bold text-stone-400 block mb-1">{t('sa.free_limit')}</label>
                                       <input type="number" defaultValue="50" className="w-full bg-stone-900 border border-white/10 p-3 rounded-xl text-white outline-none" />
                                   </div>
                                   <div>
-                                      <label className="text-xs font-bold text-stone-400 block mb-1">Pro Plan Price (CHF)</label>
+                                      <label className="text-xs font-bold text-stone-400 block mb-1">{t('sa.pro_price')}</label>
                                       <input type="number" defaultValue="49" className="w-full bg-stone-900 border border-white/10 p-3 rounded-xl text-white outline-none" />
                                   </div>
                               </div>
-                              <button className="w-full bg-white text-stone-900 py-3 rounded-xl font-bold">Update Pricing</button>
+                              <button className="w-full bg-white text-stone-900 py-3 rounded-xl font-bold">{t('sa.update_pricing')}</button>
                           </div>
 
                           <div className="bg-white/5 border border-white/10 p-8 rounded-3xl space-y-6">
-                              <h3 className="font-bold flex items-center gap-2"><Server size={18}/> System Status</h3>
+                              <h3 className="font-bold flex items-center gap-2"><Server size={18}/> {t('set.status')}</h3>
                               <div className="space-y-4">
                                   <div className="flex items-center justify-between p-3 bg-stone-900 rounded-xl">
-                                      <span className="font-bold text-sm">Maintenance Mode (Global)</span>
+                                      <span className="font-bold text-sm">{t('sa.maintenance_global')}</span>
                                       <div className="w-10 h-5 bg-stone-700 rounded-full relative cursor-pointer"><div className="absolute left-1 top-1 w-3 h-3 bg-white rounded-full"></div></div>
                                   </div>
                                   <div className="flex items-center justify-between p-3 bg-stone-900 rounded-xl">
-                                      <span className="font-bold text-sm">Allow New Signups</span>
+                                      <span className="font-bold text-sm">{t('sa.allow_signups')}</span>
                                       <div className="w-10 h-5 bg-green-500 rounded-full relative cursor-pointer"><div className="absolute right-1 top-1 w-3 h-3 bg-white rounded-full"></div></div>
                                   </div>
                               </div>
@@ -219,14 +221,14 @@ const SuperAdminDashboard: React.FC = () => {
                   <>
                     <div className="flex justify-between items-center mb-8">
                         <div>
-                            <h2 className="text-2xl font-bold">Tenants Overview</h2>
-                            <p className="text-stone-400 text-sm">Manage all associations on UnityHub.</p>
+                            <h2 className="text-2xl font-bold">{t('sa.tenants')}</h2>
+                            <p className="text-stone-400 text-sm">{t('sa.tenants_desc')}</p>
                         </div>
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500" size={16} />
                             <input 
                                 type="text" 
-                                placeholder="Search tenant..." 
+                                placeholder={t('sa.search_tenant')} 
                                 value={searchTerm}
                                 onChange={e => setSearchTerm(e.target.value)}
                                 className="bg-stone-800 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:border-rose-500 outline-none w-64"
@@ -239,37 +241,37 @@ const SuperAdminDashboard: React.FC = () => {
                         <table className="w-full text-left text-sm">
                             <thead className="bg-white/5 text-stone-400 font-bold uppercase text-xs">
                                 <tr>
-                                    <th className="p-6">Name</th>
-                                    <th className="p-6">Subdomain</th>
-                                    <th className="p-6">Plan</th>
-                                    <th className="p-6">Status</th>
-                                    <th className="p-6 text-right">Actions</th>
+                                    <th className="p-6">{t('field.name')}</th>
+                                    <th className="p-6">{t('sa.subdomain')}</th>
+                                    <th className="p-6">{t('sa.plan')}</th>
+                                    <th className="p-6">{t('field.status')}</th>
+                                    <th className="p-6 text-right">{t('common.actions')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5">
-                                {filteredTenants.map(t => (
-                                    <tr key={t.id} className="hover:bg-white/5 transition-colors group">
+                                {filteredTenants.map(tn => (
+                                    <tr key={tn.id} className="hover:bg-white/5 transition-colors group">
                                         <td className="p-6 font-bold flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-rose-500 to-purple-600 flex items-center justify-center text-xs text-white">
-                                                {t.name.charAt(0)}
+                                                {tn.name.charAt(0)}
                                             </div>
-                                            {t.name}
+                                            {tn.name}
                                         </td>
-                                        <td className="p-6 font-mono text-stone-400">{t.slug}.unityhub.li</td>
+                                        <td className="p-6 font-mono text-stone-400">{tn.slug}.unityhub.li</td>
                                         <td className="p-6">
-                                            <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${t.subscriptionPlan === 'PRO' ? 'bg-rose-500/20 text-rose-400' : 'bg-stone-700 text-stone-300'}`}>
-                                                {t.subscriptionPlan}
+                                            <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${tn.subscriptionPlan === 'PRO' ? 'bg-rose-500/20 text-rose-400' : 'bg-stone-700 text-stone-300'}`}>
+                                                {tn.subscriptionPlan}
                                             </span>
                                         </td>
                                         <td className="p-6">
-                                            <span className={`flex items-center gap-2 ${t.subscriptionStatus === 'ACTIVE' ? 'text-emerald-400' : 'text-red-400'}`}>
-                                                <div className={`w-2 h-2 rounded-full ${t.subscriptionStatus === 'ACTIVE' ? 'bg-emerald-400' : 'bg-red-400'}`} />
-                                                {t.subscriptionStatus}
+                                            <span className={`flex items-center gap-2 ${tn.subscriptionStatus === 'ACTIVE' ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                <div className={`w-2 h-2 rounded-full ${tn.subscriptionStatus === 'ACTIVE' ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                                                {tn.subscriptionStatus}
                                             </span>
                                         </td>
                                         <td className="p-6 text-right">
                                             <button className="text-stone-400 hover:text-white font-bold text-xs flex items-center gap-1 ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
-                                                Manage <ChevronRight size={14} />
+                                                {t('sa.manage')} <ChevronRight size={14} />
                                             </button>
                                         </td>
                                     </tr>
@@ -294,16 +296,16 @@ const SuperAdminDashboard: React.FC = () => {
                 
                 <div className="space-y-1">
                     <button onClick={() => setActiveTab('OVERVIEW')} className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-3 transition-all ${activeTab === 'OVERVIEW' ? 'bg-white/10 text-white' : 'text-stone-400 hover:text-white hover:bg-white/5'}`}>
-                        <LayoutDashboard size={18} /> Overview
+                        <LayoutDashboard size={18} /> {t('sa.overview')}
                     </button>
                     <button onClick={() => setActiveTab('CRM')} className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-3 transition-all ${activeTab === 'CRM' ? 'bg-white/10 text-white' : 'text-stone-400 hover:text-white hover:bg-white/5'}`}>
-                        <Briefcase size={18} /> CRM / Leads
+                        <Briefcase size={18} /> {t('sa.crm_nav')}
                     </button>
                     <button onClick={() => setActiveTab('FINANCES')} className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-3 transition-all ${activeTab === 'FINANCES' ? 'bg-white/10 text-white' : 'text-stone-400 hover:text-white hover:bg-white/5'}`}>
-                        <DollarSign size={18} /> Finances
+                        <DollarSign size={18} /> {t('sa.finances')}
                     </button>
                     <button onClick={() => setActiveTab('CONFIG')} className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-3 transition-all ${activeTab === 'CONFIG' ? 'bg-white/10 text-white' : 'text-stone-400 hover:text-white hover:bg-white/5'}`}>
-                        <Settings size={18} /> Configuration
+                        <Settings size={18} /> {t('sa.configuration')}
                     </button>
                 </div>
             </div>
@@ -314,12 +316,12 @@ const SuperAdminDashboard: React.FC = () => {
                         <span className="font-bold">A</span>
                     </div>
                     <div>
-                        <p className="text-sm font-bold">Admin</p>
+                        <p className="text-sm font-bold">{t('sa.administrator')}</p>
                         <p className="text-xs text-stone-500">info@unityhub.li</p>
                     </div>
                 </div>
                 <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-xs font-bold text-stone-500 hover:text-rose-500 flex items-center gap-2 transition-colors">
-                    <LogOut size={14} /> Sign Out
+                    <LogOut size={14} /> {t('sa.sign_out')}
                 </button>
             </div>
         </aside>
@@ -328,8 +330,8 @@ const SuperAdminDashboard: React.FC = () => {
         <main className="flex-1 ml-64 p-8 lg:p-12">
             <header className="flex justify-between items-center mb-12">
                 <div>
-                    <h1 className="text-3xl font-bold">Super Admin Dashboard</h1>
-                    <p className="text-stone-400 text-sm">Welcome back, Admin.</p>
+                    <h1 className="text-3xl font-bold">{t('sa.title')}</h1>
+                    <p className="text-stone-400 text-sm">{t('sa.welcome')}</p>
                 </div>
                 <div className="flex gap-4">
                     <button className="p-3 bg-white/5 rounded-xl text-stone-400 hover:text-white transition-colors relative">
@@ -337,7 +339,7 @@ const SuperAdminDashboard: React.FC = () => {
                         <div className="absolute top-3 right-3 w-2 h-2 bg-rose-500 rounded-full" />
                     </button>
                     <button onClick={handleCreateTenant} className="bg-rose-600 hover:bg-rose-700 px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-rose-900/20">
-                        <Plus size={18} /> New Tenant
+                        <Plus size={18} /> {t('sa.new_tenant')}
                     </button>
                 </div>
             </header>
