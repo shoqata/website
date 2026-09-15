@@ -176,12 +176,12 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
         <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
             <div>
                 <div className="inline-flex items-center gap-2 bg-stone-900 text-white px-3 py-1 rounded-full text-xs font-bold mb-4 shadow-lg">
-                    <Briefcase size={12} /> Vorstands-Dashboard
+                    <Briefcase size={12} /> {t('board.title')}
                 </div>
                 <h1 className="text-4xl font-display font-bold italic text-stone-900 mb-2">
                     {t('dash.welcome')}, {user.displayName}
                 </h1>
-                <p className="text-stone-500">Übersicht über Verein, Finanzen und Anfragen.</p>
+                <p className="text-stone-500">{t('board.subtitle')}</p>
             </div>
             
             <div className="flex items-center gap-3">
@@ -226,7 +226,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                 </div>
                 <div className="flex items-end gap-2">
                     <h3 className="text-3xl font-display font-bold text-emerald-900">{stats.paidCount}</h3>
-                    <span className="text-sm font-bold text-emerald-600/60 mb-1">Rechnungen</span>
+                    <span className="text-sm font-bold text-emerald-600/60 mb-1">{t('board.invoices')}</span>
                 </div>
                 <p className="text-emerald-700/60 text-sm mt-1 font-mono">{stats.totalRevenue.toLocaleString()} CHF</p>
             </motion.div>
@@ -245,7 +245,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                 </div>
                 <div className="flex items-end gap-2">
                     <h3 className="text-3xl font-display font-bold text-amber-900">{stats.openCount}</h3>
-                    <span className="text-sm font-bold text-amber-600/60 mb-1">Rechnungen</span>
+                    <span className="text-sm font-bold text-amber-600/60 mb-1">{t('board.invoices')}</span>
                 </div>
                 <p className="text-amber-700/60 text-sm mt-1 font-mono">{stats.openRevenue.toLocaleString()} CHF</p>
             </motion.div>
@@ -256,7 +256,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                     <Search size={18} className="text-stone-400"/>
                     <input 
                         type="text" 
-                        placeholder="Mitglied oder Nachbarschaft suchen..." 
+                        placeholder={t('board.search_member')} 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full bg-transparent outline-none font-bold text-stone-800 placeholder-stone-300"
@@ -286,12 +286,12 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                             </div>
                         ))}
                         {searchResults.users.length === 0 && searchResults.neighborhoods.length === 0 && (
-                            <p className="text-stone-400 text-xs italic">Keine Ergebnisse.</p>
+                            <p className="text-stone-400 text-xs italic">{t('board.no_results')}</p>
                         )}
                     </div>
                 ) : (
                     <div className="flex-1 flex items-center justify-center text-stone-300 text-sm italic">
-                        <p>Suche nach Mitgliedern für Details...</p>
+                        <p>{t('board.search_hint')}</p>
                     </div>
                 )}
             </div>
@@ -310,7 +310,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
                         <span className="text-4xl font-display font-bold text-stone-900">{stats.paidPercentage}%</span>
-                        <span className="text-[10px] text-stone-400 font-bold uppercase">Bezahlt</span>
+                        <span className="text-[10px] text-stone-400 font-bold uppercase">{t('board.paid')}</span>
                     </div>
                 </div>
             </div>
@@ -319,7 +319,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
             <div className="bg-white p-6 rounded-[2.5rem] border border-stone-100 shadow-sm overflow-hidden">
                 <div className="flex items-center gap-2 mb-6">
                     <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg"><TrendingUp size={16}/></div>
-                    <h4 className="font-bold text-stone-900 text-sm">Top 5 Quartiere (CHF)</h4>
+                    <h4 className="font-bold text-stone-900 text-sm">{t('board.top_neighborhoods')}</h4>
                 </div>
                 <div className="h-48 w-full">
                     <ResponsiveContainer width="100%" height="100%">
@@ -338,7 +338,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
             <div className="bg-white p-6 rounded-[2.5rem] border border-stone-100 shadow-sm overflow-hidden">
                 <div className="flex items-center gap-2 mb-6">
                     <div className="p-2 bg-rose-50 text-rose-600 rounded-lg"><TrendingDown size={16}/></div>
-                    <h4 className="font-bold text-stone-900 text-sm">Geringste Beiträge (CHF)</h4>
+                    <h4 className="font-bold text-stone-900 text-sm">{t('board.lowest_contributions')}</h4>
                 </div>
                 <div className="h-48 w-full">
                     <ResponsiveContainer width="100%" height="100%">
@@ -360,7 +360,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
             
             {/* LEFT: Protocols */}
             <div className="bg-white p-8 rounded-[2.5rem] border border-stone-100 shadow-sm h-[600px] flex flex-col">
-                <h3 className="text-xl font-bold flex items-center gap-2 mb-6"><FileText size={20} className="text-primary"/> Vorstandsprotokolle</h3>
+                <h3 className="text-xl font-bold flex items-center gap-2 mb-6"><FileText size={20} className="text-primary"/> {t('board.minutes')}</h3>
                 
                 <div className="overflow-y-auto custom-scrollbar flex-1 space-y-3">
                     {meetings.map(m => (
@@ -374,13 +374,13 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                             </div>
                         </div>
                     ))}
-                    {meetings.length === 0 && <p className="text-stone-400 italic text-center py-10">Keine Protokolle vorhanden.</p>}
+                    {meetings.length === 0 && <p className="text-stone-400 italic text-center py-10">{t('board.no_minutes')}</p>}
                 </div>
             </div>
 
             {/* RIGHT: Inquiries */}
             <div className="bg-white p-8 rounded-[2.5rem] border border-stone-100 shadow-sm h-[600px] flex flex-col">
-                <h3 className="text-xl font-bold flex items-center gap-2 mb-6"><MessageSquare size={20} className="text-blue-500"/> Anfragen & Feedback</h3>
+                <h3 className="text-xl font-bold flex items-center gap-2 mb-6"><MessageSquare size={20} className="text-blue-500"/> {t('board.inquiries')}</h3>
                 
                 <div className="overflow-y-auto custom-scrollbar flex-1 space-y-3">
                     {inquiries.map(req => (
@@ -396,13 +396,13 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                             <p className="text-xs text-stone-500 leading-relaxed line-clamp-3">{req.message}</p>
                             {req.adminNote && (
                                 <div className="mt-3 pl-3 border-l-2 border-stone-300">
-                                    <p className="text-[10px] text-stone-400 uppercase font-bold">Admin Notiz</p>
+                                    <p className="text-[10px] text-stone-400 uppercase font-bold">{t('board.admin_note')}</p>
                                     <p className="text-xs text-stone-600 italic">{req.adminNote}</p>
                                 </div>
                             )}
                         </div>
                     ))}
-                    {inquiries.length === 0 && <p className="text-stone-400 italic text-center py-10">Keine Anfragen vorhanden.</p>}
+                    {inquiries.length === 0 && <p className="text-stone-400 italic text-center py-10">{t('board.no_inquiries')}</p>}
                 </div>
             </div>
         </div>
@@ -466,9 +466,9 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                             <table className="w-full text-left text-sm">
                                 <thead className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100">
                                     <tr>
-                                        <th className="pb-3">Mitglied</th>
-                                        <th className="pb-3">Datum</th>
-                                        <th className="pb-3 text-right">Betrag</th>
+                                        <th className="pb-3">{t('field.member')}</th>
+                                        <th className="pb-3">{t('field.date')}</th>
+                                        <th className="pb-3 text-right">{t('field.amount')}</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-stone-50">
@@ -483,7 +483,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                                         )
                                     })}
                                     {(showInvoiceListModal === 'PAID' ? stats.paidInvoices : stats.openInvoices).length === 0 && (
-                                        <tr><td colSpan={3} className="text-center py-8 text-stone-400 italic">Keine Einträge.</td></tr>
+                                        <tr><td colSpan={3} className="text-center py-8 text-stone-400 italic">{t('board.no_entries')}</td></tr>
                                     )}
                                 </tbody>
                             </table>
@@ -507,7 +507,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                         </div>
                         <div className="p-8 overflow-y-auto custom-scrollbar flex-1 space-y-8">
                             <div>
-                                <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-3 border-b border-stone-100 pb-2">Teilnehmer</h4>
+                                <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-3 border-b border-stone-100 pb-2">{t('board.attendees')}</h4>
                                 <div className="flex flex-wrap gap-2">
                                     {selectedMeeting.attendees?.map((att, i) => (
                                         <div key={i} className={`text-xs px-3 py-1.5 rounded-lg border ${att.present ? 'bg-white border-stone-200 text-stone-800' : 'bg-stone-50 border-stone-100 text-stone-400 line-through'}`}>
@@ -517,7 +517,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                                 </div>
                             </div>
                             <div>
-                                <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-4 border-b border-stone-100 pb-2">Agenda & Beschlüsse</h4>
+                                <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-4 border-b border-stone-100 pb-2">{t('board.agenda')}</h4>
                                 <div className="space-y-6">
                                     {selectedMeeting.agendaItems?.map((item, i) => (
                                         <div key={i}>

@@ -184,11 +184,11 @@ const RepresentativeDashboard: React.FC<RepresentativeDashboardProps> = ({ user 
 
   const handleRegisterMember = async () => {
       if (!newMember.firstName || !newMember.lastName) {
-          showAlert({ type: 'error', message: 'Name required.' });
+          showAlert({ type: 'error', message: t('rep.name_required') });
           return;
       }
       if (!newMember.neighborhoodId) {
-          showAlert({ type: 'error', message: 'Neighborhood required.' });
+          showAlert({ type: 'error', message: t('rep.neighborhood_required') });
           return;
       }
 
@@ -262,14 +262,14 @@ const RepresentativeDashboard: React.FC<RepresentativeDashboardProps> = ({ user 
   const handleBankDeposit = async () => {
       const amountStr = await showPrompt({
           title: t('rep.deposit'),
-          message: "Amount (EUR)?",
+          message: t('rep.amount_eur'),
           placeholder: "0.00"
       });
       if (!amountStr) return;
       
       const amount = parseFloat(amountStr);
       if (amount > cashBoxStats.balance) {
-          showAlert({ type: 'error', message: 'Insufficient funds.' });
+          showAlert({ type: 'error', message: t('rep.insufficient_funds') });
           return;
       }
 
@@ -458,7 +458,7 @@ const RepresentativeDashboard: React.FC<RepresentativeDashboardProps> = ({ user 
                         <input 
                             value={newTaskTitle}
                             onChange={(e) => setNewTaskTitle(e.target.value)}
-                            placeholder="Detyrë e re..."
+                            placeholder={t('rep.new_task')}
                             className="flex-1 p-3 bg-white rounded-xl shadow-sm border-none outline-none"
                         />
                         <button onClick={handleCreateTask} className="bg-stone-900 text-white p-3 rounded-xl"><Plus/></button>
@@ -479,11 +479,11 @@ const RepresentativeDashboard: React.FC<RepresentativeDashboardProps> = ({ user 
                                         onClick={() => handleUpdateTaskStatus(task.id, 'DONE')}
                                         className="w-full py-3 bg-stone-50 text-stone-600 font-bold rounded-xl text-xs hover:bg-stone-100 transition-colors flex items-center justify-center gap-2"
                                     >
-                                        <CheckSquare size={14}/> Përfundo
+                                        <CheckSquare size={14}/> {t('rep.complete')}
                                     </button>
                                 ) : (
                                     <div className="flex items-center gap-2 text-green-600 text-xs font-bold">
-                                        <CheckCircle2 size={14}/> Përfunduar
+                                        <CheckCircle2 size={14}/> {t('rep.completed')}
                                     </div>
                                 )}
                             </div>
@@ -512,7 +512,7 @@ const RepresentativeDashboard: React.FC<RepresentativeDashboardProps> = ({ user 
 
                         <div className="space-y-4 mb-6">
                             <div>
-                                <label className="text-xs font-bold text-stone-400 uppercase">Shuma (EUR)</label>
+                                <label className="text-xs font-bold text-stone-400 uppercase">{t('field.amount_eur')}</label>
                                 <input 
                                     type="number" 
                                     value={customAmount} 
@@ -587,7 +587,7 @@ const RepresentativeDashboard: React.FC<RepresentativeDashboardProps> = ({ user 
 
                         <div className="space-y-4 mb-6">
                             <div onClick={() => expenseFileRef.current?.click()} className="h-32 bg-stone-50 rounded-xl border-2 border-dashed border-stone-200 flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-colors relative overflow-hidden">
-                                {expenseImage ? <img src={expenseImage} className="w-full h-full object-cover"  onError={onImageError}/> : <div className="flex flex-col items-center text-stone-400"><Camera size={24}/><span className="text-xs font-bold mt-1">Foto</span></div>}
+                                {expenseImage ? <img src={expenseImage} className="w-full h-full object-cover"  onError={onImageError}/> : <div className="flex flex-col items-center text-stone-400"><Camera size={24}/><span className="text-xs font-bold mt-1">{t('rep.photo')}</span></div>}
                                 {isUploading && <div className="absolute inset-0 bg-white/50 flex items-center justify-center"><Loader2 className="animate-spin text-primary"/></div>}
                                 <input type="file" ref={expenseFileRef} hidden accept="image/*" onChange={handleExpenseImageUpload} />
                             </div>
