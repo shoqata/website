@@ -387,10 +387,10 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                         <div key={req.id} className="p-4 rounded-2xl bg-stone-50 border border-stone-100">
                             <div className="flex justify-between items-start mb-2">
                                 <div className="flex items-center gap-2">
-                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${req.type === 'DONATION' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>{req.type}</span>
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${req.type === 'DONATION' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>{t(`req.type.${req.type}`)}</span>
                                     <span className="text-xs font-bold text-stone-600">{req.userName}</span>
                                 </div>
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${req.status === 'DONE' ? 'bg-green-200 text-green-800' : req.status === 'OPEN' ? 'bg-red-100 text-red-600' : 'bg-stone-200'}`}>{req.status}</span>
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${req.status === 'DONE' ? 'bg-green-200 text-green-800' : req.status === 'OPEN' ? 'bg-red-100 text-red-600' : 'bg-stone-200'}`}>{t(`req.status.${req.status}`)}</span>
                             </div>
                             <h5 className="font-bold text-sm mb-1">{req.subject}</h5>
                             <p className="text-xs text-stone-500 leading-relaxed line-clamp-3">{req.message}</p>
@@ -457,7 +457,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                         <div className={`p-6 flex justify-between items-center ${showInvoiceListModal === 'PAID' ? 'bg-emerald-50' : 'bg-amber-50'}`}>
                             <h3 className={`font-bold text-lg flex items-center gap-2 ${showInvoiceListModal === 'PAID' ? 'text-emerald-800' : 'text-amber-800'}`}>
                                 {showInvoiceListModal === 'PAID' ? <CheckCircle2 size={20}/> : <AlertCircle size={20}/>}
-                                {showInvoiceListModal === 'PAID' ? 'Bezahlte Rechnungen' : 'Offene Rechnungen'} ({selectedYear})
+                                {showInvoiceListModal === 'PAID' ? t('board.paid_invoices') : t('board.open_invoices')} ({selectedYear})
                             </h3>
                             <button onClick={() => setShowInvoiceListModal(null)} className="p-2 bg-white/50 rounded-full hover:bg-white transition-colors"><X size={20}/></button>
                         </div>

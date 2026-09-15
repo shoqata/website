@@ -568,7 +568,7 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                                                     onClick={() => updateAttendee(idx, !att.present)}
                                                                     className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${att.present ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-400'}`}
                                                                 >
-                                                                    {att.present ? 'Po' : 'Jo'}
+                                                                    {att.present ? t('common.yes') : t('common.no')}
                                                                 </button>
                                                             </td>
                                                             <td className="px-4 py-3 text-center">
@@ -747,7 +747,7 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                             {selectedMeeting.attendees.map((att, i) => (
                                                 <div key={i} className="flex justify-between border-b border-stone-100 py-1">
                                                     <span>{att.name} <span className="text-stone-400 text-xs">({att.role})</span></span>
-                                                    <span className={att.present ? 'text-stone-900 font-bold' : 'text-stone-400 italic'}>{att.present ? 'Prezent' : 'Mungon'}</span>
+                                                    <span className={att.present ? 'text-stone-900 font-bold' : 'text-stone-400 italic'}>{att.present ? t('minutes.present') : t('minutes.absent')}</span>
                                                 </div>
                                             ))}
                                         </div>

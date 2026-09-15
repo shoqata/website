@@ -497,7 +497,7 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
                               />
                           </div>
                           <span className={`text-xs font-bold uppercase tracking-widest ${socialConfig.autoPostingEnabled ? 'text-emerald-400' : 'text-stone-400'}`}>
-                              {socialConfig.autoPostingEnabled ? 'AKTIV / ACTIVE' : 'JO AKTIV / INACTIVE'}
+                              {socialConfig.autoPostingEnabled ? t('ai.active') : t('ai.inactive')}
                           </span>
                       </div>
                   </div>

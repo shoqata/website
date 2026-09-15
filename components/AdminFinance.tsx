@@ -628,7 +628,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
                             <div className={`mt-12 p-6 rounded-2xl border flex justify-between items-center ${budgetStats.result >= 0 ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`}>
                                 <div>
                                     <p className="text-sm font-bold uppercase tracking-widest mb-1 text-stone-500">{t('admin.finance.budget_result')}</p>
-                                    <p className={`text-3xl font-display font-bold ${budgetStats.result >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{budgetStats.result >= 0 ? 'Gewinn' : 'Verlust'}</p>
+                                    <p className={`text-3xl font-display font-bold ${budgetStats.result >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{budgetStats.result >= 0 ? t('admin.finance.profit') : t('admin.finance.loss')}</p>
                                 </div>
                                 <div className="text-right">
                                     <p className={`text-4xl font-display font-bold ${budgetStats.result >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{Math.abs(budgetStats.result).toFixed(0)} <span className="text-xl">CHF</span></p>

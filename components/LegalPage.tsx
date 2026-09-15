@@ -52,7 +52,7 @@ const LegalPage: React.FC<LegalPageProps> = ({ type }) => {
             </div>
             
             <h1 className="text-4xl font-display font-bold italic text-stone-900 mb-12">
-                {type === 'GDPR' ? 'DSGVO / GDPR' : 'Politika e Privatësisë'}
+                {type === 'GDPR' ? t('web.gdpr_text') : t('web.privacy_policy')}
             </h1>
 
             {loading ? (
