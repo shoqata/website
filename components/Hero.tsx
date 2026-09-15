@@ -132,7 +132,7 @@ const Hero: React.FC = () => {
                     <button onClick={() => setShowTwintModal(true)} className="flex items-center gap-3 bg-[#eb3333] text-white px-6 py-3 rounded-xl font-bold text-sm shadow-lg hover:bg-[#d62d2d] transition-all group">
                        <Smartphone size={18} /> Support us with TWINT
                     </button>
-                    <span className="text-xs text-stone-400 font-medium italic">Instant & Secure Donation</span>
+                    <span className="text-xs text-stone-400 font-medium italic">{t('hero.donate.hint')}</span>
                 </div>
             )}
           </motion.div>
@@ -173,8 +173,8 @@ const Hero: React.FC = () => {
                       {diasporaCount > 0 ? diasporaCount : '2k+'}
                    </div>
                    <div>
-                      <p className="font-bold text-stone-900 leading-none">Anëtarë</p>
-                      <p className="text-xs text-stone-400">Aktive në diasporë</p>
+                      <p className="font-bold text-stone-900 leading-none">{t('hero.stats.members')}</p>
+                      <p className="text-xs text-stone-400">{t('hero.stats.diaspora')}</p>
                    </div>
                 </div>
              </div>
@@ -192,7 +192,7 @@ const Hero: React.FC = () => {
                 <div className="bg-white rounded-[2.5rem] p-10 md:p-14 shadow-sm border border-stone-100 relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-rose-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
                     <div className="relative z-10 text-center">
-                        <p className="text-xs font-bold text-stone-400 uppercase tracking-[0.2em] mb-6">Misioni Ynë</p>
+                        <p className="text-xs font-bold text-stone-400 uppercase tracking-[0.2em] mb-6">{t('hero.mission.badge')}</p>
                         <HyperTextParagraph 
                             text={getLoc(branding.whyJoinText)}
                             highlightWords={branding.whyJoinHighlightWords || []}
@@ -206,7 +206,7 @@ const Hero: React.FC = () => {
         {/* Member Marquee */}
         <div className="mb-32">
             <div className="text-center mb-8">
-                <p className="text-xs font-bold text-stone-400 uppercase tracking-[0.2em]">Komuniteti ynë</p>
+                <p className="text-xs font-bold text-stone-400 uppercase tracking-[0.2em]">{t('hero.community.badge')}</p>
             </div>
             <div className="relative flex w-full flex-col items-center justify-center overflow-hidden">
                 <Marquee pauseOnHover className="[--duration:60s]">
@@ -291,8 +291,8 @@ const Hero: React.FC = () => {
                       <button onClick={() => setShowTwintModal(false)} className="absolute top-6 right-6 p-2 bg-stone-50 rounded-full hover:bg-stone-100"><X size={20}/></button>
                       
                       <div className="mb-8">
-                          <h3 className="text-3xl font-display font-bold italic mb-2">Scan & Pay</h3>
-                          <p className="text-stone-500">Use your TWINT app to scan the code.</p>
+                          <h3 className="text-3xl font-display font-bold italic mb-2">{t('hero.qr.title')}</h3>
+                          <p className="text-stone-500">{t('hero.qr.desc')}</p>
                       </div>
 
                       <div className="bg-stone-50 p-6 rounded-[2rem] border border-stone-100 shadow-inner mb-8 inline-block">

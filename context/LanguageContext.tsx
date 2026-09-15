@@ -11,6 +11,60 @@ interface Translations {
 
 const translations: Translations = {
   // --- COMMON ---
+  // --- Oeffentliche Seiten: bis hierher fest verdrahtet und damit von der
+  // Sprachwahl unberuehrt. Die Texte lagen in drei Sprachen gemischt vor.
+  'hero.donate.hint': { en: 'Instant & secure donation', de: 'Sofort und sicher spenden', sq: 'Dhurim i menjëhershëm dhe i sigurt' },
+  'hero.stats.members': { en: 'Members', de: 'Mitglieder', sq: 'Anëtarë' },
+  'hero.stats.diaspora': { en: 'Active in the diaspora', de: 'Aktiv in der Diaspora', sq: 'Aktivë në diasporë' },
+  'hero.mission.badge': { en: 'Our Mission', de: 'Unser Auftrag', sq: 'Misioni Ynë' },
+  'hero.community.badge': { en: 'Our Community', de: 'Unsere Gemeinschaft', sq: 'Komuniteti ynë' },
+  'hero.qr.title': { en: 'Scan & Pay', de: 'Scannen & bezahlen', sq: 'Skano & Paguaj' },
+  'hero.qr.desc': { en: 'Use your TWINT app to scan the code.', de: 'Scannen Sie den Code mit Ihrer TWINT-App.', sq: 'Përdorni aplikacionin TWINT për të skanuar kodin.' },
+
+  'app.maintenance.title': { en: 'Under maintenance', de: 'Wartungsarbeiten', sq: 'Në mirëmbajtje' },
+  'app.maintenance.desc': { en: 'The system is being updated. Please come back later.', de: 'Das System wird gerade aktualisiert. Bitte später erneut versuchen.', sq: 'Përmirësim i sistemit në rrjedhë e sipër. Ju lutem kthehuni më vonë.' },
+  'app.connecting': { en: 'Connecting...', de: 'Verbindung wird hergestellt...', sq: 'Duke u lidhur...' },
+  'nav.about': { en: 'About us', de: 'Über uns', sq: 'Rreth Nesh' },
+  'nav.home': { en: 'Home', de: 'Startseite', sq: 'Ballina' },
+  'nav.membership': { en: 'Membership', de: 'Mitgliedschaft', sq: 'Anëtarësimi' },
+  'nav.signout': { en: 'Sign out', de: 'Abmelden', sq: 'Dilni' },
+  'footer.contact': { en: 'Contact', de: 'Kontakt', sq: 'Kontakt' },
+  'footer.links': { en: 'Links', de: 'Links', sq: 'Linke' },
+
+  'events.reg.done': { en: 'You have requested registration for {event}. You will be notified once it is approved.', de: 'Sie haben sich für {event} angemeldet. Sie werden benachrichtigt, sobald die Anmeldung bestätigt ist.', sq: 'Ju keni kërkuar regjistrimin për {event}. Ju do të njoftoheni kur të miratohet.' },
+  'events.reg.close': { en: 'Close', de: 'Schliessen', sq: 'Mbyll' },
+  'events.reg.intro': { en: 'Please enter your details to register.', de: 'Bitte geben Sie Ihre Angaben für die Anmeldung ein.', sq: 'Ju lutem shënoni detajet tuaja për regjistrim.' },
+  'events.reg.name': { en: 'Full name', de: 'Vollständiger Name', sq: 'Emri i Plotë' },
+  'events.reg.email': { en: 'Email address', de: 'E-Mail-Adresse', sq: 'Email Adresa' },
+  'events.reg.phone': { en: 'Phone (optional)', de: 'Telefon (optional)', sq: 'Telefoni (Opsionale)' },
+
+  'about.stats.members': { en: 'Active Members', de: 'Aktive Mitglieder', sq: 'Anëtarë Aktiv' },
+  'about.stats.neighborhoods': { en: 'Neighborhoods', de: 'Nachbarschaften', sq: 'Lagje' },
+  'about.map.center_desc': { en: 'The heart of our global network.', de: 'Der Mittelpunkt unseres weltweiten Netzwerks.', sq: 'Pika qendrore e rrjetit tonë global.' },
+
+  'news.badge': { en: 'Latest', de: 'Aktuelles', sq: 'Aktualiteti' },
+  'news.subtitle': { en: 'News from Koretin and the diaspora.', de: 'Neues aus Koretin und der Diaspora.', sq: 'Të rejat nga Koretini dhe diaspora.' },
+  'news.empty': { en: 'No news published at the moment.', de: 'Zurzeit sind keine Beiträge veröffentlicht.', sq: 'Nuk ka lajme të publikuara aktualisht.' },
+  'news.no_content': { en: 'No content available.', de: 'Kein Inhalt vorhanden.', sq: 'Nuk ka përmbajtje.' },
+
+  'nb.title': { en: 'Neighborhoods', de: 'Nachbarschaften', sq: 'Lagjet' },
+  'nb.subtitle': { en: 'Discover and join local humanitarian groups.', de: 'Entdecken Sie die Nachbarschaften und schliessen Sie sich an.', sq: 'Zbuloni dhe bashkohuni me grupet humanitare lokale.' },
+  'nb.loading': { en: 'Loading neighborhoods...', de: 'Nachbarschaften werden geladen...', sq: 'Duke ngarkuar lagjet...' },
+  'nb.empty_title': { en: 'No neighborhoods yet', de: 'Noch keine Nachbarschaften', sq: 'Ende asnjë lagje' },
+  'nb.empty_desc': { en: 'They will appear here as soon as they are set up.', de: 'Sobald Nachbarschaften angelegt sind, erscheinen sie hier.', sq: 'Sapo të krijohen, do të shfaqen këtu.' },
+  'nb.members': { en: 'Members', de: 'Mitglieder', sq: 'Anëtarë' },
+  'nb.last_activity': { en: 'Last Activity', de: 'Letzte Aktivität', sq: 'Aktiviteti i fundit' },
+  'nb.search': { en: 'Search by name or town...', de: 'Nach Name oder Ort suchen...', sq: 'Kërko sipas emrit ose vendit...' },
+
+  'cookie.title': { en: 'Privacy & Cookies', de: 'Datenschutz & Cookies', sq: 'Privatësia & Cookies' },
+  'cookie.privacy_link': { en: 'Privacy', de: 'Datenschutz', sq: 'Privatësia' },
+
+  'legal.empty': { en: 'No content has been published yet.', de: 'Es wurde noch kein Inhalt veröffentlicht.', sq: 'Ende nuk është publikuar asnjë përmbajtje.' },
+
+  'live.header.badge': { en: 'Koretini Live', de: 'Koretini Live', sq: 'Koretini Live' },
+  'live.empty': { en: 'No events scheduled yet.', de: 'Zurzeit sind keine Veranstaltungen geplant.', sq: 'Ende nuk ka ngjarje të planifikuara.' },
+  'live.contact': { en: 'Contact us', de: 'Kontaktieren Sie uns', sq: 'Na kontaktoni' },
+
   'common.yes': { en: 'Yes', de: 'Ja', sq: 'Po' },
   'common.no': { en: 'No', de: 'Nein', sq: 'Jo' },
   'common.or': { en: 'OR', de: 'ODER', sq: 'OSE' },

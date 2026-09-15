@@ -44,6 +44,11 @@ const AboutUsPage: React.FC = () => {
       { location: [42.54, 21.58], size: 0.1 }
   ]);
   const [memberCount, setMemberCount] = useState(0);
+  // Bisher stand hier globeMarkers.length unter dem Namen "Lokacione" — das sind
+  // aber Kartenmarkierungen, eine je Mitglied mit bekanntem Ort, nicht Orte und
+  // erst recht keine Nachbarschaften. Der Verein gliedert sich in Nachbarschaften,
+  // also wird deren Zahl gezeigt.
+  const [neighborhoodCount, setNeighborhoodCount] = useState(0);
   const [timelineData, setTimelineData] = useState<{ title: string, content: React.ReactNode }[]>([]);
   
   // Board Members Data
@@ -66,6 +71,10 @@ const AboutUsPage: React.FC = () => {
     });
 
     // 2. Fetch User Locations for Globe
+    const unsubNb = onSnapshot(collection(db, 'neighborhoods'), (snap) => {
+        setNeighborhoodCount(snap.size);
+    });
+
     const unsubUsers = onSnapshot(collection(db, 'public_members'), (snap) => {
         setMemberCount(snap.size);
         const markers: { location: [number, number]; size: number }[] = [{ location: [42.54, 21.58], size: 0.1 }];
@@ -110,7 +119,7 @@ const AboutUsPage: React.FC = () => {
         });
     });
 
-    return () => { unsubBranding(); unsubUsers(); };
+    return () => { unsubBranding(); unsubUsers(); unsubNb(); };
   }, []);
 
   // Update Timeline when branding or language changes
@@ -160,11 +169,11 @@ const AboutUsPage: React.FC = () => {
                 <div className="flex gap-8">
                     <div>
                         <p className="text-4xl font-bold text-primary mb-1">{memberCount}</p>
-                        <p className="text-xs font-bold text-stone-400 uppercase tracking-widest">Anëtarë Aktiv</p>
+                        <p className="text-xs font-bold text-stone-400 uppercase tracking-widest">{t('about.stats.members')}</p>
                     </div>
                     <div>
-                        <p className="text-4xl font-bold text-primary mb-1">{globeMarkers.length}</p>
-                        <p className="text-xs font-bold text-stone-400 uppercase tracking-widest">Lokacione</p>
+                        <p className="text-4xl font-bold text-primary mb-1">{neighborhoodCount}</p>
+                        <p className="text-xs font-bold text-stone-400 uppercase tracking-widest">{t('about.stats.neighborhoods')}</p>
                     </div>
                 </div>
             </div>
@@ -176,7 +185,7 @@ const AboutUsPage: React.FC = () => {
                         <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white"><MapPin size={16} /></div>
                         <p className="font-bold text-sm">Koretin, Kosovë</p>
                     </div>
-                    <p className="text-xs text-stone-500 italic">Pika qendrore e rrjetit tonë global.</p>
+                    <p className="text-xs text-stone-500 italic">{t('about.map.center_desc')}</p>
                  </div>
             </div>
         </div>

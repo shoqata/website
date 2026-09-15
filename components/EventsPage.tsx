@@ -193,8 +193,8 @@ const EventsPage: React.FC = () => {
                                   <CheckCircle2 size={40} />
                               </div>
                               <h3 className="text-2xl font-bold text-stone-900 mb-2">{t('common.success')}</h3>
-                              <p className="text-stone-500 mb-8">Ju keni kërkuar regjistrimin për <b>{selectedEvent.title}</b>. Ju do të njoftoheni kur të miratohet.</p>
-                              <button onClick={() => setSelectedEvent(null)} className="w-full py-3 bg-stone-900 text-white rounded-xl font-bold">Mbyll</button>
+                              <p className="text-stone-500 mb-8">{t('events.reg.done', { event: selectedEvent.title })}</p>
+                              <button onClick={() => setSelectedEvent(null)} className="w-full py-3 bg-stone-900 text-white rounded-xl font-bold">{t('events.reg.close')}</button>
                           </div>
                       ) : (
                           <>
@@ -217,18 +217,18 @@ const EventsPage: React.FC = () => {
                                       </div>
                                   ) : (
                                       <>
-                                          <p className="text-sm text-stone-500 mb-2">Ju lutem shënoni detajet tuaja për regjistrim.</p>
+                                          <p className="text-sm text-stone-500 mb-2">{t('events.reg.intro')}</p>
                                           <div className="relative">
                                               <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" />
-                                              <input required type="text" placeholder="Emri i Plotë" value={guestForm.name} onChange={e => setGuestForm({...guestForm, name: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-primary/50" />
+                                              <input required type="text" placeholder={t('events.reg.name')} value={guestForm.name} onChange={e => setGuestForm({...guestForm, name: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-primary/50" />
                                           </div>
                                           <div className="relative">
                                               <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" />
-                                              <input required type="email" placeholder="Email Adresa" value={guestForm.email} onChange={e => setGuestForm({...guestForm, email: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-primary/50" />
+                                              <input required type="email" placeholder={t('events.reg.email')} value={guestForm.email} onChange={e => setGuestForm({...guestForm, email: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-primary/50" />
                                           </div>
                                           <div className="relative">
                                               <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" />
-                                              <input type="tel" placeholder="Telefoni (Opsionale)" value={guestForm.phone} onChange={e => setGuestForm({...guestForm, phone: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-primary/50" />
+                                              <input type="tel" placeholder={t('events.reg.phone')} value={guestForm.phone} onChange={e => setGuestForm({...guestForm, phone: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-primary/50" />
                                           </div>
                                       </>
                                   )}

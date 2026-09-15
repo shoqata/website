@@ -173,7 +173,7 @@ export function NewsSection() {
   }
 
   if (newsCards.length === 0) return (
-      <div className="text-center py-20 text-stone-400 italic">Nuk ka lajme të publikuara aktualisht.</div>
+      <div className="text-center py-20 text-stone-400 italic">{t('news.empty')}</div>
   );
 
   return (
@@ -189,8 +189,8 @@ export function NewsSection() {
          className="mb-12"
          variants={shouldAnimate ? headerVariants : {}}
        >
-         <h2 className="text-4xl font-display font-bold italic mb-2 text-stone-900">Aktualiteti</h2>
-         <p className="text-stone-500 text-lg italic">Të rejat nga Koretini dhe diaspora.</p>
+         <h2 className="text-4xl font-display font-bold italic mb-2 text-stone-900">{t('news.badge')}</h2>
+         <p className="text-stone-500 text-lg italic">{t('news.subtitle')}</p>
          <div className="mt-6 w-24 h-1 bg-primary rounded-full" />
        </motion.div>
 
@@ -345,7 +345,7 @@ export function NewsSection() {
                          </p>
                        ))
                      ) : (
-                       <p>No content available.</p>
+                       <p>{t('news.no_content')}</p>
                      )}
                    </motion.div>
                  </motion.div>

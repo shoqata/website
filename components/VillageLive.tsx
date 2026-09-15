@@ -53,7 +53,7 @@ const VillageLive: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               className="inline-flex items-center gap-2 bg-rose-50 text-rose-600 px-4 py-1.5 rounded-full text-sm font-bold mb-6"
             >
-              <Sparkles size={16} /> {t('live.header.badge') || "Koretini Live"}
+              <Sparkles size={16} /> {t('live.header.badge')}
             </motion.div>
             <motion.h1 
               initial={{ opacity: 0, y: 20 }}
@@ -180,7 +180,7 @@ const EventTimeline = () => {
       
       {events.length === 0 ? (
         <div className="p-8 bg-stone-50 rounded-3xl text-center border border-dashed border-stone-200">
-          <p className="text-stone-400 italic">No events scheduled yet.</p>
+          <p className="text-stone-400 italic">{t('live.empty')}</p>
         </div>
       ) : (
         <div className="space-y-6">
@@ -231,10 +231,11 @@ const RecentActions = ({ branding, getLoc }: { branding: any, getLoc: (v: any) =
 };
 
 const ContactSection = ({ branding, getLoc }: { branding: any, getLoc: (v: any) => string }) => {
+  const { t } = useTranslation();
   return (
     <section className="py-24 bg-stone-900 text-white text-center px-6">
       <div className="max-w-2xl mx-auto">
-        <h2 className="text-4xl font-display font-bold mb-6 italic">Na kontaktoni</h2>
+        <h2 className="text-4xl font-display font-bold mb-6 italic">{t('live.contact')}</h2>
         <p className="text-white/40 text-lg mb-12 italic">{getLoc(branding.footerText)}</p>
         <div className="flex flex-col md:flex-row justify-center gap-8 mb-12">
           <div className="flex items-center gap-3"><Mail className="text-primary" /> {branding.footerEmail || "info@koretini.org"}</div>

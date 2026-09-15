@@ -9,7 +9,9 @@ import { db } from '../services/firebase';
 import { collection, onSnapshot, query, orderBy } from '@/services/supabase-bridge';
 
 import { neighborhoodCity, neighborhoodPlace } from '../lib/neighborhood';
+import { useTranslation } from '../context/LanguageContext';
 const Neighborhoods: React.FC = () => {
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
   const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([]);
@@ -43,8 +45,8 @@ const Neighborhoods: React.FC = () => {
     <div className="max-w-7xl mx-auto px-6 py-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
         <div>
-          <h2 className="text-3xl font-display font-bold mb-2">Neighborhoods</h2>
-          <p className="text-stone-500">Discover and join local humanitarian groups.</p>
+          <h2 className="text-3xl font-display font-bold mb-2">{t('nb.title')}</h2>
+          <p className="text-stone-500">{t('nb.subtitle')}</p>
         </div>
         <button className="bg-rose-500 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-rose-600 transition-all shadow-lg shadow-rose-200">
           <Plus size={20} /> Register Neighborhood
@@ -54,7 +56,7 @@ const Neighborhoods: React.FC = () => {
       <div className="flex flex-col md:flex-row gap-4 mb-10">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={20} />
-          <input type="text" placeholder="Search by name or city..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-12 pr-4 py-4 bg-white border border-stone-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-rose-500 outline-none transition-all" />
+          <input type="text" placeholder={t('nb.search')} value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-12 pr-4 py-4 bg-white border border-stone-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-rose-500 outline-none transition-all" />
         </div>
         <div className="flex gap-2">
           {(['ALL', 'ACTIVE', 'INACTIVE'] as const).map(f => (
@@ -66,15 +68,15 @@ const Neighborhoods: React.FC = () => {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-24 text-stone-400">
           <Loader2 className="animate-spin mb-4" size={48} />
-          <p className="font-medium">Syncing with Global Network...</p>
+          <p className="font-medium">{t('nb.loading')}</p>
         </div>
       ) : neighborhoods.length === 0 ? (
         <div className="text-center py-24 bg-white rounded-[3rem] border border-dashed border-stone-200">
           <div className="w-20 h-20 bg-stone-50 rounded-full flex items-center justify-center mx-auto mb-6 text-stone-300">
             <Database size={40} />
           </div>
-          <h3 className="text-xl font-bold mb-2">No data in database yet</h3>
-          <p className="text-stone-400 max-w-xs mx-auto mb-8">Login as admin and use the 'Initialize System' button to seed initial data.</p>
+          <h3 className="text-xl font-bold mb-2">{t('nb.empty_title')}</h3>
+          <p className="text-stone-400 max-w-xs mx-auto mb-8">{t('nb.empty_desc')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -87,8 +89,8 @@ const Neighborhoods: React.FC = () => {
               <h3 className="text-xl font-bold mb-2 group-hover:text-rose-600 transition-colors">{n.name}</h3>
               <p className="text-stone-500 text-sm mb-6 flex items-center gap-1"><Globe size={14} /> {neighborhoodPlace(n)}</p>
               <div className="space-y-4 mb-8">
-                <div className="flex justify-between text-sm"><span className="text-stone-400 flex items-center gap-2"><Users size={16} /> Members</span><span className="font-bold text-stone-900">{n.memberCount}</span></div>
-                <div className="flex justify-between text-sm"><span className="text-stone-400 flex items-center gap-2"><Activity size={16} /> Last Activity</span><span className="font-medium text-stone-600">{new Date(n.lastActivity).toLocaleDateString()}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-stone-400 flex items-center gap-2"><Users size={16} /> {t('nb.members')}</span><span className="font-bold text-stone-900">{n.memberCount}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-stone-400 flex items-center gap-2"><Activity size={16} /> {t('nb.last_activity')}</span><span className="font-medium text-stone-600">{new Date(n.lastActivity).toLocaleDateString()}</span></div>
               </div>
               <button className="w-full flex items-center justify-between p-4 bg-stone-50 rounded-2xl font-bold group-hover:bg-rose-500 group-hover:text-white transition-all duration-300">
                 View Details <ChevronRight size={18} />

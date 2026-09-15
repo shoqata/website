@@ -12,7 +12,7 @@ interface LegalPageProps {
 }
 
 const LegalPage: React.FC<LegalPageProps> = ({ type }) => {
-  const { language } = useTranslation();
+  const { t, language } = useTranslation();
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -70,7 +70,7 @@ const LegalPage: React.FC<LegalPageProps> = ({ type }) => {
                             </p>
                         ))
                     ) : (
-                        <p className="text-stone-400 italic">No content has been published yet. Please contact the administrator.</p>
+                        <p className="text-stone-400 italic">{t('legal.empty')}</p>
                     )}
                 </div>
             )}
