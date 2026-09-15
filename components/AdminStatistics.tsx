@@ -180,7 +180,7 @@ const AdminStatistics: React.FC<AdminStatisticsProps> = ({ users, payments, neig
             <div className="bg-white p-8 rounded-[2.5rem] border border-stone-100 shadow-sm">
                 <div className="mb-6">
                     <h3 className="text-xl font-bold text-stone-900">{t('admin.stats.neighborhoodPerf')}</h3>
-                    <p className="text-sm text-stone-500">Comparing member base vs. active payers.</p>
+                    <p className="text-sm text-stone-500">{t('stats.base_vs_payers')}</p>
                 </div>
                 <div className="h-[300px] w-full">
                     <ChartContainer config={chartConfigNeighborhood} className="w-full h-full">
@@ -206,7 +206,7 @@ const AdminStatistics: React.FC<AdminStatisticsProps> = ({ users, payments, neig
             <div className="bg-white p-8 rounded-[2.5rem] border border-stone-100 shadow-sm">
                 <div className="mb-6">
                     <h3 className="text-xl font-bold text-stone-900">{t('admin.stats.history')} {selectedYear}</h3>
-                    <p className="text-sm text-stone-500">Monthly collection over time.</p>
+                    <p className="text-sm text-stone-500">{t('stats.monthly')}</p>
                 </div>
                 <div className="h-[300px] w-full">
                     <ChartContainer config={chartConfigHistory} className="w-full h-full">
@@ -259,8 +259,8 @@ const AdminStatistics: React.FC<AdminStatisticsProps> = ({ users, payments, neig
                     </div>
                     <div className="flex bg-stone-50 p-1 rounded-xl border border-stone-200">
                         <button onClick={() => setMemberFilter('ALL')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${memberFilter === 'ALL' ? 'bg-white shadow-sm text-stone-900' : 'text-stone-400'}`}>{t('status.all')}</button>
-                        <button onClick={() => setMemberFilter('LATE')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${memberFilter === 'LATE' ? 'bg-white shadow-sm text-amber-600' : 'text-stone-400'}`}>Late</button>
-                        <button onClick={() => setMemberFilter('UNPAID')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${memberFilter === 'UNPAID' ? 'bg-white shadow-sm text-rose-600' : 'text-stone-400'}`}>Unpaid</button>
+                        <button onClick={() => setMemberFilter('LATE')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${memberFilter === 'LATE' ? 'bg-white shadow-sm text-amber-600' : 'text-stone-400'}`}>{t('stats.late')}</button>
+                        <button onClick={() => setMemberFilter('UNPAID')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${memberFilter === 'UNPAID' ? 'bg-white shadow-sm text-rose-600' : 'text-stone-400'}`}>{t('stats.unpaid')}</button>
                     </div>
                 </div>
             </div>
@@ -271,7 +271,7 @@ const AdminStatistics: React.FC<AdminStatisticsProps> = ({ users, payments, neig
                         <tr>
                             <th className="px-8 py-4">{t('admin.finance.member')}</th>
                             <th className="px-8 py-4">{t('admin.tab.neighborhoods')}</th>
-                            <th className="px-8 py-4">Last Payment</th>
+                            <th className="px-8 py-4">{t('stats.last_payment')}</th>
                             <th className="px-8 py-4">Total Paid ({selectedYear})</th>
                             <th className="px-8 py-4 text-right">{t('field.status')}</th>
                         </tr>
@@ -298,7 +298,7 @@ const AdminStatistics: React.FC<AdminStatisticsProps> = ({ users, payments, neig
                     </tbody>
                 </table>
                 {filteredMembers.length === 0 && (
-                    <div className="p-12 text-center text-stone-400 italic">No members found matching filter.</div>
+                    <div className="p-12 text-center text-stone-400 italic">{t('stats.no_members')}</div>
                 )}
             </div>
         </div>

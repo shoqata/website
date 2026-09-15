@@ -96,11 +96,11 @@ const AdminExpenses: React.FC = () => {
                     description: data.description || '',
                     categoryAccountCode: data.suggestedAccountCode || '4000'
                 }));
-                showAlert({ type: 'success', message: 'Beleg erfolgreich analysiert!' });
+                showAlert({ type: 'success', message: t('exp.scanned') });
             }
         } catch (err) {
             console.error(err);
-            showAlert({ type: 'error', message: 'KI-Analyse fehlgeschlagen. Bitte manuell eingeben.' });
+            showAlert({ type: 'error', message: t('exp.scan_failed') });
         } finally {
             setIsScanning(false);
         }
@@ -108,7 +108,7 @@ const AdminExpenses: React.FC = () => {
 
     const handleSaveExpense = async () => {
         if (!formData.vendor || !formData.amount) {
-            showAlert({ type: 'error', message: 'Bitte Lieferant und Betrag angeben.' });
+            showAlert({ type: 'error', message: t('exp.fill_vendor_amount') });
             return;
         }
 
@@ -130,10 +130,10 @@ const AdminExpenses: React.FC = () => {
 
             setIsFormOpen(false);
             resetForm();
-            showAlert({ type: 'success', message: 'Ausgabe gespeichert.' });
+            showAlert({ type: 'success', message: t('exp.saved') });
         } catch (e) {
             console.error(e);
-            showAlert({ type: 'error', message: 'Fehler beim Speichern.' });
+            showAlert({ type: 'error', message: t('exp.save_failed') });
         }
     };
 
@@ -160,7 +160,7 @@ const AdminExpenses: React.FC = () => {
 
         if (expense.currency !== 'CHF') {
             const conversionInput = await showPrompt({
-                title: "Währungsumrechnung erforderlich",
+                title: t('exp.fx_needed'),
                 message: `Die Ausgabe ist in ${expense.currency} (${expense.amount}).\nBitte geben Sie den effektiven CHF-Betrag für die Buchhaltung ein:`,
                 placeholder: "z.B. 105.50",
                 confirmText: "Buchen"
@@ -170,7 +170,7 @@ const AdminExpenses: React.FC = () => {
             
             const converted = parseFloat(conversionInput);
             if (isNaN(converted)) {
-                showAlert({ type: 'error', message: "Ungültiger Betrag." });
+                showAlert({ type: 'error', message: t('exp.invalid_amount') });
                 return;
             }
             
@@ -178,7 +178,7 @@ const AdminExpenses: React.FC = () => {
             bookingDescription += ` (${expense.amount} ${expense.currency} @ ${converted} CHF)`;
         } else {
             const confirm = await showConfirm({
-                title: "Ausgabe verbuchen",
+                title: t('exp.book_title'),
                 message: `Soll die Zahlung von ${expense.amount} ${expense.currency} an ${expense.vendor} im Journal verbucht werden?\n\nSOLL: ${expense.categoryAccountCode} (Aufwand)\nHABEN: ${expense.paymentAccountCode} (Bank/Kasse)`,
                 confirmText: "Verbuchen",
                 type: 'primary'
@@ -202,9 +202,9 @@ const AdminExpenses: React.FC = () => {
                 bookedInJournal: true
             });
 
-            showAlert({ type: 'success', message: 'Erfolgreich verbucht.' });
+            showAlert({ type: 'success', message: t('exp.booked') });
         } catch (e) {
-            showAlert({ type: 'error', message: 'Fehler bei der Buchung.' });
+            showAlert({ type: 'error', message: t('exp.book_failed') });
         }
     };
 
@@ -247,7 +247,7 @@ const AdminExpenses: React.FC = () => {
                                     <span className="text-[10px] font-mono bg-stone-50 border border-stone-200 px-1.5 py-0.5 rounded text-stone-500">{expense.categoryAccountCode}</span>
                                     <span className="text-[10px] text-stone-400">{expense.date}</span>
                                     {expense.currency !== 'CHF' && (
-                                        <span className="text-[9px] bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded border border-rose-100 font-bold uppercase tracking-wide">Ausland</span>
+                                        <span className="text-[9px] bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded border border-rose-100 font-bold uppercase tracking-wide">{t('exp.abroad')}</span>
                                     )}
                                 </div>
                             </div>
@@ -256,7 +256,7 @@ const AdminExpenses: React.FC = () => {
                                     <button 
                                         onClick={() => handleBookExpense(expense)}
                                         className="p-2 bg-stone-900 text-white rounded-lg hover:bg-primary transition-colors text-xs font-bold flex items-center gap-1"
-                                        title="Verbuchen"
+                                        title={t('admin.expenses.book')}
                                     >
                                         <BookOpen size={14} /> {t('admin.expenses.book')}
                                     </button>
@@ -268,7 +268,7 @@ const AdminExpenses: React.FC = () => {
                         </motion.div>
                     ))}
                     {filteredExpenses.length === 0 && (
-                        <div className="text-center py-20 text-stone-400 italic">Keine Ausgaben gefunden.</div>
+                        <div className="text-center py-20 text-stone-400 italic">{t('exp.none')}</div>
                     )}
                 </div>
 
@@ -316,14 +316,14 @@ const AdminExpenses: React.FC = () => {
                                     {receiptPreview && (
                                         <div className="mb-6 h-32 w-full bg-stone-50 rounded-xl border border-stone-100 overflow-hidden relative group">
                                             <img src={receiptPreview} className="w-full h-full object-contain"  onError={onImageError}/>
-                                            <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded backdrop-blur-sm">Beleg Vorschau</div>
+                                            <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded backdrop-blur-sm">{t('exp.receipt_preview')}</div>
                                         </div>
                                     )}
 
                                     <div className="space-y-4">
                                         <div>
                                             <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('admin.expenses.vendor')}</label>
-                                            <input value={formData.vendor} onChange={e => setFormData({...formData, vendor: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-primary/50 font-bold" placeholder="z.B. Market Prishtina" />
+                                            <input value={formData.vendor} onChange={e => setFormData({...formData, vendor: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-primary/50 font-bold" placeholder={t('exp.vendor_ph')} />
                                         </div>
                                         
                                         <div className="grid grid-cols-2 gap-4">
@@ -351,7 +351,7 @@ const AdminExpenses: React.FC = () => {
 
                                         <div>
                                             <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('admin.expenses.description')}</label>
-                                            <input value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-primary/50 text-sm" placeholder="Zweck der Ausgabe" />
+                                            <input value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-primary/50 text-sm" placeholder={t('exp.purpose_ph')} />
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-4">

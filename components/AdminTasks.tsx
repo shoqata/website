@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from '../context/LanguageContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Clock, CheckCircle2, MoreHorizontal, User, Trash2, Loader2 } from 'lucide-react';
 import { db, auth } from '../services/firebase';
@@ -17,7 +18,9 @@ interface TaskCardProps {
     onDeleteTask: (id: string) => Promise<void>;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdateStatus, onAssignUser, onDeleteTask }) => (
+const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdateStatus, onAssignUser, onDeleteTask }) => {
+  const { t } = useTranslation();
+  return (
     <motion.div layoutId={task.id} className="bg-white p-4 rounded-xl border border-stone-100 shadow-sm mb-3 group hover:shadow-md transition-all">
         <div className="flex justify-between items-start mb-2">
             <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${task.priority === 'HIGH' ? 'bg-red-100 text-red-600' : 'bg-stone-100 text-stone-500'}`}>{task.priority}</span>
@@ -32,15 +35,17 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdateStatus, onAssignUser,
                 <User size={12}/> {task.assignedToName || 'Unassigned'}
             </div>
             <div className="flex gap-1">
-                {task.status !== 'TODO' && <button onClick={() => onUpdateStatus(task, 'TODO')} className="w-2 h-2 rounded-full bg-stone-300 hover:bg-stone-400" title="Move to Todo" />}
-                {task.status !== 'IN_PROGRESS' && <button onClick={() => onUpdateStatus(task, 'IN_PROGRESS')} className="w-2 h-2 rounded-full bg-blue-300 hover:bg-blue-400" title="Move to In Progress" />}
-                {task.status !== 'DONE' && <button onClick={() => onUpdateStatus(task, 'DONE')} className="w-2 h-2 rounded-full bg-green-300 hover:bg-green-400" title="Move to Done" />}
+                {task.status !== 'TODO' && <button onClick={() => onUpdateStatus(task, 'TODO')} className="w-2 h-2 rounded-full bg-stone-300 hover:bg-stone-400" title={t('task.to_todo')} />}
+                {task.status !== 'IN_PROGRESS' && <button onClick={() => onUpdateStatus(task, 'IN_PROGRESS')} className="w-2 h-2 rounded-full bg-blue-300 hover:bg-blue-400" title={t('task.to_progress')} />}
+                {task.status !== 'DONE' && <button onClick={() => onUpdateStatus(task, 'DONE')} className="w-2 h-2 rounded-full bg-green-300 hover:bg-green-400" title={t('task.to_done')} />}
             </div>
         </div>
     </motion.div>
 );
+};
 
 const AdminTasks: React.FC<AdminTasksProps> = ({ users }) => {
+  const { t } = useTranslation();
     const { showConfirm, showPrompt } = useFeedback();
     const [tasks, setTasks] = useState<Task[]>([]);
     const [newTaskTitle, setNewTaskTitle] = useState('');
@@ -72,8 +77,8 @@ const AdminTasks: React.FC<AdminTasksProps> = ({ users }) => {
     const assignUser = async (task: Task) => {
         // Simplified assignment logic for now
         const name = await showPrompt({
-            title: "Assign Task",
-            message: "Enter name of assignee:",
+            title: t('task.assign'),
+            message: t('task.assign_prompt'),
             placeholder: "e.g. John"
         });
         if(name) {
@@ -82,7 +87,7 @@ const AdminTasks: React.FC<AdminTasksProps> = ({ users }) => {
     };
 
     const deleteTask = async (id: string) => {
-        const confirm = await showConfirm({ title: "Delete Task", message: "Are you sure?", type: 'danger' });
+        const confirm = await showConfirm({ title: t('task.delete'), message: t('admin.confirm_delete'), type: 'danger' });
         if (confirm) await deleteDoc(doc(db, 'tasks', id));
     };
 
@@ -93,10 +98,10 @@ const AdminTasks: React.FC<AdminTasksProps> = ({ users }) => {
                     value={newTaskTitle}
                     onChange={(e) => setNewTaskTitle(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && addTask()}
-                    placeholder="New task..."
+                    placeholder={t('task.new_ph')}
                     className="flex-1 p-3 bg-white border border-stone-200 rounded-xl outline-none"
                 />
-                <button onClick={addTask} className="bg-stone-900 text-white px-6 rounded-xl font-bold flex items-center gap-2"><Plus size={18}/> Add</button>
+                <button onClick={addTask} className="bg-stone-900 text-white px-6 rounded-xl font-bold flex items-center gap-2"><Plus size={18}/> {t('common.add')}</button>
             </div>
 
             <div className="flex-1 overflow-x-auto">
