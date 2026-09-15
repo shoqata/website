@@ -38,7 +38,7 @@ const LOCATION_MAP: Record<string, [number, number]> = {
 };
 
 const AboutUsPage: React.FC = () => {
-  const { t, language } = useTranslation();
+  const { t, language, loc } = useTranslation();
   const [branding, setBranding] = useState<any>({});
   const [globeMarkers, setGlobeMarkers] = useState<{ location: [number, number]; size: number }[]>([
       { location: [42.54, 21.58], size: 0.1 }
@@ -54,12 +54,9 @@ const AboutUsPage: React.FC = () => {
   // Board Members Data
   const [boardReviews, setBoardReviews] = useState<Review[]>([]);
 
-  // Helper to get localized string from branding object
-  const getLoc = (val: any) => {
-      if (!val) return '';
-      if (typeof val === 'string') return val;
-      return val[language] || val['de'] || ''; 
-  };
+  // Zentraler Helfer aus dem LanguageContext; die lokale Variante fiel bei
+  // fehlendem de-Eintrag auf einen leeren String zurueck.
+  const getLoc = loc;
 
   useEffect(() => {
     // 1. Fetch Branding (Missions & Roadmap)
@@ -157,14 +154,13 @@ const AboutUsPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-24">
             <div>
                 <div className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-600 px-4 py-2 rounded-full text-xs font-bold mb-6 uppercase tracking-widest">
-                    <GlobeIcon size={14} /> Global Network
+                    <GlobeIcon size={14} /> {t('about.badge')}
                 </div>
                 <h1 className="font-display text-5xl md:text-6xl font-bold italic mb-6 text-stone-900">
-                    Rreth Nesh
+                    {loc(branding.aboutTitle) || t('about.title')}
                 </h1>
                 <p className="text-xl text-stone-500 leading-relaxed mb-8 italic">
-                    Shoqata Koretini është urë lidhëse mes vendlindjes dhe diasporës. 
-                    Ne jemi të përkushtuar për zhvillimin e komunitetit tonë përmes projekteve konkrete dhe solidaritetit.
+                    {loc(branding.aboutIntro) || t('about.intro')}
                 </p>
                 <div className="flex gap-8">
                     <div>
@@ -183,7 +179,7 @@ const AboutUsPage: React.FC = () => {
                  <div className="absolute bottom-10 left-10 bg-white/80 backdrop-blur-md p-6 rounded-3xl shadow-xl border border-white max-w-xs">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white"><MapPin size={16} /></div>
-                        <p className="font-bold text-sm">Koretin, Kosovë</p>
+                        <p className="font-bold text-sm">{loc(branding.footerAddress) || t('footer.address.fallback')}</p>
                     </div>
                     <p className="text-xs text-stone-500 italic">{t('about.map.center_desc')}</p>
                  </div>

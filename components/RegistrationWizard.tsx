@@ -236,7 +236,7 @@ const RegistrationWizard: React.FC = () => {
                         required
                         value={formData.password}
                         onChange={(e) => setFormData({...formData, password: e.target.value})}
-                        placeholder="••••••••"
+                        placeholder={t('ph.password')}
                         className="w-full pl-16 pr-14 py-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-primary/30 transition-all text-lg font-medium"
                       />
                       <button 
@@ -267,7 +267,7 @@ const RegistrationWizard: React.FC = () => {
                       >
                         <option value="">{t('common.select')}</option>
                         <option value="Z.">Z.</option>
-                        <option value="Znj.">Znj.</option>
+                        <option value="Znj.">{t('salutation.ms')}</option>
                       </select>
                     </div>
                     <div className="md:col-span-2 space-y-3">
@@ -278,7 +278,7 @@ const RegistrationWizard: React.FC = () => {
                           type="text" 
                           value={formData.firstName}
                           onChange={(e) => setFormData({...formData, firstName: e.target.value})}
-                          placeholder="Filan"
+                          placeholder={t('ph.firstname')}
                           className="w-full pl-16 pr-6 py-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-primary/30 transition-all text-lg font-medium"
                         />
                       </div>
@@ -294,7 +294,7 @@ const RegistrationWizard: React.FC = () => {
                           type="text" 
                           value={formData.lastName}
                           onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-                          placeholder="Fisteku"
+                          placeholder={t('ph.lastname')}
                           className="w-full pl-16 pr-6 py-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-primary/30 transition-all text-lg font-medium"
                         />
                       </div>
@@ -307,7 +307,7 @@ const RegistrationWizard: React.FC = () => {
                           type="tel" 
                           value={formData.phone}
                           onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                          placeholder="+41 79 000 00 00"
+                          placeholder={t('ph.phone')}
                           className="w-full pl-16 pr-6 py-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-primary/30 transition-all text-lg font-medium"
                         />
                       </div>
@@ -338,7 +338,7 @@ const RegistrationWizard: React.FC = () => {
                           type="text"
                           value={formData.street}
                           onChange={(e) => setFormData({...formData, street: e.target.value})}
-                          placeholder="Bahnhofstrasse 12"
+                          placeholder={t('ph.street')}
                           className="w-full pl-12 pr-4 py-3 bg-stone-50 border-2 border-stone-100 rounded-xl outline-none focus:border-primary/30 text-sm font-medium"
                         />
                       </div>
@@ -350,7 +350,7 @@ const RegistrationWizard: React.FC = () => {
                           type="text"
                           value={formData.zip}
                           onChange={(e) => setFormData({...formData, zip: e.target.value})}
-                          placeholder="8000"
+                          placeholder={t('ph.zip')}
                           className="w-full px-4 py-3 bg-stone-50 border-2 border-stone-100 rounded-xl outline-none focus:border-primary/30 text-sm font-medium"
                         />
                       </div>
@@ -360,7 +360,7 @@ const RegistrationWizard: React.FC = () => {
                           type="text"
                           value={formData.city}
                           onChange={(e) => setFormData({...formData, city: e.target.value})}
-                          placeholder="Zürich"
+                          placeholder={t('ph.city')}
                           className="w-full px-4 py-3 bg-stone-50 border-2 border-stone-100 rounded-xl outline-none focus:border-primary/30 text-sm font-medium"
                         />
                       </div>
@@ -376,13 +376,13 @@ const RegistrationWizard: React.FC = () => {
                             type="text"
                             value={formData.country}
                             onChange={(e) => setFormData({...formData, country: e.target.value})}
-                            placeholder="Zvicër"
+                            placeholder={t('ph.country')}
                             className="w-full pl-12 pr-4 py-3 bg-stone-50 border-2 border-stone-100 rounded-xl outline-none focus:border-primary/30 text-sm font-medium"
                           />
                         </div>
                       </div>
                       
-                      {/* Invoice Delivery Preference */}
+                      {/* {t('form.invoice_delivery')} Preference */}
                       <div className="space-y-2">
                         <label className="text-[9px] font-bold text-stone-400 uppercase tracking-widest flex items-center gap-1"><FileText size={10} /> Invoice Delivery</label>
                         <div className="grid grid-cols-3 gap-2">
@@ -408,7 +408,7 @@ const RegistrationWizard: React.FC = () => {
                         type="text"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="Search neighborhood..."
+                        placeholder={t('ph.search_neighborhood')}
                         className="w-full pl-12 pr-4 py-3 bg-stone-50 border-2 border-stone-100 rounded-xl outline-none focus:border-primary/30 text-sm font-medium"
                       />
                     </div>

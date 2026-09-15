@@ -25,15 +25,12 @@ import { SolidarityEvent } from '../types';
 
 import { onImageError } from '../lib/imageFallback';
 const VillageLive: React.FC = () => {
-  const { t, language } = useTranslation();
+  const { t, language, loc } = useTranslation();
   const [branding, setBranding] = useState<any>({});
 
-  // Helper to get localized string from branding object
-  const getLoc = (val: any) => {
-      if (!val) return '';
-      if (typeof val === 'string') return val;
-      return val[language] || val['de'] || ''; 
-  };
+  // Zentraler Helfer aus dem LanguageContext (faellt ueber de/sq/en zurueck,
+  // statt bei fehlendem de-Eintrag leer zu bleiben).
+  const getLoc = loc;
 
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'public_settings', 'branding'), (snap) => {
@@ -107,13 +104,14 @@ const VillageLive: React.FC = () => {
 
 const VillageSelector = ({ data, getLoc }: { data?: any[], getLoc: (v: any) => string }) => {
   const [activeIndex, setActiveIndex] = useState(0);
-  
+  const { t } = useTranslation();
+
   const defaultOptions = [
-    { title: "Shëndetësia", description: "Përkrahje për ambulancën", image: "https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&w=800&q=80", icon: <HeartPulse size={24} className="text-white" /> },
-    { title: "Uji & Natyra", description: "Mirëmbajtja e ambientit", image: "https://images.unsplash.com/photo-1466611653911-95081537e5b7?auto=format&fit=crop&w=800&q=80", icon: <Droplets size={24} className="text-white" /> },
-    { title: "Energjia", description: "Infrastruktura moderne", image: "https://images.unsplash.com/photo-1497436072909-60f360e1d4b1?auto=format&fit=crop&w=800&q=80", icon: <Sun size={24} className="text-white" /> },
-    { title: "Arsimi", description: "Edukimi i gjeneratave", image: "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80", icon: <BookOpen size={24} className="text-white" /> },
-    { title: "Sporti", description: "Aktivitete sportive", image: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=800&q=80", icon: <Award size={24} className="text-white" /> }
+    { title: t('live.cat.health'), description: t('live.cat.health.desc'), image: "https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&w=800&q=80", icon: <HeartPulse size={24} className="text-white" /> },
+    { title: t('live.cat.water'), description: t('live.cat.water.desc'), image: "https://images.unsplash.com/photo-1466611653911-95081537e5b7?auto=format&fit=crop&w=800&q=80", icon: <Droplets size={24} className="text-white" /> },
+    { title: t('live.cat.energy'), description: t('live.cat.energy.desc'), image: "https://images.unsplash.com/photo-1497436072909-60f360e1d4b1?auto=format&fit=crop&w=800&q=80", icon: <Sun size={24} className="text-white" /> },
+    { title: t('live.cat.education'), description: t('live.cat.education.desc'), image: "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80", icon: <BookOpen size={24} className="text-white" /> },
+    { title: t('live.cat.sport'), description: t('live.cat.sport.desc'), image: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=800&q=80", icon: <Award size={24} className="text-white" /> }
   ];
 
   const options = data && data.length > 0 ? data.map((d, i) => ({
