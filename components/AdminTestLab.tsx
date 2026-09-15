@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from '../context/LanguageContext';
 import { Lock, Beaker, Shield, Activity, Zap, Database, Play, CheckCircle, XCircle, Loader2, AlertTriangle } from 'lucide-react';
 import { db } from '../services/firebase';
 import { collection, getDocs, limit, query, where } from '@/services/supabase-bridge';
@@ -11,6 +12,7 @@ interface AdminTestLabProps {
 }
 
 const AdminTestLab: React.FC<AdminTestLabProps> = ({ users, payments }) => {
+  const { t } = useTranslation();
     const [isUnlocked, setIsUnlocked] = useState(false);
     const [password, setPassword] = useState('');
     const { showAlert } = useFeedback();
@@ -22,9 +24,9 @@ const AdminTestLab: React.FC<AdminTestLabProps> = ({ users, payments }) => {
         // Master password for the testing lab
         if (password === 'HumanitasTest2026!') {
             setIsUnlocked(true);
-            showAlert({ type: 'success', message: 'Test Lab unlocked.' });
+            showAlert({ type: 'success', message: t('lab.unlocked') });
         } else {
-            showAlert({ type: 'error', message: 'Invalid password.' });
+            showAlert({ type: 'error', message: t('lab.invalid_password') });
         }
     };
 
@@ -75,7 +77,7 @@ const AdminTestLab: React.FC<AdminTestLabProps> = ({ users, payments }) => {
                 <div className="w-20 h-20 bg-stone-100 text-stone-400 rounded-full flex items-center justify-center mb-6">
                     <Lock size={40} />
                 </div>
-                <h2 className="text-3xl font-bold font-display italic mb-2">Restricted Area</h2>
+                <h2 className="text-3xl font-bold font-display italic mb-2">{t('lab.restricted')}</h2>
                 <p className="text-stone-500 mb-8 text-center max-w-md">
                     This testing laboratory allows execution of system-critical tests and diagnostics. Please enter the master password to continue.
                 </p>
@@ -84,11 +86,11 @@ const AdminTestLab: React.FC<AdminTestLabProps> = ({ users, payments }) => {
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Enter master password..."
+                        placeholder={t('lab.password_ph')}
                         className="flex-1 px-4 py-3 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-primary/50 font-mono"
                     />
                     <button type="submit" className="px-6 py-3 bg-stone-900 text-white rounded-xl font-bold hover:bg-stone-800 transition-colors">
-                        Unlock
+                        {t('lab.unlock')}
                     </button>
                 </form>
                 <p className="text-xs text-stone-400 mt-6 font-mono">Password: HumanitasTest2026!</p>
@@ -103,8 +105,8 @@ const AdminTestLab: React.FC<AdminTestLabProps> = ({ users, payments }) => {
                     <Beaker size={28} />
                 </div>
                 <div>
-                    <h2 className="text-3xl font-display font-bold italic mb-1">Testing Laboratory</h2>
-                    <p className="text-stone-500">Run system diagnostics, health checks, and view CI/CD test status.</p>
+                    <h2 className="text-3xl font-display font-bold italic mb-1">{t('lab.title')}</h2>
+                    <p className="text-stone-500">{t('lab.subtitle')}</p>
                 </div>
             </div>
 
@@ -117,7 +119,7 @@ const AdminTestLab: React.FC<AdminTestLabProps> = ({ users, payments }) => {
                             <div className="w-10 h-10 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center">
                                 <Activity size={20} />
                             </div>
-                            <h3 className="font-bold text-lg">Live Health Check</h3>
+                            <h3 className="font-bold text-lg">{t('lab.health')}</h3>
                         </div>
                         <button
                             onClick={runBrowserHealthCheck}
@@ -127,7 +129,7 @@ const AdminTestLab: React.FC<AdminTestLabProps> = ({ users, payments }) => {
                             {runningTest === 'health' ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} className="ml-1" />}
                         </button>
                     </div>
-                    <p className="text-sm text-stone-500 mb-6 h-10">Pings the Firestore database to measure read latency and connection health.</p>
+                    <p className="text-sm text-stone-500 mb-6 h-10">{t('lab.health_desc')}</p>
                     
                     {results.health ? (
                         <div className={`p-4 rounded-xl text-sm flex items-center gap-3 font-mono ${results.health.status === 'success' ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
@@ -136,7 +138,7 @@ const AdminTestLab: React.FC<AdminTestLabProps> = ({ users, payments }) => {
                         </div>
                     ) : (
                         <div className="p-4 rounded-xl text-sm bg-stone-50 text-stone-400 border border-stone-100 font-mono flex items-center gap-3">
-                            <Zap size={18} /> Ready to run
+                            <Zap size={18} /> {t('lab.ready')}
                         </div>
                     )}
                 </div>
@@ -148,7 +150,7 @@ const AdminTestLab: React.FC<AdminTestLabProps> = ({ users, payments }) => {
                             <div className="w-10 h-10 bg-amber-50 text-amber-500 rounded-xl flex items-center justify-center">
                                 <Database size={20} />
                             </div>
-                            <h3 className="font-bold text-lg">Data Integrity</h3>
+                            <h3 className="font-bold text-lg">{t('lab.integrity')}</h3>
                         </div>
                         <button
                             onClick={runDataIntegrityCheck}
@@ -158,7 +160,7 @@ const AdminTestLab: React.FC<AdminTestLabProps> = ({ users, payments }) => {
                             {runningTest === 'integrity' ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} className="ml-1" />}
                         </button>
                     </div>
-                    <p className="text-sm text-stone-500 mb-6 h-10">Scans collections for orphaned records, missing foreign keys, and anomalies.</p>
+                    <p className="text-sm text-stone-500 mb-6 h-10">{t('lab.integrity_desc')}</p>
                     
                     {results.integrity ? (
                         <div className={`p-4 rounded-xl text-sm flex flex-col gap-2 font-mono ${results.integrity.status === 'success' ? 'bg-green-50 text-green-700 border border-green-100' : results.integrity.status === 'warning' ? 'bg-amber-50 text-amber-700 border border-amber-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
@@ -173,7 +175,7 @@ const AdminTestLab: React.FC<AdminTestLabProps> = ({ users, payments }) => {
                         </div>
                     ) : (
                         <div className="p-4 rounded-xl text-sm bg-stone-50 text-stone-400 border border-stone-100 font-mono flex items-center gap-3">
-                            <Zap size={18} /> Ready to run
+                            <Zap size={18} /> {t('lab.ready')}
                         </div>
                     )}
                 </div>
@@ -184,7 +186,7 @@ const AdminTestLab: React.FC<AdminTestLabProps> = ({ users, payments }) => {
                         <div className="w-10 h-10 bg-stone-200 text-stone-700 rounded-xl flex items-center justify-center">
                             <Shield size={20} />
                         </div>
-                        <h3 className="font-bold text-lg">Automated Test Suites (CI/CD)</h3>
+                        <h3 className="font-bold text-lg">{t('lab.suites')}</h3>
                     </div>
                     <p className="text-sm text-stone-500 mb-6">
                         The following test suites (Smoke, Functional, Load, Security) require Node.js and are configured to run in your terminal or CI/CD pipeline (e.g., GitHub Actions). They cannot be executed directly from the browser sandbox.
@@ -208,9 +210,9 @@ const AdminTestLab: React.FC<AdminTestLabProps> = ({ users, payments }) => {
                             <div className="text-green-400 mb-4">$ npm run test:load</div>
                             
                             <div className="mt-4 pt-4 border-t border-stone-800 text-stone-400">
-                                <div><span className="text-blue-400">Status:</span> Configured & Ready</div>
-                                <div><span className="text-blue-400">Location:</span> /tests/</div>
-                                <div><span className="text-blue-400">Frameworks:</span> Vitest, Playwright, Artillery</div>
+                                <div><span className="text-blue-400">{t('lab.status')}</span> {t('lab.configured')}</div>
+                                <div><span className="text-blue-400">{t('lab.location')}</span> /tests/</div>
+                                <div><span className="text-blue-400">{t('lab.frameworks')}</span> Vitest, Playwright, Artillery</div>
                             </div>
                         </div>
                     </div>

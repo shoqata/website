@@ -52,11 +52,11 @@ const AdminCommunication: React.FC = () => {
         });
         setNewPollQuestion('');
         setNewPollOptions(['Yes', 'No']);
-        showAlert({ type: 'success', message: "Poll created!" });
+        showAlert({ type: 'success', message: t('comm.poll_created') });
     };
 
     const deletePoll = async (id: string) => {
-        if(await showConfirm({ title: "Delete Poll", message: "Sure?", type: "danger" })) {
+        if(await showConfirm({ title: t('comm.poll_delete'), message: t('admin.confirm_delete'), type: "danger" })) {
             await deleteDoc(doc(db, 'polls', id));
         }
     };
@@ -64,8 +64,8 @@ const AdminCommunication: React.FC = () => {
     const handleSendNewsletter = async () => {
         if (!emailSubject || !emailBody) return;
         const confirmed = await showConfirm({ 
-            title: "Send Newsletter", 
-            message: "This will send emails to ALL members. Are you sure?", 
+            title: t('comm.newsletter_title'), 
+            message: t('comm.newsletter_confirm'), 
             type: "danger" 
         });
         if (!confirmed) return;
@@ -76,9 +76,9 @@ const AdminCommunication: React.FC = () => {
                 subject: emailSubject,
                 html: emailBody
             });
-            showAlert({ type: 'success', message: "Newsletter queued (Test sent to admin)." });
+            showAlert({ type: 'success', message: t('comm.newsletter_queued') });
         } catch (e) {
-            showAlert({ type: 'error', message: "Failed." });
+            showAlert({ type: 'error', message: t('comm.failed') });
         }
     };
 
@@ -89,8 +89,8 @@ const AdminCommunication: React.FC = () => {
 
     const addAdminNote = async (inquiry: Inquiry) => {
         const note = await showPrompt({
-            title: "Add Admin Note",
-            message: "This note will be visible to the user.",
+            title: t('comm.note_title'),
+            message: t('comm.note_text'),
             placeholder: "e.g. We will discuss this in the next meeting."
         });
         if (note) {
@@ -102,8 +102,8 @@ const AdminCommunication: React.FC = () => {
         <div className="bg-white rounded-[2.5rem] border border-stone-100 shadow-sm min-h-[600px] overflow-hidden flex flex-col">
             <div className="flex border-b border-stone-100">
                 <button onClick={() => setActiveTab('REQUESTS')} className={`flex-1 py-4 text-sm font-bold flex items-center justify-center gap-2 ${activeTab === 'REQUESTS' ? 'bg-stone-50 text-primary' : 'text-stone-400'}`}><HelpCircle size={16}/> Requests ({inquiries.filter(i => i.status === 'OPEN').length})</button>
-                <button onClick={() => setActiveTab('POLLS')} className={`flex-1 py-4 text-sm font-bold flex items-center justify-center gap-2 ${activeTab === 'POLLS' ? 'bg-stone-50 text-primary' : 'text-stone-400'}`}><BarChart2 size={16}/> Polls</button>
-                <button onClick={() => setActiveTab('EMAIL')} className={`flex-1 py-4 text-sm font-bold flex items-center justify-center gap-2 ${activeTab === 'EMAIL' ? 'bg-stone-50 text-primary' : 'text-stone-400'}`}><Mail size={16}/> Newsletter</button>
+                <button onClick={() => setActiveTab('POLLS')} className={`flex-1 py-4 text-sm font-bold flex items-center justify-center gap-2 ${activeTab === 'POLLS' ? 'bg-stone-50 text-primary' : 'text-stone-400'}`}><BarChart2 size={16}/> {t('comm.polls')}</button>
+                <button onClick={() => setActiveTab('EMAIL')} className={`flex-1 py-4 text-sm font-bold flex items-center justify-center gap-2 ${activeTab === 'EMAIL' ? 'bg-stone-50 text-primary' : 'text-stone-400'}`}><Mail size={16}/> {t('comm.newsletter')}</button>
             </div>
 
             <div className="p-8 flex-1 overflow-y-auto bg-[#faf9f6]">
@@ -128,10 +128,10 @@ const AdminCommunication: React.FC = () => {
                                             onChange={(e) => updateRequestStatus(req, e.target.value as any)}
                                             className={`text-xs font-bold rounded-lg py-1 px-2 outline-none border cursor-pointer ${req.status === 'DONE' ? 'bg-green-50 border-green-200 text-green-700' : req.status === 'REJECTED' ? 'bg-red-50 border-red-200 text-red-700' : 'bg-white border-stone-200 text-stone-600'}`}
                                         >
-                                            <option value="OPEN">Open</option>
-                                            <option value="IN_PROGRESS">In Progress</option>
-                                            <option value="DONE">Done</option>
-                                            <option value="REJECTED">Rejected</option>
+                                            <option value="OPEN">{t('inq.open')}</option>
+                                            <option value="IN_PROGRESS">{t('inq.in_progress')}</option>
+                                            <option value="DONE">{t('inq.done')}</option>
+                                            <option value="REJECTED">{t('inq.rejected')}</option>
                                         </select>
                                     </div>
                                 </div>
@@ -140,7 +140,7 @@ const AdminCommunication: React.FC = () => {
                                 </div>
                                 {req.adminNote && (
                                     <div className="mb-4 pl-3 border-l-2 border-primary">
-                                        <p className="text-xs text-stone-400 font-bold uppercase tracking-wide">Admin Response</p>
+                                        <p className="text-xs text-stone-400 font-bold uppercase tracking-wide">{t('comm.admin_response')}</p>
                                         <p className="text-sm text-stone-600 italic">{req.adminNote}</p>
                                     </div>
                                 )}
@@ -151,18 +151,18 @@ const AdminCommunication: React.FC = () => {
                                 </div>
                             </div>
                         ))}
-                        {inquiries.length === 0 && <p className="text-center text-stone-400 italic">No inquiries found.</p>}
+                        {inquiries.length === 0 && <p className="text-center text-stone-400 italic">{t('comm.no_inquiries')}</p>}
                     </div>
                 )}
 
                 {activeTab === 'POLLS' && (
                     <div className="space-y-8">
                         <div className="bg-white p-6 rounded-3xl border border-stone-100 shadow-sm">
-                            <h4 className="font-bold mb-4">Create New Poll</h4>
+                            <h4 className="font-bold mb-4">{t('comm.new_poll')}</h4>
                             <input 
                                 value={newPollQuestion}
                                 onChange={e => setNewPollQuestion(e.target.value)}
-                                placeholder="Question (e.g. Should we renovate the school?)"
+                                placeholder={t('comm.question_ph')}
                                 className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl mb-4 outline-none"
                             />
                             {newPollOptions.map((opt, i) => (
@@ -181,7 +181,7 @@ const AdminCommunication: React.FC = () => {
                             <div className="flex gap-2 mt-2">
                                 <button onClick={() => setNewPollOptions([...newPollOptions, ''])} className="text-xs font-bold text-stone-400 hover:text-stone-600">+ Add Option</button>
                             </div>
-                            <button onClick={createPoll} className="mt-4 w-full bg-stone-900 text-white py-3 rounded-xl font-bold hover:bg-black transition-all">Launch Poll</button>
+                            <button onClick={createPoll} className="mt-4 w-full bg-stone-900 text-white py-3 rounded-xl font-bold hover:bg-black transition-all">{t('comm.launch_poll')}</button>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -217,15 +217,15 @@ const AdminCommunication: React.FC = () => {
                 {activeTab === 'EMAIL' && (
                     <div className="max-w-2xl mx-auto space-y-6 bg-white p-8 rounded-[2rem] border border-stone-100 shadow-sm">
                         <div>
-                            <label className="text-xs font-bold text-stone-400 uppercase tracking-widest">Subject</label>
+                            <label className="text-xs font-bold text-stone-400 uppercase tracking-widest">{t('comm.subject')}</label>
                             <input value={emailSubject} onChange={e => setEmailSubject(e.target.value)} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl mt-1 font-bold outline-none" />
                         </div>
                         <div>
-                            <label className="text-xs font-bold text-stone-400 uppercase tracking-widest">Message (HTML supported)</label>
+                            <label className="text-xs font-bold text-stone-400 uppercase tracking-widest">{t('comm.message_html')}</label>
                             <textarea value={emailBody} onChange={e => setEmailBody(e.target.value)} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl mt-1 h-64 font-mono text-sm outline-none" />
                         </div>
                         <button onClick={handleSendNewsletter} className="w-full bg-primary text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-rose-600 transition-colors shadow-lg">
-                            <Send size={18} /> Send to All Members
+                            <Send size={18} /> {t('comm.send_all')}
                         </button>
                     </div>
                 )}
