@@ -449,7 +449,7 @@ export async function deleteDoc(docRef: any) {
 }
 
 export function writeBatch(_db?: any) {
-  const operations: Array<() => Promise<void>> = [];
+  const operations: Array<() => Promise<unknown>> = [];
   return {
     set: (docRef: any, data: any, options?: any) => {
       // options wurde bisher verworfen; { merge: true } blieb damit wirkungslos.
