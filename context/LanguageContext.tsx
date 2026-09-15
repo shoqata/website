@@ -56,6 +56,10 @@ const translations: Translations = {
   'nb.last_activity': { en: 'Last Activity', de: 'Letzte Aktivität', sq: 'Aktiviteti i fundit' },
   'nb.search': { en: 'Search by name or town...', de: 'Nach Name oder Ort suchen...', sq: 'Kërko sipas emrit ose vendit...' },
 
+  'cookie.body': { en: 'We use cookies to improve your experience. By continuing, you accept our terms.', de: 'Wir verwenden Cookies, um Ihr Erlebnis zu verbessern. Wenn Sie fortfahren, akzeptieren Sie unsere Bedingungen.', sq: 'Ne përdorim cookies për të përmirësuar përvojën tuaj. Duke vazhduar, ju pranoni kushtet tona.' },
+  'cookie.more': { en: 'Read more at', de: 'Mehr dazu unter', sq: 'Lexoni më shumë te' },
+  'cookie.accept': { en: 'Accept', de: 'Annehmen', sq: 'Pranoj' },
+  'cookie.decline': { en: 'Decline', de: 'Ablehnen', sq: 'Refuzoj' },
   'cookie.title': { en: 'Privacy & Cookies', de: 'Datenschutz & Cookies', sq: 'Privatësia & Cookies' },
   'cookie.privacy_link': { en: 'Privacy', de: 'Datenschutz', sq: 'Privatësia' },
 

@@ -44,8 +44,8 @@ const CookieConsent: React.FC = () => {
                 <div>
                     <h4 className="font-bold text-lg mb-1 italic">{t('cookie.title')}</h4>
                     <p className="text-stone-400 text-xs leading-relaxed">
-                        Ne përdorim cookies për të përmirësuar përvojën tuaj. Duke vazhduar, ju pranoni kushtet tona. 
-                        Lexoni më shumë te <Link to="/privacy" onClick={() => setIsVisible(false)} className="text-white underline hover:text-primary transition-colors">{t('cookie.privacy_link')}</Link>.
+                        {t('cookie.body')}{' '}
+                        {t('cookie.more')} <Link to="/privacy" onClick={() => setIsVisible(false)} className="text-white underline hover:text-primary transition-colors">{t('cookie.privacy_link')}</Link>.
                     </p>
                 </div>
              </div>
@@ -55,13 +55,13 @@ const CookieConsent: React.FC = () => {
                     onClick={handleAccept}
                     className="flex-1 py-3 bg-white text-stone-900 rounded-xl text-xs font-bold hover:bg-stone-100 transition-colors shadow-lg"
                 >
-                    Pranoj
+                    {t('cookie.accept')}
                 </button>
                 <button 
                     onClick={handleDecline}
                     className="py-3 px-6 bg-stone-800 text-stone-400 rounded-xl text-xs font-bold hover:bg-stone-700 transition-colors"
                 >
-                    Refuzoj
+                    {t('cookie.decline')}
                 </button>
              </div>
           </div>
