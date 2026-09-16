@@ -44,7 +44,8 @@ import AdminExpenses from './AdminExpenses';
 import { neighborhoodPlace } from '../lib/neighborhood';
 import { onImageError } from '../lib/imageFallback';
 import AdminNeighborhoodEditor from './AdminNeighborhoodEditor';
-import { missingFieldKeys, qualityScore, feeStateFor } from '../lib/memberQuality';
+import { missingFieldKeys, qualityScore, feeStateFor, hasDeliveryConflict } from '../lib/memberQuality';
+import { isPlaceholderEmail, hasUsableEmail, emailMissingForDelivery, deliveryNeedsEmail } from '../lib/memberEmail';
 type AdminTabId = 'USERS' | 'NEIGHBORHOODS' | 'ANALYTICS' | 'STATISTICS' | 'WEBSITE' | 'SOCIAL_AI' | 'EVENTS' | 'NEWS' | 'FINANCE' | 'EXPENSES' | 'DATA' | 'ACCOUNTING' | 'SETTINGS' | 'BOARD' | 'COMMUNICATION' | 'DATA_QUALITY';
 
 interface NavItem {
@@ -191,8 +192,15 @@ const AdminPanel: React.FC = () => {
   const handleSaveUser = async () => {
       if(!selectedUser) return;
       
-      if (selectedUser.email?.endsWith('@koretini.legacy')) {
+      // Ersatzadresse aus dem Import gilt als keine Adresse.
+      if (isPlaceholderEmail(selectedUser.email) && selectedUser.email) {
           showAlert({ type: 'error', message: t('admin.members.legacy_email') });
+          return;
+      }
+
+      // Wer die Rechnung per E-Mail bekommen soll, braucht auch eine.
+      if (emailMissingForDelivery(selectedUser)) {
+          showAlert({ type: 'error', message: t('email.required_for_delivery') });
           return;
       }
 
@@ -424,7 +432,7 @@ const AdminPanel: React.FC = () => {
                                         </thead>
                                         <tbody className="divide-y divide-stone-50">
                                             {filteredUsers.map(u => {
-                                                const isLegacyEmail = u.email?.endsWith('@koretini.legacy');
+                                                const isLegacyEmail = isPlaceholderEmail(u.email);
                                                 return (
                                                 <tr key={u.id} onClick={() => { setSelectedUser(u); setUserDrawerTab('GENERAL'); setIsUserDrawerOpen(true); }} className="hover:bg-stone-50/50 transition-colors group cursor-pointer">
                                                     <td className="px-6 py-4">
@@ -855,12 +863,16 @@ const AdminPanel: React.FC = () => {
                                   </div>
                                   <div>
                                       <label className="text-[10px] font-bold text-stone-400 uppercase block mb-1">{t('field.email')}</label>
-                                      {selectedUser.email?.endsWith('@koretini.legacy') && (
+                                      {isPlaceholderEmail(selectedUser.email) && (
                                           <div className="mb-2 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2 text-red-700">
                                               <AlertTriangle size={16} className="mt-0.5 shrink-0" />
                                               <div>
-                                                  <p className="text-xs font-bold uppercase tracking-wider mb-0.5">{t('admin.members.legacy_hint')}</p>
-                                                  <p className="text-xs">Ky përdorues ka një email të përkohshëm. Ju lutem përditësoni me një email të vërtetë.</p>
+                                                  <p className="text-xs font-bold uppercase tracking-wider mb-0.5">
+                                                      {selectedUser.email ? t('admin.members.legacy_hint') : t('email.no_address')}
+                                                  </p>
+                                                  <p className="text-xs">
+                                                      {selectedUser.email ? t('email.placeholder_warning') : t('email.required_for_delivery')}
+                                                  </p>
                                               </div>
                                           </div>
                                       )}
@@ -883,6 +895,20 @@ const AdminPanel: React.FC = () => {
                                   <div><label className="text-[10px] font-bold text-stone-400 uppercase block mb-1">{t('field.country')}</label><input value={selectedUser.country || ''} onChange={e => setSelectedUser({...selectedUser, country: e.target.value})} className="w-full p-4 bg-white border border-stone-200 rounded-xl outline-none" /></div>
                                   <div className="pt-6 border-t border-stone-200">
                                       <label className="text-[10px] font-bold text-stone-400 uppercase block mb-4">{t('admin.members.invoice_delivery')}</label>
+                                      {emailMissingForDelivery(selectedUser) && (
+                                          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2 text-amber-800">
+                                              <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+                                              <div className="flex-1">
+                                                  <p className="text-xs leading-relaxed">{t('email.required_for_delivery')}</p>
+                                                  <button
+                                                      onClick={() => setSelectedUser({ ...selectedUser, invoiceDeliveryMethod: 'POST' })}
+                                                      className="mt-2 text-[10px] font-bold uppercase tracking-wider underline hover:text-amber-950"
+                                                  >
+                                                      {t('email.switch_to_post')}
+                                                  </button>
+                                              </div>
+                                          </div>
+                                      )}
                                       <div className="flex gap-4">
                                           {(['EMAIL', 'POST', 'BOTH'] as const).map(method => (
                                               <button key={method} onClick={() => setSelectedUser({...selectedUser, invoiceDeliveryMethod: method})} className={`flex-1 py-4 rounded-xl text-xs font-bold border-2 transition-all ${selectedUser.invoiceDeliveryMethod === method ? 'border-primary bg-primary/5 text-primary' : 'border-stone-200 bg-white text-stone-400'}`}>
@@ -1027,6 +1053,38 @@ const AdminPanel: React.FC = () => {
 // --- SUB-COMPONENT: DATA QUALITY MONITOR ---
 const AdminDataQuality = ({ users, neighborhoods, onEditUser }: any) => {
   const { t } = useTranslation();
+    const { showAlert, showConfirm } = useFeedback();
+    const [switching, setSwitching] = useState(false);
+
+    // Mitglieder, bei denen die Zustellart E-Mail verspricht, aber keine
+    // brauchbare Adresse hinterlegt ist.
+    const deliveryConflicts = useMemo(
+        () => users.filter((u: UserProfile) => hasDeliveryConflict(u)),
+        [users]
+    );
+
+    const switchConflictsToPost = async () => {
+        const ok = await showConfirm({
+            title: t('admin.dq.delivery_conflict_title'),
+            message: t('admin.dq.switch_confirm'),
+            confirmText: t('admin.dq.switch_all_to_post', { count: deliveryConflicts.length }),
+            type: 'primary',
+        });
+        if (!ok) return;
+        setSwitching(true);
+        try {
+            const batch = writeBatch(db);
+            deliveryConflicts.forEach((u: UserProfile) => {
+                batch.set(doc(db, 'users', u.id), { invoiceDeliveryMethod: 'POST' }, { merge: true });
+            });
+            await batch.commit();
+            showAlert({ type: 'success', message: t('admin.dq.switched', { count: deliveryConflicts.length }) });
+        } catch (e: any) {
+            showAlert({ type: 'error', message: t('admin.save_failed', { reason: e?.message || '?' }) });
+        } finally {
+            setSwitching(false);
+        }
+    };
     const qualityReport = useMemo(() => {
         return users.map((u: UserProfile) => {
             // Dieselben Regeln wie im Nachbarschafts-Detail, zentral in
@@ -1056,6 +1114,27 @@ const AdminDataQuality = ({ users, neighborhoods, onEditUser }: any) => {
                     <p className="text-sm text-rose-700">{t('admin.dq.action_text', { count: qualityReport.filter((u: any) => u.score < 60).length })}</p>
                 </div>
             </div>
+
+            {deliveryConflicts.length > 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-[2.5rem] p-8 flex flex-wrap items-start justify-between gap-6">
+                    <div className="flex gap-4 max-w-3xl">
+                        <AlertTriangle size={22} className="text-amber-600 shrink-0 mt-0.5" />
+                        <div>
+                            <h3 className="text-lg font-bold text-amber-900 mb-1">{t('admin.dq.delivery_conflict_title')}</h3>
+                            <p className="text-sm text-amber-800 leading-relaxed">
+                                {t('admin.dq.delivery_conflict_text', { count: deliveryConflicts.length })}
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={switchConflictsToPost}
+                        disabled={switching}
+                        className="bg-amber-600 text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-amber-700 transition-colors shadow-sm disabled:opacity-60 shrink-0"
+                    >
+                        {t('admin.dq.switch_all_to_post', { count: deliveryConflicts.length })}
+                    </button>
+                </div>
+            )}
 
             <div className="bg-white rounded-[2.5rem] border border-stone-100 shadow-sm overflow-hidden">
                 <div className="p-8 border-b border-stone-100 flex justify-between items-center">

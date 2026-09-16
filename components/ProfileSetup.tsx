@@ -7,10 +7,13 @@ import { doc, setDoc, collection, getDocs, query, orderBy } from '@/services/sup
 import { MapPin, User, Phone, CheckCircle2, ArrowRight, ArrowLeft, Loader2, Mail, Home, Heart, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../context/LanguageContext';
+import { useFeedback } from '../context/FeedbackContext';
+import { emailMissingForDelivery } from '../lib/memberEmail';
 
 import { neighborhoodCity } from '../lib/neighborhood';
 const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) => void }> = ({ user, onComplete }) => {
   const { t } = useTranslation();
+  const { showAlert } = useFeedback();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     name: user.displayName || '',
@@ -38,6 +41,11 @@ const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) =
   const handlePrev = () => setStep(s => s - 1);
 
   const handleSubmit = async () => {
+    // Wer die Rechnung per E-Mail will, braucht eine E-Mail-Adresse.
+    if (emailMissingForDelivery({ ...user, ...formData } as any)) {
+      showAlert({ type: 'error', message: t('email.required_for_delivery') });
+      return;
+    }
     setIsLoading(true);
 
     // Auto-determine billing group based on country

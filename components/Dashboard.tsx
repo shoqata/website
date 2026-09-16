@@ -45,6 +45,7 @@ import { useFeedback } from '../context/FeedbackContext';
 import { sendEmail } from '../services/mailService';
 
 import { neighborhoodCity } from '../lib/neighborhood';
+import { emailMissingForDelivery } from '../lib/memberEmail';
 import { onImageError } from '../lib/imageFallback';
 // Kuerzel aus dem Vereinsnamen, z. B. "Shoqata Koretini" -> "SK".
 const initialsOf = (name: string) =>
@@ -186,6 +187,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   // Handle Profile Update (Self)
   const handleUpdateProfile = async () => {
       if (!user.id) return;
+      // Rechnung per E-Mail ohne E-Mail-Adresse geht nicht auf.
+      if (emailMissingForDelivery({ ...user, ...profileData })) {
+          showAlert({ type: 'error', message: t('email.required_for_delivery') });
+          return;
+      }
       try {
           // Construct displayName from components if edited
           const displayName = `${profileData.firstName || ''} ${profileData.lastName || ''}`.trim() || profileData.displayName;
