@@ -283,11 +283,14 @@ const AppContent: React.FC = () => {
                     <Route path="/news" element={<NewsPage />} />
                     {/* Turnier und Sponsoring. Die Adressen werden so geteilt
                         (koretini.me/fussball/sponsoren); index.html schreibt
-                        einen Pfad ohne Raute auf die Rauten-Form um. */}
+                        einen Pfad ohne Raute auf die Rauten-Form um und
+                        entfernt dabei den Schraegstrich am Ende. Eine eigene
+                        Route mit Schraegstrich darf es nicht geben -- React
+                        Router weist solche Pfade zurueck und legt damit die
+                        gesamte Routentabelle lahm. */}
                     <Route path="/fussball" element={<FutsalPage />} />
                     <Route path="/fussball/sponsoren" element={<SponsorPage />} />
                     <Route path="/futsal" element={<Navigate to="/fussball" replace />} />
-                    <Route path="/fussball/sponsoren/" element={<Navigate to="/fussball/sponsoren" replace />} />
                     <Route path="/gdpr" element={<LegalPage type="GDPR" />} />
                     <Route path="/privacy" element={<LegalPage type="PRIVACY" />} />
                     <Route path="/login" element={<AuthRedirectHandler user={user}><LoginPage /></AuthRedirectHandler>} />
