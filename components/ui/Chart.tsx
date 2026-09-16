@@ -111,8 +111,14 @@ export function ChartTooltipContent({
   color,
   nameKey,
   labelKey,
-}: React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
-  React.ComponentProps<'div'> & {
+}: Omit<React.ComponentProps<typeof RechartsPrimitive.Tooltip>, 'payload' | 'label' | 'content'> &
+  Omit<React.ComponentProps<'div'>, 'color'> & {
+    // Ab recharts 3 stehen diese beiden nicht mehr in den oeffentlichen
+    // Tooltip-Props; recharts reicht sie der Inhaltskomponente aber weiter.
+    active?: boolean;
+    payload?: any[];
+    label?: any;
+    color?: string;
     hideLabel?: boolean;
     hideIndicator?: boolean;
     indicator?: 'line' | 'dot' | 'dashed';
@@ -227,8 +233,11 @@ export function ChartLegendContent({
   payload,
   verticalAlign = 'bottom',
   nameKey,
-}: React.ComponentProps<'div'> &
-  Partial<Pick<RechartsPrimitive.LegendProps, 'payload' | 'verticalAlign'>> & {
+}: React.ComponentProps<'div'> & {
+    // Wie beim Tooltip: recharts 3 fuehrt payload nicht mehr in den
+    // oeffentlichen Legenden-Props, reicht es der Inhaltskomponente aber durch.
+    payload?: any[];
+    verticalAlign?: 'top' | 'middle' | 'bottom';
     hideIcon?: boolean;
     nameKey?: string;
   }) {
