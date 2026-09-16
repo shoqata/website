@@ -1,4 +1,5 @@
 import { UserProfile } from '../types';
+import { hasUsableEmail, emailMissingForDelivery } from './memberEmail';
 
 // Welche Angaben an einem Mitglied fehlen.
 //
@@ -12,9 +13,15 @@ export const missingFieldKeys = (u: Partial<UserProfile>): string[] => {
   if (!u.birthdate) missing.push('field.birthdate');
   if (!u.street || !u.zip || !u.city) missing.push('field.address');
   if (!u.neighborhoodId) missing.push('admin.members.neighborhood');
-  if (!u.email || u.email.includes('@koretini.legacy')) missing.push('field.email');
+  if (!hasUsableEmail(u)) missing.push('field.email');
   return missing;
 };
+
+// Wiegt schwerer als eine bloss fehlende Angabe: die Zustellart verspricht
+// E-Mail, es gibt aber keine brauchbare Adresse. Die Rechnung geht dann
+// still per Post -- oder gar nicht.
+export const hasDeliveryConflict = (u: Partial<UserProfile>): boolean =>
+  emailMissingForDelivery(u);
 
 // 100 Prozent bei vollstaendigen Angaben, je fehlendes Feld 20 Prozent weniger.
 export const qualityScore = (missingCount: number): number =>

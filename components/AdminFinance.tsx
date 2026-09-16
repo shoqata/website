@@ -38,6 +38,7 @@ import { useFeedback } from '../context/FeedbackContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from '../context/LanguageContext';
 import MemberPicker from './ui/MemberPicker';
+import { hasUsableEmail } from '../lib/memberEmail';
 import SwissQRBill from './SwissQRBill';
 import { QrBillData } from '../services/qrBillService';
 import { jsPDF } from "jspdf";
@@ -242,7 +243,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
             email = u?.email || '';
             recipientName = u?.displayName || 'Member';
         }
-        if (!email || !email.includes('@') || email.includes('@koretini.legacy')) {
+        if (!hasUsableEmail({ email } as any)) {
             showAlert({ type: 'error', message: t('mail.no_address') });
             return;
         }
@@ -381,9 +382,10 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
                     : users.filter(u => u.membershipStatus === 'ACTIVE').map(u => u.id);
                 const targetUserIds = candidateIds.filter(id => !alreadyInvoiced.has(id));
                 const skippedCount = candidateIds.length - targetUserIds.length;
+                let downgradedCount = 0;
 
                 if (targetUserIds.length === 0) {
-                    showAlert({ type: 'error', message: `Alle ${candidateIds.length} ausgewählten Mitglieder haben für ${selectedYear} bereits eine Beitragsrechnung.` });
+                    showAlert({ type: 'error', message: t('admin.finance.all_invoiced', { count: candidateIds.length, year: selectedYear }) });
                     return;
                 }
                 const standardFee = paymentSettings.fees?.STANDARD?.amount ?? 120;
@@ -404,7 +406,13 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
                     const hasOwnFee = u.customAnnualFee !== undefined && u.customAnnualFee !== null;
                     let amount = hasOwnFee ? u.customAnnualFee : (groupFee ?? standardFee);
                     let currency = (hasOwnFee ? u.currency : groupCurr) || standardCurr;
-                    const hasValidEmail = u.email && !u.email.includes('@koretini.legacy') && u.email.includes('@');
+                    const hasValidEmail = hasUsableEmail(u);
+                    // Wer E-Mail-Versand gewaehlt hat, aber keine brauchbare
+                    // Adresse hat, bekommt die Rechnung per Post. Das ist
+                    // richtig, darf aber nicht stillschweigend geschehen --
+                    // sonst wartet der Vorstand auf einen Versand, der nie
+                    // stattfindet. Deshalb wird es unten gemeldet.
+                    if (!hasValidEmail && u.invoiceDeliveryMethod !== 'POST') downgradedCount++;
                     let deliveryMethod = (!hasValidEmail || u.invoiceDeliveryMethod === 'POST') ? 'POST' : (u.invoiceDeliveryMethod === 'BOTH' ? 'BOTH' : 'EMAIL');
                     const method = determinePaymentMethod(u.country);
                     
@@ -414,6 +422,9 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
                 createdSummary = skippedCount > 0
                     ? t('admin.finance.bulk_created_skipped', { count: targetUserIds.length, skipped: skippedCount, year: selectedYear })
                     : t('admin.finance.bulk_created', { count: targetUserIds.length });
+                if (downgradedCount > 0) {
+                    createdSummary += ' ' + t('admin.finance.downgraded', { count: downgradedCount });
+                }
             }
             await batch.commit();
             setShowCreateModal(false);
