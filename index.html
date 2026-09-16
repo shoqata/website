@@ -4,7 +4,20 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Koretini Network</title>
+    <title>Koretini</title>
+    <script>
+      // Der Router arbeitet mit Rauten-Adressen (/#/...). Damit sich auch saubere
+      // Adressen teilen lassen -- koretini.me/fussball/sponsoren statt
+      // koretini.me/#/fussball/sponsoren -- wird ein Pfad ohne Raute einmalig
+      // umgeschrieben. Bestehende Rauten-Links bleiben unveraendert gueltig.
+      (function () {
+        var pfad = window.location.pathname;
+        if (pfad !== '/' && !window.location.hash) {
+          var sauber = pfad.replace(/\/+$/, '') || '/';
+          window.location.replace('/#' + sauber + window.location.search);
+        }
+      })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
