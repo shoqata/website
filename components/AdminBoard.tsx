@@ -8,6 +8,7 @@ import { ref, uploadBytes, getDownloadURL } from '@/services/supabase-bridge';
 import { BoardMeeting, UserProfile, BoardMember, ProtocolAttendee, ProtocolAgendaItem, Task } from '../types';
 import { useFeedback } from '../context/FeedbackContext';
 import { useTranslation } from '../context/LanguageContext';
+import MemberPicker from './ui/MemberPicker';
 
 import { onImageError } from '../lib/imageFallback';
 interface AdminBoardProps {
@@ -412,14 +413,13 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                     </div>
                                     <div className="flex-1 space-y-4">
                                         <div className="grid grid-cols-2 gap-4">
-                                            <select 
-                                                value={newBoardMember.userId} 
-                                                onChange={e => setNewBoardMember({...newBoardMember, userId: e.target.value})} 
-                                                className="w-full p-3 bg-white rounded-xl text-sm border border-stone-200 outline-none"
-                                            >
-                                                <option value="">{t('board.choose_member')}</option>
-                                                {users.map(u => <option key={u.id} value={u.id}>{u.displayName} ({u.email})</option>)}
-                                            </select>
+                                            <MemberPicker
+                                                single
+                                                users={users}
+                                                value={newBoardMember.userId ? [newBoardMember.userId] : []}
+                                                onChange={(ids) => setNewBoardMember({ ...newBoardMember, userId: ids[0] || '' })}
+                                                placeholder={t('board.choose_member')}
+                                            />
                                             <input 
                                                 placeholder={t('board.function_ph')} 
                                                 value={newBoardMember.role} 
@@ -523,25 +523,16 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                             <h4 className="font-bold text-stone-900 flex items-center gap-2"><Users size={18} className="text-primary" /> {t('board.attendees')}</h4>
                                             
                                             {/* Manual Add Selection */}
-                                            <div className="flex items-center gap-2">
-                                                <select 
-                                                    value={selectedUserIdToAdd}
-                                                    onChange={(e) => setSelectedUserIdToAdd(e.target.value)}
-                                                    className="p-2 bg-stone-50 border border-stone-200 rounded-lg text-xs font-medium outline-none w-48"
-                                                >
-                                                    <option value="">{t('minutes.add_attendee')}</option>
-                                                    <optgroup label={t('board.members_title')}>
-                                                        {users.filter(u => boardMembers.some(bm => bm.userId === u.id)).map(u => {
-                                                             const role = boardMembers.find(bm => bm.userId === u.id)?.role;
-                                                             return <option key={u.id} value={u.id}>{u.displayName} ({role})</option>
-                                                        })}
-                                                    </optgroup>
-                                                    <optgroup label={t('minutes.guests_others')}>
-                                                        {users.filter(u => !boardMembers.some(bm => bm.userId === u.id)).map(u => (
-                                                            <option key={u.id} value={u.id}>{u.displayName}</option>
-                                                        ))}
-                                                    </optgroup>
-                                                </select>
+                                            <div className="flex items-start gap-2">
+                                                <div className="w-64">
+                                                    <MemberPicker
+                                                        single
+                                                        users={users}
+                                                        value={selectedUserIdToAdd ? [selectedUserIdToAdd] : []}
+                                                        onChange={(ids) => setSelectedUserIdToAdd(ids[0] || '')}
+                                                        placeholder={t('minutes.add_attendee')}
+                                                    />
+                                                </div>
                                                 <button onClick={handleAddAttendee} disabled={!selectedUserIdToAdd} className="p-2 bg-stone-900 text-white rounded-lg hover:bg-black disabled:opacity-50">
                                                     <Plus size={14} />
                                                 </button>
@@ -817,16 +808,12 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                 </div>
                                 <div>
                                     <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('task.owner')}</label>
-                                    <select 
-                                        value={newTaskData.assignedToUserId} 
-                                        onChange={e => setNewTaskData({...newTaskData, assignedToUserId: e.target.value})} 
-                                        className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl font-medium outline-none focus:border-primary/50"
-                                    >
-                                        <option value="">{t('common.select')}</option>
-                                        {users.map(u => (
-                                            <option key={u.id} value={u.id}>{u.displayName}</option>
-                                        ))}
-                                    </select>
+                                    <MemberPicker
+                                        single
+                                        users={users}
+                                        value={newTaskData.assignedToUserId ? [newTaskData.assignedToUserId] : []}
+                                        onChange={(ids) => setNewTaskData({ ...newTaskData, assignedToUserId: ids[0] || '' })}
+                                    />
                                 </div>
                                 <div>
                                     <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('task.due')}</label>

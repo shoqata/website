@@ -1219,6 +1219,17 @@ const translations: Translations = {
   'role.neighborhood_manager': { en: 'Neighborhood manager', de: 'Nachbarschafts-Verantwortliche', sq: 'Përgjegjës lagjeje' },
   'admin.dq.action_text': { en: '{count} members are missing important details. Without them, postal invoicing and notifications cannot be relied on.', de: 'Bei {count} Mitgliedern fehlen wichtige Angaben. Ohne sie sind Postversand und Benachrichtigungen nicht verlässlich.', sq: 'Te {count} anëtarë mungojnë të dhëna të rëndësishme. Pa to, dërgimi postar dhe njoftimet nuk janë të garantuara.' },
   'admin.dq.total': { en: 'Total: {count} members', de: 'Gesamt: {count} Mitglieder', sq: 'Gjithsej: {count} anëtarë' },
+
+  // --- PERSONENAUSWAHL MIT SUCHE ---
+  'picker.search': { en: 'Search by name, email or place...', de: 'Nach Name, E-Mail oder Ort suchen...', sq: 'Kërko sipas emrit, e-mailit ose vendit...' },
+  'picker.no_match': { en: 'No one matches this search.', de: 'Niemand passt zu dieser Suche.', sq: 'Askush nuk i përgjigjet kësaj kërkese.' },
+  'picker.more': { en: '{count} more — refine your search', de: '{count} weitere — Suche eingrenzen', sq: 'edhe {count} — ngushtoni kërkimin' },
+  'picker.make_primary': { en: 'Set as lead contact', de: 'Als federführend setzen', sq: 'Cakto si kryesor' },
+  'picker.remove': { en: 'Remove', de: 'Entfernen', sq: 'Hiq' },
+  'admin.nb.responsible': { en: 'People responsible', de: 'Verantwortliche Personen', sq: 'Personat përgjegjës' },
+  'admin.nb.responsible_hint': { en: 'Several people are possible. The first one is the lead contact and is shown on the neighborhood. Everyone listed sees the members of this neighborhood and can record cash payments.', de: 'Mehrere Personen sind möglich. Die erste ist federführend und erscheint bei der Nachbarschaft. Alle Genannten sehen die Mitglieder dieser Nachbarschaft und können Barzahlungen erfassen.', sq: 'Mund të jenë disa persona. I pari është kryesori dhe shfaqet te lagjja. Të gjithë të listuarit shohin anëtarët e kësaj lagjeje dhe mund të regjistrojnë pagesa në para të gatshme.' },
+  'admin.nb.responsible_none': { en: 'No one assigned yet', de: 'Noch niemand zugewiesen', sq: 'Ende askush i caktuar' },
+  'admin.nb.lead': { en: 'Lead', de: 'Federführend', sq: 'Kryesor' },
 };
 
 interface LanguageContextType {

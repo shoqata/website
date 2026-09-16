@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from '../context/LanguageContext';
+import MemberPicker from './ui/MemberPicker';
 import { AnimatePresence, motion } from 'framer-motion';
 import { 
   Save, 
@@ -571,10 +572,13 @@ const AdminWebsite: React.FC = () => {
                                         <input type="file" ref={boardImageInputRef} hidden accept="image/*" onChange={handleBoardImageUpload} />
                                     </div>
                                     <div className="flex-1 space-y-2">
-                                        <select value={newBoardMember.userId} onChange={e => setNewBoardMember({...newBoardMember, userId: e.target.value})} className="w-full p-2 bg-white rounded-lg text-xs border border-stone-200 outline-none">
-                                            <option value="">{t('web.select_user')}</option>
-                                            {users.map(u => <option key={u.id} value={u.id}>{u.displayName}</option>)}
-                                        </select>
+                                        <MemberPicker
+                                            single
+                                            users={users}
+                                            value={newBoardMember.userId ? [newBoardMember.userId] : []}
+                                            onChange={(ids) => setNewBoardMember({ ...newBoardMember, userId: ids[0] || '' })}
+                                            placeholder={t('web.select_user')}
+                                        />
                                         <input placeholder={t('web.role_ph')} value={newBoardMember.role} onChange={e => setNewBoardMember({...newBoardMember, role: e.target.value})} className="w-full p-2 bg-white rounded-lg text-xs border border-stone-200 outline-none" />
                                     </div>
                                 </div>
