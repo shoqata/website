@@ -1117,6 +1117,13 @@ const AdminNeighborhoodDetail = ({ neighborhoodId, neighborhoods, users, payment
     const neighborhood = neighborhoods.find((n: any) => n.id === neighborhoodId);
     const neighborhoodMembers = users.filter((u: any) => u.neighborhoodId === neighborhoodId);
     const manager = users.find((u: any) => u.id === neighborhood?.managerId);
+    // Mehrere Verantwortliche moeglich; die erste gilt als federfuehrend.
+    const responsibleIds: string[] = neighborhood?.contactPersonIds?.length
+        ? neighborhood.contactPersonIds
+        : neighborhood?.managerId ? [neighborhood.managerId] : [];
+    const responsible = responsibleIds
+        .map((id: string) => users.find((u: any) => u.id === id))
+        .filter(Boolean);
 
     // Je Mitglied: Beitragsstand des Jahres und welche Angaben fehlen.
     const memberRows = useMemo(() => neighborhoodMembers.map((u: any) => {
@@ -1293,12 +1300,28 @@ const AdminNeighborhoodDetail = ({ neighborhoodId, neighborhoods, users, payment
                             <div className="w-20 h-20 rounded-[1.5rem] bg-white/10 flex items-center justify-center font-bold text-2xl border border-white/20 shadow-2xl overflow-hidden">
                                 {manager?.photoFileName ? <img src={manager.photoFileName} className="w-full h-full object-cover" onError={onImageError}/> : manager?.displayName?.charAt(0) || '?'}
                             </div>
-                            <div><p className="font-bold text-xl">{manager?.displayName || t('admin.nb.no_manager')}</p><p className="text-xs text-stone-500 font-mono italic">{t('admin.nb.manager_badge')}</p></div>
+                            <div><p className="font-bold text-xl">{manager?.displayName || t('admin.nb.no_manager')}</p><p className="text-xs text-stone-500 font-mono italic">{responsible.length > 1 ? t('admin.nb.lead') : t('admin.nb.manager_badge')}</p></div>
                         </div>
                         <div className="space-y-4 relative z-10">
                             {manager?.email && <div className="flex items-center gap-3 text-xs text-stone-300 bg-white/5 p-3 rounded-xl border border-white/5"><Mail size={14} className="text-primary"/> {manager.email}</div>}
                             {manager?.phone && <div className="flex items-center gap-3 text-xs text-stone-300 bg-white/5 p-3 rounded-xl border border-white/5"><Phone size={14} className="text-primary"/> {manager.phone}</div>}
                         </div>
+
+                        {responsible.length > 1 && (
+                            <div className="mt-8 pt-6 border-t border-white/10 relative z-10">
+                                <p className="text-[10px] font-bold text-stone-500 uppercase tracking-[0.2em] mb-4">{t('admin.nb.responsible')}</p>
+                                <div className="space-y-2">
+                                    {responsible.slice(1).map((u: any) => (
+                                        <div key={u.id} className="flex items-center gap-3 text-xs text-stone-300 bg-white/5 p-3 rounded-xl border border-white/5">
+                                            <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center text-[10px] font-bold shrink-0">
+                                                {u.displayName?.charAt(0)}
+                                            </div>
+                                            <span className="truncate">{u.displayName}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

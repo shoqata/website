@@ -37,6 +37,7 @@ import { Payment, UserProfile, GlobalPaymentSettings, Account } from '../types';
 import { useFeedback } from '../context/FeedbackContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from '../context/LanguageContext';
+import MemberPicker from './ui/MemberPicker';
 import SwissQRBill from './SwissQRBill';
 import { QrBillData } from '../services/qrBillService';
 import { jsPDF } from "jspdf";
@@ -766,10 +767,12 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
                                         {recipientMode === 'MEMBER' ? (
                                             <div>
                                                 <label className="text-xs font-bold text-stone-400 uppercase tracking-widest block mb-2">{t('admin.finance.choose_member')}</label>
-                                                <select value={newInvoice.userId || ''} onChange={e => setNewInvoice({...newInvoice, userId: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none">
-                                                    <option value="">{t('admin.finance.please_choose')}</option>
-                                                    {users.map(u => <option key={u.id} value={u.id}>{u.displayName} ({u.email})</option>)}
-                                                </select>
+                                                                                                <MemberPicker
+                                                    single
+                                                    users={users}
+                                                    value={newInvoice.userId ? [newInvoice.userId] : []}
+                                                    onChange={(ids) => setNewInvoice({ ...newInvoice, userId: ids[0] || '' })}
+                                                />
                                             </div>
                                         ) : (
                                             <div className="grid grid-cols-2 gap-4">

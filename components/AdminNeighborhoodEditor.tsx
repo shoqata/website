@@ -6,6 +6,7 @@ import { addDoc, collection, doc, updateDoc, deleteDoc } from '@/services/supaba
 import { Neighborhood, UserProfile } from '../types';
 import { useTranslation } from '../context/LanguageContext';
 import { useFeedback } from '../context/FeedbackContext';
+import MemberPicker from './ui/MemberPicker';
 
 interface Props {
   neighborhood: Partial<Neighborhood> | null;   // null = Dialog geschlossen
@@ -35,11 +36,15 @@ const AdminNeighborhoodEditor: React.FC<Props> = ({ neighborhood, users, memberC
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
       setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  // Als Verantwortliche kommen alle aktiven Personen infrage, nicht nur die
-  // Mitglieder dieser Nachbarschaft -- oft betreut jemand von aussen mit.
-  const candidates = users
-    .filter((u) => u.membershipStatus !== 'INACTIVE')
-    .sort((a, b) => (a.displayName || '').localeCompare(b.displayName || ''));
+  // Verantwortliche: mehrere moeglich, die erste gilt als federfuehrend.
+  // Der alte Einzelwert managerId bleibt gefuellt, damit Ansichten, die genau
+  // eine Person zeigen, weiter funktionieren.
+  const responsible: string[] = form.contactPersonIds?.length
+    ? form.contactPersonIds
+    : form.managerId ? [form.managerId] : [];
+
+  const setResponsible = (ids: string[]) =>
+    setForm((f) => ({ ...f, contactPersonIds: ids, managerId: ids[0] || '' }));
 
   const handleSave = async () => {
     if (!form.name?.trim()) {
@@ -52,7 +57,8 @@ const AdminNeighborhoodEditor: React.FC<Props> = ({ neighborhood, users, memberC
         name: form.name.trim(),
         city: form.city?.trim() || '',
         description: form.description?.trim() || '',
-        managerId: form.managerId || '',
+        managerId: responsible[0] || '',
+        contactPersonIds: responsible,
         contactEmail: form.contactEmail?.trim() || '',
         contactPhone: form.contactPhone?.trim() || '',
         website: form.website?.trim() || '',
@@ -143,16 +149,9 @@ const AdminNeighborhoodEditor: React.FC<Props> = ({ neighborhood, users, memberC
           </div>
 
           <div>
-            <label className={label}>{t('admin.nb.manager')}</label>
-            <select value={form.managerId || ''} onChange={set('managerId')} className={field}>
-              <option value="">{t('admin.nb.no_manager')}</option>
-              {candidates.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.displayName || u.email}{u.role !== 'MEMBER' ? ` · ${t('role.' + u.role.toLowerCase())}` : ''}
-                </option>
-              ))}
-            </select>
-            <p className="text-[10px] text-stone-400 mt-1.5 italic">{t('admin.nb.manager_hint')}</p>
+            <label className={label}>{t('admin.nb.responsible')}</label>
+            <MemberPicker users={users} value={responsible} onChange={setResponsible} />
+            <p className="text-[10px] text-stone-400 mt-1.5 italic">{t('admin.nb.responsible_hint')}</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
