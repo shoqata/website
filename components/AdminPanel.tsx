@@ -43,6 +43,8 @@ import AdminExpenses from './AdminExpenses';
 
 import { neighborhoodPlace } from '../lib/neighborhood';
 import { onImageError } from '../lib/imageFallback';
+import AdminNeighborhoodEditor from './AdminNeighborhoodEditor';
+import { missingFieldKeys, qualityScore, feeStateFor } from '../lib/memberQuality';
 type AdminTabId = 'USERS' | 'NEIGHBORHOODS' | 'ANALYTICS' | 'STATISTICS' | 'WEBSITE' | 'SOCIAL_AI' | 'EVENTS' | 'NEWS' | 'FINANCE' | 'EXPENSES' | 'DATA' | 'ACCOUNTING' | 'SETTINGS' | 'BOARD' | 'COMMUNICATION' | 'DATA_QUALITY';
 
 interface NavItem {
@@ -390,7 +392,9 @@ const AdminPanel: React.FC = () => {
                         users={users} 
                         payments={payments}
                         selectedYear={selectedYear}
-                        onBack={() => setSelectedNeighborhoodId(null)} 
+                        onBack={() => setSelectedNeighborhoodId(null)}
+                        onEdit={(n: any) => { setEditingNeighborhood(n); setShowNeighborhoodModal(true); }}
+                        onEditUser={(u: UserProfile) => { setSelectedUser(u); setUserDrawerTab('GENERAL'); setIsUserDrawerOpen(true); }}
                       />
                   ) : (
                       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -449,6 +453,11 @@ const AdminPanel: React.FC = () => {
                         )}
 
                         {activeTab === 'NEIGHBORHOODS' && (
+                          <div className="space-y-6">
+                            <div className="flex justify-between items-center bg-white p-4 rounded-3xl border border-stone-100 shadow-sm">
+                                <h3 className="font-bold text-stone-900 flex items-center gap-2 px-2"><MapPin size={18} className="text-primary"/> {t('admin.tab.neighborhoods')}</h3>
+                                <button onClick={() => { setEditingNeighborhood({ name: '', status: 'ACTIVE' }); setShowNeighborhoodModal(true); }} className="bg-stone-900 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-black transition-all shadow-lg"><Plus size={16}/> {t('admin.nb.new')}</button>
+                            </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {neighborhoods.map(n => (
                                     <div key={n.id} onClick={() => setSelectedNeighborhoodId(n.id)} className="bg-white p-6 rounded-[2.5rem] border border-stone-100 shadow-sm group hover:shadow-xl transition-all relative overflow-hidden cursor-pointer">
@@ -464,6 +473,7 @@ const AdminPanel: React.FC = () => {
                                     </div>
                                 ))}
                             </div>
+                          </div>
                         )}
 
                         {activeTab === 'FINANCE' && <AdminFinance viewMode="GRID" selectedYear={selectedYear} />}
@@ -581,6 +591,18 @@ const AdminPanel: React.FC = () => {
               </AnimatePresence>
           </div>
       </main>
+
+      {/* DIALOG: NACHBARSCHAFT BEARBEITEN */}
+      <AnimatePresence>
+        {showNeighborhoodModal && editingNeighborhood && (
+          <AdminNeighborhoodEditor
+            neighborhood={editingNeighborhood}
+            users={users}
+            memberCount={users.filter(u => u.neighborhoodId === editingNeighborhood.id).length}
+            onClose={() => { setShowNeighborhoodModal(false); setEditingNeighborhood(null); }}
+          />
+        )}
+      </AnimatePresence>
 
       {/* MODAL: EVENT EDITOR */}
       <AnimatePresence>
@@ -1007,19 +1029,16 @@ const AdminDataQuality = ({ users, neighborhoods, onEditUser }: any) => {
   const { t } = useTranslation();
     const qualityReport = useMemo(() => {
         return users.map((u: UserProfile) => {
-            const missing = [];
-            if (!u.phone) missing.push('Telefoni');
-            if (!u.birthdate) missing.push('Datëlindja');
-            if (!u.street || !u.zip || !u.city) missing.push('Adresa');
-            if (!u.neighborhoodId) missing.push('Lagja');
-            if (!u.email || u.email.includes('@koretini.legacy')) missing.push('Email Valid');
-            
-            let score = 100 - (missing.length * 20);
-            // `user` stays the untouched DB record — `missing`/`score` are UI-only and
-            // must never reach the users table when the drawer saves this record.
+            // Dieselben Regeln wie im Nachbarschafts-Detail, zentral in
+            // lib/memberQuality. Die Feldnamen sind Uebersetzungsschluessel.
+            const missing = missingFieldKeys(u).map(k => t(k));
+            const score = qualityScore(missing.length);
+            // `user` bleibt der unveraenderte Datensatz -- `missing`/`score`
+            // sind nur fuer die Anzeige und duerfen beim Speichern aus dem
+            // Drawer niemals in der users-Tabelle landen.
             return { ...u, missing, score, user: u };
         }).sort((a: any, b: any) => a.score - b.score);
-    }, [users]);
+    }, [users, t]);
 
     const avgQuality = Math.round(qualityReport.reduce((acc: number, u: any) => acc + u.score, 0) / (users.length || 1));
 
@@ -1034,14 +1053,14 @@ const AdminDataQuality = ({ users, neighborhoods, onEditUser }: any) => {
                 </div>
                 <div className="bg-rose-50 p-8 rounded-[2.5rem] border border-rose-100 shadow-sm col-span-2">
                     <h3 className="text-lg font-bold text-rose-900 mb-2">{t('admin.dq.action_needed')}</h3>
-                    <p className="text-sm text-rose-700">{qualityReport.filter((u: any) => u.score < 60).length} anëtarë kanë mungesë të theksuar të dhënash. Pa këtë informacion, faturimi fizik und njoftimet nuk mund të garantohen.</p>
+                    <p className="text-sm text-rose-700">{t('admin.dq.action_text', { count: qualityReport.filter((u: any) => u.score < 60).length })}</p>
                 </div>
             </div>
 
             <div className="bg-white rounded-[2.5rem] border border-stone-100 shadow-sm overflow-hidden">
                 <div className="p-8 border-b border-stone-100 flex justify-between items-center">
                     <h3 className="font-bold text-stone-900 flex items-center gap-2"><CheckSquare size={20} className="text-primary"/> {t('admin.dq.monitor')}</h3>
-                    <div className="text-xs font-bold text-stone-400 uppercase tracking-widest">Gjithsej: {users.length} Anëtarë</div>
+                    <div className="text-xs font-bold text-stone-400 uppercase tracking-widest">{t('admin.dq.total', { count: users.length })}</div>
                 </div>
                 <div className="max-h-[600px] overflow-y-auto custom-scrollbar">
                     <table className="w-full text-left text-sm">
@@ -1092,11 +1111,35 @@ const AdminDataQuality = ({ users, neighborhoods, onEditUser }: any) => {
 };
 
 // --- SUB-COMPONENT: NEIGHBORHOOD 360° DETAIL VIEW ---
-const AdminNeighborhoodDetail = ({ neighborhoodId, neighborhoods, users, payments, selectedYear, onBack }: any) => {
+const AdminNeighborhoodDetail = ({ neighborhoodId, neighborhoods, users, payments, selectedYear, onBack, onEdit, onEditUser }: any) => {
   const { t } = useTranslation();
+    const [memberFilter, setMemberFilter] = useState<'ALL' | 'OPEN' | 'INCOMPLETE'>('ALL');
     const neighborhood = neighborhoods.find((n: any) => n.id === neighborhoodId);
     const neighborhoodMembers = users.filter((u: any) => u.neighborhoodId === neighborhoodId);
     const manager = users.find((u: any) => u.id === neighborhood?.managerId);
+
+    // Je Mitglied: Beitragsstand des Jahres und welche Angaben fehlen.
+    const memberRows = useMemo(() => neighborhoodMembers.map((u: any) => {
+        const missing = missingFieldKeys(u);
+        return { ...u, fee: feeStateFor(u.id, payments, selectedYear), missing, score: qualityScore(missing.length) };
+    }), [neighborhoodMembers, payments, selectedYear]);
+
+    const openAmount = useMemo(() => {
+        const ids = new Set(neighborhoodMembers.map((u: any) => u.id));
+        return payments
+            .filter((p: any) => ids.has(p.userId) && p.status !== 'PAID' && p.status !== 'CANCELLED' && p.status !== 'WRITTEN_OFF')
+            .filter((p: any) => Number(p.billingYear || 0) === selectedYear
+                || (p.timestamp?.toDate ? p.timestamp.toDate().getFullYear() === selectedYear : false))
+            .reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0);
+    }, [neighborhoodMembers, payments, selectedYear]);
+
+    const visibleRows = memberRows.filter((u: any) =>
+        memberFilter === 'OPEN' ? u.fee !== 'PAID'
+        : memberFilter === 'INCOMPLETE' ? u.missing.length > 0
+        : true);
+
+    const openCount = memberRows.filter((u: any) => u.fee !== 'PAID').length;
+    const incompleteCount = memberRows.filter((u: any) => u.missing.length > 0).length;
     
     const neighborhoodStats = useMemo(() => {
         const memberIds = neighborhoodMembers.map((u: any) => u.id);
@@ -1110,14 +1153,14 @@ const AdminNeighborhoodDetail = ({ neighborhoodId, neighborhoods, users, payment
         const totalAmount = neighborhoodPayments.filter((p: any) => p.status === 'PAID').reduce((sum: number, p: any) => sum + p.amount, 0);
 
         const chartData = [
-            { name: 'Paguar', value: paidCount, color: '#10b981' },
-            { name: 'Pendent', value: pendingCount, color: '#e7e5e4' }
+            { name: t('admin.nb.fee.PAID'), value: paidCount, color: '#10b981' },
+            { name: t('admin.nb.fee.OPEN'), value: pendingCount, color: '#e7e5e4' }
         ];
 
         const roleData = [
-            { name: 'Member', value: neighborhoodMembers.filter((u:any) => u.role === 'MEMBER').length, color: '#f43f5e' },
-            { name: 'Rep', value: neighborhoodMembers.filter((u:any) => u.role === 'REPRESENTATIVE').length, color: '#3b82f6' },
-            { name: 'Board', value: neighborhoodMembers.filter((u:any) => u.role === 'BOARD').length, color: '#fbbf24' }
+            { name: t('role.member'), value: neighborhoodMembers.filter((u:any) => u.role === 'MEMBER').length, color: '#f43f5e' },
+            { name: t('role.representative'), value: neighborhoodMembers.filter((u:any) => u.role === 'REPRESENTATIVE').length, color: '#3b82f6' },
+            { name: t('role.board'), value: neighborhoodMembers.filter((u:any) => u.role === 'BOARD').length, color: '#fbbf24' }
         ].filter(d => d.value > 0);
 
         return { paidCount, pendingCount, totalAmount, chartData, roleData };
@@ -1130,6 +1173,9 @@ const AdminNeighborhoodDetail = ({ neighborhoodId, neighborhoods, users, payment
             <div className="flex justify-between items-center">
                 <button onClick={onBack} className="flex items-center gap-2 text-stone-400 hover:text-stone-900 font-bold text-sm transition-colors">
                     <ArrowLeft size={16}/> {t('admin.members.back_to_list')}
+                </button>
+                <button onClick={() => onEdit?.(neighborhood)} className="flex items-center gap-2 bg-white border border-stone-200 text-stone-700 px-5 py-2.5 rounded-xl font-bold text-sm hover:border-primary/40 hover:text-primary transition-colors shadow-sm">
+                    <Settings size={16}/> {t('admin.nb.edit_button')}
                 </button>
             </div>
 
@@ -1152,11 +1198,12 @@ const AdminNeighborhoodDetail = ({ neighborhoodId, neighborhoods, users, payment
                         <div><p className="text-2xl font-bold text-stone-900">{neighborhoodMembers.length}</p><p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest">{t('admin.members.count')}</p></div>
                         <div><p className="text-2xl font-bold text-stone-900">{neighborhoodStats.totalAmount.toLocaleString()} CHF</p><p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest">{t('admin.nb.contributions', { year: selectedYear })}</p></div>
                         <div><p className="text-2xl font-bold text-stone-900">{((neighborhoodStats.paidCount / (neighborhoodMembers.length || 1)) * 100).toFixed(0)}%</p><p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest">{t('admin.nb.participation')}</p></div>
+                        <div><p className={`text-2xl font-bold ${openAmount > 0 ? 'text-amber-600' : 'text-stone-900'}`}>{openAmount.toLocaleString()} CHF</p><p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest">{t('admin.nb.open_amount')}</p></div>
                     </div>
                 </div>
 
                 <div className="lg:col-span-4 bg-white p-10 rounded-[3rem] border border-stone-100 shadow-sm flex flex-col items-center text-center justify-center">
-                    <h3 className="text-sm font-bold text-stone-400 uppercase tracking-widest mb-6">Statusi i Pagesave {selectedYear}</h3>
+                    <h3 className="text-sm font-bold text-stone-400 uppercase tracking-widest mb-6">{t('admin.nb.payment_status', { year: selectedYear })}</h3>
                     <div className="w-full h-48 relative">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
@@ -1178,30 +1225,59 @@ const AdminNeighborhoodDetail = ({ neighborhoodId, neighborhoods, users, payment
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 <div className="lg:col-span-8 bg-white rounded-[3rem] border border-stone-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
-                    <div className="p-8 border-b border-stone-100 flex justify-between items-center bg-stone-50/50">
+                    <div className="p-8 border-b border-stone-100 flex flex-wrap justify-between items-center gap-4 bg-stone-50/50">
                         <h3 className="font-bold text-stone-900 text-lg flex items-center gap-3">
                             <Users size={22} className="text-primary"/> {t('admin.members.register')}
                         </h3>
+                        <div className="flex bg-white p-1 rounded-xl border border-stone-200">
+                            {([['ALL', t('admin.nb.filter_all'), memberRows.length],
+                               ['OPEN', t('admin.nb.filter_open'), openCount],
+                               ['INCOMPLETE', t('admin.nb.filter_incomplete'), incompleteCount]] as const).map(([key, lbl, n]) => (
+                                <button key={key} onClick={() => setMemberFilter(key as any)}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${memberFilter === key ? 'bg-stone-900 text-white' : 'text-stone-400 hover:text-stone-700'}`}>
+                                    {lbl} <span className={memberFilter === key ? 'opacity-70' : 'opacity-50'}>{n}</span>
+                                </button>
+                            ))}
+                        </div>
                     </div>
                     <div className="flex-1 overflow-x-auto">
                         <table className="w-full text-left text-sm">
                             <thead className="text-[10px] font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 bg-white sticky top-0">
-                                <tr><th className="px-8 py-4">{t('field.member')}</th><th className="px-8 py-4">{t('field.role')}</th><th className="px-8 py-4">{t('field.status')}</th><th className="px-8 py-4 text-right">{t('field.info')}</th></tr>
+                                <tr><th className="px-8 py-4">{t('field.member')}</th><th className="px-8 py-4">{t('admin.nb.fee_year', { year: selectedYear })}</th><th className="px-8 py-4">{t('admin.nb.data_column')}</th><th className="px-8 py-4">{t('field.status')}</th><th className="px-8 py-4 text-right">{t('common.actions')}</th></tr>
                             </thead>
                             <tbody className="divide-y divide-stone-50">
-                                {neighborhoodMembers.map((u:any) => (
+                                {visibleRows.length === 0 && (
+                                    <tr><td colSpan={5} className="px-8 py-12 text-center text-stone-400 italic text-sm">{t('admin.nb.no_members_filter')}</td></tr>
+                                )}
+                                {visibleRows.map((u:any) => (
                                     <tr key={u.id} className="hover:bg-stone-50/50 group transition-colors">
                                         <td className="px-8 py-4">
                                             <div className="flex items-center gap-4">
                                                 <div className="w-10 h-10 rounded-xl bg-stone-100 flex items-center justify-center font-bold text-stone-400 overflow-hidden shadow-sm">
                                                     {u.photoFileName ? <img src={u.photoFileName} className="w-full h-full object-cover" onError={onImageError}/> : u.displayName?.charAt(0)}
                                                 </div>
-                                                <div><p className="font-bold text-stone-800">{u.displayName}</p><p className="text-[10px] text-stone-400">{u.phone || 'Pa telefon'}</p></div>
+                                                <div><p className="font-bold text-stone-800">{u.displayName}</p><p className="text-[10px] text-stone-400">{u.phone || t('admin.nb.no_phone')}</p></div>
                                             </div>
                                         </td>
-                                        <td className="px-8 py-4"><span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest border border-stone-200 px-2 py-0.5 rounded-lg">{u.role}</span></td>
+                                        <td className="px-8 py-4">
+                                            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
+                                                u.fee === 'PAID' ? 'bg-emerald-100 text-emerald-700'
+                                                : u.fee === 'OPEN' ? 'bg-amber-100 text-amber-700'
+                                                : 'bg-stone-100 text-stone-400'}`}>
+                                                {t('admin.nb.fee.' + u.fee)}
+                                            </span>
+                                        </td>
+                                        <td className="px-8 py-4">
+                                            {u.missing.length === 0 ? (
+                                                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 flex items-center gap-1"><CheckCircle2 size={12}/> {t('admin.nb.data_ok')}</span>
+                                            ) : (
+                                                <span className="text-[10px] text-rose-600 font-bold flex items-center gap-1" title={u.missing.map((k:string) => t(k)).join(', ')}>
+                                                    <AlertTriangle size={12}/> {t('admin.nb.data_missing', { fields: u.missing.map((k:string) => t(k)).join(', ') })}
+                                                </span>
+                                            )}
+                                        </td>
                                         <td className="px-8 py-4"><span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${u.membershipStatus === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{u.membershipStatus}</span></td>
-                                        <td className="px-8 py-4 text-right"><button className="p-2 text-stone-400 hover:text-primary"><ExternalLink size={16}/></button></td>
+                                        <td className="px-8 py-4 text-right"><button onClick={() => onEditUser?.(u.user || u)} title={t('common.edit')} className="p-2 text-stone-400 hover:text-primary transition-colors"><ExternalLink size={16}/></button></td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -1217,7 +1293,7 @@ const AdminNeighborhoodDetail = ({ neighborhoodId, neighborhoods, users, payment
                             <div className="w-20 h-20 rounded-[1.5rem] bg-white/10 flex items-center justify-center font-bold text-2xl border border-white/20 shadow-2xl overflow-hidden">
                                 {manager?.photoFileName ? <img src={manager.photoFileName} className="w-full h-full object-cover" onError={onImageError}/> : manager?.displayName?.charAt(0) || '?'}
                             </div>
-                            <div><p className="font-bold text-xl">{manager?.displayName || 'Pa Manager'}</p><p className="text-xs text-stone-500 font-mono italic">{t('admin.nb.manager_badge')}</p></div>
+                            <div><p className="font-bold text-xl">{manager?.displayName || t('admin.nb.no_manager')}</p><p className="text-xs text-stone-500 font-mono italic">{t('admin.nb.manager_badge')}</p></div>
                         </div>
                         <div className="space-y-4 relative z-10">
                             {manager?.email && <div className="flex items-center gap-3 text-xs text-stone-300 bg-white/5 p-3 rounded-xl border border-white/5"><Mail size={14} className="text-primary"/> {manager.email}</div>}

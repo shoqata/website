@@ -1187,6 +1187,38 @@ const translations: Translations = {
   'admin.sponsors.status.DECLINED': { en: 'Declined', de: 'Abgesagt', sq: 'E refuzuar' },
   'admin.sponsors.saved': { en: 'Status updated.', de: 'Status aktualisiert.', sq: 'Statusi u përditësua.' },
   'admin.sponsors.total': { en: 'Pledged total', de: 'Zugesagt gesamt', sq: 'Totali i premtuar' },
+
+  // --- NACHBARSCHAFTEN: BEARBEITEN ---
+  'admin.nb.new': { en: 'New neighborhood', de: 'Neue Nachbarschaft', sq: 'Lagje e re' },
+  'admin.nb.edit': { en: 'Edit neighborhood', de: 'Nachbarschaft bearbeiten', sq: 'Ndrysho lagjen' },
+  'admin.nb.name': { en: 'Name of the neighborhood', de: 'Name der Nachbarschaft', sq: 'Emri i lagjes' },
+  'admin.nb.name_required': { en: 'Please enter a name.', de: 'Bitte einen Namen eingeben.', sq: 'Ju lutem shënoni një emër.' },
+  'admin.nb.saved': { en: 'Neighborhood saved.', de: 'Nachbarschaft gespeichert.', sq: 'Lagjja u ruajt.' },
+  'admin.nb.created': { en: 'Neighborhood created.', de: 'Nachbarschaft angelegt.', sq: 'Lagjja u krijua.' },
+  'admin.nb.no_manager': { en: 'No person responsible yet', de: 'Noch keine verantwortliche Person', sq: 'Ende pa person përgjegjës' },
+  'admin.nb.manager_hint': { en: 'The person responsible sees the members of this neighborhood and can record cash payments.', de: 'Die verantwortliche Person sieht die Mitglieder dieser Nachbarschaft und kann Barzahlungen erfassen.', sq: 'Personi përgjegjës sheh anëtarët e kësaj lagjeje dhe mund të regjistrojë pagesa në para të gatshme.' },
+  'admin.nb.delete_title': { en: 'Delete neighborhood', de: 'Nachbarschaft löschen', sq: 'Fshij lagjen' },
+  'admin.nb.delete_blocked': { en: 'Cannot be deleted: {count} members are still assigned to this neighborhood. Move them first.', de: 'Löschen nicht möglich: {count} Mitglieder sind dieser Nachbarschaft noch zugeordnet. Verschieben Sie sie zuerst.', sq: 'Nuk mund të fshihet: {count} anëtarë janë ende në këtë lagje. Zhvendosini së pari.' },
+
+  // --- NACHBARSCHAFTEN: DETAIL ---
+  'admin.nb.payment_status': { en: 'Payment status {year}', de: 'Zahlungsstand {year}', sq: 'Gjendja e pagesave {year}' },
+  'admin.nb.fee_year': { en: 'Fee {year}', de: 'Beitrag {year}', sq: 'Anëtarësia {year}' },
+  'admin.nb.fee.PAID': { en: 'Paid', de: 'Bezahlt', sq: 'E paguar' },
+  'admin.nb.fee.OPEN': { en: 'Open', de: 'Offen', sq: 'E hapur' },
+  'admin.nb.fee.NONE': { en: 'Not invoiced', de: 'Nicht verrechnet', sq: 'E pafaturuar' },
+  'admin.nb.data_ok': { en: 'Complete', de: 'Vollständig', sq: 'E plotë' },
+  'admin.nb.data_missing': { en: 'Missing: {fields}', de: 'Fehlt: {fields}', sq: 'Mungon: {fields}' },
+  'admin.nb.data_column': { en: 'Details', de: 'Angaben', sq: 'Të dhënat' },
+  'admin.nb.filter_all': { en: 'All', de: 'Alle', sq: 'Të gjithë' },
+  'admin.nb.filter_open': { en: 'Fee open', de: 'Beitrag offen', sq: 'Anëtarësia e hapur' },
+  'admin.nb.filter_incomplete': { en: 'Details missing', de: 'Angaben fehlen', sq: 'Mungojnë të dhënat' },
+  'admin.nb.no_members_filter': { en: 'No members match this filter.', de: 'Keine Mitglieder entsprechen diesem Filter.', sq: 'Asnjë anëtar nuk i përgjigjet këtij filtri.' },
+  'admin.nb.no_phone': { en: 'No phone number', de: 'Keine Telefonnummer', sq: 'Pa numër telefoni' },
+  'admin.nb.edit_button': { en: 'Edit neighborhood', de: 'Nachbarschaft bearbeiten', sq: 'Ndrysho lagjen' },
+  'admin.nb.open_amount': { en: 'Open amount', de: 'Offener Betrag', sq: 'Shuma e hapur' },
+  'role.neighborhood_manager': { en: 'Neighborhood manager', de: 'Nachbarschafts-Verantwortliche', sq: 'Përgjegjës lagjeje' },
+  'admin.dq.action_text': { en: '{count} members are missing important details. Without them, postal invoicing and notifications cannot be relied on.', de: 'Bei {count} Mitgliedern fehlen wichtige Angaben. Ohne sie sind Postversand und Benachrichtigungen nicht verlässlich.', sq: 'Te {count} anëtarë mungojnë të dhëna të rëndësishme. Pa to, dërgimi postar dhe njoftimet nuk janë të garantuara.' },
+  'admin.dq.total': { en: 'Total: {count} members', de: 'Gesamt: {count} Mitglieder', sq: 'Gjithsej: {count} anëtarë' },
 };
 
 interface LanguageContextType {
