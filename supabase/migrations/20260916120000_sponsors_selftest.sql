@@ -1,0 +1,23 @@
+-- Befund des Selbsttests, der hier stand.
+--
+-- Gemessen in der Datenbank, in der Rolle des Besuchers:
+--
+--   Regel sponsors_public_insert | Befehl INSERT | permissiv | Rollen anon,
+--   authenticated | Pruefung: true
+--   INSERT-Recht fuer anon: ja
+--   Ergebnis: 42501 "new row violates row-level security policy"
+--
+-- Eine Einfuege-Regel mit WITH CHECK (true) kann einen Insert nicht abweisen.
+-- Die Ursache lag am Zurueckgeben der neuen Zeile: "Prefer: return=representation"
+-- und INSERT ... RETURNING verlangen zusaetzlich ein Leserecht auf genau diese
+-- Zeile. Fuer einen anonymen Besucher gibt es keine Leseregel, und PostgreSQL
+-- meldet das mit derselben Fehlermeldung wie einen Verstoss gegen die
+-- Einfuegeregel -- was die Suche in die falsche Richtung gelenkt hat.
+--
+-- Loesung in der folgenden Migration: statt dem Besucher ein Leserecht zu
+-- geben, bekommt er eine eng geschnittene Funktion. Die Tabelle bleibt zu.
+--
+-- Der Testblock selbst ist entfernt: er endete in der Rolle anon und liess
+-- damit die nachfolgende Aufraeum-Anweisung scheitern.
+
+SELECT 1;

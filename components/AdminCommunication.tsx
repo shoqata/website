@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Plus, BarChart2, Trash2, Send, HelpCircle, CheckCircle2, MessageSquare, X } from 'lucide-react';
+import { Mail, Plus, BarChart2, Trash2, Send, HelpCircle, CheckCircle2, MessageSquare, X, Handshake, Globe, Phone } from 'lucide-react';
 import { db, auth } from '../services/firebase';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc, updateDoc } from '@/services/supabase-bridge';
 import { Poll, Inquiry } from '../types';
+import { packageByKey } from '../lib/sponsorPackages';
 import { useFeedback } from '../context/FeedbackContext';
 import { sendEmail } from '../services/mailService';
 import { useTranslation } from '../context/LanguageContext';
@@ -12,9 +13,10 @@ import { useTranslation } from '../context/LanguageContext';
 const AdminCommunication: React.FC = () => {
     const { t } = useTranslation();
     const { showAlert, showConfirm, showPrompt } = useFeedback();
-    const [activeTab, setActiveTab] = useState<'REQUESTS' | 'POLLS' | 'EMAIL'>('REQUESTS');
+    const [activeTab, setActiveTab] = useState<'REQUESTS' | 'SPONSORS' | 'POLLS' | 'EMAIL'>('REQUESTS');
     const [polls, setPolls] = useState<Poll[]>([]);
     const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+    const [sponsors, setSponsors] = useState<any[]>([]);
     
     // Poll State
     const [newPollQuestion, setNewPollQuestion] = useState('');
@@ -25,6 +27,11 @@ const AdminCommunication: React.FC = () => {
     const [emailBody, setEmailBody] = useState('');
 
     useEffect(() => {
+        const qSponsors = query(collection(db, 'sponsors'), orderBy('createdAt', 'desc'));
+        const unsubSponsors = onSnapshot(qSponsors, (snap) => {
+            setSponsors(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        }, (e) => console.error('[AdminCommunication] Sponsoren laden fehlgeschlagen:', e));
+
         const qPolls = query(collection(db, 'polls'), orderBy('createdAt', 'desc'));
         const unsubPolls = onSnapshot(qPolls, (snap) => {
             setPolls(snap.docs.map(d => ({ id: d.id, ...d.data() } as Poll)));
@@ -35,7 +42,7 @@ const AdminCommunication: React.FC = () => {
             setInquiries(snap.docs.map(d => ({ id: d.id, ...d.data() } as Inquiry)));
         });
 
-        return () => { unsubPolls(); unsubInquiries(); };
+        return () => { unsubPolls(); unsubInquiries(); unsubSponsors(); };
     }, []);
 
     const createPoll = async () => {
@@ -98,16 +105,95 @@ const AdminCommunication: React.FC = () => {
         }
     };
 
+    const updateSponsorStatus = async (id: string, status: string) => {
+        try {
+            await updateDoc(doc(db, 'sponsors', id), { status, updatedAt: new Date().toISOString() } as any);
+            showAlert({ type: 'success', message: t('admin.sponsors.saved') });
+        } catch (e: any) {
+            showAlert({ type: 'error', message: t('admin.save_failed', { reason: e?.message || '?' }) });
+        }
+    };
+
+    // Nur zugesagte Beitraege zaehlen -- eine Anfrage ist noch kein Geld.
+    const sponsorTotal = sponsors
+        .filter(sp => sp.status === 'CONFIRMED')
+        .reduce((sum, sp) => sum + (Number(sp.amount) || 0), 0);
+
     return (
         <div className="bg-white rounded-[2.5rem] border border-stone-100 shadow-sm min-h-[600px] overflow-hidden flex flex-col">
             <div className="flex border-b border-stone-100">
                 <button onClick={() => setActiveTab('REQUESTS')} className={`flex-1 py-4 text-sm font-bold flex items-center justify-center gap-2 ${activeTab === 'REQUESTS' ? 'bg-stone-50 text-primary' : 'text-stone-400'}`}><HelpCircle size={16}/> Requests ({inquiries.filter(i => i.status === 'OPEN').length})</button>
+                <button onClick={() => setActiveTab('SPONSORS')} className={`flex-1 py-4 text-sm font-bold flex items-center justify-center gap-2 ${activeTab === 'SPONSORS' ? 'bg-stone-50 text-primary' : 'text-stone-400'}`}><Handshake size={16}/> {t('admin.tab.sponsors')}{sponsors.length > 0 && <span className="text-[10px] bg-primary text-white rounded-full px-1.5 py-0.5">{sponsors.length}</span>}</button>
                 <button onClick={() => setActiveTab('POLLS')} className={`flex-1 py-4 text-sm font-bold flex items-center justify-center gap-2 ${activeTab === 'POLLS' ? 'bg-stone-50 text-primary' : 'text-stone-400'}`}><BarChart2 size={16}/> {t('comm.polls')}</button>
                 <button onClick={() => setActiveTab('EMAIL')} className={`flex-1 py-4 text-sm font-bold flex items-center justify-center gap-2 ${activeTab === 'EMAIL' ? 'bg-stone-50 text-primary' : 'text-stone-400'}`}><Mail size={16}/> {t('comm.newsletter')}</button>
             </div>
 
             <div className="p-8 flex-1 overflow-y-auto bg-[#faf9f6]">
                 
+                {activeTab === 'SPONSORS' && (
+                    <div className="space-y-4">
+                        <div className="flex flex-wrap justify-between items-center gap-3 bg-white p-5 rounded-2xl border border-stone-100">
+                            <h3 className="font-bold text-stone-900 flex items-center gap-2"><Handshake size={18} className="text-primary"/> {t('admin.sponsors.title')}</h3>
+                            <div className="text-right">
+                                <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">{t('admin.sponsors.total')}</p>
+                                <p className="font-bold text-xl text-stone-900">CHF {sponsorTotal.toLocaleString()}</p>
+                            </div>
+                        </div>
+
+                        {sponsors.length === 0 && (
+                            <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-stone-200">
+                                <p className="text-stone-400 italic text-sm">{t('admin.sponsors.none')}</p>
+                            </div>
+                        )}
+
+                        {sponsors.map(sp => {
+                            const pkg = packageByKey(sp.packageKey);
+                            return (
+                                <div key={sp.id} className="bg-white p-6 rounded-2xl border border-stone-100 shadow-sm">
+                                    <div className="flex flex-wrap justify-between items-start gap-4 mb-4">
+                                        <div>
+                                            <h4 className="font-bold text-stone-900 text-lg">{sp.company}</h4>
+                                            <p className="text-xs text-stone-500">
+                                                {sp.contactName} · {sp.createdAt ? new Date(sp.createdAt).toLocaleDateString() : ''}
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-sm font-bold text-stone-900 whitespace-nowrap">
+                                                {pkg ? t(pkg.titleKey) : sp.packageKey}{sp.amount ? ` · CHF ${Number(sp.amount).toLocaleString()}` : ''}
+                                            </span>
+                                            <select
+                                                value={sp.status}
+                                                onChange={(e) => updateSponsorStatus(sp.id, e.target.value)}
+                                                className={`text-xs font-bold rounded-lg py-1.5 px-2 outline-none border cursor-pointer ${
+                                                    sp.status === 'CONFIRMED' ? 'bg-green-50 border-green-200 text-green-700'
+                                                    : sp.status === 'DECLINED' ? 'bg-red-50 border-red-200 text-red-600'
+                                                    : sp.status === 'IN_PROGRESS' ? 'bg-amber-50 border-amber-200 text-amber-700'
+                                                    : 'bg-stone-50 border-stone-200 text-stone-600'}`}
+                                            >
+                                                <option value="NEW">{t('admin.sponsors.status.NEW')}</option>
+                                                <option value="IN_PROGRESS">{t('admin.sponsors.status.IN_PROGRESS')}</option>
+                                                <option value="CONFIRMED">{t('admin.sponsors.status.CONFIRMED')}</option>
+                                                <option value="DECLINED">{t('admin.sponsors.status.DECLINED')}</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs text-stone-500 mb-3">
+                                        <a href={`mailto:${sp.email}`} className="flex items-center gap-1.5 hover:text-primary"><Mail size={12}/> {sp.email}</a>
+                                        {sp.phone && <span className="flex items-center gap-1.5"><Phone size={12}/> {sp.phone}</span>}
+                                        {sp.website && <a href={sp.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-primary"><Globe size={12}/> {sp.website}</a>}
+                                        {(sp.street || sp.city) && <span>{[sp.street, sp.zip, sp.city, sp.country].filter(Boolean).join(', ')}</span>}
+                                    </div>
+
+                                    {sp.message && (
+                                        <div className="bg-stone-50 p-4 rounded-xl text-sm text-stone-600 leading-relaxed">{sp.message}</div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+
                 {activeTab === 'REQUESTS' && (
                     <div className="space-y-4">
                         {inquiries.map(req => (

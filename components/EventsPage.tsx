@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, MapPin, Clock, ChevronRight, Heart, X, CheckCircle2, User, Mail, Phone, Loader2, Info } from 'lucide-react';
+import { Calendar, MapPin, Clock, ChevronRight, Heart, X, CheckCircle2, User, Mail, Phone, Loader2, Info, Trophy, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { auth, db } from '../services/firebase';
 import { collection, query, orderBy, onSnapshot, addDoc, doc, getDoc, where } from '@/services/supabase-bridge';
 import { SolidarityEvent, UserProfile, EventRegistration } from '../types';
@@ -101,6 +102,26 @@ const EventsPage: React.FC = () => {
              {t('events.desc')}
           </p>
         </div>
+
+        {/* Das Turnier hat eine eigene Seite mit Spielplan und Sponsoring. */}
+        <Link
+          to="/fussball"
+          className="group block bg-stone-900 text-white rounded-[2rem] p-8 md:p-10 mb-16 relative overflow-hidden hover:bg-black transition-colors"
+        >
+          <div className="absolute -right-12 -top-12 w-56 h-56 bg-primary/20 rounded-full blur-3xl" />
+          <div className="relative z-10 flex flex-wrap items-center justify-between gap-6">
+            <div className="max-w-xl">
+              <span className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-amber-300 mb-3">
+                <Trophy size={13} /> {t('futsal.badge')}
+              </span>
+              <h2 className="font-display text-2xl md:text-3xl font-bold italic mb-2">{t('futsal.title')}</h2>
+              <p className="text-white/60 text-sm leading-relaxed italic">{t('futsal.intro')}</p>
+            </div>
+            <span className="inline-flex items-center gap-2 bg-primary px-6 py-3.5 rounded-2xl font-bold text-sm shrink-0 shadow-lg">
+              {t('futsal.plan_title')} <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            </span>
+          </div>
+        </Link>
 
         {loading ? (
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

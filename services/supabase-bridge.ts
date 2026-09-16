@@ -185,6 +185,7 @@ const TENANT_SCOPED = new Set([
   "fiscal_years", "fiscal_budgets", "board_meetings", "board_members", "tasks",
   "neighborhoods", "events", "news", "polls", "socialmediaposts",
   "event_registrations", "inquiries", "security_logs", "settings",
+  "sponsors",
   "public_members", "public_settings",
 ]);
 
@@ -741,6 +742,48 @@ export async function claimMyProfile(): Promise<string | null> {
 // gehoeren zusammen -- ein Verein ohne Domain ist nicht auffindbar, einer ohne
 // Administrator nicht verwaltbar -- und laufen deshalb serverseitig in einer
 // Funktion, die zugleich prueft, ob der Aufrufer die Plattform betreibt.
+// Eine Sponsorenanfrage aus dem oeffentlichen Formular.
+//
+// Laeuft ueber eine Funktion statt ueber einen direkten Insert: ein nicht
+// angemeldeter Besucher hat auf der Tabelle weder Schreib- noch Leserecht.
+// Der Verein wird serverseitig aus der aufrufenden Adresse bestimmt, der
+// Client kann ihn nicht vorgeben.
+export async function submitSponsor(input: {
+  packageKey: string;
+  amount: number | null;
+  company: string;
+  contactName: string;
+  email: string;
+  phone?: string;
+  street?: string;
+  zip?: string;
+  city?: string;
+  country?: string;
+  website?: string;
+  message?: string;
+}): Promise<string> {
+  if (!supabase) throw new Error("Supabase is not configured.");
+  const { data, error } = await supabase.rpc("submit_sponsor", {
+    p_package: input.packageKey,
+    p_amount: input.amount,
+    p_company: input.company,
+    p_contact: input.contactName,
+    p_email: input.email,
+    p_phone: input.phone || null,
+    p_street: input.street || null,
+    p_zip: input.zip || null,
+    p_city: input.city || null,
+    p_country: input.country || null,
+    p_website: input.website || null,
+    p_message: input.message || null,
+  });
+  if (error) {
+    console.error("[Bridge] submit_sponsor failed:", error);
+    throw new Error(error.message || "submit_sponsor failed");
+  }
+  return data as string;
+}
+
 export async function createTenant(
   name: string, slug: string, domain: string, adminEmail: string
 ): Promise<string> {

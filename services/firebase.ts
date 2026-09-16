@@ -3,6 +3,7 @@
 import {
   claimMyProfile,
   createTenant,
+  submitSponsor,
   db as supabaseDb,
   storage as supabaseStorage,
   collection,
@@ -83,7 +84,7 @@ export {
 };
 
 // Raw Supabase client (for advanced usage)
-export { claimMyProfile, createTenant };
+export { claimMyProfile, createTenant, submitSponsor };
 export { supabase };
 
 export default { name: 'supabase-only' };

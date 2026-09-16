@@ -56,6 +56,8 @@ const ProfileSetup = React.lazy(() => import('./components/ProfileSetup'));
 const EventsPage = React.lazy(() => import('./components/EventsPage'));
 const NewsPage = React.lazy(() => import('./components/NewsPage'));
 const AboutUsPage = React.lazy(() => import('./components/AboutUsPage'));
+const FutsalPage = React.lazy(() => import('./components/FutsalPage'));
+const SponsorPage = React.lazy(() => import('./components/SponsorPage'));
 const LegalPage = React.lazy(() => import('./components/LegalPage'));
 const SuperAdminDashboard = React.lazy(() => import('./components/SuperAdminDashboard'));
 
@@ -279,6 +281,13 @@ const AppContent: React.FC = () => {
                     <Route path="/live" element={<VillageLive />} />
                     <Route path="/events" element={<EventsPage />} />
                     <Route path="/news" element={<NewsPage />} />
+                    {/* Turnier und Sponsoring. Die Adressen werden so geteilt
+                        (koretini.me/fussball/sponsoren); index.html schreibt
+                        einen Pfad ohne Raute auf die Rauten-Form um. */}
+                    <Route path="/fussball" element={<FutsalPage />} />
+                    <Route path="/fussball/sponsoren" element={<SponsorPage />} />
+                    <Route path="/futsal" element={<Navigate to="/fussball" replace />} />
+                    <Route path="/fussball/sponsoren/" element={<Navigate to="/fussball/sponsoren" replace />} />
                     <Route path="/gdpr" element={<LegalPage type="GDPR" />} />
                     <Route path="/privacy" element={<LegalPage type="PRIVACY" />} />
                     <Route path="/login" element={<AuthRedirectHandler user={user}><LoginPage /></AuthRedirectHandler>} />
