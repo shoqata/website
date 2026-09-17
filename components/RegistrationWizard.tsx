@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import CountrySelect from './ui/CountrySelect';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, ArrowRight, ArrowLeft, User, Phone, Home, MapPin, Heart, CheckCircle2, ShieldCheck, Loader2, Search, X, Flag, Lock, Eye, EyeOff, Chrome, Camera, FileText } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -370,16 +371,11 @@ const RegistrationWizard: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                      <div className="space-y-2">
                         <label className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">{t('field.country')}</label>
-                        <div className="relative">
-                          <Flag className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300" size={16} />
-                          <input 
-                            type="text"
-                            value={formData.country}
-                            onChange={(e) => setFormData({...formData, country: e.target.value})}
-                            placeholder={t('ph.country')}
-                            className="w-full pl-12 pr-4 py-3 bg-stone-50 border-2 border-stone-100 rounded-xl outline-none focus:border-primary/30 text-sm font-medium"
-                          />
-                        </div>
+                        <CountrySelect
+                          value={formData.country}
+                          onChange={(v) => setFormData({...formData, country: v})}
+                          className="w-full px-4 py-3 bg-stone-50 border-2 border-stone-100 rounded-xl outline-none focus:border-primary/30 text-sm font-medium"
+                        />
                       </div>
                       
                       {/* {t('form.invoice_delivery')} Preference */}

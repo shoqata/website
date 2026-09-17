@@ -44,6 +44,7 @@ import AdminExpenses from './AdminExpenses';
 import { neighborhoodPlace } from '../lib/neighborhood';
 import { onImageError } from '../lib/imageFallback';
 import AdminNeighborhoodEditor from './AdminNeighborhoodEditor';
+import CountrySelect from './ui/CountrySelect';
 import { missingFieldKeys, qualityScore, feeStateFor, hasDeliveryConflict } from '../lib/memberQuality';
 import { isPlaceholderEmail, hasUsableEmail, emailMissingForDelivery, deliveryNeedsEmail } from '../lib/memberEmail';
 type AdminTabId = 'USERS' | 'NEIGHBORHOODS' | 'ANALYTICS' | 'STATISTICS' | 'WEBSITE' | 'SOCIAL_AI' | 'EVENTS' | 'NEWS' | 'FINANCE' | 'EXPENSES' | 'DATA' | 'ACCOUNTING' | 'SETTINGS' | 'BOARD' | 'COMMUNICATION' | 'DATA_QUALITY';
@@ -854,7 +855,7 @@ const AdminPanel: React.FC = () => {
                           {userDrawerTab === 'GENERAL' && (
                               <div className="space-y-6">
                                   <div className="grid grid-cols-2 gap-6">
-                                      <div><label className="text-[10px] font-bold text-stone-400 uppercase block mb-1">{t('field.salutation')}</label><select value={selectedUser.salutation || ''} onChange={e => setSelectedUser({...selectedUser, salutation: e.target.value})} className="w-full p-4 bg-white border border-stone-200 rounded-xl outline-none"><option value="">{t('common.select')}</option><option value="Z.">Z.</option><option value="Znj.">{t('salutation.ms')}</option></select></div>
+                                      <div><label className="text-[10px] font-bold text-stone-400 uppercase block mb-1">{t('field.salutation')}</label><select value={selectedUser.salutation || ''} onChange={e => setSelectedUser({...selectedUser, salutation: e.target.value})} className="w-full p-4 bg-white border border-stone-200 rounded-xl outline-none"><option value="">{t('common.select')}</option><option value="Z.">{t('salutation.mr')}</option><option value="Znj.">{t('salutation.ms')}</option></select></div>
                                       <div><label className="text-[10px] font-bold text-stone-400 uppercase block mb-1">{t('field.birthdate')}</label><input type="date" value={selectedUser.birthdate || ''} onChange={e => setSelectedUser({...selectedUser, birthdate: e.target.value})} className="w-full p-4 bg-white border border-stone-200 rounded-xl outline-none" /></div>
                                   </div>
                                   <div className="grid grid-cols-2 gap-6">
@@ -892,7 +893,7 @@ const AdminPanel: React.FC = () => {
                                       <div><label className="text-[10px] font-bold text-stone-400 uppercase block mb-1">{t('field.zip')}</label><input value={selectedUser.zip || ''} onChange={e => setSelectedUser({...selectedUser, zip: e.target.value})} className="w-full p-4 bg-white border border-stone-200 rounded-xl outline-none" /></div>
                                       <div className="col-span-2"><label className="text-[10px] font-bold text-stone-400 uppercase block mb-1">{t('field.city')}</label><input value={selectedUser.city || ''} onChange={e => setSelectedUser({...selectedUser, city: e.target.value})} className="w-full p-4 bg-white border border-stone-200 rounded-xl outline-none" /></div>
                                   </div>
-                                  <div><label className="text-[10px] font-bold text-stone-400 uppercase block mb-1">{t('field.country')}</label><input value={selectedUser.country || ''} onChange={e => setSelectedUser({...selectedUser, country: e.target.value})} className="w-full p-4 bg-white border border-stone-200 rounded-xl outline-none" /></div>
+                                  <div><label className="text-[10px] font-bold text-stone-400 uppercase block mb-1">{t('field.country')}</label><CountrySelect value={selectedUser.country} onChange={(v) => setSelectedUser({...selectedUser, country: v})} /></div>
                                   <div className="pt-6 border-t border-stone-200">
                                       <label className="text-[10px] font-bold text-stone-400 uppercase block mb-4">{t('admin.members.invoice_delivery')}</label>
                                       {emailMissingForDelivery(selectedUser) && (

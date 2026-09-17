@@ -1306,6 +1306,9 @@ const translations: Translations = {
   'sa.lead_note': { en: 'Notes on the conversation', de: 'Notizen zum Gespräch', sq: 'Shënime për bisedën' },
   'sa.lead_note_ph': { en: 'What was discussed, what is still open, when to follow up...', de: 'Was besprochen wurde, was offen ist, wann nachfassen...', sq: 'Çfarë u bisedua, çfarë mbetet, kur të kontaktohet sërish...' },
   'sa.expected_hint': { en: 'Rough size of the association — helps when quoting the fee.', de: 'Ungefähre Grösse des Vereins — hilft beim Ansetzen der Gebühr.', sq: 'Madhësia e përafërt e shoqatës — ndihmon në caktimin e tarifës.' },
+  'salutation.mr': { en: 'Mr.', de: 'Herr', sq: 'Z.' },
+  'country.other': { en: 'Other', de: 'Anderes', sq: 'Tjetër' },
+  'country.other_label': { en: 'Which country?', de: 'Welches Land?', sq: 'Cili shtet?' },
 };
 
 interface LanguageContextType {
