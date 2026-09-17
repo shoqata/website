@@ -4,7 +4,7 @@ import CountrySelect from './ui/CountrySelect';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserProfile, Neighborhood, BillingGroup } from '../types';
 import { db } from '../services/firebase';
-import { doc, setDoc, collection, getDocs, query, orderBy } from '@/services/supabase-bridge';
+import { doc, setDoc, updateDoc, collection, getDocs, query, orderBy } from '@/services/supabase-bridge';
 import { MapPin, User, Phone, CheckCircle2, ArrowRight, ArrowLeft, Loader2, Mail, Home, Heart, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../context/LanguageContext';
@@ -93,7 +93,34 @@ const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) =
     };
 
     try {
-      await setDoc(doc(db, 'users', user.id), updatedProfile);
+      // Aendern, nicht einfuegen.
+      //
+      // setDoc schreibt als Upsert, und PostgreSQL prueft dabei die
+      // INSERT-Regel. Deren Selbst-Zweig verlangt id = auth.uid(); die
+      // Kennungen der 339 uebernommenen Mitglieder stammen aber aus dem
+      // Altbestand. Das Speichern scheiterte deshalb mit "new row violates
+      // row-level security policy" -- obwohl die UPDATE-Regel den Zugriff auf
+      // die eigene Zeile ausdruecklich erlaubt, sobald sie dem Konto
+      // zugeordnet ist. Die Zeile existiert; sie gehoert geaendert.
+      //
+      // Geschrieben werden nur die Felder dieses Assistenten. role bleibt
+      // aussen vor: die UPDATE-Regel verlangt, dass die Rolle unveraendert
+      // bleibt, und was nicht mitgeschickt wird, kann sich nicht aendern.
+      await updateDoc(doc(db, 'users', user.id), {
+        displayName: updatedProfile.displayName,
+        firstName: updatedProfile.firstName,
+        lastName: updatedProfile.lastName,
+        street: updatedProfile.street,
+        zip: updatedProfile.zip,
+        city: updatedProfile.city,
+        address: updatedProfile.address,
+        phone: updatedProfile.phone,
+        country: updatedProfile.country,
+        neighborhoodId: updatedProfile.neighborhoodId,
+        invoiceDeliveryMethod: updatedProfile.invoiceDeliveryMethod,
+        billingGroup: updatedProfile.billingGroup,
+        profileComplete: true,
+      } as any);
       onComplete(updatedProfile);
       setStep(4); // Success step
     } catch (error: any) {
