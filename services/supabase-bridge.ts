@@ -784,12 +784,41 @@ export async function submitSponsor(input: {
   return data as string;
 }
 
+// Betreuung eines fremden Vereins durch den Plattformbetreiber.
+//
+// Der Betreiber wird dabei *kein* Mitglied des Vereins. Solange die Sitzung
+// offen ist, loest current_tenant() serverseitig auf den betreuten Verein auf;
+// danach ist er dort wieder aussen vor. Jede Sitzung bleibt mit Anfang und Ende
+// stehen, damit der Verein nachlesen kann, wer wann Zugriff hatte.
+export async function startTenantSupport(tenantId: string, reason?: string): Promise<string> {
+  if (!supabase) throw new Error("Supabase is not configured.");
+  const { data, error } = await supabase.rpc("start_tenant_support", {
+    p_tenant: tenantId, p_reason: reason || null,
+  });
+  if (error) {
+    console.error("[Bridge] start_tenant_support failed:", error);
+    throw new Error(error.message || "start_tenant_support failed");
+  }
+  return data as string;
+}
+
+export async function endTenantSupport(): Promise<number> {
+  if (!supabase) throw new Error("Supabase is not configured.");
+  const { data, error } = await supabase.rpc("end_tenant_support");
+  if (error) {
+    console.error("[Bridge] end_tenant_support failed:", error);
+    throw new Error(error.message || "end_tenant_support failed");
+  }
+  return Number(data) || 0;
+}
+
 export async function createTenant(
-  name: string, slug: string, domain: string, adminEmail: string
+  name: string, slug: string, domain: string, adminEmail?: string
 ): Promise<string> {
   if (!supabase) throw new Error("Supabase is not configured.");
   const { data, error } = await supabase.rpc("create_tenant", {
-    p_name: name, p_slug: slug, p_domain: domain, p_admin_email: adminEmail,
+    p_name: name, p_slug: slug, p_domain: domain,
+    p_admin_email: (adminEmail || '').trim() || null,
   });
   if (error) throw error;
   return data as string;

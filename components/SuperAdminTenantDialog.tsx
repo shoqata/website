@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Building2, X, Save, Loader2, Receipt, Globe, Users } from 'lucide-react';
+import { Building2, X, Save, Loader2, Receipt, Globe, Users, ShieldCheck } from 'lucide-react';
 import { db } from '../services/firebase';
 import { doc, updateDoc, addDoc, collection } from '@/services/supabase-bridge';
 import { Tenant } from '../types';
@@ -12,6 +12,9 @@ interface Props {
   domains: string[];
   memberCount: number;
   invoices: any[];
+  support?: any | null;
+  onStartSupport?: (tenant: any) => void;
+  onEndSupport?: () => void;
   onClose: () => void;
 }
 
@@ -20,7 +23,7 @@ interface Props {
 // Der Knopf "Verwalten" in der Uebersicht hatte bis hierher keine Funktion.
 // Hier lassen sich Stammdaten, Plan, Status und vor allem die Gebuehren
 // hinterlegen -- und daraus eine Rechnung an den Verein erzeugen.
-const SuperAdminTenantDialog: React.FC<Props> = ({ tenant, domains, memberCount, invoices, onClose }) => {
+const SuperAdminTenantDialog: React.FC<Props> = ({ tenant, domains, memberCount, invoices, support, onStartSupport, onEndSupport, onClose }) => {
   const { t } = useTranslation();
   const { showAlert } = useFeedback();
   const [form, setForm] = useState<any>({});
@@ -39,6 +42,7 @@ const SuperAdminTenantDialog: React.FC<Props> = ({ tenant, domains, memberCount,
   if (!tenant) return null;
 
   const year = new Date().getFullYear();
+  const supportsThis = !!support && support.tenantId === tenant.id;
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setForm((f: any) => ({ ...f, [k]: e.target.value }));
   const annualDone = ownInvoices.some((i) => i.kind === 'ANNUAL' && Number(i.year) === year && i.status !== 'CANCELLED');
@@ -138,6 +142,22 @@ const SuperAdminTenantDialog: React.FC<Props> = ({ tenant, domains, memberCount,
                 <option value="PAST_DUE">{t('admin.finance.overdue')}</option>
                 <option value="CANCELLED">{t('sa.istatus.CANCELLED')}</option>
               </select></div>
+          </div>
+
+          <div className="border-t border-stone-100 pt-6">
+            <h4 className="font-bold text-stone-900 mb-2 flex items-center gap-2"><ShieldCheck size={16} className="text-primary" /> {t('sa.support_start')}</h4>
+            <p className="text-xs text-stone-500 leading-relaxed mb-4 max-w-2xl">{t('sa.support_hint')}</p>
+            {supportsThis ? (
+              <button onClick={() => onEndSupport?.()}
+                className="px-5 py-2.5 bg-amber-500 text-stone-900 rounded-xl text-xs font-bold hover:bg-amber-400 transition-colors">
+                {t('sa.support_end')}
+              </button>
+            ) : (
+              <button onClick={() => onStartSupport?.(tenant)}
+                className="px-5 py-2.5 bg-stone-900 text-white rounded-xl text-xs font-bold hover:bg-black transition-colors">
+                {t('sa.support_start')}
+              </button>
+            )}
           </div>
 
           <div className="border-t border-stone-100 pt-6">

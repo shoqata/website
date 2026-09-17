@@ -23,7 +23,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { db, auth } from '../services/firebase';
-import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, createTenant } from '@/services/supabase-bridge';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, createTenant, startTenantSupport, endTenantSupport } from '@/services/supabase-bridge';
 import { Tenant } from '../types';
 import SuperAdminTenantDialog from './SuperAdminTenantDialog';
 import { useFeedback } from '../context/FeedbackContext';
@@ -44,6 +44,26 @@ const SuperAdminDashboard: React.FC<{ user?: any }> = ({ user }) => {
   const [memberCounts, setMemberCounts] = useState<Record<string, number>>({});
   const [manageTenant, setManageTenant] = useState<any | null>(null);
   const operatorEmail = user?.email || '';
+  const [support, setSupport] = useState<any | null>(null);
+
+  const beginSupport = async (tn: any) => {
+    try {
+      await startTenantSupport(tn.id);
+      showAlert({ type: 'success', message: t('sa.support_started', { name: tn.name }) });
+      setManageTenant(null);
+    } catch (e: any) {
+      showAlert({ type: 'error', message: t('admin.save_failed', { reason: e?.message || '?' }) });
+    }
+  };
+
+  const stopSupport = async () => {
+    try {
+      await endTenantSupport();
+      showAlert({ type: 'success', message: t('sa.support_ended') });
+    } catch (e: any) {
+      showAlert({ type: 'error', message: t('admin.save_failed', { reason: e?.message || '?' }) });
+    }
+  };
 
   useEffect(() => {
     const q = query(collection(db, 'tenants'), orderBy('createdAt', 'desc'));
@@ -77,7 +97,14 @@ const SuperAdminDashboard: React.FC<{ user?: any }> = ({ user }) => {
       setMemberCounts(map);
     }, () => {});
 
-    return () => { unsub(); unsubLeads(); unsubInvoices(); unsubDomains(); unsubMembers(); };
+    const unsubSupport = onSnapshot(collection(db, 'platform_support'), (snap) => {
+      const open = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }))
+        .filter((r: any) => !r.endedAt)
+        .sort((a: any, b: any) => String(b.startedAt).localeCompare(String(a.startedAt)));
+      setSupport(open[0] || null);
+    }, () => {});
+
+    return () => { unsub(); unsubLeads(); unsubInvoices(); unsubDomains(); unsubMembers(); unsubSupport(); };
   }, []);
 
   // --- Interessenten ---
@@ -149,16 +176,18 @@ const SuperAdminDashboard: React.FC<{ user?: any }> = ({ user }) => {
       });
       if (!domain) return;
 
+      // Leer lassen ist ausdruecklich erlaubt: dann richtet der Betreiber den
+      // Verein zunaechst selbst ein und uebergibt spaeter.
       const adminEmail = await showPrompt({
           title: t('sa.administrator'),
-          message: t('sa.admin_prompt')
+          message: t('sa.admin_optional')
       });
-      if (!adminEmail) return;
+      if (adminEmail === null || adminEmail === undefined) return;
 
       const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
       try {
-          const id = await createTenant(name, slug, domain.trim(), adminEmail.trim());
+          const id = await createTenant(name, slug, domain.trim(), (adminEmail || '').trim());
           showAlert({
               type: 'success',
               message: `Verein "${name}" angelegt (${id}). Erreichbar über ${domain.trim()}, sobald die Domain auf die Anwendung zeigt. ${adminEmail.trim()} kann sich jetzt registrieren und übernimmt ihn.`
@@ -465,6 +494,24 @@ const SuperAdminDashboard: React.FC<{ user?: any }> = ({ user }) => {
                 </div>
             </header>
 
+            {support && (
+                <div className="mb-8 bg-amber-500/15 border border-amber-500/30 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                        <ShieldCheck size={20} className="text-amber-400 shrink-0 mt-0.5" />
+                        <div>
+                            <p className="font-bold text-amber-200">
+                                {t('sa.support_active', { name: tenants.find(x => x.id === support.tenantId)?.name || support.tenantId })}
+                            </p>
+                            <p className="text-xs text-amber-200/70 mt-0.5">{t('sa.support_active_hint')}</p>
+                        </div>
+                    </div>
+                    <button onClick={stopSupport}
+                        className="bg-amber-500 text-stone-900 px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-amber-400 transition-colors shrink-0">
+                        {t('sa.support_end')}
+                    </button>
+                </div>
+            )}
+
             {renderContent()}
         </main>
     </div>
@@ -475,6 +522,9 @@ const SuperAdminDashboard: React.FC<{ user?: any }> = ({ user }) => {
         domains={manageTenant ? (domainsByTenant[manageTenant.id] || []) : []}
         memberCount={manageTenant ? (memberCounts[manageTenant.id] || 0) : 0}
         invoices={invoices}
+        support={support}
+        onStartSupport={beginSupport}
+        onEndSupport={stopSupport}
         onClose={() => setManageTenant(null)}
       />
     </AnimatePresence>
