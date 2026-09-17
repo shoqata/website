@@ -12,17 +12,27 @@ import { useFeedback } from '../context/FeedbackContext';
 import { emailMissingForDelivery } from '../lib/memberEmail';
 
 import { neighborhoodCity } from '../lib/neighborhood';
+import { matchCountry } from '../lib/countries';
 const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) => void }> = ({ user, onComplete }) => {
   const { t } = useTranslation();
   const { showAlert } = useFeedback();
   const [step, setStep] = useState(1);
+  // Vorbelegung aus dem bestehenden Datensatz.
+  //
+  // Vorher stand hier ueberall der Leerstring: wer seit Jahren Mitglied ist,
+  // sah Telefon, Adresse und Nachbarschaft leer und musste alles noch einmal
+  // eintippen -- obwohl es in der Datenbank steht. Gefuellt wird aus den
+  // getrennten Feldern street/zip/city; das alte Sammelfeld address dient nur
+  // noch als Rueckfall fuer Datensaetze, bei denen street leer blieb.
   const [formData, setFormData] = useState({
-    name: user.displayName || '',
-    phone: '',
-    address: '',
-    country: 'Zvicër',
-    neighborhoodId: '',
-    invoiceDeliveryMethod: 'EMAIL' as 'EMAIL' | 'POST' | 'BOTH'
+    name: user.displayName || [user.firstName, user.lastName].filter(Boolean).join(' ') || '',
+    phone: user.phone || '',
+    street: user.street || (user as any).address || '',
+    zip: user.zip || '',
+    city: user.city || '',
+    country: matchCountry(user.country) || 'Schweiz',
+    neighborhoodId: user.neighborhoodId || '',
+    invoiceDeliveryMethod: (user.invoiceDeliveryMethod || 'EMAIL') as 'EMAIL' | 'POST' | 'BOTH'
   });
   
   const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([]);
@@ -56,25 +66,41 @@ const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) =
         billingGroup = 'KOSOVO';
     }
 
+    const teile = formData.name.trim().split(/\s+/);
+
     const updatedProfile: UserProfile = {
       ...user,
-      displayName: formData.name,
-      address: formData.address,
-      phone: formData.phone,
+      displayName: formData.name.trim(),
+      // Vor- und Nachname mitfuehren, sonst stehen sie im Mitglieder-Detail
+      // weiterhin leer -- dieselbe Luecke, die im Bestand schon einmal
+      // nachtraeglich geschlossen werden musste.
+      firstName: user.firstName || (teile.length > 1 ? teile.slice(0, -1).join(' ') : teile[0] || ''),
+      lastName: user.lastName || (teile.length > 1 ? teile[teile.length - 1] : ''),
+      street: formData.street.trim(),
+      zip: formData.zip.trim(),
+      city: formData.city.trim(),
+      // Das alte Sammelfeld gleich mitfuehren: die QR-Rechnung liest address
+      // vor street, ein stehengebliebener Wert wuerde die berichtigte Strasse
+      // auf der Rechnung ueberstimmen.
+      address: formData.street.trim(),
+      phone: formData.phone.trim(),
       country: formData.country,
       neighborhoodId: formData.neighborhoodId,
       invoiceDeliveryMethod: formData.invoiceDeliveryMethod,
       billingGroup: billingGroup, // Set detected group
       profileComplete: true,
-      joinedAt: new Date().toISOString()
+      joinedAt: user.joinedAt || new Date().toISOString()
     };
 
     try {
       await setDoc(doc(db, 'users', user.id), updatedProfile);
       onComplete(updatedProfile);
       setStep(4); // Success step
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      // Frueher landete der Fehler nur auf der Konsole. Nach aussen sah das
+      // aus, als bewege sich nichts -- der Knopf war gedrueckt und die Seite
+      // blieb stehen. Wer scheitert, muss es sagen.
+      showAlert({ type: 'error', message: t('admin.save_failed', { reason: error?.message || '?' }) });
     } finally {
       setIsLoading(false);
     }
@@ -171,12 +197,26 @@ const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) =
                   <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2">
                     <Home size={14} className="text-primary" /> {t('wizard.step.2')}
                   </label>
-                  <textarea 
-                    value={formData.address}
-                    onChange={(e) => setFormData({...formData, address: e.target.value})}
-                    placeholder={t('ph.address_full')}
-                    className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-primary/30 transition-all text-lg font-medium h-32"
+                  <input
+                    value={formData.street}
+                    onChange={(e) => setFormData({...formData, street: e.target.value})}
+                    placeholder={t('admin.members.street_no')}
+                    className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-primary/30 transition-all text-lg font-medium"
                   />
+                  <div className="grid grid-cols-3 gap-4">
+                    <input
+                      value={formData.zip}
+                      onChange={(e) => setFormData({...formData, zip: e.target.value})}
+                      placeholder={t('field.zip')}
+                      className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-primary/30 transition-all text-lg font-medium"
+                    />
+                    <input
+                      value={formData.city}
+                      onChange={(e) => setFormData({...formData, city: e.target.value})}
+                      placeholder={t('field.city')}
+                      className="col-span-2 w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-primary/30 transition-all text-lg font-medium"
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -283,7 +323,7 @@ const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) =
               
               <button 
                 onClick={step === 3 ? handleSubmit : handleNext}
-                disabled={isLoading || (step === 1 && !formData.name) || (step === 2 && (!formData.address || !formData.country)) || (step === 3 && !formData.neighborhoodId)}
+                disabled={isLoading || (step === 1 && !formData.name) || (step === 2 && (!formData.street.trim() || !formData.zip.trim() || !formData.city.trim() || !formData.country)) || (step === 3 && !formData.neighborhoodId)}
                 className="bg-primary text-white px-10 py-4 rounded-2xl font-bold flex items-center gap-3 hover:opacity-90 transition-all shadow-xl shadow-rose-100 disabled:opacity-50"
               >
                 {isLoading ? <Loader2 className="animate-spin" /> : step === 3 ? t('wizard.finish') : t('wizard.next')} <ArrowRight size={18} />

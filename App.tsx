@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { needsProfileSetup } from './lib/memberQuality';
 import { HashRouter as Router, Routes, Route, Link, useLocation, Navigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -109,7 +110,9 @@ const AuthRedirectHandler: React.FC<{ user: UserProfile | null, children: React.
   const location = useLocation();
   if (user && (location.pathname === '/login' || location.pathname === '/register')) {
     const isAdmin = user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN || ADMIN_EMAILS.includes(user.email);
-    const shouldGoToDashboard = user.profileComplete || isAdmin;
+    // Nicht das Haekchen entscheidet, sondern die Daten selbst -- sonst
+    // landen laengst vollstaendige Mitglieder immer wieder im Assistenten.
+    const shouldGoToDashboard = isAdmin || !needsProfileSetup(user);
     return <Navigate to={shouldGoToDashboard ? "/dashboard" : "/setup-profile"} replace />;
   }
   return <>{children}</>;
@@ -124,7 +127,7 @@ const ProtectedRoute: React.FC<{ user: UserProfile | null, children: React.React
   if (superAdminOnly && !isSuper) return <Navigate to="/" replace />;
   if (isAdmin) return <>{children}</>;
   
-  if (!user.profileComplete && adminOnly === undefined) return <Navigate to="/setup-profile" replace />;
+  if (needsProfileSetup(user) && adminOnly === undefined) return <Navigate to="/setup-profile" replace />;
   if (adminOnly && !isAdmin) return <Navigate to="/dashboard" replace />;
   
   return <>{children}</>;
