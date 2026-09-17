@@ -30,7 +30,7 @@ import { useFeedback } from '../context/FeedbackContext';
 import { signOut } from '@/services/supabase-bridge';
 import { useNavigate } from 'react-router-dom';
 
-const SuperAdminDashboard: React.FC = () => {
+const SuperAdminDashboard: React.FC<{ user?: any }> = ({ user }) => {
   const { t } = useTranslation();
   const { showAlert, showPrompt } = useFeedback();
   const navigate = useNavigate();
@@ -43,6 +43,7 @@ const SuperAdminDashboard: React.FC = () => {
   const [domainsByTenant, setDomainsByTenant] = useState<Record<string, string[]>>({});
   const [memberCounts, setMemberCounts] = useState<Record<string, number>>({});
   const [manageTenant, setManageTenant] = useState<any | null>(null);
+  const operatorEmail = user?.email || '';
 
   useEffect(() => {
     const q = query(collection(db, 'tenants'), orderBy('createdAt', 'desc'));
@@ -372,7 +373,11 @@ const SuperAdminDashboard: React.FC = () => {
                                             </div>
                                             {tn.name}
                                         </td>
-                                        <td className="p-6 font-mono text-stone-400">{tn.slug}.unityhub.li</td>
+                                        <td className="p-6 font-mono text-stone-400 text-xs">
+                                            {(domainsByTenant[tn.id] || []).length
+                                                ? (domainsByTenant[tn.id] || []).join(', ')
+                                                : <span className="italic text-stone-600">{t('sa.no_domain')}</span>}
+                                        </td>
                                         <td className="p-6">
                                             <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${tn.subscriptionPlan === 'PRO' ? 'bg-rose-500/20 text-rose-400' : 'bg-stone-700 text-stone-300'}`}>
                                                 {tn.subscriptionPlan}
@@ -407,7 +412,7 @@ const SuperAdminDashboard: React.FC = () => {
             <div className="p-8 pb-4">
                 <div className="flex items-center gap-3 text-rose-500 mb-8">
                     <ShieldCheck size={28} />
-                    <span className="font-display font-bold text-xl italic text-white">UnityHub</span>
+                    <span className="font-display font-bold text-lg italic text-white leading-tight">{t('sa.platform_title')}</span>
                 </div>
                 
                 <div className="space-y-1">
@@ -432,8 +437,8 @@ const SuperAdminDashboard: React.FC = () => {
                         <span className="font-bold">A</span>
                     </div>
                     <div>
-                        <p className="text-sm font-bold">{t('sa.administrator')}</p>
-                        <p className="text-xs text-stone-500">info@unityhub.li</p>
+                        <p className="text-sm font-bold truncate">{user?.displayName || t('sa.administrator')}</p>
+                        <p className="text-xs text-stone-500 truncate">{operatorEmail || '—'}</p>
                     </div>
                 </div>
                 <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-xs font-bold text-stone-500 hover:text-rose-500 flex items-center gap-2 transition-colors">

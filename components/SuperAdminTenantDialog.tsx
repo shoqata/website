@@ -27,16 +27,20 @@ const SuperAdminTenantDialog: React.FC<Props> = ({ tenant, domains, memberCount,
   const [saving, setSaving] = useState(false);
 
   useEffect(() => { if (tenant) setForm({ currency: 'CHF', ...tenant }); }, [tenant]);
+
+  // Alle Hooks stehen vor dem vorzeitigen Ausstieg. Stand useMemo darunter,
+  // rendert React beim Oeffnen des Dialogs mehr Hooks als beim Schliessen --
+  // und wirft. Genau das ist hier passiert.
+  const ownInvoices = useMemo(
+    () => (tenant ? invoices.filter((i) => i.tenantId === tenant.id) : []),
+    [invoices, tenant]
+  );
+
   if (!tenant) return null;
 
   const year = new Date().getFullYear();
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setForm((f: any) => ({ ...f, [k]: e.target.value }));
-
-  const ownInvoices = useMemo(
-    () => invoices.filter((i) => i.tenantId === tenant.id),
-    [invoices, tenant.id]
-  );
   const annualDone = ownInvoices.some((i) => i.kind === 'ANNUAL' && Number(i.year) === year && i.status !== 'CANCELLED');
   const setupDone = ownInvoices.some((i) => i.kind === 'SETUP' && i.status !== 'CANCELLED');
 
