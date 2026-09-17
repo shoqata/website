@@ -1244,6 +1244,53 @@ const translations: Translations = {
   'admin.dq.switch_confirm': { en: 'These members will receive their invoices by post until an email address is entered. Nothing else changes.', de: 'Diese Mitglieder erhalten ihre Rechnungen per Post, bis eine E-Mail-Adresse hinterlegt ist. Sonst ändert sich nichts.', sq: 'Këta anëtarë do t\'i marrin faturat me postë derisa të shënohet një adresë e-maili. Asgjë tjetër nuk ndryshon.' },
   'admin.dq.switched': { en: '{count} members switched to postal delivery.', de: '{count} Mitglieder auf Postversand umgestellt.', sq: '{count} anëtarë u kaluan në dërgim postar.' },
   'nav.platform': { en: 'Manage associations', de: 'Vereine verwalten', sq: 'Menaxho shoqatat' },
+
+  // --- VEREINSVERWALTUNG: BETREUUNG ---
+  'sa.manage_tenant': { en: 'Manage association', de: 'Verein verwalten', sq: 'Menaxho shoqatën' },
+  'sa.tenant_saved': { en: 'Association saved.', de: 'Verein gespeichert.', sq: 'Shoqata u ruajt.' },
+  'sa.fees': { en: 'Fees', de: 'Gebühren', sq: 'Tarifat' },
+  'sa.annual_fee': { en: 'Annual fee', de: 'Jahresgebühr', sq: 'Tarifa vjetore' },
+  'sa.setup_fee': { en: 'Setup fee (one-off)', de: 'Einrichtungsgebühr (einmalig)', sq: 'Tarifa e vendosjes (një herë)' },
+  'sa.contract_start': { en: 'Contract start', de: 'Vertragsbeginn', sq: 'Fillimi i kontratës' },
+  'sa.billing_note': { en: 'Note on billing', de: 'Notiz zur Verrechnung', sq: 'Shënim për faturimin' },
+  'sa.contact_person': { en: 'Contact person', de: 'Ansprechperson', sq: 'Personi kontaktues' },
+  'sa.domains': { en: 'Domains', de: 'Adressen', sq: 'Adresat' },
+  'sa.members_count': { en: 'Members', de: 'Mitglieder', sq: 'Anëtarë' },
+  'sa.create_setup_invoice': { en: 'Create setup invoice', de: 'Einrichtungsgebühr verrechnen', sq: 'Fatturo tarifën e vendosjes' },
+  'sa.create_annual_invoice': { en: 'Create annual invoice {year}', de: 'Jahresgebühr {year} verrechnen', sq: 'Fatturo tarifën vjetore {year}' },
+  'sa.invoice_created': { en: 'Invoice created.', de: 'Rechnung erstellt.', sq: 'Fatura u krijua.' },
+  'sa.fee_missing': { en: 'Please enter the amount first.', de: 'Bitte zuerst den Betrag hinterlegen.', sq: 'Ju lutem shënoni së pari shumën.' },
+  'sa.already_invoiced': { en: 'Already invoiced for {year}.', de: 'Für {year} bereits verrechnet.', sq: 'Tashmë e faturuar për {year}.' },
+
+  // --- VEREINSVERWALTUNG: INTERESSENTEN ---
+  'sa.lead_new': { en: 'New prospect', de: 'Neuer Interessent', sq: 'Klient i ri potencial' },
+  'sa.lead_name': { en: 'Name of the association', de: 'Name des Vereins', sq: 'Emri i shoqatës' },
+  'sa.lead_created': { en: 'Prospect added.', de: 'Interessent angelegt.', sq: 'Klienti u shtua.' },
+  'sa.lead_saved': { en: 'Prospect saved.', de: 'Interessent gespeichert.', sq: 'Klienti u ruajt.' },
+  'sa.lead_deleted': { en: 'Prospect removed.', de: 'Interessent entfernt.', sq: 'Klienti u hoq.' },
+  'sa.lead_none': { en: 'Nothing here yet.', de: 'Hier steht noch nichts.', sq: 'Ende asgjë këtu.' },
+  'sa.expected_members': { en: 'Expected members', de: 'Erwartete Mitglieder', sq: 'Anëtarë të pritur' },
+  'sa.stage.LEAD': { en: 'Possible prospects', de: 'Mögliche Interessenten', sq: 'Klientë potencialë' },
+  'sa.stage.TALKS': { en: 'In discussion', de: 'In Gesprächen', sq: 'Në bisedime' },
+  'sa.stage.ONBOARDING': { en: 'Onboarding', de: 'Einrichtung', sq: 'Vendosja' },
+  'sa.stage.WON': { en: 'Association created', de: 'Verein angelegt', sq: 'Shoqata u krijua' },
+  'sa.stage.LOST': { en: 'Declined', de: 'Abgesagt', sq: 'Refuzuar' },
+  'sa.move_to': { en: 'Move to', de: 'Verschieben nach', sq: 'Zhvendos te' },
+
+  // --- VEREINSVERWALTUNG: FINANZEN ---
+  'sa.recurring': { en: 'Recurring per year', de: 'Wiederkehrend pro Jahr', sq: 'Të përsëritura në vit' },
+  'sa.invoiced_total': { en: 'Invoiced', de: 'Verrechnet', sq: 'E faturuar' },
+  'sa.paid_total': { en: 'Paid', de: 'Bezahlt', sq: 'E paguar' },
+  'sa.open_total': { en: 'Open', de: 'Offen', sq: 'E hapur' },
+  'sa.invoices': { en: 'Platform invoices', de: 'Rechnungen an Vereine', sq: 'Faturat për shoqatat' },
+  'sa.invoices_none': { en: 'No invoices yet.', de: 'Noch keine Rechnungen.', sq: 'Ende asnjë faturë.' },
+  'sa.kind.SETUP': { en: 'Setup', de: 'Einrichtung', sq: 'Vendosje' },
+  'sa.kind.ANNUAL': { en: 'Annual fee', de: 'Jahresgebühr', sq: 'Tarifa vjetore' },
+  'sa.kind.OTHER': { en: 'Other', de: 'Sonstiges', sq: 'Tjetër' },
+  'sa.istatus.DRAFT': { en: 'Draft', de: 'Entwurf', sq: 'Draft' },
+  'sa.istatus.SENT': { en: 'Sent', de: 'Gestellt', sq: 'E dërguar' },
+  'sa.istatus.PAID': { en: 'Paid', de: 'Bezahlt', sq: 'E paguar' },
+  'sa.istatus.CANCELLED': { en: 'Cancelled', de: 'Storniert', sq: 'E anuluar' },
 };
 
 interface LanguageContextType {

@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import { useTranslation } from '../context/LanguageContext';
 import { 
   Users, 
@@ -17,11 +18,14 @@ import {
   ChevronRight,
   LogOut,
   Bell,
-  Mail
+  Mail,
+  Trash2,
+  ArrowRight
 } from 'lucide-react';
 import { db, auth } from '../services/firebase';
-import { collection, onSnapshot, addDoc, serverTimestamp, query, orderBy, createTenant } from '@/services/supabase-bridge';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, createTenant } from '@/services/supabase-bridge';
 import { Tenant } from '../types';
+import SuperAdminTenantDialog from './SuperAdminTenantDialog';
 import { useFeedback } from '../context/FeedbackContext';
 import { signOut } from '@/services/supabase-bridge';
 import { useNavigate } from 'react-router-dom';
@@ -34,6 +38,11 @@ const SuperAdminDashboard: React.FC = () => {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [leads, setLeads] = useState<any[]>([]);
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [domainsByTenant, setDomainsByTenant] = useState<Record<string, string[]>>({});
+  const [memberCounts, setMemberCounts] = useState<Record<string, number>>({});
+  const [manageTenant, setManageTenant] = useState<any | null>(null);
 
   useEffect(() => {
     const q = query(collection(db, 'tenants'), orderBy('createdAt', 'desc'));
@@ -41,8 +50,87 @@ const SuperAdminDashboard: React.FC = () => {
       setTenants(snap.docs.map(d => ({ id: d.id, ...d.data() } as Tenant)));
       setLoading(false);
     });
-    return () => unsub();
+
+    const unsubLeads = onSnapshot(query(collection(db, 'platform_leads'), orderBy('createdAt', 'desc')), (snap) => {
+      setLeads(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, (e) => console.error('[SuperAdmin] Interessenten laden fehlgeschlagen:', e));
+
+    const unsubInvoices = onSnapshot(query(collection(db, 'platform_invoices'), orderBy('issuedAt', 'desc')), (snap) => {
+      setInvoices(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, (e) => console.error('[SuperAdmin] Rechnungen laden fehlgeschlagen:', e));
+
+    const unsubDomains = onSnapshot(collection(db, 'tenant_domains'), (snap) => {
+      const map: Record<string, string[]> = {};
+      snap.docs.forEach(d => {
+        const row: any = d.data();
+        (map[row.tenantId] ||= []).push(row.domain);
+      });
+      setDomainsByTenant(map);
+    }, () => {});
+
+    // Mitgliederzahl je Verein: der Betreiber sieht die Vereinsdaten nicht,
+    // deshalb kommt sie aus der oeffentlichen Projektion.
+    const unsubMembers = onSnapshot(collection(db, 'public_members'), (snap) => {
+      const map: Record<string, number> = {};
+      snap.docs.forEach(d => { const r: any = d.data(); map[r.tenantId] = (map[r.tenantId] || 0) + 1; });
+      setMemberCounts(map);
+    }, () => {});
+
+    return () => { unsub(); unsubLeads(); unsubInvoices(); unsubDomains(); unsubMembers(); };
   }, []);
+
+  // --- Interessenten ---
+  const addLead = async () => {
+    const name = await showPrompt({ title: t('sa.lead_new'), message: t('sa.lead_name') });
+    if (!name) return;
+    try {
+      await addDoc(collection(db, 'platform_leads'), { name, stage: 'LEAD', createdAt: new Date().toISOString() });
+      showAlert({ type: 'success', message: t('sa.lead_created') });
+    } catch (e: any) {
+      showAlert({ type: 'error', message: t('admin.save_failed', { reason: e?.message || '?' }) });
+    }
+  };
+
+  const moveLead = async (lead: any, stage: string) => {
+    try {
+      await updateDoc(doc(db, 'platform_leads', lead.id), { stage, updatedAt: new Date().toISOString() } as any);
+    } catch (e: any) {
+      showAlert({ type: 'error', message: t('admin.save_failed', { reason: e?.message || '?' }) });
+    }
+  };
+
+  const removeLead = async (lead: any) => {
+    try {
+      await deleteDoc(doc(db, 'platform_leads', lead.id));
+      showAlert({ type: 'success', message: t('sa.lead_deleted') });
+    } catch (e: any) {
+      showAlert({ type: 'error', message: t('admin.save_failed', { reason: e?.message || '?' }) });
+    }
+  };
+
+  const editLeadNote = async (lead: any) => {
+    const note = await showPrompt({ title: lead.name, message: t('sa.billing_note'), defaultValue: lead.note || '' } as any);
+    if (note === null || note === undefined) return;
+    await updateDoc(doc(db, 'platform_leads', lead.id), { note } as any);
+    showAlert({ type: 'success', message: t('sa.lead_saved') });
+  };
+
+  // --- Zahlen der Plattform, aus den hinterlegten Gebuehren statt fest im Code ---
+  const money = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const recurringPerYear = tenants.reduce((sum, tn: any) =>
+    sum + (tn.subscriptionStatus === 'ACTIVE' ? Number(tn.annualFee) || 0 : 0), 0);
+  const invoicedTotal = invoices.filter(i => i.status !== 'CANCELLED').reduce((s, i) => s + (Number(i.amount) || 0), 0);
+  const paidTotal = invoices.filter(i => i.status === 'PAID').reduce((s, i) => s + (Number(i.amount) || 0), 0);
+  const openTotal = invoices.filter(i => i.status === 'SENT' || i.status === 'DRAFT').reduce((s, i) => s + (Number(i.amount) || 0), 0);
+  const tenantName = (id: string) => tenants.find(tn => tn.id === id)?.name || id;
+
+  const cycleInvoiceStatus = async (inv: any) => {
+    const next = inv.status === 'DRAFT' ? 'SENT' : inv.status === 'SENT' ? 'PAID' : 'DRAFT';
+    await updateDoc(doc(db, 'platform_invoices', inv.id), {
+      status: next,
+      paidAt: next === 'PAID' ? new Date().toISOString().slice(0, 10) : null,
+    } as any);
+  };
 
   const handleCreateTenant = async () => {
       const name = await showPrompt({
@@ -95,42 +183,48 @@ const SuperAdminDashboard: React.FC = () => {
                   <div className="space-y-6">
                       <div className="flex justify-between items-center">
                           <h2 className="text-2xl font-bold">{t('sa.crm')}</h2>
-                          <button className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-bold">+ New Lead</button>
+                          <button onClick={addLead} className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2">
+                              <Plus size={14}/> {t('sa.lead_new')}
+                          </button>
                       </div>
-                      <div className="grid grid-cols-3 gap-6">
-                          <div className="bg-white/5 p-4 rounded-2xl border border-white/5 h-[500px]">
-                              <h3 className="font-bold text-stone-400 text-xs uppercase tracking-widest mb-4">{t('sa.leads')}</h3>
-                              <div className="space-y-2">
-                                  <div className="bg-white/5 p-3 rounded-xl hover:bg-white/10 cursor-pointer transition-colors">
-                                      <p className="font-bold text-sm">Verein Albanischer Lehrer</p>
-                                      <p className="text-xs text-stone-500 mt-1">Interested in Pro Plan</p>
-                                  </div>
-                                  <div className="bg-white/5 p-3 rounded-xl hover:bg-white/10 cursor-pointer transition-colors">
-                                      <p className="font-bold text-sm">FC Prishtina Zürich</p>
-                                      <p className="text-xs text-stone-500 mt-1">Needs Payment Gateway</p>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                          {(['LEAD','TALKS','ONBOARDING'] as const).map((stage, idx) => (
+                              <div key={stage} className="bg-white/5 p-4 rounded-2xl border border-white/5 min-h-[500px]">
+                                  <h3 className={`font-bold text-xs uppercase tracking-widest mb-4 ${idx === 0 ? 'text-stone-400' : idx === 1 ? 'text-blue-400' : 'text-emerald-400'}`}>
+                                      {t('sa.stage.' + stage)}
+                                      <span className="ml-2 opacity-60">{leads.filter(l => l.stage === stage).length}</span>
+                                  </h3>
+                                  <div className="space-y-2">
+                                      {leads.filter(l => l.stage === stage).length === 0 && (
+                                          <p className="text-xs text-stone-600 italic px-1">{t('sa.lead_none')}</p>
+                                      )}
+                                      {leads.filter(l => l.stage === stage).map(l => (
+                                          <div key={l.id} className="bg-white/5 p-3 rounded-xl border border-white/5 group">
+                                              <div className="flex justify-between items-start gap-2">
+                                                  <button onClick={() => editLeadNote(l)} className="text-left min-w-0 flex-1">
+                                                      <p className="font-bold text-sm truncate">{l.name}</p>
+                                                      <p className="text-xs text-stone-500 mt-1 line-clamp-2">
+                                                          {l.note || (l.expectedMembers ? `${l.expectedMembers} ${t('sa.expected_members')}` : '—')}
+                                                      </p>
+                                                  </button>
+                                                  <button onClick={() => removeLead(l)} title={t('common.delete')}
+                                                          className="p-1 text-stone-600 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                                      <Trash2 size={13}/>
+                                                  </button>
+                                              </div>
+                                              <div className="flex gap-1 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                  {(['LEAD','TALKS','ONBOARDING','WON','LOST'] as const).filter(x => x !== l.stage).map(x => (
+                                                      <button key={x} onClick={() => moveLead(l, x)} title={`${t('sa.move_to')}: ${t('sa.stage.' + x)}`}
+                                                              className="px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 text-[9px] font-bold uppercase tracking-wider">
+                                                          {t('sa.stage.' + x).split(' ')[0]}
+                                                      </button>
+                                                  ))}
+                                              </div>
+                                          </div>
+                                      ))}
                                   </div>
                               </div>
-                          </div>
-                          <div className="bg-white/5 p-4 rounded-2xl border border-white/5 h-[500px]">
-                              <h3 className="font-bold text-blue-400 text-xs uppercase tracking-widest mb-4">{t('sa.in_discussion')}</h3>
-                              <div className="space-y-2">
-                                  <div className="bg-white/5 p-3 rounded-xl hover:bg-white/10 cursor-pointer transition-colors border-l-2 border-blue-500">
-                                      <p className="font-bold text-sm">Moschee Will</p>
-                                      <p className="text-xs text-stone-500 mt-1">Waiting for Board Approval</p>
-                                  </div>
-                              </div>
-                          </div>
-                          <div className="bg-white/5 p-4 rounded-2xl border border-white/5 h-[500px]">
-                              <h3 className="font-bold text-emerald-400 text-xs uppercase tracking-widest mb-4">{t('sa.onboarding')}</h3>
-                              <div className="space-y-2">
-                                  {tenants.slice(0,2).map(tn => (
-                                      <div key={tn.id} className="bg-white/5 p-3 rounded-xl hover:bg-white/10 cursor-pointer transition-colors border-l-2 border-emerald-500">
-                                          <p className="font-bold text-sm">{tn.name}</p>
-                                          <p className="text-xs text-stone-500 mt-1">{t('sa.setup_progress')}</p>
-                                      </div>
-                                  ))}
-                              </div>
-                          </div>
+                          ))}
                       </div>
                   </div>
               );
@@ -138,45 +232,66 @@ const SuperAdminDashboard: React.FC = () => {
               return (
                   <div className="space-y-8">
                       <h2 className="text-2xl font-bold">{t('sa.revenue')}</h2>
-                      <div className="grid grid-cols-3 gap-6">
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
                           <div className="bg-emerald-500/10 border border-emerald-500/20 p-6 rounded-3xl">
-                              <p className="text-emerald-400 text-xs font-bold uppercase tracking-widest mb-2">{t('sa.mrr')}</p>
-                              <p className="text-4xl font-mono font-bold text-white">CHF 4,250</p>
+                              <p className="text-emerald-400 text-xs font-bold uppercase tracking-widest mb-2">{t('sa.recurring')}</p>
+                              <p className="text-3xl font-mono font-bold text-white">CHF {money(recurringPerYear)}</p>
                           </div>
                           <div className="bg-white/5 border border-white/10 p-6 rounded-3xl">
-                              <p className="text-stone-400 text-xs font-bold uppercase tracking-widest mb-2">{t('sa.pending_invoices')}</p>
-                              <p className="text-4xl font-mono font-bold text-white">CHF 850</p>
+                              <p className="text-stone-400 text-xs font-bold uppercase tracking-widest mb-2">{t('sa.invoiced_total')}</p>
+                              <p className="text-3xl font-mono font-bold text-white">CHF {money(invoicedTotal)}</p>
                           </div>
                           <div className="bg-white/5 border border-white/10 p-6 rounded-3xl">
-                              <p className="text-stone-400 text-xs font-bold uppercase tracking-widest mb-2">{t('sa.active_subs')}</p>
-                              <p className="text-4xl font-mono font-bold text-white">{tenants.filter(t => t.subscriptionStatus === 'ACTIVE').length}</p>
+                              <p className="text-stone-400 text-xs font-bold uppercase tracking-widest mb-2">{t('sa.paid_total')}</p>
+                              <p className="text-3xl font-mono font-bold text-emerald-400">CHF {money(paidTotal)}</p>
+                          </div>
+                          <div className="bg-white/5 border border-white/10 p-6 rounded-3xl">
+                              <p className="text-stone-400 text-xs font-bold uppercase tracking-widest mb-2">{t('sa.open_total')}</p>
+                              <p className="text-3xl font-mono font-bold text-amber-400">CHF {money(openTotal)}</p>
                           </div>
                       </div>
-                      
+
                       <div className="bg-white/5 border border-white/10 rounded-3xl overflow-hidden">
                           <div className="p-6 border-b border-white/10">
-                              <h3 className="font-bold">{t('sa.recent_transactions')}</h3>
+                              <h3 className="font-bold">{t('sa.invoices')}</h3>
                           </div>
+                          {invoices.length === 0 ? (
+                              <p className="p-8 text-sm text-stone-500 italic">{t('sa.invoices_none')}</p>
+                          ) : (
                           <table className="w-full text-left text-sm">
                               <thead className="text-stone-500 font-bold uppercase text-[10px]">
                                   <tr>
                                       <th className="p-6">{t('sa.tenant')}</th>
-                                      <th className="p-6">{t('sa.plan')}</th>
+                                      <th className="p-6">{t('admin.finance.invoiceNum')}</th>
                                       <th className="p-6">{t('field.date')}</th>
                                       <th className="p-6 text-right">{t('field.amount')}</th>
+                                      <th className="p-6 text-right">{t('field.status')}</th>
                                   </tr>
                               </thead>
                               <tbody className="divide-y divide-white/5">
-                                  {tenants.slice(0,5).map(tn => (
-                                      <tr key={tn.id}>
-                                          <td className="p-6 font-bold">{tn.name}</td>
-                                          <td className="p-6 text-stone-400">{tn.subscriptionPlan}</td>
-                                          <td className="p-6 text-stone-500">{t('sa.today')}</td>
-                                          <td className="p-6 text-right font-mono text-emerald-400">+ CHF 49.00</td>
+                                  {invoices.map(inv => (
+                                      <tr key={inv.id}>
+                                          <td className="p-6 font-bold">{tenantName(inv.tenantId)}</td>
+                                          <td className="p-6 text-stone-400 font-mono text-xs">
+                                              {inv.invoiceNumber} · {t('sa.kind.' + inv.kind)}{inv.year ? ` ${inv.year}` : ''}
+                                          </td>
+                                          <td className="p-6 text-stone-500">{inv.issuedAt}</td>
+                                          <td className="p-6 text-right font-mono text-white">{money(Number(inv.amount) || 0)} {inv.currency}</td>
+                                          <td className="p-6 text-right">
+                                              <button onClick={() => cycleInvoiceStatus(inv)}
+                                                  title={t('sa.move_to')}
+                                                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                                                      inv.status === 'PAID' ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
+                                                      : inv.status === 'SENT' ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'
+                                                      : 'bg-white/10 text-stone-300 hover:bg-white/20'}`}>
+                                                  {t('sa.istatus.' + inv.status)}
+                                              </button>
+                                          </td>
                                       </tr>
                                   ))}
                               </tbody>
                           </table>
+                          )}
                       </div>
                   </div>
               );
@@ -270,7 +385,7 @@ const SuperAdminDashboard: React.FC = () => {
                                             </span>
                                         </td>
                                         <td className="p-6 text-right">
-                                            <button className="text-stone-400 hover:text-white font-bold text-xs flex items-center gap-1 ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onClick={() => setManageTenant(tn)} className="text-stone-400 hover:text-white font-bold text-xs flex items-center gap-1 ml-auto transition-colors">
                                                 {t('sa.manage')} <ChevronRight size={14} />
                                             </button>
                                         </td>
@@ -285,6 +400,7 @@ const SuperAdminDashboard: React.FC = () => {
   };
 
   return (
+    <>
     <div className="min-h-screen bg-stone-950 text-white flex">
         {/* Sidebar */}
         <aside className="w-64 border-r border-white/5 flex flex-col fixed h-full bg-stone-950 z-20">
@@ -347,6 +463,17 @@ const SuperAdminDashboard: React.FC = () => {
             {renderContent()}
         </main>
     </div>
+
+    <AnimatePresence>
+      <SuperAdminTenantDialog
+        tenant={manageTenant}
+        domains={manageTenant ? (domainsByTenant[manageTenant.id] || []) : []}
+        memberCount={manageTenant ? (memberCounts[manageTenant.id] || 0) : 0}
+        invoices={invoices}
+        onClose={() => setManageTenant(null)}
+      />
+    </AnimatePresence>
+    </>
   );
 };
 
