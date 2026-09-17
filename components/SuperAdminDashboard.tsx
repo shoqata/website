@@ -26,6 +26,7 @@ import { db, auth } from '../services/firebase';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, createTenant, startTenantSupport, endTenantSupport } from '@/services/supabase-bridge';
 import { Tenant } from '../types';
 import SuperAdminTenantDialog from './SuperAdminTenantDialog';
+import SuperAdminLeadDialog from './SuperAdminLeadDialog';
 import { useFeedback } from '../context/FeedbackContext';
 import { signOut } from '@/services/supabase-bridge';
 import { useNavigate } from 'react-router-dom';
@@ -45,6 +46,7 @@ const SuperAdminDashboard: React.FC<{ user?: any }> = ({ user }) => {
   const [manageTenant, setManageTenant] = useState<any | null>(null);
   const operatorEmail = user?.email || '';
   const [support, setSupport] = useState<any | null>(null);
+  const [editLead, setEditLead] = useState<any | null>(null);
 
   const beginSupport = async (tn: any) => {
     try {
@@ -136,12 +138,6 @@ const SuperAdminDashboard: React.FC<{ user?: any }> = ({ user }) => {
     }
   };
 
-  const editLeadNote = async (lead: any) => {
-    const note = await showPrompt({ title: lead.name, message: t('sa.billing_note'), defaultValue: lead.note || '' } as any);
-    if (note === null || note === undefined) return;
-    await updateDoc(doc(db, 'platform_leads', lead.id), { note } as any);
-    showAlert({ type: 'success', message: t('sa.lead_saved') });
-  };
 
   // --- Zahlen der Plattform, aus den hinterlegten Gebuehren statt fest im Code ---
   const money = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -231,7 +227,7 @@ const SuperAdminDashboard: React.FC<{ user?: any }> = ({ user }) => {
                                       {leads.filter(l => l.stage === stage).map(l => (
                                           <div key={l.id} className="bg-white/5 p-3 rounded-xl border border-white/5 group">
                                               <div className="flex justify-between items-start gap-2">
-                                                  <button onClick={() => editLeadNote(l)} className="text-left min-w-0 flex-1">
+                                                  <button onClick={() => setEditLead(l)} className="text-left min-w-0 flex-1">
                                                       <p className="font-bold text-sm truncate">{l.name}</p>
                                                       <p className="text-xs text-stone-500 mt-1 line-clamp-2">
                                                           {l.note || (l.expectedMembers ? `${l.expectedMembers} ${t('sa.expected_members')}` : '—')}
@@ -527,6 +523,7 @@ const SuperAdminDashboard: React.FC<{ user?: any }> = ({ user }) => {
         onEndSupport={stopSupport}
         onClose={() => setManageTenant(null)}
       />
+      <SuperAdminLeadDialog lead={editLead} onClose={() => setEditLead(null)} />
     </AnimatePresence>
     </>
   );
