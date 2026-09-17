@@ -48,7 +48,11 @@ import Hero from './components/Hero';
 const Dashboard = React.lazy(() => import('./components/Dashboard'));
 const AdminPanel = React.lazy(() => import('./components/AdminPanel'));
 const BoardDashboard = React.lazy(() => import('./components/BoardDashboard'));
-const RepresentativeDashboard = React.lazy(() => import('./components/RepresentativeDashboard'));
+// Die Kassen-Ansicht der Vertreter ist derzeit nicht verlinkt, siehe die
+// Begruendung an der Dashboard-Weiche weiter unten. Die Datei bleibt liegen,
+// damit sie sich mit passenden Rechten wieder anschliessen laesst.
+// const RepresentativeDashboard = React.lazy(() => import('./components/RepresentativeDashboard'));
+const NeighborhoodStewardPanel = React.lazy(() => import('./components/NeighborhoodStewardPanel'));
 const SocialAI = React.lazy(() => import('./components/SocialAI'));
 const LoginPage = React.lazy(() => import('./components/LoginPage'));
 const RegistrationWizard = React.lazy(() => import('./components/RegistrationWizard'));
@@ -297,11 +301,23 @@ const AppContent: React.FC = () => {
                     <Route path="/privacy" element={<LegalPage type="PRIVACY" />} />
                     <Route path="/login" element={<AuthRedirectHandler user={user}><LoginPage /></AuthRedirectHandler>} />
                     <Route path="/register" element={<AuthRedirectHandler user={user}><RegistrationWizard /></AuthRedirectHandler>} />
+                    {/* Betreuung einer Nachbarschaft. Wer dafuer nicht
+                        zustaendig ist, bekommt in der Ansicht selbst den
+                        Hinweis -- die Zugriffsregeln geben ihm ohnehin
+                        keine fremden Daten heraus. */}
+                    <Route path="/nachbarschaft" element={user ? <NeighborhoodStewardPanel user={user} /> : <Navigate to="/login" />} />
                     <Route path="/setup-profile" element={user ? <ProfileSetup user={user} onComplete={setUser} /> : <Navigate to="/login" />} />
                     
                     <Route path="/dashboard" element={
                         <ProtectedRoute user={user}>
-                            {user?.role === UserRole.BOARD ? <BoardDashboard user={user} /> : user?.role === UserRole.REPRESENTATIVE ? <RepresentativeDashboard user={user} /> : <Dashboard user={user!} />}
+                            {user?.role === UserRole.BOARD ? <BoardDashboard user={user} /> : <Dashboard user={user!} />}
+                            {/* Die Kassen-Ansicht der Vertreter haengt an
+                                is_member_manager(), das REPRESENTATIVE nicht
+                                mehr einschliesst -- sie koennte nichts mehr
+                                schreiben. Benutzt wurde sie nie: collectedBy
+                                ist bei allen 324 Zahlungen leer. Die Betreuung
+                                einer Nachbarschaft laeuft jetzt ueber
+                                /nachbarschaft, verlinkt aus dem Dashboard. */}
                         </ProtectedRoute>
                     } />
                     

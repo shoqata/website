@@ -185,7 +185,7 @@ const TENANT_SCOPED = new Set([
   "fiscal_years", "fiscal_budgets", "board_meetings", "board_members", "tasks",
   "neighborhoods", "events", "news", "polls", "socialmediaposts",
   "event_registrations", "inquiries", "security_logs", "settings",
-  "sponsors",
+  "sponsors", "payment_reports",
   "public_members", "public_settings",
 ]);
 
@@ -893,4 +893,59 @@ export async function resetMemberPassword(memberId: string): Promise<{
     throw new Error(body?.error || `Serverfehler ${res.status}`);
   }
   return body;
+}
+
+// ------------------------------------------- Nachbarschafts-Betreuung
+// Die Nachbarschaften, fuer die ich verantwortlich bin.
+export async function myNeighborhoods(): Promise<string[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase.rpc("my_neighborhoods");
+  if (error) { console.error("[Bridge] my_neighborhoods:", error); return []; }
+  // Die Funktion gibt eine Menge von Werten zurueck; PostgREST liefert je nach
+  // Fassung blosse Zeichenketten oder Objekte mit einem Feld.
+  return (data as any[] || []).map((z) => (typeof z === "string" ? z : z?.my_neighborhoods)).filter(Boolean);
+}
+
+// Die Verantwortlichen der eigenen Nachbarschaft -- fuer das Mitglied, damit
+// es weiss, an wen es sich wenden kann.
+export async function myNeighborhoodContacts(): Promise<any[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase.rpc("my_neighborhood_contacts");
+  if (error) { console.error("[Bridge] my_neighborhood_contacts:", error); return []; }
+  return (data as any[]) || [];
+}
+
+// Eine Zahlung melden. Buchen tut das niemand hier -- die Rechnung bleibt
+// unveraendert, bis Vorstand oder Administration entscheiden.
+export async function reportPaymentPaid(
+  paymentId: string,
+  method?: string | null,
+  paidOn?: string | null,
+  note?: string | null
+): Promise<string> {
+  if (!supabase) throw new Error("Supabase ist nicht eingerichtet.");
+  const { data, error } = await supabase.rpc("report_payment_paid", {
+    p_payment: paymentId,
+    p_method: method || null,
+    p_paid_on: paidOn || null,
+    p_note: note || null,
+  });
+  if (error) throw new Error(error.message);
+  return data as string;
+}
+
+// Ueber eine Meldung entscheiden. Nur Vorstand und Administration kommen
+// durch; die Pruefung steht in der Funktion, nicht hier.
+export async function decidePaymentReport(
+  reportId: string,
+  approve: boolean,
+  note?: string | null
+): Promise<void> {
+  if (!supabase) throw new Error("Supabase ist nicht eingerichtet.");
+  const { error } = await supabase.rpc("decide_payment_report", {
+    p_report: reportId,
+    p_approve: approve,
+    p_note: note || null,
+  });
+  if (error) throw new Error(error.message);
 }
