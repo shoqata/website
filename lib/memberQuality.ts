@@ -41,12 +41,7 @@ export type FeeState = 'PAID' | 'OPEN' | 'NONE';
 //   OPEN  eine Rechnung ist gestellt, aber nicht bezahlt
 //   NONE  fuer dieses Jahr wurde nichts verrechnet
 export const feeStateFor = (userId: string, payments: any[], year: number): FeeState => {
-  const yearOf = (p: any) => {
-    if (p?.billingYear) return Number(p.billingYear);
-    const ts = p?.timestamp?.toDate ? p.timestamp.toDate() : p?.timestamp ? new Date(p.timestamp) : null;
-    return ts ? ts.getFullYear() : NaN;
-  };
-  const own = payments.filter((p) => p.userId === userId && yearOf(p) === year);
+  const own = payments.filter((p) => p.userId === userId && billingYearOf(p) === year);
   if (own.length === 0) return 'NONE';
   return own.some((p) => p.status === 'PAID') ? 'PAID' : 'OPEN';
 };
@@ -78,4 +73,22 @@ export const needsProfileSetup = (u: Partial<UserProfile>): boolean => {
     leer(u.city) ||
     leer(u.neighborhoodId)
   );
+};
+
+// Zu welchem Beitragsjahr gehoert eine Zahlung?
+//
+// Massgeblich ist billingYear: dort steht, fuer welches Jahr der Beitrag
+// erhoben wird. Der Zeitstempel sagt nur, wann der Datensatz entstand -- eine
+// im Januar 2026 gestellte Rechnung fuer 2025 wuerde danach im falschen Jahr
+// landen. Genau das passierte in der Vorstandsansicht: sie zaehlte 324
+// Zahlungen fuer 2026, waehrend die Rechnungsansicht 321 auswies, und
+// 80 bezahlte gegen 79.
+//
+// Der Zeitstempel bleibt als Rueckfall, weil zwei Zahlungen kein billingYear
+// tragen. Ohne ihn fielen sie aus jeder Jahresauswertung heraus.
+export const billingYearOf = (p: any): number => {
+  if (p?.billingYear) return Number(p.billingYear);
+  const ts = p?.timestamp?.toDate ? p.timestamp.toDate()
+           : p?.timestamp ? new Date(p.timestamp) : null;
+  return ts ? ts.getFullYear() : NaN;
 };

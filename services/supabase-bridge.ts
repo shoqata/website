@@ -185,7 +185,7 @@ const TENANT_SCOPED = new Set([
   "fiscal_years", "fiscal_budgets", "board_meetings", "board_members", "tasks",
   "neighborhoods", "events", "news", "polls", "socialmediaposts",
   "event_registrations", "inquiries", "security_logs", "settings",
-  "sponsors", "payment_reports",
+  "sponsors", "payment_reports", "mail_queue",
   "public_members", "public_settings",
 ]);
 

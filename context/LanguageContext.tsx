@@ -10,6 +10,26 @@ interface Translations {
 }
 
 const translations: Translations = {
+  // --- VERSANDWARTESCHLANGE ---
+  'mail.title': { en: 'Outgoing mail', de: 'Ausgehende E-Mails', sq: 'Emailet dalëse' },
+  'mail.pending': { en: 'waiting', de: 'wartet', sq: 'në pritje' },
+  'mail.sent': { en: 'sent', de: 'gesendet', sq: 'dërguar' },
+  'mail.failed': { en: 'failed', de: 'gescheitert', sq: 'dështuar' },
+  'mail.empty': { en: 'Nothing in the queue.', de: 'Nichts in der Warteschlange.', sq: 'Asgjë në radhë.' },
+  'mail.send_now': { en: 'Send now', de: 'Jetzt senden', sq: 'Dërgo tani' },
+  'mail.sent_result': { en: '{sent} sent, {failed} failed', de: '{sent} gesendet, {failed} gescheitert', sq: '{sent} u dërguan, {failed} dështuan' },
+  'mail.not_configured': {
+    en: 'No outgoing mail server configured yet. Everything stays in the queue and is not lost.',
+    de: 'Es ist noch kein Postausgang hinterlegt. Alles bleibt in der Warteschlange stehen und geht nicht verloren.',
+    sq: 'Ende nuk është konfiguruar serveri dalës. Gjithçka mbetet në radhë dhe nuk humbet.'
+  },
+  'mail.explain': {
+    en: 'Birthday greetings are queued automatically each morning. Nothing leaves until an outgoing mail server is configured — until then everything waits here and nothing is lost.',
+    de: 'Geburtstagsgrüsse werden jeden Morgen automatisch eingereiht. Hinaus geht nichts, solange kein Postausgang hinterlegt ist — bis dahin wartet alles hier und geht nicht verloren.',
+    sq: 'Urimet e ditëlindjes vendosen automatikisht në radhë çdo mëngjes. Asgjë nuk del derisa të konfigurohet serveri dalës — deri atëherë gjithçka pret këtu dhe nuk humbet.'
+  },
+  'common.refresh': { en: 'Refresh', de: 'Aktualisieren', sq: 'Rifresko' },
+
   'dash.community.active_short': { en: 'Active', de: 'Aktiv', sq: 'Aktivë' },
   'dash.community.own_fee': { en: 'Your fee {year}', de: 'Dein Beitrag {year}', sq: 'Kuota juaj {year}' },
 
