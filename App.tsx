@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, Settings, LogOut, Heart, Menu, X, Globe, Sparkles, LogIn, Zap, ChevronDown, 
   Mail, MapPin, ShieldCheck, Calendar, Newspaper, Info, QrCode, ArrowRight, Smartphone, 
-  Hammer, Maximize, UserPlus, Loader2
+  Hammer, Maximize, UserPlus, Loader2, Building2
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
@@ -370,6 +370,11 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings }) => {
                 <>
                    <Link to="/dashboard" className="text-sm font-bold text-stone-500 hover:text-stone-900">{t('nav.dashboard')}</Link>
                    {(user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN || ADMIN_EMAILS.includes(user.email)) && ( <Link to="/admin" className="w-9 h-9 bg-stone-900 text-white rounded-xl flex items-center justify-center shadow-lg"><ShieldCheck size={16} /></Link> )}
+                   {(user.role === UserRole.SUPER_ADMIN || PLATFORM_EMAILS.includes(user.email)) && (
+                     <Link to="/super-admin" title={t('nav.platform')} className="w-9 h-9 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg hover:bg-rose-600 transition-colors">
+                       <Building2 size={16} />
+                     </Link>
+                   )}
                    <button onClick={handleSignOut} className="text-stone-400 hover:text-primary"><LogOut size={18} /></button>
                 </>
               ) : (

@@ -7,12 +7,19 @@ import { hasUsableEmail, emailMissingForDelivery } from './memberEmail';
 // mit albanischen Feldnamen fest verdrahtet. Sie liegen jetzt zentral und
 // geben Uebersetzungsschluessel zurueck, damit Nachbarschafts-Detail und
 // Datenqualitaet dieselbe Aussage treffen.
-export const missingFieldKeys = (u: Partial<UserProfile>): string[] => {
+export interface MissingOptions {
+  // Nur Felder, die das Mitglied im eigenen Profil selbst ausfuellen kann.
+  // Die Nachbarschaft gehoert nicht dazu -- sie wird vom Vorstand zugeordnet,
+  // und ein Hinweis auf etwas, das man nicht aendern kann, hilft niemandem.
+  selfServiceOnly?: boolean;
+}
+
+export const missingFieldKeys = (u: Partial<UserProfile>, opts: MissingOptions = {}): string[] => {
   const missing: string[] = [];
   if (!u.phone) missing.push('field.phone');
   if (!u.birthdate) missing.push('field.birthdate');
   if (!u.street || !u.zip || !u.city) missing.push('field.address');
-  if (!u.neighborhoodId) missing.push('admin.members.neighborhood');
+  if (!opts.selfServiceOnly && !u.neighborhoodId) missing.push('admin.members.neighborhood');
   if (!hasUsableEmail(u)) missing.push('field.email');
   return missing;
 };

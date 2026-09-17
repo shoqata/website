@@ -1243,6 +1243,7 @@ const translations: Translations = {
   'admin.dq.switch_all_to_post': { en: 'Switch {count} members to postal delivery', de: '{count} Mitglieder auf Postversand umstellen', sq: 'Kalo {count} anëtarë në dërgim postar' },
   'admin.dq.switch_confirm': { en: 'These members will receive their invoices by post until an email address is entered. Nothing else changes.', de: 'Diese Mitglieder erhalten ihre Rechnungen per Post, bis eine E-Mail-Adresse hinterlegt ist. Sonst ändert sich nichts.', sq: 'Këta anëtarë do t\'i marrin faturat me postë derisa të shënohet një adresë e-maili. Asgjë tjetër nuk ndryshon.' },
   'admin.dq.switched': { en: '{count} members switched to postal delivery.', de: '{count} Mitglieder auf Postversand umgestellt.', sq: '{count} anëtarë u kaluan në dërgim postar.' },
+  'nav.platform': { en: 'Manage associations', de: 'Vereine verwalten', sq: 'Menaxho shoqatat' },
 };
 
 interface LanguageContextType {

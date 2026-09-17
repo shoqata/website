@@ -46,6 +46,7 @@ import { sendEmail } from '../services/mailService';
 
 import { neighborhoodCity } from '../lib/neighborhood';
 import { emailMissingForDelivery } from '../lib/memberEmail';
+import { missingFieldKeys } from '../lib/memberQuality';
 import { onImageError } from '../lib/imageFallback';
 // Kuerzel aus dem Vereinsnamen, z. B. "Shoqata Koretini" -> "SK".
 const initialsOf = (name: string) =>
@@ -95,13 +96,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   }, []);
 
   useEffect(() => {
-      // Check data quality on mount/update
-      const missing: string[] = [];
-      if (!user.phone) missing.push(t('field.phone'));
-      if (!user.street || !user.city || !user.zip) missing.push(t('profile.address'));
-      if (!user.birthdate) missing.push(t('field.birthdate'));
-      
-      setMissingFields(missing);
+      // Dieselben Regeln wie im Adminbereich -- sonst sagt die Verwaltung
+      // "Angaben fehlen" und das Mitglied sieht keinen Hinweis. Beschraenkt
+      // auf das, was es im eigenen Profil auch aendern kann.
+      setMissingFields(missingFieldKeys(user, { selfServiceOnly: true }).map(k => t(k)));
   }, [user, t]);
 
   // Data Fetching
