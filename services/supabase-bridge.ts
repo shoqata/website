@@ -80,19 +80,19 @@ function extractUnknownColumn(error: any): string | null {
 async function writeWithSchemaRetry(
   label: string,
   payload: Record<string, any>,
-  exec: (row: Record<string, any>) => Promise<{ error: any }>
-) {
+  exec: (row: Record<string, any>) => Promise<{ error: any; count?: number | null }>
+): Promise<number | null> {
   let row = { ...payload };
   const dropped: string[] = [];
 
   for (let attempt = 0; attempt < 20; attempt++) {
-    const { error } = await exec(row);
+    const { error, count } = await exec(row);
 
     if (!error) {
       if (dropped.length) {
         console.warn(`Supabase ${label}: ignored field(s) that are not columns: ${dropped.join(", ")}`);
       }
-      return;
+      return count ?? null;
     }
 
     const column = extractUnknownColumn(error);
@@ -431,9 +431,21 @@ export async function updateDoc(docRef: any, data: any) {
   // Never try to rewrite the primary key of the row we are targeting
   delete row.id;
 
-  await writeWithSchemaRetry(`updateDoc for ${path}/${id}`, row, (payload) =>
-    supabase.from(path).update(payload).eq("id", id)
+  // Zaehlend schreiben. Trifft die Aktualisierung keine Zeile -- weil es den
+  // Datensatz nicht gibt oder eine Zugriffsregel ihn verbirgt --, liefert
+  // PostgREST keinen Fehler. Der Aufrufer hielt das bisher fuer Erfolg und
+  // meldete dem Nutzer eine Speicherung, die nie stattgefunden hat.
+  const affected = await writeWithSchemaRetry(`updateDoc for ${path}/${id}`, row, (payload) =>
+    supabase.from(path).update(payload, { count: "exact" }).eq("id", id)
   );
+
+  if (affected === 0) {
+    const err = new Error(
+      `updateDoc auf '${path}/${id}' hat keine Zeile geaendert. Entweder gibt es den Datensatz nicht, oder eine Zugriffsregel laesst die Aenderung nicht zu.`
+    );
+    console.error(`Supabase updateDoc for ${path}/${id}:`, err.message);
+    throw err;
+  }
   return {};
 }
 
