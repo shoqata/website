@@ -1293,6 +1293,16 @@ const translations: Translations = {
   'sa.istatus.CANCELLED': { en: 'Cancelled', de: 'Storniert', sq: 'E anuluar' },
   'sa.platform_title': { en: 'Platform administration', de: 'Plattformverwaltung', sq: 'Administrimi i platformës' },
   'sa.no_domain': { en: 'no address yet', de: 'noch keine Adresse', sq: 'ende pa adresë' },
+
+  // --- BETREUUNG EINES VEREINS ---
+  'sa.support_start': { en: 'Take over setup', de: 'Einrichtung übernehmen', sq: 'Merr përsipër vendosjen' },
+  'sa.support_end': { en: 'End support', de: 'Betreuung beenden', sq: 'Përfundo mbështetjen' },
+  'sa.support_started': { en: 'You are now working inside {name}.', de: 'Sie arbeiten jetzt im Verein {name}.', sq: 'Tani po punoni brenda shoqatës {name}.' },
+  'sa.support_ended': { en: 'Support ended. You are back in your own association.', de: 'Betreuung beendet. Sie sind zurück in Ihrem eigenen Verein.', sq: 'Mbështetja përfundoi. Jeni kthyer te shoqata juaj.' },
+  'sa.support_hint': { en: 'You do not become a member of this association. While support is active you work inside it; afterwards you have no access. Start and end are recorded.', de: 'Sie werden kein Mitglied dieses Vereins. Während der Betreuung arbeiten Sie darin, danach haben Sie keinen Zugriff mehr. Anfang und Ende werden festgehalten.', sq: 'Ju nuk bëheni anëtar i kësaj shoqate. Gjatë mbështetjes punoni brenda saj; më pas nuk keni qasje. Fillimi dhe fundi regjistrohen.' },
+  'sa.support_active': { en: 'You are supporting {name}', de: 'Sie betreuen gerade {name}', sq: 'Po mbështetni {name}' },
+  'sa.support_active_hint': { en: 'Everything you do lands in this association, not in your own.', de: 'Alles, was Sie tun, landet in diesem Verein, nicht in Ihrem eigenen.', sq: 'Gjithçka që bëni shkon te kjo shoqatë, jo te e juaja.' },
+  'sa.admin_optional': { en: 'Email of the first administrator — leave empty to set the association up yourself first.', de: 'E-Mail der ersten Administration — leer lassen, wenn Sie den Verein zunächst selbst einrichten.', sq: 'E-maili i administratorit të parë — lëreni bosh nëse fillimisht e vendosni vetë shoqatën.' },
 };
 
 interface LanguageContextType {
