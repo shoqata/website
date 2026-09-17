@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from '../context/LanguageContext';
 import { UserProfile, Payment, GlobalPaymentSettings, Neighborhood, Inquiry } from '../types';
 import { db } from '../services/firebase';
-import { collection, query, where, orderBy, onSnapshot, doc, getDoc, updateDoc, addDoc, serverTimestamp, myNeighborhoodContacts, myNeighborhoods } from '@/services/supabase-bridge';
+import { collection, query, where, orderBy, onSnapshot, doc, getDoc, updateDoc, addDoc, serverTimestamp, myNeighborhoodContacts, myNeighborhoods, getDocs } from '@/services/supabase-bridge';
 import { 
   History, 
   FileText, 
@@ -48,7 +48,7 @@ import { sendEmail } from '../services/mailService';
 import { neighborhoodCity } from '../lib/neighborhood';
 import CountrySelect from './ui/CountrySelect';
 import { emailMissingForDelivery } from '../lib/memberEmail';
-import { missingFieldKeys } from '../lib/memberQuality';
+import { missingFieldKeys, feeStateFor } from '../lib/memberQuality';
 import { onImageError } from '../lib/imageFallback';
 // Kuerzel aus dem Vereinsnamen, z. B. "Shoqata Koretini" -> "SK".
 const initialsOf = (name: string) =>
@@ -72,6 +72,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [weitereKontakte, setWeitereKontakte] = useState<any[]>([]);
   // Nachbarschaften, fuer die dieses Mitglied selbst verantwortlich ist.
   const [betreutNachbarschaften, setBetreutNachbarschaften] = useState<string[]>([]);
+  const [nachbarschaftsZahlungen, setNachbarschaftsZahlungen] = useState<Payment[]>([]);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   // Vereinsname und Kuerzel auf dem Rechnungsbeleg kamen fest verdrahtet aus
   // Koretini; in einer zweiten Installation stand dort der falsche Verein.
@@ -199,6 +200,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       setManager((kontakte[0] as any) || null);
       setWeitereKontakte(kontakte.slice(1));
       setBetreutNachbarschaften(meine);
+
+      // Die Rechnungen der betreuten Nachbarschaften. Ohne Filter auf
+      // neighborhoodId -- das Feld ist nur bei 3 von 324 Zahlungen gesetzt.
+      // Was sichtbar sein darf, entscheidet ohnehin die Leseregel.
+      if (meine.length) {
+        const snap = await getDocs(query(collection(db, 'payments')));
+        if (!lebt) return;
+        setNachbarschaftsZahlungen(snap.docs.map(d => ({ id: d.id, ...d.data() } as Payment)));
+      }
     })();
     return () => { lebt = false; };
   }, [user.id, user.neighborhoodId]);
@@ -360,6 +370,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   });
 
   // Check if a neighbor profile is incomplete (Helper for UI)
+  // Die beiden Auskuenfte, die eine verantwortliche Person auf einen Blick
+  // braucht. istBetreuer entscheidet, ob sie ueberhaupt gezeigt werden: ein
+  // gewoehnliches Mitglied bekommt die Zahlungen seiner Nachbarn gar nicht
+  // erst zu sehen, und soll es auch nicht.
+  const istBetreuer = betreutNachbarschaften.length > 0;
+  const beitragsjahr = new Date().getFullYear();
+  const beitragVon = (u: UserProfile) => feeStateFor(u.id!, nachbarschaftsZahlungen, beitragsjahr);
+  // Dieselbe Regel wie in der Nachbarschaftsansicht -- ohne Geburtsdatum, das
+  // laesst sich hier gar nicht nachtragen.
+  const luckenVon = (u: UserProfile) => missingFieldKeys(u, { selfServiceOnly: true });
+
   const isProfileIncomplete = (u: UserProfile) => {
       return !u.phone || !u.street || !u.city || !u.zip || !u.birthdate;
   };
@@ -705,6 +726,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                     <div>
                         <h4 className="font-bold text-xl text-stone-900 mb-1">{t('dash.neighbors.title')}</h4>
                         <p className="text-stone-500 text-sm">{t('dash.neighbors.subtitle')} {neighborhood?.name}</p>
+                        {/* Ohne Legende sind farbige Punkte nur Dekoration. */}
+                        {istBetreuer && (
+                            <div className="flex flex-wrap items-center gap-4 mt-3 text-[10px] font-bold uppercase tracking-widest text-stone-400">
+                                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> {t('steward.fee_paid', { year: beitragsjahr })}</span>
+                                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> {t('steward.fee_open')}</span>
+                                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-stone-300" /> {t('steward.fee_none')}</span>
+                                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-rose-500" /> {t('steward.data_gaps')}</span>
+                            </div>
+                        )}
                     </div>
                     <div className="text-xs font-bold bg-stone-50 px-3 py-1 rounded-lg text-stone-400">
                         {Object.keys(groupedNeighbors.families).length + groupedNeighbors.individuals.length} {t('dash.neighbors.families')}
@@ -736,9 +766,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                                 onClick={() => handleOpenManageNeighbor(m)}
                                                 className={`bg-white px-3 py-1.5 rounded-lg border border-stone-100 shadow-sm flex items-center gap-2 relative ${user.role === 'NEIGHBORHOOD_MANAGER' ? 'cursor-pointer hover:border-primary/50 hover:shadow-md transition-all' : ''}`}
                                             >
-                                                {/* DATA QUALITY INDICATOR FOR MANAGER */}
-                                                {user.role === 'NEIGHBORHOOD_MANAGER' && isProfileIncomplete(m) && (
-                                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-amber-500 rounded-full flex items-center justify-center z-10 border border-white" title={t('dash.incomplete_profile')}>
+                                                {istBetreuer && luckenVon(m).length > 0 && (
+                                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full flex items-center justify-center z-10 border border-white"
+                                                         title={`${t('steward.data_missing')}: ${luckenVon(m).map(k => t(k)).join(', ')}`}>
                                                         <AlertTriangle size={8} className="text-white"/>
                                                     </div>
                                                 )}
@@ -751,7 +781,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                                     </div>
                                                 )}
                                                 <span className="text-xs font-medium text-stone-600">{m.firstName || m.displayName?.split(' ')[0]}</span>
-                                                {m.membershipStatus === 'ACTIVE' && <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />}
+                                                {istBetreuer ? (
+                                                    <div className={`w-1.5 h-1.5 rounded-full ${
+                                                        beitragVon(m) === 'PAID' ? 'bg-emerald-500'
+                                                        : beitragVon(m) === 'OPEN' ? 'bg-amber-500' : 'bg-stone-300'}`}
+                                                        title={beitragVon(m) === 'PAID' ? t('steward.fee_paid', { year: beitragsjahr })
+                                                             : beitragVon(m) === 'OPEN' ? t('steward.fee_open') : t('steward.fee_none')} />
+                                                ) : m.membershipStatus === 'ACTIVE' && <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />}
                                             </div>
                                         ))}
                                     </div>
@@ -782,16 +818,32 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                             ) : (
                                                 n.displayName?.charAt(0)
                                             )}
-                                            {n.membershipStatus === 'ACTIVE' && (
+                                            {/* Fuer die verantwortliche Person zeigt die Ecke den
+                                                Beitrag des laufenden Jahres. Vorher stand hier der
+                                                Mitgliedsstatus -- bei fast allen ACTIVE, weshalb die
+                                                Uebersicht durchgehend gruen aussah und nichts aussagte. */}
+                                            {istBetreuer ? (
+                                                <div className={`absolute bottom-0 right-0 w-4 h-4 rounded-tl-lg flex items-center justify-center ${
+                                                    beitragVon(n) === 'PAID' ? 'bg-emerald-500'
+                                                    : beitragVon(n) === 'OPEN' ? 'bg-amber-500' : 'bg-stone-300'}`}
+                                                    title={beitragVon(n) === 'PAID' ? t('steward.fee_paid', { year: beitragsjahr })
+                                                         : beitragVon(n) === 'OPEN' ? t('steward.fee_open') : t('steward.fee_none')}>
+                                                    {beitragVon(n) === 'PAID'
+                                                        ? <CheckCircle2 size={10} className="text-white"/>
+                                                        : <Clock size={10} className="text-white"/>}
+                                                </div>
+                                            ) : n.membershipStatus === 'ACTIVE' && (
                                                 <div className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 rounded-tl-lg flex items-center justify-center">
                                                     <CheckCircle2 size={10} className="text-white"/>
                                                 </div>
                                             )}
                                         </div>
-                                        
-                                        {/* DATA QUALITY INDICATOR FOR MANAGER */}
-                                        {user.role === 'NEIGHBORHOOD_MANAGER' && isProfileIncomplete(n) && (
-                                            <div className="absolute top-0 right-2 w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center z-10 border-2 border-white shadow-sm" title={t('dash.incomplete_profile')}>
+
+                                        {/* Fehlende Angaben, mit Nennung der Felder im Tooltip --
+                                            ein blosses Ausrufezeichen sagt nicht, was zu tun ist. */}
+                                        {istBetreuer && luckenVon(n).length > 0 && (
+                                            <div className="absolute top-0 right-2 w-5 h-5 bg-rose-500 rounded-full flex items-center justify-center z-10 border-2 border-white shadow-sm"
+                                                 title={`${t('steward.data_missing')}: ${luckenVon(n).map(k => t(k)).join(', ')}`}>
                                                 <AlertTriangle size={10} className="text-white"/>
                                             </div>
                                         )}
