@@ -10,6 +10,23 @@ interface Translations {
 }
 
 const translations: Translations = {
+  // --- UEBERSICHT DER NACHBARSCHAFT: BEITRAG UND VOLLSTAENDIGKEIT ---
+  'steward.fee_paid': { en: 'Paid {year}', de: 'Bezahlt {year}', sq: 'Paguar {year}' },
+  'steward.fee_open': { en: 'Fee open', de: 'Beitrag offen', sq: 'Kuota e hapur' },
+  'steward.fee_none': { en: 'Not billed', de: 'Nicht verrechnet', sq: 'Pa faturuar' },
+  'steward.data_ok': { en: 'Details complete', de: 'Angaben vollständig', sq: 'Të dhënat e plota' },
+  'steward.data_missing': { en: 'Missing', de: 'Fehlt', sq: 'Mungon' },
+  'steward.data_gaps': { en: 'incomplete', de: 'unvollständig', sq: 'të paplota' },
+  'steward.filter_all': { en: 'All', de: 'Alle', sq: 'Të gjithë' },
+  'steward.filter_open': { en: 'Fee outstanding', de: 'Beitrag ausstehend', sq: 'Kuota e papaguar' },
+  'steward.filter_gaps': { en: 'Details missing', de: 'Angaben fehlen', sq: 'Mungojnë të dhëna' },
+  'steward.filter_empty': { en: 'Nobody in this list — nothing to do here.', de: 'Niemand in dieser Liste — hier ist nichts zu tun.', sq: 'Askush në këtë listë — këtu s\'ka çka të bëhet.' },
+  'steward.not_billed': {
+    en: 'For {count} members nothing has been billed for {year} yet — that is with the association, not with them.',
+    de: 'Bei {count} Mitgliedern wurde für {year} noch nichts verrechnet — das liegt beim Verein, nicht bei ihnen.',
+    sq: 'Për {count} anëtarë ende nuk është faturuar asgjë për {year} — kjo varet nga shoqata, jo nga ata.'
+  },
+
   'steward.badge': { en: 'Neighborhood lead', de: 'Nachbarschaft', sq: 'Përgjegjës i lagjes' },
   'steward.responsible_for': { en: 'Responsible for', de: 'Verantwortlich für', sq: 'Përgjegjës për' },
   'steward.responsible_title': { en: 'Responsible person for', de: 'Verantwortliche Person für', sq: 'Person përgjegjës për' },

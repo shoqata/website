@@ -13,7 +13,7 @@ import { useTranslation } from '../context/LanguageContext';
 import { useFeedback } from '../context/FeedbackContext';
 import { UserProfile, Payment, Neighborhood } from '../types';
 import CountrySelect from './ui/CountrySelect';
-import { missingFieldKeys } from '../lib/memberQuality';
+import { missingFieldKeys, feeStateFor } from '../lib/memberQuality';
 import { hasUsableEmail } from '../lib/memberEmail';
 
 interface Props { user: UserProfile; }
@@ -36,6 +36,10 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
   const [rechnungen, setRechnungen] = useState<Payment[]>([]);
   const [laedt, setLaedt] = useState(true);
   const [suche, setSuche] = useState('');
+  // Bei 35 offenen Beitraegen und 39 unvollstaendigen Datensaetzen unter 46
+  // Mitgliedern ist eine Warnung an fast jeder Zeile wertlos. Erst der
+  // Filter macht daraus eine Arbeitsliste.
+  const [filter, setFilter] = useState<'ALLE' | 'OFFEN' | 'UNVOLLSTAENDIG'>('ALLE');
 
   const [bearbeitet, setBearbeitet] = useState<UserProfile | null>(null);
   const [speichert, setSpeichert] = useState(false);
@@ -70,15 +74,36 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
 
   useEffect(() => { laden(); }, [user.id]);
 
+  const jahr = new Date().getFullYear();
+
+  // Beitragsstand und fehlende Angaben einmal je Mitglied, nicht in jeder
+  // Zeile neu -- die Liste kann mehrere Dutzend Eintraege lang sein.
+  const bewertet = useMemo(() => mitglieder.map(m => ({
+    m,
+    beitrag: feeStateFor(m.id!, rechnungen, jahr),
+    fehlt: missingFieldKeys(m, { selfServiceOnly: true }),
+  })), [mitglieder, rechnungen, jahr]);
+
+  const zaehler = useMemo(() => ({
+    bezahlt:       bewertet.filter(b => b.beitrag === 'PAID').length,
+    offen:         bewertet.filter(b => b.beitrag === 'OPEN').length,
+    nichtVerrechnet: bewertet.filter(b => b.beitrag === 'NONE').length,
+    vollstaendig:  bewertet.filter(b => b.fehlt.length === 0).length,
+    luecken:       bewertet.filter(b => b.fehlt.length > 0).length,
+  }), [bewertet]);
+
   const gefiltert = useMemo(() => {
     const s = suche.toLowerCase().trim();
-    if (!s) return mitglieder;
-    return mitglieder.filter(m =>
-      (m.displayName || '').toLowerCase().includes(s) ||
-      (m.email || '').toLowerCase().includes(s) ||
-      (m.city || '').toLowerCase().includes(s) ||
-      (m.phone || '').toLowerCase().includes(s));
-  }, [mitglieder, suche]);
+    return bewertet.filter(({ m, beitrag, fehlt }) => {
+      if (filter === 'OFFEN' && beitrag === 'PAID') return false;
+      if (filter === 'UNVOLLSTAENDIG' && fehlt.length === 0) return false;
+      if (!s) return true;
+      return (m.displayName || '').toLowerCase().includes(s) ||
+             (m.email || '').toLowerCase().includes(s) ||
+             (m.city || '').toLowerCase().includes(s) ||
+             (m.phone || '').toLowerCase().includes(s);
+    });
+  }, [bewertet, suche, filter]);
 
   const nameVon = (id?: string) => mitglieder.find(m => m.id === id)?.displayName || '-';
   const offen = rechnungen.filter(r => r.status !== 'PAID');
@@ -150,11 +175,32 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
         <h1 className="text-3xl md:text-4xl font-display font-bold italic mb-4">
           {nachbarschaften.map(n => n.name).join(' · ') || '-'}
         </h1>
-        <div className="flex flex-wrap gap-6 text-sm">
-          <span className="flex items-center gap-2"><Users size={16} className="text-stone-400" /> {mitglieder.length} {t('steward.members')}</span>
-          <span className="flex items-center gap-2"><CheckCircle2 size={16} className="text-emerald-400" /> {bezahlt.length} {t('steward.paid')}</span>
-          <span className="flex items-center gap-2"><Clock size={16} className="text-amber-400" /> {offen.length} {t('steward.open')}</span>
+        {/* Die Zahlen zaehlen Mitglieder, nicht Rechnungen. Vorher standen hier
+            Rechnungszahlen -- wer wissen will, bei wem der Beitrag aussteht,
+            ist damit nicht bedient. */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-white/5 rounded-2xl p-4">
+            <p className="text-2xl font-bold">{mitglieder.length}</p>
+            <p className="text-stone-400 text-[10px] font-bold uppercase tracking-widest mt-1">{t('steward.members')}</p>
+          </div>
+          <div className="bg-white/5 rounded-2xl p-4">
+            <p className="text-2xl font-bold text-emerald-400">{zaehler.bezahlt}</p>
+            <p className="text-stone-400 text-[10px] font-bold uppercase tracking-widest mt-1">{t('steward.fee_paid', { year: jahr })}</p>
+          </div>
+          <div className="bg-white/5 rounded-2xl p-4">
+            <p className="text-2xl font-bold text-amber-400">{zaehler.offen}</p>
+            <p className="text-stone-400 text-[10px] font-bold uppercase tracking-widest mt-1">{t('steward.fee_open')}</p>
+          </div>
+          <div className="bg-white/5 rounded-2xl p-4">
+            <p className="text-2xl font-bold text-rose-300">{zaehler.luecken}</p>
+            <p className="text-stone-400 text-[10px] font-bold uppercase tracking-widest mt-1">{t('steward.data_gaps')}</p>
+          </div>
         </div>
+        {zaehler.nichtVerrechnet > 0 && (
+          <p className="text-stone-400 text-xs mt-4">
+            {t('steward.not_billed', { count: zaehler.nichtVerrechnet, year: jahr })}
+          </p>
+        )}
       </div>
 
       <div className="flex gap-2 border-b border-stone-100">
@@ -175,32 +221,76 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
               className="w-full pl-11 pr-4 py-3.5 bg-stone-50 border border-stone-200 rounded-2xl outline-none focus:border-primary/40 transition-colors" />
           </div>
 
+          {/* Filter statt blosser Warnungen: bei 35 offenen Beitraegen unter 46
+              Mitgliedern ist die vollstaendige Liste keine Arbeitsgrundlage. */}
+          <div className="flex flex-wrap gap-2">
+            {([
+              ['ALLE', t('steward.filter_all'), mitglieder.length],
+              ['OFFEN', t('steward.filter_open'), zaehler.offen + zaehler.nichtVerrechnet],
+              ['UNVOLLSTAENDIG', t('steward.filter_gaps'), zaehler.luecken],
+            ] as const).map(([k, label, n]) => (
+              <button key={k} onClick={() => setFilter(k as any)}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors border ${
+                  filter === k ? 'bg-stone-900 text-white border-stone-900'
+                               : 'bg-white text-stone-500 border-stone-200 hover:border-stone-400'}`}>
+                {label} <span className="opacity-60">{n}</span>
+              </button>
+            ))}
+          </div>
+
+          {gefiltert.length === 0 && (
+            <p className="text-sm text-stone-400 italic p-6 text-center">{t('steward.filter_empty')}</p>
+          )}
+
           <div className="grid gap-3">
-            {gefiltert.map(m => {
-              const fehlt = missingFieldKeys(m, { selfServiceOnly: true });
-              return (
-                <button key={m.id} onClick={() => setBearbeitet({ ...m })}
-                  className="text-left bg-white border border-stone-100 rounded-2xl p-5 hover:border-stone-300 transition-colors flex flex-wrap items-center justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="font-bold text-stone-900 truncate">{m.displayName || '-'}</p>
-                    <p className="text-xs text-stone-500 truncate">
-                      {[m.street, [m.zip, m.city].filter(Boolean).join(' ')].filter(Boolean).join(', ') || t('steward.no_address')}
-                    </p>
+            {gefiltert.map(({ m, beitrag, fehlt }) => (
+              <button key={m.id} onClick={() => setBearbeitet({ ...m })}
+                className="text-left bg-white border border-stone-100 rounded-2xl p-5 hover:border-stone-300 transition-colors flex flex-wrap items-start justify-between gap-4">
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <p className="font-bold text-stone-900 truncate">{m.displayName || '-'}</p>
+                  <p className="text-xs text-stone-500 truncate">
+                    {[m.street, [m.zip, m.city].filter(Boolean).join(' ')].filter(Boolean).join(', ') || t('steward.no_address')}
+                  </p>
+                  <div className="flex flex-wrap gap-3 text-xs text-stone-500">
+                    {m.phone && <span className="flex items-center gap-1.5"><Phone size={12} /> {m.phone}</span>}
+                    {hasUsableEmail(m) && <span className="flex items-center gap-1.5 truncate"><Mail size={12} /> {m.email}</span>}
                   </div>
-                  <div className="flex items-center gap-3 text-xs">
-                    {m.phone && <span className="flex items-center gap-1.5 text-stone-500"><Phone size={12} /> {m.phone}</span>}
-                    {hasUsableEmail(m)
-                      ? <span className="flex items-center gap-1.5 text-stone-500"><Mail size={12} /> {m.email}</span>
-                      : <span className="flex items-center gap-1.5 text-amber-600 font-bold"><Mail size={12} /> {t('email.no_address')}</span>}
-                    {fehlt.length > 0 && (
-                      <span className="flex items-center gap-1.5 text-amber-600 font-bold">
-                        <AlertTriangle size={12} /> {fehlt.length}
-                      </span>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
+                </div>
+
+                {/* Die beiden Auskuenfte, um die es geht: Beitrag des laufenden
+                    Jahres und Vollstaendigkeit der Angaben. "Nicht verrechnet"
+                    bleibt von "offen" getrennt -- das eine liegt beim Mitglied,
+                    das andere beim Verein. */}
+                <div className="flex flex-col items-end gap-2 shrink-0">
+                  {beitrag === 'PAID' && (
+                    <span className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5">
+                      <CheckCircle2 size={12} /> {t('steward.fee_paid', { year: jahr })}
+                    </span>
+                  )}
+                  {beitrag === 'OPEN' && (
+                    <span className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1.5">
+                      <Clock size={12} /> {t('steward.fee_open')}
+                    </span>
+                  )}
+                  {beitrag === 'NONE' && (
+                    <span className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase bg-stone-100 text-stone-500 border border-stone-200 flex items-center gap-1.5">
+                      <Receipt size={12} /> {t('steward.fee_none')}
+                    </span>
+                  )}
+
+                  {fehlt.length === 0 ? (
+                    <span className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5">
+                      <CheckCircle2 size={12} /> {t('steward.data_ok')}
+                    </span>
+                  ) : (
+                    <span className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1.5 text-right">
+                      <AlertTriangle size={12} className="shrink-0" />
+                      {t('steward.data_missing')}: {fehlt.map(k => t(k)).join(', ')}
+                    </span>
+                  )}
+                </div>
+              </button>
+            ))}
           </div>
         </div>
       )}
