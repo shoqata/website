@@ -861,3 +861,36 @@ export function getAuth(_app?: any) {
 // Export default compatibility app
 const app = { name: "supabase-bridge" };
 export default app;
+
+// ---------------------------------------------------------------- Passwort
+// Ein voruebergehendes Passwort fuer ein Mitglied setzen.
+//
+// Die Aenderung geschieht ausschliesslich auf dem Server. Die Anwendung im
+// Browser kennt den dafuer noetigen Administrator-Schluessel nicht und soll
+// ihn auch nie kennen -- sie schickt nur die Kennung des Mitglieds und ihr
+// eigenes Anmeldetoken. Ob der Aufrufer ueberhaupt zurueckseten darf, und ob
+// das Mitglied zu seinem Verein gehoert, entscheidet der Server.
+export async function resetMemberPassword(memberId: string): Promise<{
+  password: string; email: string; displayName?: string; created: boolean;
+}> {
+  if (!supabase) throw new Error("Supabase ist nicht eingerichtet.");
+  const { data: sess } = await supabase.auth.getSession();
+  const token = sess?.session?.access_token;
+  if (!token) throw new Error("Nicht angemeldet.");
+
+  const res = await fetch(`${supabaseUrl}/functions/v1/reset-member-password`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      apikey: supabaseAnonKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ memberId }),
+  });
+
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || body?.error) {
+    throw new Error(body?.error || `Serverfehler ${res.status}`);
+  }
+  return body;
+}

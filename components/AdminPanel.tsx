@@ -45,6 +45,7 @@ import { neighborhoodPlace } from '../lib/neighborhood';
 import { onImageError } from '../lib/imageFallback';
 import AdminNeighborhoodEditor from './AdminNeighborhoodEditor';
 import CountrySelect from './ui/CountrySelect';
+import AdminPasswordReset from './AdminPasswordReset';
 import { missingFieldKeys, qualityScore, feeStateFor, hasDeliveryConflict } from '../lib/memberQuality';
 import { isPlaceholderEmail, hasUsableEmail, emailMissingForDelivery, deliveryNeedsEmail } from '../lib/memberEmail';
 type AdminTabId = 'USERS' | 'NEIGHBORHOODS' | 'ANALYTICS' | 'STATISTICS' | 'WEBSITE' | 'SOCIAL_AI' | 'EVENTS' | 'NEWS' | 'FINANCE' | 'EXPENSES' | 'DATA' | 'ACCOUNTING' | 'SETTINGS' | 'BOARD' | 'COMMUNICATION' | 'DATA_QUALITY';
@@ -93,6 +94,7 @@ const AdminPanel: React.FC = () => {
   
   // Member Drawer State
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+  const [pwResetFor, setPwResetFor] = useState<any>(null);
   const [isUserDrawerOpen, setIsUserDrawerOpen] = useState(false);
   const [userDrawerTab, setUserDrawerTab] = useState<'GENERAL' | 'ADDRESS' | 'FINANCE' | 'HISTORY' | 'INTERNAL'>('GENERAL');
   
@@ -813,6 +815,8 @@ const AdminPanel: React.FC = () => {
 
       {/* DETAILED USER DRAWER */}
       <AnimatePresence>
+          <AdminPasswordReset member={pwResetFor} onClose={() => setPwResetFor(null)} />
+
           {isUserDrawerOpen && selectedUser && (
               <div className="fixed inset-0 z-[200] flex justify-end">
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsUserDrawerOpen(false)} className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" />
@@ -1033,6 +1037,9 @@ const AdminPanel: React.FC = () => {
 
                       {/* Drawer Footer */}
                       <div className="p-10 border-t border-stone-100 bg-white flex gap-4 shrink-0">
+                          {selectedUser.id && (
+                              <button onClick={() => setPwResetFor(selectedUser)} title={t('pw.title')} className="px-5 py-4 bg-stone-100 text-stone-600 rounded-2xl font-bold hover:bg-stone-200 transition-colors flex items-center gap-2"><KeyRound size={20}/> {t('pw.short')}</button>
+                          )}
                           {selectedUser.id && (
                               selectedUser.membershipStatus === 'INACTIVE' ? (
                                   <button onClick={handleToggleMembership} title={t('admin.members.reactivate_title')} className="px-5 py-4 bg-emerald-50 text-emerald-700 rounded-2xl font-bold hover:bg-emerald-100 transition-colors flex items-center gap-2"><UserCheck2 size={20}/> {t('admin.members.reactivate')}</button>

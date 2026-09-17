@@ -10,6 +10,30 @@ interface Translations {
 }
 
 const translations: Translations = {
+  // --- PASSWORT DURCH DIE ADMINISTRATION ---
+  'pw.title': { en: 'Reset password', de: 'Passwort zurücksetzen', sq: 'Rivendos fjalëkalimin' },
+  'pw.short': { en: 'Password', de: 'Passwort', sq: 'Fjalëkalimi' },
+  'pw.action': { en: 'Create temporary password', de: 'Vorübergehendes Passwort erzeugen', sq: 'Krijo fjalëkalim të përkohshëm' },
+  'pw.explain': {
+    en: 'The member receives a new temporary password. The previous one stops working. Hand it over in person or by phone and ask the member to change it after their first sign-in.',
+    de: 'Das Mitglied erhält ein neues, vorübergehendes Passwort. Das bisherige gilt dann nicht mehr. Geben Sie es persönlich oder telefonisch weiter und bitten Sie das Mitglied, es nach der ersten Anmeldung selbst zu ändern.',
+    sq: 'Anëtari merr një fjalëkalim të ri të përkohshëm. Fjalëkalimi i vjetër nuk vlen më. Jepjani atij personalisht ose me telefon dhe kërkojini ta ndryshojë vetë pas hyrjes së parë.'
+  },
+  'pw.new_password': { en: 'New password', de: 'Neues Passwort', sq: 'Fjalëkalimi i ri' },
+  'pw.created': { en: 'Account created — first password', de: 'Konto angelegt — erstes Passwort', sq: 'Llogaria u krijua — fjalëkalimi i parë' },
+  'pw.once_warning': {
+    en: 'This password is shown once and stored nowhere. If it gets lost, simply reset again.',
+    de: 'Dieses Passwort wird nur einmal angezeigt und nirgends gespeichert. Geht es verloren, setzen Sie einfach erneut zurück.',
+    sq: 'Ky fjalëkalim shfaqet vetëm një herë dhe nuk ruhet askund. Nëse e humbni, thjesht rivendoseni sërish.'
+  },
+  'pw.no_email': {
+    en: 'This member has no valid email address. Without one there is no sign-in account. Add an address first.',
+    de: 'Dieses Mitglied hat keine gültige E-Mail-Adresse. Ohne sie gibt es kein Anmeldekonto. Tragen Sie zuerst eine Adresse ein.',
+    sq: 'Ky anëtar nuk ka adresë e-mail të vlefshme. Pa të nuk ka llogari hyrjeje. Shtoni së pari një adresë.'
+  },
+  'common.copy': { en: 'Copy', de: 'Kopieren', sq: 'Kopjo' },
+  'common.close': { en: 'Close', de: 'Schliessen', sq: 'Mbyll' },
+
   // --- COMMON ---
   // --- Oeffentliche Seiten: bis hierher fest verdrahtet und damit von der
   // Sprachwahl unberuehrt. Die Texte lagen in drei Sprachen gemischt vor.
