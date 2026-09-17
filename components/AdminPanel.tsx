@@ -33,6 +33,7 @@ import AdminWebsite from './AdminWebsite';
 import SocialAI from './SocialAI';
 import AdminFinance from './AdminFinance';
 import AdminPaymentReports from './AdminPaymentReports';
+import AdminMailQueue from './AdminMailQueue';
 import AdminData from './AdminData';
 import AdminAccounting from './AdminAccounting';
 import AdminStatistics from './AdminStatistics';
@@ -515,7 +516,14 @@ const AdminPanel: React.FC = () => {
                         {activeTab === 'DATA' && <AdminData />}
                         {activeTab === 'SETTINGS' && <AdminSettings />}
                         {activeTab === 'BOARD' && <AdminBoard users={users} />}
-                        {activeTab === 'COMMUNICATION' && <AdminCommunication />}
+                        {activeTab === 'COMMUNICATION' && (
+                            <div className="space-y-8">
+                                {/* Der Versand zuerst: ohne diese Ansicht blieb ueber Monate
+                                    unbemerkt, dass gar nichts hinausging. */}
+                                <AdminMailQueue />
+                                <AdminCommunication />
+                            </div>
+                        )}
                         
                         {activeTab === 'EVENTS' && (
                             <div className="space-y-6">

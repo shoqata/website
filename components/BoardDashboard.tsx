@@ -30,6 +30,7 @@ import { useFeedback } from '../context/FeedbackContext';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 
 import { neighborhoodCity } from '../lib/neighborhood';
+import { billingYearOf } from '../lib/memberQuality';
 import { onImageError } from '../lib/imageFallback';
 interface BoardDashboardProps {
   user: UserProfile;
@@ -90,7 +91,15 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
   }, []);
 
   // DERIVED STATS & ANALYTICS
-  const yearPayments = useMemo(() => payments.filter(p => p.timestamp?.toDate().getFullYear() === selectedYear), [payments, selectedYear]);
+  // Frueher wurde nach dem Zeitstempel gefiltert, also danach, wann der
+  // Datensatz entstand. Massgeblich ist aber billingYear -- das Jahr, fuer das
+  // der Beitrag erhoben wird. Gemessen: fuer 2026 zaehlte die Ansicht dadurch
+  // 324 Zahlungen statt 321 und 80 bezahlte statt 79. Eine Rechnung gehoert
+  // ins Jahr 2025 und wurde hier mitgezaehlt.
+  const yearPayments = useMemo(
+    () => payments.filter(p => billingYearOf(p) === selectedYear),
+    [payments, selectedYear]
+  );
   
   const stats = useMemo(() => {
       const paid = yearPayments.filter(p => p.status === 'PAID');
