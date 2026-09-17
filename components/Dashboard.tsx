@@ -321,12 +321,31 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       }
   };
 
+  const beitragsjahr = new Date().getFullYear();
+
+  // Der Puls rechnete ACTIVE / alle. Gemessen: in jeder der 27 Nachbarschaften
+  // sind hundert Prozent ACTIVE -- die Kennzahl war eine Konstante und zeigte
+  // dauerhaft 100. Die Zahlquote schwankt dagegen zwischen 15 und 38 Prozent;
+  // dort liegt das, was sich beobachten laesst.
+  //
+  // "Nicht verrechnet" bleibt als eigener Anteil sichtbar, statt in "offen"
+  // aufzugehen: das eine liegt beim Mitglied, das andere beim Verein.
   const stats = useMemo(() => {
       const total = neighbors.length;
       const active = neighbors.filter(n => n.membershipStatus === 'ACTIVE').length;
-      const rate = total > 0 ? Math.round((active / total) * 100) : 0;
-      return { total, active, rate, chartData: [{ name: 'Active', value: active, color: '#10b981' }, { name: 'Pending', value: total - active, color: '#e7e5e4' }] };
-  }, [neighbors]);
+      const bezahlt = neighbors.filter(n => feeStateFor(n.id!, nachbarschaftsZahlungen, beitragsjahr) === 'PAID').length;
+      const offen = neighbors.filter(n => feeStateFor(n.id!, nachbarschaftsZahlungen, beitragsjahr) === 'OPEN').length;
+      const nichtVerrechnet = Math.max(0, total - bezahlt - offen);
+      const rate = total > 0 ? Math.round((bezahlt / total) * 100) : 0;
+      return {
+        total, active, bezahlt, offen, nichtVerrechnet, rate,
+        chartData: [
+          { name: 'Bezahlt', value: bezahlt, color: '#10b981' },
+          { name: 'Offen', value: offen, color: '#f59e0b' },
+          { name: 'Nicht verrechnet', value: nichtVerrechnet, color: '#e7e5e4' },
+        ].filter(d => d.value > 0),
+      };
+  }, [neighbors, nachbarschaftsZahlungen, beitragsjahr]);
 
   const groupedNeighbors = useMemo(() => {
       const families: Record<string, UserProfile[]> = {};
@@ -375,7 +394,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   // gewoehnliches Mitglied bekommt die Zahlungen seiner Nachbarn gar nicht
   // erst zu sehen, und soll es auch nicht.
   const istBetreuer = betreutNachbarschaften.length > 0;
-  const beitragsjahr = new Date().getFullYear();
   const beitragVon = (u: UserProfile) => feeStateFor(u.id!, nachbarschaftsZahlungen, beitragsjahr);
   // Dieselbe Regel wie in der Nachbarschaftsansicht -- ohne Geburtsdatum, das
   // laesst sich hier gar nicht nachtragen.
@@ -612,7 +630,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                     <div className="flex justify-between items-start mb-6">
                         <div>
                             <h4 className="font-bold text-lg text-stone-900">{t('dash.community.title')}</h4>
-                            <p className="text-xs text-stone-500">{neighborhood?.name || 'Lagja'}</p>
+                            <p className="text-xs text-stone-500">{neighborhood?.name || 'Lagja'} · {t('dash.community.basis', { year: beitragsjahr })}</p>
                         </div>
                         <div className="bg-stone-50 p-2 rounded-xl">
                             <TrendingUp size={20} className="text-stone-400"/>
@@ -632,16 +650,40 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                             </ResponsiveContainer>
                             <div className="absolute inset-0 flex flex-col items-center justify-center">
                                 <span className="text-2xl font-bold text-stone-900">{stats.rate}%</span>
-                                <span className="text-[8px] uppercase font-bold text-stone-400 tracking-widest">{t('status.active')}</span>
+                                <span className="text-[8px] uppercase font-bold text-stone-400 tracking-widest">{t('dash.community.paid_short')}</span>
                             </div>
                         </div>
-                        <div className="flex-1 space-y-3">
+                        <div className="flex-1 space-y-2.5">
                             <div>
-                                <p className="text-2xl font-bold text-stone-900">{stats.active} <span className="text-sm font-normal text-stone-400">/ {stats.total}</span></p>
-                                <p className="text-xs text-stone-500 font-medium">{t('dash.community.active_members')}</p>
+                                <p className="text-2xl font-bold text-stone-900">{stats.bezahlt} <span className="text-sm font-normal text-stone-400">/ {stats.total}</span></p>
+                                {/* Einem gewoehnlichen Mitglied gibt die Leseregel nur die
+                                    eigene Zeile heraus. Eine Quote ueber eine Person als
+                                    Gemeinschaftskennzahl auszugeben waere irrefuehrend. */}
+                                <p className="text-xs text-stone-500 font-medium">
+                                    {stats.total > 1 ? t('dash.community.paid_of', { year: beitragsjahr })
+                                                     : t('dash.community.own_fee', { year: beitragsjahr })}
+                                </p>
                             </div>
-                            <p className="text-[10px] text-stone-400 italic bg-stone-50 p-2 rounded-lg leading-relaxed">
-                                "{t('dash.community.quote')}"
+                            {/* Die Bestandteile beim Namen nennen -- ein Ring ohne
+                                Aufschluesselung laesst offen, woraus die Zahl entsteht. */}
+                            <div className="space-y-1 text-[11px]">
+                                <p className="flex items-center gap-2 text-stone-600">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                                    {stats.bezahlt} {t('steward.fee_paid', { year: beitragsjahr })}
+                                </p>
+                                <p className="flex items-center gap-2 text-stone-600">
+                                    <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                                    {stats.offen} {t('steward.fee_open')}
+                                </p>
+                                {stats.nichtVerrechnet > 0 && (
+                                    <p className="flex items-center gap-2 text-stone-500">
+                                        <span className="w-2 h-2 rounded-full bg-stone-300 shrink-0" />
+                                        {stats.nichtVerrechnet} {t('steward.fee_none')}
+                                    </p>
+                                )}
+                            </div>
+                            <p className="text-[10px] text-stone-400 border-t border-stone-100 pt-2">
+                                {t('dash.community.active_short')}: {stats.active} / {stats.total}
                             </p>
                         </div>
                     </div>

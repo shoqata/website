@@ -10,6 +10,14 @@ interface Translations {
 }
 
 const translations: Translations = {
+  'dash.community.active_short': { en: 'Active', de: 'Aktiv', sq: 'Aktivë' },
+  'dash.community.own_fee': { en: 'Your fee {year}', de: 'Dein Beitrag {year}', sq: 'Kuota juaj {year}' },
+
+  // --- COMMUNITY PULS: GRUNDLAGE IST DIE ZAHLQUOTE ---
+  'dash.community.paid_short': { en: 'paid', de: 'bezahlt', sq: 'paguar' },
+  'dash.community.paid_of': { en: 'have paid the {year} fee', de: 'haben den Beitrag {year} bezahlt', sq: 'kanë paguar kuotën {year}' },
+  'dash.community.basis': { en: 'Membership fee {year}', de: 'Mitgliederbeitrag {year}', sq: 'Kuota e anëtarësisë {year}' },
+
   // --- UEBERSICHT DER NACHBARSCHAFT: BEITRAG UND VOLLSTAENDIGKEIT ---
   'steward.fee_paid': { en: 'Paid {year}', de: 'Bezahlt {year}', sq: 'Paguar {year}' },
   'steward.fee_open': { en: 'Fee open', de: 'Beitrag offen', sq: 'Kuota e hapur' },
