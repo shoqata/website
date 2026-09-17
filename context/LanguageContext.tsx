@@ -10,6 +10,15 @@ interface Translations {
 }
 
 const translations: Translations = {
+  'steward.badge': { en: 'Neighborhood lead', de: 'Nachbarschaft', sq: 'Përgjegjës i lagjes' },
+  'steward.responsible_for': { en: 'Responsible for', de: 'Verantwortlich für', sq: 'Përgjegjës për' },
+  'steward.responsible_title': { en: 'Responsible person for', de: 'Verantwortliche Person für', sq: 'Person përgjegjës për' },
+  'steward.responsible_hint': {
+    en: 'Because of this assignment this person can see the members of that neighborhood, correct their addresses, see the invoices and report payments. They cannot change an invoice status. Rights follow this assignment, not the role — remove it in the neighborhood settings to withdraw them.',
+    de: 'Aus dieser Zuordnung folgt: diese Person sieht die Mitglieder jener Nachbarschaft, kann deren Adressen berichtigen, sieht die Rechnungen und kann Zahlungen melden. Den Stand einer Rechnung ändern kann sie nicht. Die Rechte hängen an dieser Zuordnung, nicht an der Rolle — zum Entziehen in den Einstellungen der Nachbarschaft entfernen.',
+    sq: 'Nga ky caktim rrjedh: ky person sheh anëtarët e asaj lagjeje, mund të korrigjojë adresat e tyre, sheh faturat dhe mund të raportojë pagesa. Statusin e një fature nuk mund ta ndryshojë. Të drejtat varen nga ky caktim, jo nga roli — për t\'i hequr, fshijeni te cilësimet e lagjes.'
+  },
+
   // --- BETREUUNG EINER NACHBARSCHAFT ---
   'steward.title': { en: 'Neighborhood', de: 'Nachbarschaft', sq: 'Lagjja' },
   'steward.members': { en: 'members', de: 'Mitglieder', sq: 'anëtarë' },

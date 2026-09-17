@@ -47,6 +47,7 @@ import { onImageError } from '../lib/imageFallback';
 import AdminNeighborhoodEditor from './AdminNeighborhoodEditor';
 import CountrySelect from './ui/CountrySelect';
 import AdminPasswordReset from './AdminPasswordReset';
+import { neighborhoodsLedBy } from '../lib/stewardship';
 import { missingFieldKeys, qualityScore, feeStateFor, hasDeliveryConflict } from '../lib/memberQuality';
 import { isPlaceholderEmail, hasUsableEmail, emailMissingForDelivery, deliveryNeedsEmail } from '../lib/memberEmail';
 type AdminTabId = 'USERS' | 'NEIGHBORHOODS' | 'ANALYTICS' | 'STATISTICS' | 'WEBSITE' | 'SOCIAL_AI' | 'EVENTS' | 'NEWS' | 'FINANCE' | 'EXPENSES' | 'DATA' | 'ACCOUNTING' | 'SETTINGS' | 'BOARD' | 'COMMUNICATION' | 'DATA_QUALITY';
@@ -453,7 +454,17 @@ const AdminPanel: React.FC = () => {
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4"><p className="text-sm text-stone-600">{neighborhoods.find(n => n.id === u.neighborhoodId)?.name || '-'}</p></td>
+                                                    <td className="px-6 py-4">
+                                                        <p className="text-sm text-stone-600">{neighborhoods.find(n => n.id === u.neighborhoodId)?.name || '-'}</p>
+                                                        {/* Ohne dieses Kennzeichen ist in der Liste nicht zu
+                                                            erkennen, wer eine Nachbarschaft fuehrt -- die Rolle
+                                                            steht bei diesen Personen meist auf MEMBER. */}
+                                                        {neighborhoodsLedBy(u.id, neighborhoods).length > 0 && (
+                                                            <span className="mt-1 inline-flex items-center gap-1 bg-rose-50 text-primary border border-rose-200 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider">
+                                                                <Home size={9}/> {t('steward.badge')}
+                                                            </span>
+                                                        )}
+                                                    </td>
                                                     <td className="px-6 py-4"><span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${u.membershipStatus === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{u.membershipStatus}</span></td>
                                                     <td className="px-6 py-4 text-right"><div className="flex justify-end gap-1"><button onClick={(e) => { e.stopPropagation(); setSelectedUser(u); setUserDrawerTab('GENERAL'); setIsUserDrawerOpen(true); }} className="p-2 text-stone-400 hover:text-stone-900 bg-white border border-stone-200 rounded-lg shadow-sm"><Eye size={14}/></button></div></td>
                                                 </tr>
@@ -843,6 +854,14 @@ const AdminPanel: React.FC = () => {
                                       <span className="bg-white/10 px-3 py-1 rounded-lg text-[10px] font-bold uppercase border border-white/10">{selectedUser.role}</span>
                                       <span className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase ${selectedUser.membershipStatus === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'}`}>{selectedUser.membershipStatus}</span>
                                       <span className="bg-white/10 px-3 py-1 rounded-lg text-[10px] font-bold uppercase border border-white/10">{selectedUser.billingGroup || 'STANDARD'}</span>
+                                      {/* Seit die Betreuungsrechte an der Zuordnung haengen und
+                                          nicht an der Rollenbezeichnung, ist dies die eigentliche
+                                          Auskunft ueber die Befugnis dieser Person. */}
+                                      {neighborhoodsLedBy(selectedUser.id, neighborhoods).map(n => (
+                                          <span key={n.id} className="bg-primary/20 text-rose-200 px-3 py-1 rounded-lg text-[10px] font-bold uppercase border border-primary/40 flex items-center gap-1.5">
+                                              <Home size={10}/> {t('steward.responsible_for')} {n.name}
+                                          </span>
+                                      ))}
                                   </div>
                               </div>
                           </div>
@@ -894,6 +913,18 @@ const AdminPanel: React.FC = () => {
                                   <div className="grid grid-cols-2 gap-6">
                                       <div><label className="text-[10px] font-bold text-stone-400 uppercase block mb-1">{t('admin.members.phone_primary')}</label><input value={selectedUser.phone || ''} onChange={e => setSelectedUser({...selectedUser, phone: e.target.value})} className="w-full p-4 bg-white border border-stone-200 rounded-xl outline-none" /></div>
                                       <div><label className="text-[10px] font-bold text-stone-400 uppercase block mb-1">{t('admin.members.phone_secondary')}</label><input value={selectedUser.phoneSecondary || ''} onChange={e => setSelectedUser({...selectedUser, phoneSecondary: e.target.value})} className="w-full p-4 bg-white border border-stone-200 rounded-xl outline-none" /></div>
+                                  </div>
+                              </div>
+                          )}
+
+                          {userDrawerTab === 'GENERAL' && neighborhoodsLedBy(selectedUser.id, neighborhoods).length > 0 && (
+                              <div className="p-5 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3">
+                                  <Home size={18} className="text-primary mt-0.5 shrink-0"/>
+                                  <div className="flex-1 space-y-1">
+                                      <p className="text-sm font-bold text-stone-900">
+                                          {t('steward.responsible_title')}: {neighborhoodsLedBy(selectedUser.id, neighborhoods).map(n => n.name).join(', ')}
+                                      </p>
+                                      <p className="text-xs text-stone-600 leading-relaxed">{t('steward.responsible_hint')}</p>
                                   </div>
                               </div>
                           )}
