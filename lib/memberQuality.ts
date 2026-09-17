@@ -50,3 +50,32 @@ export const feeStateFor = (userId: string, payments: any[], year: number): FeeS
   if (own.length === 0) return 'NONE';
   return own.some((p) => p.status === 'PAID') ? 'PAID' : 'OPEN';
 };
+
+// Muss dieses Mitglied durch den Einrichtungsassistenten?
+//
+// Die Weiche fragte bisher nur profileComplete ab. Bei 295 der 350 Mitglieder
+// stand dort nichts, obwohl Name, Adresse und Nachbarschaft laengst erfasst
+// waren -- sie wurden bei jeder Anmeldung durch einen Assistenten geschickt,
+// der ihnen leere Felder zeigte.
+//
+// Geprueft wird deshalb, was der Assistent tatsaechlich erhebt, und nichts
+// darueber hinaus. Das Geburtsdatum steht bewusst nicht in der Liste: der
+// Assistent fragt es nicht ab, es hier zu verlangen wuerde jemanden in eine
+// Maske schicken, in der sich das Fehlende gar nicht nachtragen laesst.
+//
+// Das Land fehlt bei 343 Mitgliedern, steht aber ebenfalls nicht in der
+// Liste. Alle betroffenen Adressen sind schweizerisch (vierstellige
+// Postleitzahl, Schweizer Ort); der Assistent waehlt Schweiz vor. Dafuer
+// dreihundert Leute durch eine Maske zu schicken waere Aufwand ohne Ertrag.
+export const needsProfileSetup = (u: Partial<UserProfile>): boolean => {
+  if (!u) return true;
+  const leer = (v: any) => !v || !String(v).trim();
+  return (
+    leer(u.displayName) ||
+    leer(u.phone) ||
+    leer(u.street) ||
+    leer(u.zip) ||
+    leer(u.city) ||
+    leer(u.neighborhoodId)
+  );
+};
