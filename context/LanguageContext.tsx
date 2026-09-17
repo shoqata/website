@@ -10,6 +10,60 @@ interface Translations {
 }
 
 const translations: Translations = {
+  // --- BETREUUNG EINER NACHBARSCHAFT ---
+  'steward.title': { en: 'Neighborhood', de: 'Nachbarschaft', sq: 'Lagjja' },
+  'steward.members': { en: 'members', de: 'Mitglieder', sq: 'anëtarë' },
+  'steward.paid': { en: 'paid', de: 'bezahlt', sq: 'paguar' },
+  'steward.open': { en: 'open', de: 'offen', sq: 'hapur' },
+  'steward.tab_members': { en: 'Members', de: 'Mitglieder', sq: 'Anëtarët' },
+  'steward.tab_invoices': { en: 'Invoices', de: 'Rechnungen', sq: 'Faturat' },
+  'steward.no_address': { en: 'No address recorded', de: 'Keine Adresse erfasst', sq: 'Pa adresë të regjistruar' },
+  'steward.no_invoices': { en: 'No invoices for this neighborhood yet.', de: 'Noch keine Rechnungen für diese Nachbarschaft.', sq: 'Ende asnjë faturë për këtë lagje.' },
+  'steward.saved': { en: 'Address updated', de: 'Adresse aktualisiert', sq: 'Adresa u përditësua' },
+  'steward.reported': { en: 'Payment reported — the board will confirm it', de: 'Zahlung gemeldet — der Vorstand bestätigt sie', sq: 'Pagesa u raportua — bordi do ta konfirmojë' },
+  'steward.report': { en: 'Report as paid', de: 'Als bezahlt melden', sq: 'Raporto si të paguar' },
+  'steward.send_report': { en: 'Send report', de: 'Meldung senden', sq: 'Dërgo raportin' },
+  'steward.method': { en: 'How was it paid?', de: 'Wie wurde bezahlt?', sq: 'Si u pagua?' },
+  'steward.method_cash': { en: 'Cash', de: 'Bar', sq: 'Kesh' },
+  'steward.method_bank': { en: 'Bank transfer', de: 'Banküberweisung', sq: 'Transfertë bankare' },
+  'steward.note': { en: 'Note', de: 'Bemerkung', sq: 'Shënim' },
+  'steward.note_ph': { en: 'Anything the board should know', de: 'Was der Vorstand wissen sollte', sq: 'Çka duhet të dijë bordi' },
+  'steward.report_explain': {
+    en: 'You are reporting this payment. The invoice keeps its current status until the board or administration confirms it — only they can book a payment.',
+    de: 'Sie melden diese Zahlung. Die Rechnung behält ihren Stand, bis Vorstand oder Administration sie bestätigen — buchen können nur diese.',
+    sq: 'Ju po raportoni këtë pagesë. Fatura mbetet siç është derisa bordi ose administrata ta konfirmojë — vetëm ata mund ta kontabilizojnë.'
+  },
+  'steward.invoice_hint': {
+    en: 'You can see the invoices of your neighborhood and report payments. Changing an invoice status is reserved for the board and the administration.',
+    de: 'Sie sehen die Rechnungen Ihrer Nachbarschaft und können Zahlungen melden. Den Stand einer Rechnung ändern dürfen nur Vorstand und Administration.',
+    sq: 'Ju shihni faturat e lagjes suaj dhe mund të raportoni pagesa. Ndryshimin e statusit të një fature e bëjnë vetëm bordi dhe administrata.'
+  },
+  'steward.none': {
+    en: 'You are not registered as a responsible person for any neighborhood. The administration assigns this in the neighborhood settings.',
+    de: 'Sie sind für keine Nachbarschaft als verantwortliche Person hinterlegt. Die Administration trägt das in den Einstellungen der Nachbarschaft ein.',
+    sq: 'Ju nuk jeni i regjistruar si person përgjegjës për asnjë lagje. Administrata e cakton këtë në cilësimet e lagjes.'
+  },
+  'steward.open_panel': { en: 'Manage my neighborhood', de: 'Meine Nachbarschaft verwalten', sq: 'Menaxho lagjen time' },
+  'steward.open_panel_hint': {
+    en: 'Members, addresses and the state of the invoices',
+    de: 'Mitglieder, Adressen und Stand der Rechnungen',
+    sq: 'Anëtarët, adresat dhe gjendja e faturave'
+  },
+
+  // --- ZAHLUNGSMELDUNGEN IM ADMINBEREICH ---
+  'reports.title': { en: 'Reported payments', de: 'Gemeldete Zahlungen', sq: 'Pagesa të raportuara' },
+  'reports.none': { en: 'No open reports.', de: 'Keine offenen Meldungen.', sq: 'Asnjë raport i hapur.' },
+  'reports.by': { en: 'reported by', de: 'gemeldet von', sq: 'raportuar nga' },
+  'reports.confirm': { en: 'Confirm', de: 'Bestätigen', sq: 'Konfirmo' },
+  'reports.reject': { en: 'Reject', de: 'Ablehnen', sq: 'Refuzo' },
+  'reports.confirmed': { en: 'Confirmed — the invoice is now marked paid', de: 'Bestätigt — die Rechnung gilt jetzt als bezahlt', sq: 'U konfirmua — fatura tani është e paguar' },
+  'reports.rejected': { en: 'Rejected — the invoice stays open', de: 'Abgelehnt — die Rechnung bleibt offen', sq: 'U refuzua — fatura mbetet e hapur' },
+  'reports.explain': {
+    en: 'Responsible persons of the neighborhoods report payments they know about. Confirming books the payment and marks the invoice paid.',
+    de: 'Die verantwortlichen Personen der Nachbarschaften melden Zahlungen, von denen sie wissen. Das Bestätigen bucht die Zahlung und setzt die Rechnung auf bezahlt.',
+    sq: 'Personat përgjegjës të lagjeve raportojnë pagesa për të cilat dinë. Konfirmimi e kontabilizon pagesën dhe e shënon faturën si të paguar.'
+  },
+
   // --- PASSWORT DURCH DIE ADMINISTRATION ---
   'pw.title': { en: 'Reset password', de: 'Passwort zurücksetzen', sq: 'Rivendos fjalëkalimin' },
   'pw.short': { en: 'Password', de: 'Passwort', sq: 'Fjalëkalimi' },

@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from '../context/LanguageContext';
 import { UserProfile, Payment, GlobalPaymentSettings, Neighborhood, Inquiry } from '../types';
 import { db } from '../services/firebase';
-import { collection, query, where, orderBy, onSnapshot, doc, getDoc, updateDoc, addDoc, serverTimestamp } from '@/services/supabase-bridge';
+import { collection, query, where, orderBy, onSnapshot, doc, getDoc, updateDoc, addDoc, serverTimestamp, myNeighborhoodContacts, myNeighborhoods } from '@/services/supabase-bridge';
 import { 
   History, 
   FileText, 
@@ -66,6 +67,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [neighborhood, setNeighborhood] = useState<Neighborhood | null>(null);
   const [neighbors, setNeighbors] = useState<UserProfile[]>([]);
   const [manager, setManager] = useState<UserProfile | null>(null);
+  // Weitere Verantwortliche derselben Nachbarschaft -- es koennen mehrere
+  // hinterlegt sein, die Karte zeigte bisher nur eine Person.
+  const [weitereKontakte, setWeitereKontakte] = useState<any[]>([]);
+  // Nachbarschaften, fuer die dieses Mitglied selbst verantwortlich ist.
+  const [betreutNachbarschaften, setBetreutNachbarschaften] = useState<string[]>([]);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   // Vereinsname und Kuerzel auf dem Rechnungsbeleg kamen fest verdrahtet aus
   // Koretini; in einer zweiten Installation stand dort der falsche Verein.
@@ -153,9 +159,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         const unsubNeighbors = onSnapshot(qNeighbors, (snap) => {
             const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as UserProfile));
             setNeighbors(data);
-            // Find Manager
-            const mgr = data.find(u => u.role === 'NEIGHBORHOOD_MANAGER');
-            setManager(mgr || null);
+            // Die verantwortliche Person wurde frueher an der Rolle
+            // NEIGHBORHOOD_MANAGER erkannt. Hinterlegt wird sie aber in der
+            // Nachbarschaft selbst, und sie traegt dort meist gar keine
+            // besondere Rolle -- die Karte blieb deshalb leer. Massgeblich ist
+            // jetzt die Zuordnung, die der Server herausgibt.
         });
 
         // 5. MANAGER VIEW: Fetch invoices for the neighborhood if user is manager
@@ -176,6 +184,24 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
     return () => { unsubPayments(); unsubInquiries(); };
   }, [user.id, user.neighborhoodId, user.role]);
+
+  // Verantwortliche der eigenen Nachbarschaft und eigene Zustaendigkeit.
+  //
+  // Beides kommt aus der Datenbank, nicht aus einer Vermutung im Client: die
+  // Leseregel auf users gibt einem gewoehnlichen Mitglied keine fremden
+  // Datensaetze heraus, my_neighborhood_contacts() genau die Kontaktangaben
+  // seiner Verantwortlichen.
+  useEffect(() => {
+    let lebt = true;
+    (async () => {
+      const [kontakte, meine] = await Promise.all([myNeighborhoodContacts(), myNeighborhoods()]);
+      if (!lebt) return;
+      setManager((kontakte[0] as any) || null);
+      setWeitereKontakte(kontakte.slice(1));
+      setBetreutNachbarschaften(meine);
+    })();
+    return () => { lebt = false; };
+  }, [user.id, user.neighborhoodId]);
 
   // Handle Profile Modal Open
   const handleOpenProfile = () => {
@@ -502,8 +528,24 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         {/* RIGHT COLUMN: COMMUNITY & NEIGHBORHOOD (8 cols) */}
         <div className="lg:col-span-8 space-y-8">
             
-            {/* MANAGER VIEW: Invoices of neighborhood */}
-            {user.role === 'NEIGHBORHOOD_MANAGER' && (
+            {/* Zugang zur Betreuung, wenn dieses Mitglied eine Nachbarschaft fuehrt */}
+            {betreutNachbarschaften.length > 0 && (
+                <Link to="/nachbarschaft" className="block bg-stone-900 text-white p-8 rounded-[2.5rem] hover:bg-stone-800 transition-colors">
+                    <div className="flex items-center justify-between gap-4">
+                        <div>
+                            <p className="text-stone-400 text-[10px] font-bold uppercase tracking-widest mb-1">{t('steward.title')}</p>
+                            <h4 className="font-display font-bold italic text-2xl">{t('steward.open_panel')}</h4>
+                            <p className="text-stone-400 text-xs mt-2">{t('steward.open_panel_hint')}</p>
+                        </div>
+                        <ArrowRight size={24} className="shrink-0" />
+                    </div>
+                </Link>
+            )}
+
+            {/* Alte Rechnungsansicht: lief ueber payments.neighborhoodId, das
+                nur bei 3 von 324 Zahlungen gesetzt ist, und zeigte daher fast
+                nichts. Ersetzt durch die Betreuungsansicht oben. */}
+            {false && (
                 <div className="bg-white p-8 rounded-[2.5rem] border border-stone-100 shadow-sm">
                     <div className="flex justify-between items-center mb-6">
                         <h4 className="font-bold text-xl text-stone-900 flex items-center gap-2">

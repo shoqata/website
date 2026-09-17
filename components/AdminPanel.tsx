@@ -32,6 +32,7 @@ import AdminAnalytics from './AdminAnalytics';
 import AdminWebsite from './AdminWebsite';
 import SocialAI from './SocialAI';
 import AdminFinance from './AdminFinance';
+import AdminPaymentReports from './AdminPaymentReports';
 import AdminData from './AdminData';
 import AdminAccounting from './AdminAccounting';
 import AdminStatistics from './AdminStatistics';
@@ -487,7 +488,14 @@ const AdminPanel: React.FC = () => {
                           </div>
                         )}
 
-                        {activeTab === 'FINANCE' && <AdminFinance viewMode="GRID" selectedYear={selectedYear} />}
+                        {activeTab === 'FINANCE' && (
+                            <div className="space-y-8">
+                                {/* Meldungen aus den Nachbarschaften zuerst: sie warten
+                                    auf eine Entscheidung, alles andere nicht. */}
+                                <AdminPaymentReports />
+                                <AdminFinance viewMode="GRID" selectedYear={selectedYear} />
+                            </div>
+                        )}
                         {activeTab === 'EXPENSES' && <AdminExpenses />}
                         {activeTab === 'ACCOUNTING' && <AdminAccounting selectedYear={selectedYear} />}
                         {activeTab === 'STATISTICS' && <AdminStatistics users={users} payments={payments} neighborhoods={neighborhoods} selectedYear={selectedYear} />}
