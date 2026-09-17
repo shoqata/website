@@ -1291,6 +1291,8 @@ const translations: Translations = {
   'sa.istatus.SENT': { en: 'Sent', de: 'Gestellt', sq: 'E dërguar' },
   'sa.istatus.PAID': { en: 'Paid', de: 'Bezahlt', sq: 'E paguar' },
   'sa.istatus.CANCELLED': { en: 'Cancelled', de: 'Storniert', sq: 'E anuluar' },
+  'sa.platform_title': { en: 'Platform administration', de: 'Plattformverwaltung', sq: 'Administrimi i platformës' },
+  'sa.no_domain': { en: 'no address yet', de: 'noch keine Adresse', sq: 'ende pa adresë' },
 };
 
 interface LanguageContextType {
