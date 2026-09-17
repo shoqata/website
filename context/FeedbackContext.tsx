@@ -1,4 +1,12 @@
 
+// Die Rueckmeldungsebene liegt bewusst ueber allem anderen.
+//
+// Sie lag auf z-300 und damit unter mehreren Dialogen -- unter anderem unter
+// dem Verein-Dialog auf z-400. Eine Meldung, die dahinter erscheint, ist so
+// gut wie keine: fuer den Benutzer "passiert nichts", obwohl das Programm
+// sehr wohl geantwortet hat. Wer ueber alles berichtet, muss ueber allem
+// liegen. Hoeher bleiben nur die Sperrbildschirme (z-9999 aufwaerts).
+
 import React, { createContext, useContext, useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, CheckCircle2, AlertCircle, Info, AlertTriangle } from 'lucide-react';
@@ -118,7 +126,7 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       {/* ALERT MODAL */}
       <AnimatePresence>
         {alertState && alertState.isOpen && (
-          <div className="fixed inset-0 z-[300] flex items-center justify-center p-6">
+          <div className="fixed inset-0 z-[9000] flex items-center justify-center p-6">
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
               className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" 
@@ -145,7 +153,7 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       {/* CONFIRM MODAL */}
       <AnimatePresence>
         {confirmState && confirmState.isOpen && (
-          <div className="fixed inset-0 z-[300] flex items-center justify-center p-6">
+          <div className="fixed inset-0 z-[9000] flex items-center justify-center p-6">
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
               className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" 
@@ -184,7 +192,7 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       {/* PROMPT MODAL */}
       <AnimatePresence>
         {promptState && promptState.isOpen && (
-          <div className="fixed inset-0 z-[300] flex items-center justify-center p-6">
+          <div className="fixed inset-0 z-[9000] flex items-center justify-center p-6">
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
               className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" 

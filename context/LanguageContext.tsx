@@ -1303,6 +1303,9 @@ const translations: Translations = {
   'sa.support_active': { en: 'You are supporting {name}', de: 'Sie betreuen gerade {name}', sq: 'Po mbështetni {name}' },
   'sa.support_active_hint': { en: 'Everything you do lands in this association, not in your own.', de: 'Alles, was Sie tun, landet in diesem Verein, nicht in Ihrem eigenen.', sq: 'Gjithçka që bëni shkon te kjo shoqatë, jo te e juaja.' },
   'sa.admin_optional': { en: 'Email of the first administrator — leave empty to set the association up yourself first.', de: 'E-Mail der ersten Administration — leer lassen, wenn Sie den Verein zunächst selbst einrichten.', sq: 'E-maili i administratorit të parë — lëreni bosh nëse fillimisht e vendosni vetë shoqatën.' },
+  'sa.lead_note': { en: 'Notes on the conversation', de: 'Notizen zum Gespräch', sq: 'Shënime për bisedën' },
+  'sa.lead_note_ph': { en: 'What was discussed, what is still open, when to follow up...', de: 'Was besprochen wurde, was offen ist, wann nachfassen...', sq: 'Çfarë u bisedua, çfarë mbetet, kur të kontaktohet sërish...' },
+  'sa.expected_hint': { en: 'Rough size of the association — helps when quoting the fee.', de: 'Ungefähre Grösse des Vereins — hilft beim Ansetzen der Gebühr.', sq: 'Madhësia e përafërt e shoqatës — ndihmon në caktimin e tarifës.' },
 };
 
 interface LanguageContextType {
