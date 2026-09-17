@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import CountrySelect from './ui/CountrySelect';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserProfile, Neighborhood, BillingGroup } from '../types';
 import { db } from '../services/firebase';
@@ -183,11 +184,9 @@ const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) =
                         <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2">
                             <MapPin size={14} className="text-primary" /> {t('field.country')}
                         </label>
-                        <input 
-                            type="text"
+                        <CountrySelect
                             value={formData.country}
-                            onChange={(e) => setFormData({...formData, country: e.target.value})}
-                            placeholder={t('ph.country')}
+                            onChange={(v) => setFormData({...formData, country: v})}
                             className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-primary/30 transition-all text-lg font-medium"
                         />
                         <p className="text-xs text-stone-400 italic">{t('form.fee_hint')}</p>

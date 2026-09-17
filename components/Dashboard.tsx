@@ -45,6 +45,7 @@ import { useFeedback } from '../context/FeedbackContext';
 import { sendEmail } from '../services/mailService';
 
 import { neighborhoodCity } from '../lib/neighborhood';
+import CountrySelect from './ui/CountrySelect';
 import { emailMissingForDelivery } from '../lib/memberEmail';
 import { missingFieldKeys } from '../lib/memberQuality';
 import { onImageError } from '../lib/imageFallback';
@@ -1098,10 +1099,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                 </div>
                                 <div>
                                     <label className="text-[10px] font-bold text-stone-500 block mb-1">{t('field.country')}</label>
-                                    <input 
-                                        value={profileData.country || ''} 
-                                        onChange={e => setProfileData({...profileData, country: e.target.value})}
-                                        className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none text-sm font-medium" 
+                                    <CountrySelect
+                                        value={profileData.country}
+                                        onChange={(v) => setProfileData({...profileData, country: v})}
+                                        className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none text-sm font-medium"
                                     />
                                 </div>
                             </div>
