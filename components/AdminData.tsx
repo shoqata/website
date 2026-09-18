@@ -559,7 +559,7 @@ const AdminData: React.FC = () => {
       // Mitgliedern, Mitglieder an Quartieren. Umgekehrt weist die Datenbank
       // das Loeschen jetzt zurueck -- zu Recht.
       const collections = ['accounting_journal', 'payments', 'expenses', 'event_registrations',
-                           'inquiries', 'board_members', 'tasks', 'socialMediaPosts',
+                           'inquiries', 'board_members', 'tasks', 'socialmediaposts',
                            'news', 'events', 'polls', 'users', 'neighborhoods'];
       let totalDeleted = 0;
 
