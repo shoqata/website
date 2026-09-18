@@ -37,7 +37,7 @@ import { useFeedback } from '../context/FeedbackContext';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 
 import { neighborhoodCity } from '../lib/neighborhood';
-import { billingYearOf } from '../lib/memberQuality';
+import { billingYearOf, isOverdue } from '../lib/memberQuality';
 import { onImageError } from '../lib/imageFallback';
 interface BoardDashboardProps {
   user: UserProfile;
@@ -116,7 +116,10 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
   
   const stats = useMemo(() => {
       const paid = yearPayments.filter(p => p.status === 'PAID');
-      const open = yearPayments.filter(p => p.status === 'PENDING' || p.status === 'OVERDUE');
+      // Offen heisst hier: noch nicht bezahlt. Ueberfaellig ist eine
+      // Teilmenge davon und wird gesondert ausgewiesen.
+      const open = yearPayments.filter(p => p.status !== 'PAID' && p.status !== 'CANCELLED');
+      const ueberfaellig = open.filter(p => isOverdue(p));
       
       const totalRevenue = paid.reduce((acc, p) => acc + p.amount, 0);
       const openRevenue = open.reduce((acc, p) => acc + p.amount, 0);
@@ -128,6 +131,8 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
       return {
           paidCount: paid.length,
           openCount: open.length,
+          overdueCount: ueberfaellig.length,
+          overdueAmount: ueberfaellig.reduce((acc, p) => acc + (p.amount || 0), 0),
           totalRevenue,
           openRevenue,
           paidPercentage,

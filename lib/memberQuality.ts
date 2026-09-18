@@ -113,3 +113,21 @@ export const paidDateOf = (p: any): Date | null => {
   const ts = p?.timestamp?.toDate ? p.timestamp.toDate() : p?.timestamp ? new Date(p.timestamp) : null;
   return ts && !isNaN(ts.getTime()) ? ts : null;
 };
+
+// Ist eine Rechnung ueberfaellig?
+//
+// Es gab dafuer zwei Auffassungen: das Mahnwesen rechnete das
+// Faelligkeitsdatum aus, das Armaturenbrett fragte den Status ab. Gemessen
+// steht der Status bei keiner einzigen der 324 Rechnungen auf OVERDUE,
+// waehrend 242 offen und faellig sind -- die eine Ansicht zeigte 242, die
+// andere null.
+//
+// Massgeblich ist beides: der Status, falls ihn jemand gesetzt hat (das tut
+// der Mahnlauf), und sonst das ueberschrittene Faelligkeitsdatum.
+export const isOverdue = (p: any, stichtag: Date = new Date()): boolean => {
+  if (!p || p.status === 'PAID' || p.status === 'CANCELLED') return false;
+  if (p.status === 'OVERDUE') return true;
+  if (!p.dueDate) return false;
+  const faellig = p.dueDate?.toDate ? p.dueDate.toDate() : new Date(p.dueDate);
+  return !isNaN(faellig.getTime()) && faellig < stichtag;
+};

@@ -10,6 +10,27 @@ interface Translations {
 }
 
 const translations: Translations = {
+  'minutes.published': { en: 'Visible to members', de: 'Für Mitglieder sichtbar', sq: 'E dukshme për anëtarët' },
+  'minutes.not_published': { en: 'Board only', de: 'Nur für den Vorstand', sq: 'Vetëm për bordin' },
+  'minutes.published_hint': {
+    en: 'Every member of the association can read these minutes. Tap to withdraw.',
+    de: 'Jedes Mitglied des Vereins kann dieses Protokoll lesen. Zum Zurücknehmen antippen.',
+    sq: 'Çdo anëtar i shoqatës mund ta lexojë këtë procesverbal. Prekni për ta tërhequr.'
+  },
+  'minutes.not_published_hint': {
+    en: 'Only the board can see these minutes. Tap to release them to the members.',
+    de: 'Nur der Vorstand sieht dieses Protokoll. Zum Freigeben für die Mitglieder antippen.',
+    sq: 'Vetëm bordi e sheh këtë procesverbal. Prekni për ta lëshuar për anëtarët.'
+  },
+  'minutes.published_since': { en: 'Released on', de: 'Freigegeben am', sq: 'Lëshuar më' },
+  'minutes.pdf_failed': { en: 'PDF could not be created: {reason}', de: 'PDF konnte nicht erstellt werden: {reason}', sq: 'PDF nuk mund të krijohej: {reason}' },
+  'minutes.for_members': { en: 'Board minutes', de: 'Protokolle des Vorstands', sq: 'Procesverbalet e bordit' },
+  'minutes.for_members_hint': {
+    en: 'Minutes the board has released to the members.',
+    de: 'Protokolle, die der Vorstand für die Mitglieder freigegeben hat.',
+    sq: 'Procesverbale që bordi i ka lëshuar për anëtarët.'
+  },
+
   'board.rate': { en: 'Payment rate', de: 'Zahlquote', sq: 'Kuota e pagesave' },
   'board.collected': { en: 'Collected', de: 'Eingegangen', sq: 'Të arkëtuara' },
   'board.paid_members': {

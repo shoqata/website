@@ -120,7 +120,7 @@ const AdminStatistics: React.FC<AdminStatisticsProps> = ({ users, payments, neig
       
       const lastPayment = uPayments.find(p => p.status === 'PAID');
       const hasLatePayment = uPayments.some(p => p.status === 'PAID' && p.dueDate && p.timestamp.toDate() > new Date(p.dueDate));
-      const hasUnpaid = uPayments.some(p => p.status === 'PENDING' || p.status === 'OVERDUE');
+      const hasUnpaid = uPayments.some(p => p.status !== 'PAID' && p.status !== 'CANCELLED');
       
       let status: 'GREAT' | 'LATE' | 'UNPAID' | 'NEW' = 'NEW';
       if (uPayments.length > 0) {

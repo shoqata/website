@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef, useMemo } from 'react';
-import { billingYearOf, paidDateOf } from '../lib/memberQuality';
+import { billingYearOf, paidDateOf, isOverdue } from '../lib/memberQuality';
 import * as d3 from 'd3';
 import { Payment, UserProfile, Neighborhood } from '../types';
 import { CheckCircle2, Clock, AlertCircle, TrendingUp, MapPin, DollarSign } from 'lucide-react';
@@ -28,8 +28,10 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ payments = [], users = 
   // Calculate Financial Stats
   const stats = useMemo(() => {
     const paid = filteredPayments.filter(p => p.status === 'PAID');
-    const pending = filteredPayments.filter(p => p.status === 'PENDING');
-    const overdue = filteredPayments.filter(p => p.status === 'OVERDUE');
+    const pending = filteredPayments.filter(p => p.status === 'PENDING' && !isOverdue(p));
+    // Nicht nur der Status: gemessen steht er bei keiner Rechnung auf
+    // OVERDUE, waehrend 242 offen und faellig sind. Siehe isOverdue.
+    const overdue = filteredPayments.filter(p => isOverdue(p));
 
     const totalPaid = paid.reduce((acc, p) => acc + p.amount, 0);
     const totalPending = pending.reduce((acc, p) => acc + p.amount, 0);

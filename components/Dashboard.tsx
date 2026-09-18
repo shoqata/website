@@ -73,6 +73,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   // Nachbarschaften, fuer die dieses Mitglied selbst verantwortlich ist.
   const [betreutNachbarschaften, setBetreutNachbarschaften] = useState<string[]>([]);
   const [nachbarschaftsZahlungen, setNachbarschaftsZahlungen] = useState<Payment[]>([]);
+  // Freigegebene Sitzungsprotokolle. Welche das sind, entscheidet die
+  // Zugriffsregel -- ein nicht freigegebenes wird gar nicht erst geliefert.
+  const [protokolle, setProtokolle] = useState<any[]>([]);
+  const [offenesProtokoll, setOffenesProtokoll] = useState<any>(null);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   // Vereinsname und Kuerzel auf dem Rechnungsbeleg kamen fest verdrahtet aus
   // Koretini; in einer zweiten Installation stand dort der falsche Verein.
@@ -203,6 +207,16 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         if (!lebt) return;
         setNachbarschaftsZahlungen(snap.docs.map(d => ({ id: d.id, ...d.data() } as Payment)));
       }
+
+      try {
+        const p = await getDocs(query(collection(db, 'board_meetings')));
+        if (!lebt) return;
+        setProtokolle(
+          p.docs.map(d => ({ id: d.id, ...d.data() } as any))
+            .filter(m => m.publishedToMembers)
+            .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))
+        );
+      } catch { /* ohne Freigabe kommt hier nichts an, das ist kein Fehler */ }
     })();
     return () => { lebt = false; };
   }, [user.id, user.neighborhoodId]);
@@ -567,6 +581,78 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         {/* RIGHT COLUMN: COMMUNITY & NEIGHBORHOOD (8 cols) */}
         <div className="lg:col-span-8 space-y-8">
             
+            {offenesProtokoll && (
+                <div className="fixed inset-0 z-[400] flex items-center justify-center p-6 bg-stone-900/70 backdrop-blur-sm">
+                    <div className="bg-white w-full max-w-2xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[88vh]">
+                        <div className="p-6 border-b border-stone-100 bg-stone-50 flex justify-between items-start gap-4">
+                            <div>
+                                <h3 className="font-bold text-lg text-stone-900">{offenesProtokoll.title}</h3>
+                                <p className="text-xs text-stone-500">
+                                    {new Date(offenesProtokoll.date).toLocaleDateString()}
+                                    {offenesProtokoll.location ? ` · ${offenesProtokoll.location}` : ''}
+                                </p>
+                            </div>
+                            <button onClick={() => setOffenesProtokoll(null)} className="p-2 hover:bg-stone-200 rounded-full text-stone-500 shrink-0">
+                                <X size={18}/>
+                            </button>
+                        </div>
+                        <div className="p-8 space-y-6 overflow-y-auto custom-scrollbar text-sm">
+                            <div>
+                                <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-2">{t('minutes.attendance')}</p>
+                                <p className="text-stone-700">
+                                    {(offenesProtokoll.attendees || []).filter((a: any) => a.present).map((a: any) => a.name).join(', ') || '—'}
+                                </p>
+                            </div>
+                            {(['agendaItems', 'decisions'] as const).map(feld => (
+                                <div key={feld}>
+                                    <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-2">
+                                        {feld === 'agendaItems' ? t('minutes.agenda') : t('minutes.decisions')}
+                                    </p>
+                                    {(offenesProtokoll[feld] || []).length === 0
+                                        ? <p className="text-stone-400 italic">—</p>
+                                        : <ol className="list-decimal ml-5 space-y-2">
+                                            {(offenesProtokoll[feld] || []).map((e: any, i: number) => (
+                                                <li key={i}>
+                                                    <span className="font-bold text-stone-900">{e.title}</span>
+                                                    {e.content && <p className="text-stone-600 mt-0.5">{e.content}</p>}
+                                                </li>
+                                            ))}
+                                          </ol>}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Vom Vorstand freigegebene Protokolle. Erscheint nur, wenn es
+                welche gibt -- ein leerer Kasten mit der Ueberschrift
+                "Protokolle" laesst sonst vermuten, es wuerde etwas
+                zurueckgehalten. */}
+            {protokolle.length > 0 && (
+                <div className="bg-white p-8 rounded-[2.5rem] border border-stone-100 shadow-sm">
+                    <h4 className="font-bold text-xl text-stone-900 flex items-center gap-2 mb-2">
+                        <FileText className="text-primary"/> {t('minutes.for_members')}
+                    </h4>
+                    <p className="text-xs text-stone-500 mb-5">{t('minutes.for_members_hint')}</p>
+                    <div className="space-y-2">
+                        {protokolle.map(m => (
+                            <button key={m.id} onClick={() => setOffenesProtokoll(m)}
+                                className="w-full text-left p-4 bg-stone-50 rounded-2xl border border-stone-100 hover:border-primary/30 transition-colors flex justify-between items-center gap-3">
+                                <div className="min-w-0">
+                                    <p className="font-bold text-sm text-stone-900 truncate">{m.title}</p>
+                                    <p className="text-xs text-stone-500">
+                                        {new Date(m.date).toLocaleDateString()}
+                                        {m.location ? ` · ${m.location}` : ''}
+                                    </p>
+                                </div>
+                                <ArrowRight size={16} className="text-stone-400 shrink-0"/>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Zugang zur Betreuung, wenn dieses Mitglied eine Nachbarschaft fuehrt */}
             {betreutNachbarschaften.length > 0 && (
                 <Link to="/nachbarschaft" className="block bg-stone-900 text-white p-8 rounded-[2.5rem] hover:bg-stone-800 transition-colors">
