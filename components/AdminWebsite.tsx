@@ -295,7 +295,10 @@ const AdminWebsite: React.FC = () => {
           const snapshot = await uploadBytes(storageRef, file);
           const url = await getDownloadURL(snapshot.ref);
           setNewBoardMember(prev => ({ ...prev, image: url }));
-      } catch (err) { console.error(err); } finally { setIsUploading(false); }
+      } catch (err: any) {
+        console.error('[AdminWebsite] Bild konnte nicht hochgeladen werden:', err);
+        showAlert({ type: 'error', message: t('upload.failed', { reason: err?.message || '?' }) });
+      } finally { setIsUploading(false); }
   };
 
   const handleAddBoardMember = async () => {

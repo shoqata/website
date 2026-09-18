@@ -1,5 +1,6 @@
 
 import React, { useEffect, useRef, useMemo } from 'react';
+import { billingYearOf } from '../lib/memberQuality';
 import * as d3 from 'd3';
 import { Payment, UserProfile, Neighborhood } from '../types';
 import { CheckCircle2, Clock, AlertCircle, TrendingUp, MapPin, DollarSign } from 'lucide-react';
@@ -19,7 +20,9 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ payments = [], users = 
   // Filter payments by selected year
   const filteredPayments = useMemo(() => {
       if (!selectedYear) return payments;
-      return payments.filter(p => p.timestamp?.toDate().getFullYear() === selectedYear);
+      // Nach dem Beitragsjahr, nicht nach dem Entstehungszeitpunkt -- sonst
+    // zaehlt eine im Januar gestellte Vorjahresrechnung ins falsche Jahr.
+    return payments.filter(p => billingYearOf(p) === selectedYear);
   }, [payments, selectedYear]);
 
   // Calculate Financial Stats

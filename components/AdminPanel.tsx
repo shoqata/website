@@ -49,6 +49,7 @@ import AdminNeighborhoodEditor from './AdminNeighborhoodEditor';
 import CountrySelect from './ui/CountrySelect';
 import AdminPasswordReset from './AdminPasswordReset';
 import { neighborhoodsLedBy } from '../lib/stewardship';
+import { billingYearOf } from '../lib/memberQuality';
 import { missingFieldKeys, qualityScore, feeStateFor, hasDeliveryConflict } from '../lib/memberQuality';
 import { isPlaceholderEmail, hasUsableEmail, emailMissingForDelivery, deliveryNeedsEmail } from '../lib/memberEmail';
 type AdminTabId = 'USERS' | 'NEIGHBORHOODS' | 'ANALYTICS' | 'STATISTICS' | 'WEBSITE' | 'SOCIAL_AI' | 'EVENTS' | 'NEWS' | 'FINANCE' | 'EXPENSES' | 'DATA' | 'ACCOUNTING' | 'SETTINGS' | 'BOARD' | 'COMMUNICATION' | 'DATA_QUALITY';
@@ -1270,7 +1271,7 @@ const AdminNeighborhoodDetail = ({ neighborhoodId, neighborhoods, users, payment
         return payments
             .filter((p: any) => ids.has(p.userId) && p.status !== 'PAID' && p.status !== 'CANCELLED' && p.status !== 'WRITTEN_OFF')
             .filter((p: any) => Number(p.billingYear || 0) === selectedYear
-                || (p.timestamp?.toDate ? p.timestamp.toDate().getFullYear() === selectedYear : false))
+                || billingYearOf(p) === selectedYear)
             .reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0);
     }, [neighborhoodMembers, payments, selectedYear]);
 
@@ -1286,7 +1287,7 @@ const AdminNeighborhoodDetail = ({ neighborhoodId, neighborhoods, users, payment
         const memberIds = neighborhoodMembers.map((u: any) => u.id);
         const neighborhoodPayments = payments.filter((p: any) => 
             memberIds.includes(p.userId) && 
-            p.timestamp?.toDate().getFullYear() === selectedYear
+            billingYearOf(p) === selectedYear
         );
 
         const paidCount = neighborhoodPayments.filter((p: any) => p.status === 'PAID').length;
