@@ -10,6 +10,12 @@ interface Translations {
 }
 
 const translations: Translations = {
+  'upload.failed': {
+    en: 'Upload failed: {reason}',
+    de: 'Hochladen fehlgeschlagen: {reason}',
+    sq: 'Ngarkimi dështoi: {reason}'
+  },
+
   'steward.not_editable': {
     en: 'This person holds the role {role} and can only be edited by the administration. As a responsible person you may edit ordinary members — that limit is in the access rules, not just in this screen.',
     de: 'Diese Person hat die Rolle {role} und kann nur von der Administration bearbeitet werden. Als verantwortliche Person bearbeiten Sie gewöhnliche Mitglieder — diese Grenze steht in den Zugriffsregeln, nicht bloss in dieser Maske.',

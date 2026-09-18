@@ -79,7 +79,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [branding, setBranding] = useState<any>({});
   
   // Neighborhood Manager Specific State
-  const [neighborhoodInvoices, setNeighborhoodInvoices] = useState<Payment[]>([]);
   
   // Manage Neighbor State (For Managers)
   const [managedNeighbor, setManagedNeighbor] = useState<UserProfile | null>(null);
@@ -172,20 +171,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             // jetzt die Zuordnung, die der Server herausgibt.
         });
 
-        // 5. MANAGER VIEW: Fetch invoices for the neighborhood if user is manager
-        let unsubNeighborhoodInvoices = () => {};
-        if (user.role === 'NEIGHBORHOOD_MANAGER') {
-            const qNPayments = query(collection(db, 'payments'), where('neighborhoodId', '==', user.neighborhoodId));
-            unsubNeighborhoodInvoices = onSnapshot(qNPayments, (snap) => {
-                // Filter client side for pending/overdue mostly
-                const invs = snap.docs.map(d => ({ id: d.id, ...d.data() } as Payment));
-                // Sort by date desc
-                invs.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
-                setNeighborhoodInvoices(invs);
-            });
-        }
-
-        return () => { unsubPayments(); unsubNeighborhood(); unsubNeighbors(); unsubInquiries(); unsubNeighborhoodInvoices(); };
+        // Die frueher hier laufende Rechnungsabfrage ist entfallen: sie filterte
+        // auf payments.neighborhoodId, das nur bei 3 von 324 Zahlungen gesetzt
+        // ist, und die zugehoerige Ansicht wurde durch /nachbarschaft ersetzt.
+        return () => { unsubPayments(); unsubNeighborhood(); unsubNeighbors(); unsubInquiries(); };
     }
 
     return () => { unsubPayments(); unsubInquiries(); };
@@ -254,7 +243,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
   // MANAGER: Open Manage Modal
   const handleOpenManageNeighbor = (neighbor: UserProfile) => {
-      if (user.role !== 'NEIGHBORHOOD_MANAGER') return;
+      // An der Zuordnung festgemacht, nicht an der Rollenbezeichnung: die
+      // verantwortlichen Personen tragen fast alle die Rolle MEMBER, und die
+      // Kacheln waren fuer sie deshalb nicht anklickbar. Ob die Aenderung
+      // durchgeht, entscheidet ohnehin die Zugriffsregel.
+      if (!istBetreuer) return;
       setManagedNeighbor(neighbor);
       setManagedData({ ...neighbor });
   };
@@ -591,43 +584,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             {/* Alte Rechnungsansicht: lief ueber payments.neighborhoodId, das
                 nur bei 3 von 324 Zahlungen gesetzt ist, und zeigte daher fast
                 nichts. Ersetzt durch die Betreuungsansicht oben. */}
-            {false && (
-                <div className="bg-white p-8 rounded-[2.5rem] border border-stone-100 shadow-sm">
-                    <div className="flex justify-between items-center mb-6">
-                        <h4 className="font-bold text-xl text-stone-900 flex items-center gap-2">
-                            <CreditCard className="text-primary"/> {t('dash.nb_finance')}
-                        </h4>
-                        <div className="text-xs font-bold bg-stone-50 px-3 py-1 rounded-lg text-stone-400">
-                            {t('dash.manager_view')}
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        {neighborhoodInvoices.filter(p => p.status === 'PENDING' || p.status === 'OVERDUE').slice(0, 5).map(inv => {
-                            const member = neighbors.find(n => n.id === inv.userId);
-                            return (
-                                <div key={inv.id} className="flex justify-between items-center p-4 bg-stone-50 rounded-2xl border border-stone-100">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-xs ${inv.status === 'OVERDUE' ? 'bg-red-500' : 'bg-amber-500'}`}>
-                                            !
-                                        </div>
-                                        <div>
-                                            <p className="font-bold text-sm text-stone-900">{member?.displayName || 'Unknown'}</p>
-                                            <p className="text-xs text-stone-500">{inv.description}</p>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="font-bold text-sm">{inv.amount} {inv.currency}</p>
-                                        <p className={`text-[10px] font-bold ${inv.status === 'OVERDUE' ? 'text-red-500' : 'text-amber-500'}`}>{inv.status}</p>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                        {neighborhoodInvoices.filter(p => p.status === 'PENDING' || p.status === 'OVERDUE').length === 0 && (
-                            <p className="text-center text-stone-400 italic text-sm py-4">{t('dash.all_paid')}</p>
-                        )}
-                    </div>
-                </div>
-            )}
+            {/* Die frueher hier stehende Rechnungsansicht des Managers ist
+                entfallen. Sie las payments.neighborhoodId, das nur bei 3 von
+                324 Zahlungen gesetzt ist, und zeigte deshalb fast nichts;
+                ersetzt durch /nachbarschaft, verlinkt weiter oben. */}
 
             {/* 1. Neighborhood Stats & Manager Spotlight */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -813,7 +773,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                             <div 
                                                 key={m.id} 
                                                 onClick={() => handleOpenManageNeighbor(m)}
-                                                className={`bg-white px-3 py-1.5 rounded-lg border border-stone-100 shadow-sm flex items-center gap-2 relative ${user.role === 'NEIGHBORHOOD_MANAGER' ? 'cursor-pointer hover:border-primary/50 hover:shadow-md transition-all' : ''}`}
+                                                className={`bg-white px-3 py-1.5 rounded-lg border border-stone-100 shadow-sm flex items-center gap-2 relative ${istBetreuer ? 'cursor-pointer hover:border-primary/50 hover:shadow-md transition-all' : ''}`}
                                             >
                                                 {istBetreuer && luckenVon(m).length > 0 && (
                                                     <div className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full flex items-center justify-center z-10 border border-white"
@@ -859,7 +819,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                         animate={{ opacity: 1, scale: 1 }}
                                         transition={{ delay: i * 0.05 }}
                                         onClick={() => handleOpenManageNeighbor(n)}
-                                        className={`flex flex-col items-center gap-2 w-20 group relative ${user.role === 'NEIGHBORHOOD_MANAGER' ? 'cursor-pointer' : 'cursor-default'}`}
+                                        className={`flex flex-col items-center gap-2 w-20 group relative ${istBetreuer ? 'cursor-pointer' : 'cursor-default'}`}
                                     >
                                         <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-bold border-2 transition-all shadow-sm overflow-hidden relative ${n.membershipStatus === 'ACTIVE' ? 'border-emerald-100 bg-emerald-50 text-emerald-600' : 'border-stone-100 bg-stone-50 text-stone-400 grayscale'}`}>
                                             {n.photoFileName ? (

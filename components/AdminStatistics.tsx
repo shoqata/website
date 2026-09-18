@@ -1,5 +1,6 @@
 
 import React, { useMemo, useState } from 'react';
+import { billingYearOf } from '../lib/memberQuality';
 import { 
   Bar, 
   BarChart, 
@@ -34,7 +35,9 @@ const AdminStatistics: React.FC<AdminStatisticsProps> = ({ users, payments, neig
   // Filter payments by year first if provided
   const yearPayments = useMemo(() => {
       if (!selectedYear) return payments;
-      return payments.filter(p => p.timestamp?.toDate().getFullYear() === selectedYear);
+      // Nach dem Beitragsjahr, nicht nach dem Entstehungszeitpunkt -- sonst
+    // zaehlt eine im Januar gestellte Vorjahresrechnung ins falsche Jahr.
+    return payments.filter(p => billingYearOf(p) === selectedYear);
   }, [payments, selectedYear]);
 
   // --- 1. Neighborhood Comparison Data ---

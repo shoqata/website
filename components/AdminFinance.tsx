@@ -36,6 +36,7 @@ import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, u
 import { Payment, UserProfile, GlobalPaymentSettings, Account } from '../types';
 import { useFeedback } from '../context/FeedbackContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import { billingYearOf } from '../lib/memberQuality';
 import { useTranslation } from '../context/LanguageContext';
 import MemberPicker from './ui/MemberPicker';
 import { hasUsableEmail } from '../lib/memberEmail';
@@ -145,12 +146,38 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
         fetchBudget();
     }, [selectedYear]);
 
-    const yearPayments = useMemo(() => payments.filter(p => p.timestamp?.toDate().getFullYear() === selectedYear), [payments, selectedYear]);
+    // Nach dem Beitragsjahr filtern, nicht nach dem Entstehungszeitpunkt. Eine
+    // im Januar gestellte Rechnung fuer das Vorjahr gehoert sonst ins falsche
+    // Jahr; gemessen betraf das 324 gegen 321 Zahlungen fuer 2026. Dieselbe
+    // Regel wie in der Vorstandsansicht und bei den Beitragskennzeichen.
+    const yearPayments = useMemo(
+        () => payments.filter(p => billingYearOf(p) === selectedYear),
+        [payments, selectedYear]
+    );
     
+    // Wer eine Rechnung sucht, sucht in aller Regel nach der Person -- nicht
+    // nach einer Rechnungsnummer, die er nicht auswendig kennt. Verglichen
+    // wurden bisher nur Nummer und Beschreibung, weshalb die Eingabe eines
+    // Namens nie etwas fand.
+    const nameNachId = useMemo(() => {
+        const karte = new Map<string, string>();
+        users.forEach((u: any) => {
+            karte.set(u.id, [u.displayName, u.firstName, u.lastName, u.email]
+                .filter(Boolean).join(' ').toLowerCase());
+        });
+        return karte;
+    }, [users]);
+
     const filteredPayments = useMemo(() => {
+        const suche = searchTerm.toLowerCase().trim();
         return yearPayments.filter(p => {
-            const matchesSearch = p.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                  p.description?.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesSearch = !suche
+                || p.invoiceNumber?.toLowerCase().includes(suche)
+                || p.description?.toLowerCase().includes(suche)
+                || (p.userId ? nameNachId.get(p.userId)?.includes(suche) : false)
+                // Rechnungen an einen frei erfassten Empfaenger haben kein
+                // Mitglied dahinter -- deren Name steht an der Zahlung selbst.
+                || (p as any).customRecipient?.name?.toLowerCase().includes(suche);
             
             let matchesFilter = true;
             if (filterStatus === 'TO_PRINT') {
@@ -161,7 +188,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
             
             return matchesSearch && matchesFilter;
         });
-    }, [yearPayments, searchTerm, filterStatus]);
+    }, [yearPayments, searchTerm, filterStatus, nameNachId]);
 
     const overduePayments = useMemo(() => {
         return payments.filter(p => p.status === 'OVERDUE' || (p.status === 'PENDING' && p.dueDate && new Date(p.dueDate) < new Date()));

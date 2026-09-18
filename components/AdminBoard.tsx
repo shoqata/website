@@ -297,7 +297,13 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
             const snapshot = await uploadBytes(storageRef, file);
             const url = await getDownloadURL(snapshot.ref);
             setNewBoardMember(prev => ({ ...prev, image: url }));
-        } catch (err) { console.error(err); }
+        } catch (err: any) {
+            // Frueher verschwand der Fehler auf der Konsole: der Knopf blieb
+            // wirkungslos, ohne dass jemand erfuhr warum. Genau so blieb
+            // monatelang unbemerkt, dass der Dateispeicher jeden Upload abwies.
+            console.error('[AdminBoard] Bild konnte nicht hochgeladen werden:', err);
+            showAlert({ type: 'error', message: t('upload.failed', { reason: err?.message || '?' }) });
+        }
     };
 
     const handleAddBoardMember = async () => {
