@@ -10,6 +10,19 @@ interface Translations {
 }
 
 const translations: Translations = {
+  'board.rate': { en: 'Payment rate', de: 'Zahlquote', sq: 'Kuota e pagesave' },
+  'board.collected': { en: 'Collected', de: 'Eingegangen', sq: 'Të arkëtuara' },
+  'board.paid_members': {
+    en: '{paid} of {total} members have paid',
+    de: '{paid} von {total} Mitgliedern haben bezahlt',
+    sq: '{paid} nga {total} anëtarë kanë paguar'
+  },
+  'board.min_size_hint': {
+    en: '{count} neighborhoods with fewer than {min} members are not ranked — with so few, the rate swings between 0 and 100 per cent and says nothing.',
+    de: '{count} Nachbarschaften mit weniger als {min} Mitgliedern sind nicht gewertet — bei so wenigen springt die Quote zwischen 0 und 100 Prozent und sagt nichts aus.',
+    sq: '{count} lagje me më pak se {min} anëtarë nuk janë renditur — me kaq pak, kuota kërcen mes 0 dhe 100 për qind dhe nuk thotë asgjë.'
+  },
+
   'admin.dq.basis': { en: '{count} current members', de: '{count} aktuelle Mitglieder', sq: '{count} anëtarë aktualë' },
   'admin.dq.excluded': {
     en: '{count} removed members not counted',
@@ -692,8 +705,8 @@ const translations: Translations = {
   'board.no_results': { en: 'No results.', de: 'Keine Ergebnisse.', sq: 'Asnjë rezultat.' },
   'board.search_hint': { en: 'Search for members to see details...', de: 'Nach Mitgliedern suchen, um Details zu sehen...', sq: 'Kërkoni anëtarë për të parë detajet...' },
   'board.paid': { en: 'Paid', de: 'Bezahlt', sq: 'Paguar' },
-  'board.top_neighborhoods': { en: 'Top 5 neighborhoods (CHF)', de: 'Top 5 Nachbarschaften (CHF)', sq: 'Top 5 lagjet (CHF)' },
-  'board.lowest_contributions': { en: 'Lowest contributions (CHF)', de: 'Geringste Beiträge (CHF)', sq: 'Kontributet më të ulëta (CHF)' },
+  'board.top_neighborhoods': { en: 'Best payment rate', de: 'Beste Zahlquote', sq: 'Kuota më e mirë e pagesave' },
+  'board.lowest_contributions': { en: 'Weakest payment rate', de: 'Schwächste Zahlquote', sq: 'Kuota më e dobët e pagesave' },
   'board.minutes': { en: 'Board minutes', de: 'Vorstandsprotokolle', sq: 'Procesverbalet e kryesisë' },
   'board.no_minutes': { en: 'No minutes available.', de: 'Keine Protokolle vorhanden.', sq: 'Nuk ka procesverbale.' },
   'board.inquiries': { en: 'Enquiries & feedback', de: 'Anfragen & Feedback', sq: 'Kërkesat & reagimet' },
