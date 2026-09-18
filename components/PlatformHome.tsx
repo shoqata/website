@@ -58,17 +58,19 @@ const PlatformHome: React.FC<Props> = ({ user }) => {
     ziel.scrollIntoView({ behavior: sparsam ? 'auto' : 'smooth', block: 'start' });
   };
 
-  const Sprung: React.FC<{ ziel: string; children: React.ReactNode }> = ({ ziel, children }) => (
+  const Sprung: React.FC<{ ziel: string; children: React.ReactNode; className?: string }> =
+    ({ ziel, children, className = '' }) => (
     <button type="button" onClick={zuAbschnitt(ziel)}
-      className="inline-flex items-center gap-2 px-6 py-4 rounded-lg text-white font-normal transition-opacity hover:opacity-90"
+      className={`inline-flex items-center gap-2 px-6 py-4 rounded-lg text-white font-normal transition-opacity hover:opacity-90 ${className}`}
       style={{ background: BLAU, fontSize: 14, letterSpacing: '0.01em' }}>
       {children}
     </button>
   );
 
-  const Knopf: React.FC<{ to: string; children: React.ReactNode }> = ({ to, children }) => (
+  const Knopf: React.FC<{ to: string; children: React.ReactNode; className?: string }> =
+    ({ to, children, className = '' }) => (
     <Link to={to}
-      className="inline-flex items-center gap-2 px-6 py-4 rounded-lg text-white font-normal transition-opacity hover:opacity-90"
+      className={`inline-flex items-center gap-2 px-6 py-4 rounded-lg text-white font-normal transition-opacity hover:opacity-90 ${className}`}
       style={{ background: BLAU, fontSize: 14, letterSpacing: '0.01em' }}>
       {children}
     </Link>
@@ -96,7 +98,7 @@ const PlatformHome: React.FC<Props> = ({ user }) => {
 
       {/* ------------------------------------------------ Kopfzeile */}
       <header className="relative z-20 border-b" style={{ borderColor: 'rgba(79,81,102,0.4)' }}>
-        <div className="max-w-[1200px] mx-auto px-6 py-4 flex items-center justify-between gap-6">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-3 sm:gap-6">
           <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                   className="shrink-0" aria-label="unityhub">
             <Wortmarke size={30} grund={TINTE} />
@@ -119,14 +121,21 @@ const PlatformHome: React.FC<Props> = ({ user }) => {
             ))}
           </nav>
 
-          <div className="flex items-center gap-4 shrink-0">
+          {/* shrink-0 stand frueher auf dieser ganzen Gruppe. Auf einem
+              Telefon ergaben Wortmarke, Sprachwahl und der Aufrufknopf
+              zusammen mehr als die Bildschirmbreite -- und weil nichts
+              nachgeben durfte, liess sich die Seite seitlich schieben.
+              Jetzt darf die Gruppe schrumpfen, und der Knopf entfaellt auf
+              schmalen Geraeten: derselbe Aufruf steht unmittelbar darunter
+              in der Buehne, und die Kopfzeile bleibt ohnehin nicht stehen. */}
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             {/* Sprachwahl in derselben Schreibmaschinenschrift wie die uebrigen
                 Systemangaben -- sie ist eine Einstellung, kein Inhalt. */}
             <div className="flex items-center rounded-lg p-0.5" style={{ border: `1px solid ${SCHIEFER}` }}>
               {(['sq', 'de', 'en'] as const).map((l) => (
                 <button key={l} onClick={() => setLanguage(l)}
                   aria-pressed={language === l}
-                  className="px-2.5 py-1 rounded-md uppercase transition-colors"
+                  className="px-2 sm:px-2.5 py-1 rounded-md uppercase transition-colors"
                   style={{
                     fontFamily: mono, fontSize: 11, letterSpacing: '0.085em',
                     background: language === l ? BLAU : 'transparent',
@@ -138,14 +147,16 @@ const PlatformHome: React.FC<Props> = ({ user }) => {
             </div>
 
             {angemeldet ? (
-              <Knopf to="/super-admin">{t('plat.open_admin')} <ArrowRight size={15} /></Knopf>
+              <Knopf to="/super-admin" className="whitespace-nowrap !px-4 sm:!px-6 !py-2.5 sm:!py-4">
+                {t('plat.open_admin')} <ArrowRight size={15} />
+              </Knopf>
             ) : (
               <>
                 <Link to="/login" className="hidden sm:inline text-white hover:opacity-70 transition-opacity uppercase"
                       style={{ fontSize: 13, letterSpacing: '0.05em' }}>
                   {t('nav.login')}
                 </Link>
-                <Sprung ziel="anfrage">{t('plat.cta')}</Sprung>
+                <Sprung ziel="anfrage" className="hidden sm:inline-flex whitespace-nowrap">{t('plat.cta')}</Sprung>
               </>
             )}
           </div>
