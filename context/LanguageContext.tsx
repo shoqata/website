@@ -10,6 +10,23 @@ interface Translations {
 }
 
 const translations: Translations = {
+  // --- ANMELDUNG AUF DER BETREIBER-DOMAIN ---
+  'plat.login_hero': {
+    en: 'The administration of your association.',
+    de: 'Die Verwaltung Ihres Vereins.',
+    sq: 'Administrimi i shoqatës suaj.'
+  },
+  'plat.login_hero_desc': {
+    en: 'Members, dues and minutes — for every association that is run on this platform.',
+    de: 'Mitglieder, Beiträge und Protokolle — für jeden Verein, der auf dieser Plattform geführt wird.',
+    sq: 'Anëtarët, kuotat dhe procesverbalet — për çdo shoqatë që mbahet në këtë platformë.'
+  },
+  'plat.login_sub': {
+    en: 'Sign in to the platform administration.',
+    de: 'Melden Sie sich an der Plattformverwaltung an.',
+    sq: 'Hyni në administrimin e platformës.'
+  },
+
   // --- NAVIGATION DER PLATTFORM-STARTSEITE ---
   'plat.nav_what': { en: 'What it does', de: 'Leistung', sq: 'Çfarë bën' },
   'plat.nav_product': { en: 'Administration', de: 'Verwaltung', sq: 'Administrimi' },

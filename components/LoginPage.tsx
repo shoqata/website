@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, ArrowRight, ShieldCheck, Heart, ArrowLeft, AlertCircle, Chrome, Lock, Eye, EyeOff, RefreshCcw, Key, LogIn } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from '../context/LanguageContext';
+import { useIstPlattformDomain } from '../lib/useIstPlattformDomain';
+import Konstellation from './platform/Konstellation';
 
 // Supabase Auth (replaces Firebase Auth)
 import { 
@@ -20,6 +22,7 @@ import {
 
 const LoginPage: React.FC = () => {
   const { t } = useTranslation();
+  const istPlattform = useIstPlattformDomain();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -149,26 +152,58 @@ const LoginPage: React.FC = () => {
 
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-[#faf9f6]">
-      {/* Left Hero Side */}
-      <div className="hidden lg:flex relative bg-rose-500 overflow-hidden items-center justify-center p-12">
-        <div className="absolute inset-0">
-          <img 
-            src="https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&q=80&w=2070" 
-            alt={t('auth.image_alt')} 
-            className="w-full h-full object-cover opacity-40 mix-blend-overlay" 
-          />
-          <div className="absolute inset-0 bg-gradient-to-br from-rose-600/40 to-stone-900/60" />
+      {/* Linke Haelfte.
+          
+          Auf der Betreiber-Domain steht hier kein Verein. Das humanitaere Bild,
+          das Herz und der Satz ueber die Solidaritaetsgemeinschaft gehoeren
+          Koretini -- auf unityhub.li waeren sie schlicht falsch. Gezeigt wird
+          dort dieselbe Gestaltung wie auf der Startseite, damit die Anmeldung
+          nicht wie eine fremde Seite wirkt.
+          
+          Solange die Zuordnung geprueft wird (null), bleibt es bei der
+          Vereinsdarstellung. */}
+      {istPlattform ? (
+        <div className="hidden lg:flex relative overflow-hidden items-center justify-center p-12"
+             style={{ background: '#00052e' }}>
+          <div className="absolute inset-0 pointer-events-none"
+               style={{ background: 'radial-gradient(ellipse 70% 60% at 50% 45%, #06105a 0%, #00052e 72%)' }} />
+          <Konstellation className="absolute inset-0 w-full h-full pointer-events-none opacity-80" />
+          <div className="relative z-10 max-w-md text-white">
+            <p className="uppercase mb-6"
+               style={{ fontFamily: "'IBM Plex Mono', ui-monospace, monospace", fontSize: 11,
+                        letterSpacing: '0.085em', color: '#6b6b83' }}>
+              unityhub
+            </p>
+            <h1 className="font-light mb-5"
+                style={{ fontSize: 44, lineHeight: 1.2, letterSpacing: '-0.019em' }}>
+              {t('plat.login_hero')}
+            </h1>
+            <p style={{ fontSize: 17, lineHeight: 1.6, color: '#6b6b83' }}>
+              {t('plat.login_hero_desc')}
+            </p>
+          </div>
         </div>
-        <div className="relative z-10 max-w-md text-white text-center lg:text-left">
-          <Heart fill="white" size={64} className="mb-12 mx-auto lg:mx-0 shadow-2xl" />
-          <h1 className="font-display text-5xl font-bold mb-6 leading-tight italic">
-            {t('login.hero.title')}
-          </h1>
-          <p className="text-xl text-rose-50/80 leading-relaxed mb-12 italic">
-            {t('login.hero.desc')}
-          </p>
+      ) : (
+        <div className="hidden lg:flex relative bg-rose-500 overflow-hidden items-center justify-center p-12">
+          <div className="absolute inset-0">
+            <img 
+              src="https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&q=80&w=2070" 
+              alt={t('auth.image_alt')} 
+              className="w-full h-full object-cover opacity-40 mix-blend-overlay" 
+            />
+            <div className="absolute inset-0 bg-gradient-to-br from-rose-600/40 to-stone-900/60" />
+          </div>
+          <div className="relative z-10 max-w-md text-white text-center lg:text-left">
+            <Heart fill="white" size={64} className="mb-12 mx-auto lg:mx-0 shadow-2xl" />
+            <h1 className="font-display text-5xl font-bold mb-6 leading-tight italic">
+              {t('login.hero.title')}
+            </h1>
+            <p className="text-xl text-rose-50/80 leading-relaxed mb-12 italic">
+              {t('login.hero.desc')}
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Right Login Side */}
       <div className="flex flex-col p-8 lg:p-24 justify-center relative overflow-hidden">
@@ -192,7 +227,9 @@ const LoginPage: React.FC = () => {
               <motion.div key="input" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                 <div className="mb-12 text-center lg:text-left">
                   <h2 className="text-4xl font-display font-bold mb-4 italic text-stone-900 tracking-tight">{t('login.title')}</h2>
-                  <p className="text-stone-500 text-lg leading-relaxed">{t('login.subtitle')}</p>
+                  <p className="text-stone-500 text-lg leading-relaxed">
+                    {istPlattform ? t('plat.login_sub') : t('login.subtitle')}
+                  </p>
                 </div>
 
                 {error && (
