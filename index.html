@@ -26,6 +26,10 @@
           if (wert !== null) stand = wert === '' ? 'plattform' : 'verein';
         } catch (e) { /* privater Modus: dann eben ohne Gedaechtnis */ }
         document.documentElement.dataset.domain = stand;
+        // Den hinterlegten Titel aufbewahren, bevor er ersetzt wird: steht
+        // spaeter fest, dass die Adresse einem Verein gehoert, muss er
+        // zurueck. Ohne das bliebe im Reiter dauerhaft die Adresse stehen.
+        document.documentElement.dataset.titelVorgabe = document.title;
         if (stand === 'plattform') {
           document.title = 'unityhub';
         } else if (stand === 'unbekannt') {

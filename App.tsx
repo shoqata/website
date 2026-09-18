@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { needsProfileSetup } from './lib/memberQuality';
 import { useIstPlattformDomain } from './lib/useIstPlattformDomain';
+import { useReiterKennzeichen } from './lib/useReiterKennzeichen';
 import { HashRouter as Router, Routes, Route, Link, useLocation, Navigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -301,6 +302,9 @@ const AppContent: React.FC = () => {
   }, [tenant]);
 
   const istPlattformDomain = useIstPlattformDomain();
+  // Reitertitel und Symbol -- fuer jede Seite der Betreiber-Domain,
+  // nicht nur fuer deren Startseite.
+  useReiterKennzeichen(istPlattformDomain);
 
   if (loading) return (
     <div className="min-h-screen flex flex-col items-center justify-center"
