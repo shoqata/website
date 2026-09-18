@@ -136,25 +136,68 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
       };
   }, [yearPayments]);
 
+  // Eine Nachbarschaft braucht eine Mindestgroesse, um in der Rangliste nach
+  // Quote zu erscheinen. Gemessen: 9 der 27 haben weniger als fuenf
+  // Mitglieder, und dort springt die Quote zwischen 0 und 100 Prozent, ohne
+  // etwas auszusagen -- eine Nachbarschaft mit einem einzigen zahlenden
+  // Mitglied stuende sonst dauerhaft an der Spitze.
+  const MINDESTGROESSE = 5;
+
   const neighborhoodAnalytics = useMemo(() => {
+      // Entfernte Mitglieder zaehlen nicht mit: sie stuenden im Nenner, ohne
+      // je zahlen zu koennen.
+      const aktive = users.filter(u => u.membershipStatus !== 'INACTIVE');
+
       const data = neighborhoods.map(n => {
-          const nUsers = users.filter(u => u.neighborhoodId === n.id);
-          const uIds = nUsers.map(u => u.id);
-          const collected = yearPayments
-              .filter(p => uIds.includes(p.userId) && p.status === 'PAID')
-              .reduce((sum, p) => sum + p.amount, 0);
-          
-          return { name: n.name, value: collected, city: neighborhoodCity(n) };
+          const nUsers = aktive.filter(u => u.neighborhoodId === n.id);
+          const uIds = new Set(nUsers.map(u => u.id));
+          const bezahlt = yearPayments.filter(p => uIds.has(p.userId!) && p.status === 'PAID');
+          const zahlende = new Set(bezahlt.map(p => p.userId)).size;
+          const chf = bezahlt.reduce((sum, p) => sum + (p.amount || 0), 0);
+
+          return {
+              name: n.name,
+              city: neighborhoodCity(n),
+              mitglieder: nUsers.length,
+              zahlende,
+              chf,
+              // Der Balken zeigt die Quote; CHF und Mitgliederzahl stehen im
+              // Hinweisfenster daneben.
+              quote: nUsers.length > 0 ? Math.round((zahlende / nUsers.length) * 100) : 0,
+          };
       });
 
-      // Sort by Value Descending
-      const sorted = [...data].sort((a, b) => b.value - a.value);
-      
+      const wertbar = data.filter(d => d.mitglieder >= MINDESTGROESSE);
+      const sortiert = [...wertbar].sort((a, b) => b.quote - a.quote || b.chf - a.chf);
+
       return {
-          top5: sorted.slice(0, 5),
-          bottom5: sorted.slice(-5).reverse() // Show least paying, reverse so least is first if needed or just slice
+          top5: sortiert.slice(0, 5),
+          // Die schwaechste zuerst, damit oben steht, wo am meisten zu tun ist.
+          bottom5: sortiert.slice(-5).reverse(),
+          zuKlein: data.length - wertbar.length,
+          mindest: MINDESTGROESSE,
       };
   }, [neighborhoods, users, yearPayments]);
+
+  // Statt "value : 2052" die drei Zahlen, um die es geht.
+  const NachbarschaftsHinweis = ({ active, payload }: any) => {
+      if (!active || !payload?.length) return null;
+      const d = payload[0].payload;
+      return (
+          <div className="bg-white rounded-xl shadow-lg border border-stone-100 px-4 py-3 text-xs">
+              <p className="font-bold text-stone-900 mb-1.5">{d.name}</p>
+              <p className="text-stone-600">
+                  {t('board.rate')}: <b className="text-stone-900">{d.quote}%</b>
+              </p>
+              <p className="text-stone-600">
+                  {t('board.paid_members', { paid: d.zahlende, total: d.mitglieder })}
+              </p>
+              <p className="text-stone-600">
+                  {t('board.collected')}: <b className="text-stone-900">{d.chf.toLocaleString('de-CH')} CHF</b>
+              </p>
+          </div>
+      );
+  };
 
   // Angaben eines Mitglieds berichtigen.
   //
@@ -395,15 +438,26 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                 </div>
                 <div className="h-48 w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={neighborhoodAnalytics.top5} layout="vertical" margin={{ left: 0, right: 20 }}>
+                        <BarChart data={neighborhoodAnalytics.top5} layout="vertical" margin={{ left: 0, right: 30 }}>
                             <CartesianGrid horizontal={false} stroke="#f5f5f4" />
-                            <XAxis type="number" hide />
+                            <XAxis type="number" domain={[0, 100]} unit="%" tick={{ fontSize: 9 }} />
                             <YAxis dataKey="name" type="category" width={80} tick={{fontSize: 10}} interval={0} />
-                            <Tooltip cursor={{fill: '#f5f5f4'}} contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}} />
-                            <Bar dataKey="value" fill="#10b981" radius={[0, 4, 4, 0]} barSize={16} />
+                            <Tooltip cursor={{fill: '#f5f5f4'}} content={<NachbarschaftsHinweis />} />
+                            <Bar dataKey="quote" fill="#10b981" radius={[0, 4, 4, 0]} barSize={16}
+                                 label={{ position: 'right', fontSize: 9, fill: '#78716c',
+                                          formatter: (v: any) => `${v}%` }} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
+                {/* Ohne diesen Hinweis wirkt eine fehlende Nachbarschaft wie ein Fehler. */}
+                {neighborhoodAnalytics.zuKlein > 0 && (
+                    <p className="text-[10px] text-stone-400 mt-3 leading-relaxed">
+                        {t('board.min_size_hint', {
+                            count: neighborhoodAnalytics.zuKlein,
+                            min: neighborhoodAnalytics.mindest,
+                        })}
+                    </p>
+                )}
             </div>
 
             {/* Bottom 5 Neighborhoods */}
@@ -414,15 +468,26 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                 </div>
                 <div className="h-48 w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={neighborhoodAnalytics.bottom5} layout="vertical" margin={{ left: 0, right: 20 }}>
+                        <BarChart data={neighborhoodAnalytics.bottom5} layout="vertical" margin={{ left: 0, right: 30 }}>
                             <CartesianGrid horizontal={false} stroke="#f5f5f4" />
-                            <XAxis type="number" hide />
+                            <XAxis type="number" domain={[0, 100]} unit="%" tick={{ fontSize: 9 }} />
                             <YAxis dataKey="name" type="category" width={80} tick={{fontSize: 10}} interval={0} />
-                            <Tooltip cursor={{fill: '#f5f5f4'}} contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}} />
-                            <Bar dataKey="value" fill="#fb7185" radius={[0, 4, 4, 0]} barSize={16} />
+                            <Tooltip cursor={{fill: '#f5f5f4'}} content={<NachbarschaftsHinweis />} />
+                            <Bar dataKey="quote" fill="#fb7185" radius={[0, 4, 4, 0]} barSize={16}
+                                 label={{ position: 'right', fontSize: 9, fill: '#78716c',
+                                          formatter: (v: any) => `${v}%` }} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
+                {/* Ohne diesen Hinweis wirkt eine fehlende Nachbarschaft wie ein Fehler. */}
+                {neighborhoodAnalytics.zuKlein > 0 && (
+                    <p className="text-[10px] text-stone-400 mt-3 leading-relaxed">
+                        {t('board.min_size_hint', {
+                            count: neighborhoodAnalytics.zuKlein,
+                            min: neighborhoodAnalytics.mindest,
+                        })}
+                    </p>
+                )}
             </div>
 
         </div>
