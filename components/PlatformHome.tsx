@@ -26,7 +26,7 @@ interface Props { user: UserProfile | null; }
 // Inter in Gewicht 300 steht als Ersatz fuer F37 Bolton -- so nennt es die
 // Vorlage selbst -- und ist ohnehin schon geladen.
 const PlatformHome: React.FC<Props> = ({ user }) => {
-  const { t } = useTranslation();
+  const { t, language, setLanguage } = useTranslation();
   const angemeldet = !!user;
 
   const TINTE = '#00052e';
@@ -47,14 +47,26 @@ const PlatformHome: React.FC<Props> = ({ user }) => {
       </p>
     );
 
-  // Ein Sprung auf der Seite, kein Seitenwechsel -- der Router wuerde eine
-  // Raute im Pfad als Route deuten.
+  // Sprung zu einem Abschnitt derselben Seite.
+  //
+  // Nicht ueber href="#ziel": die Anwendung laeuft mit HashRouter, und eine
+  // Raute in der Adresse ist dort der Pfad. Ein solcher Verweis wuerde als
+  // Route gelesen, faende keine und liesse die Seite zum Anfang
+  // zurueckspringen. Also von Hand scrollen.
+  const zuAbschnitt = (id: string) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    const ziel = document.getElementById(id);
+    if (!ziel) return;
+    const sparsam = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    ziel.scrollIntoView({ behavior: sparsam ? 'auto' : 'smooth', block: 'start' });
+  };
+
   const Sprung: React.FC<{ ziel: string; children: React.ReactNode }> = ({ ziel, children }) => (
-    <a href={ziel}
+    <button type="button" onClick={zuAbschnitt(ziel)}
       className="inline-flex items-center gap-2 px-6 py-4 rounded-lg text-white font-normal transition-opacity hover:opacity-90"
       style={{ background: BLAU, fontSize: 14, letterSpacing: '0.01em' }}>
       {children}
-    </a>
+    </button>
   );
 
   const Knopf: React.FC<{ to: string; children: React.ReactNode }> = ({ to, children }) => (
@@ -83,25 +95,64 @@ const PlatformHome: React.FC<Props> = ({ user }) => {
     );
 
   return (
-    <div style={{ background: TINTE }} className="min-h-screen">
+    <div id="oben" style={{ background: TINTE }} className="min-h-screen scroll-smooth">
 
       {/* ------------------------------------------------ Kopfzeile */}
-      <header className="relative z-20 max-w-[1200px] mx-auto px-6 py-5 flex items-center justify-between">
-        <span className="text-white font-light" style={{ fontSize: 20, letterSpacing: '-0.01em' }}>
-          unityhub
-        </span>
-        <div className="flex items-center gap-6">
-          {angemeldet ? (
-            <Knopf to="/super-admin">{t('plat.open_admin')} <ArrowRight size={15} /></Knopf>
-          ) : (
-            <>
-              <Link to="/login" className="text-white hover:opacity-70 transition-opacity uppercase"
-                    style={{ fontSize: 13, letterSpacing: '0.05em' }}>
-                {t('nav.login')}
-              </Link>
-              <Sprung ziel="#anfrage">{t('plat.cta')}</Sprung>
-            </>
-          )}
+      <header className="relative z-20 border-b" style={{ borderColor: 'rgba(79,81,102,0.4)' }}>
+        <div className="max-w-[1200px] mx-auto px-6 py-4 flex items-center justify-between gap-6">
+          <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                  className="text-white font-light shrink-0"
+                  style={{ fontSize: 20, letterSpacing: '-0.01em' }}>
+            unityhub
+          </button>
+
+          {/* Verweise auf die Abschnitte dieser Seite. Die Vorlage sieht sie in
+              der Mitte vor; auf schmalen Geraeten entfallen sie, weil die Seite
+              dort ohnehin am Stueck durchgescrollt wird. */}
+          <nav className="hidden lg:flex items-center gap-1">
+            {([
+              ['leistung', 'plat.nav_what'],
+              ['verwaltung', 'plat.nav_product'],
+              ['trennung', 'plat.nav_separation'],
+            ] as const).map(([ziel, schluessel]) => (
+              <button key={ziel} type="button" onClick={zuAbschnitt(ziel)}
+                 className="px-4 py-2 uppercase transition-colors hover:text-white"
+                 style={{ fontSize: 13, letterSpacing: '0.05em', color: NEBEL }}>
+                {t(schluessel)}
+              </button>
+            ))}
+          </nav>
+
+          <div className="flex items-center gap-4 shrink-0">
+            {/* Sprachwahl in derselben Schreibmaschinenschrift wie die uebrigen
+                Systemangaben -- sie ist eine Einstellung, kein Inhalt. */}
+            <div className="flex items-center rounded-lg p-0.5" style={{ border: `1px solid ${SCHIEFER}` }}>
+              {(['sq', 'de', 'en'] as const).map((l) => (
+                <button key={l} onClick={() => setLanguage(l)}
+                  aria-pressed={language === l}
+                  className="px-2.5 py-1 rounded-md uppercase transition-colors"
+                  style={{
+                    fontFamily: mono, fontSize: 11, letterSpacing: '0.085em',
+                    background: language === l ? BLAU : 'transparent',
+                    color: language === l ? '#ffffff' : NEBEL,
+                  }}>
+                  {l}
+                </button>
+              ))}
+            </div>
+
+            {angemeldet ? (
+              <Knopf to="/super-admin">{t('plat.open_admin')} <ArrowRight size={15} /></Knopf>
+            ) : (
+              <>
+                <Link to="/login" className="hidden sm:inline text-white hover:opacity-70 transition-opacity uppercase"
+                      style={{ fontSize: 13, letterSpacing: '0.05em' }}>
+                  {t('nav.login')}
+                </Link>
+                <Sprung ziel="anfrage">{t('plat.cta')}</Sprung>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
@@ -127,11 +178,12 @@ const PlatformHome: React.FC<Props> = ({ user }) => {
             <div className="flex flex-wrap items-center justify-center gap-5">
               {angemeldet
                 ? <Knopf to="/super-admin">{t('plat.open_admin')} <ArrowRight size={15} /></Knopf>
-                : <Sprung ziel="#anfrage">{t('plat.cta')} <ArrowRight size={15} /></Sprung>}
-              <a href="#anfrage" className="hover:opacity-70 transition-opacity uppercase"
+                : <Sprung ziel="anfrage">{t('plat.cta')} <ArrowRight size={15} /></Sprung>}
+              <button type="button" onClick={zuAbschnitt('anfrage')}
+                 className="hover:opacity-70 transition-opacity uppercase"
                  style={{ fontFamily: mono, fontSize: 11, letterSpacing: '0.085em', color: NEBEL }}>
                 {t('plat.contact')}
-              </a>
+              </button>
             </div>
           </motion.div>
 
@@ -145,7 +197,7 @@ const PlatformHome: React.FC<Props> = ({ user }) => {
       </section>
 
       {/* ------------------------------------------------ Was es tut */}
-      <section className="relative max-w-[1200px] mx-auto px-6 py-20 md:py-[80px]">
+      <section id="leistung" className="relative max-w-[1200px] mx-auto px-6 py-20 md:py-[80px] scroll-mt-20">
         <Marke farbe="#34fcff" className="mb-4">{t('plat.what_eyebrow')}</Marke>
         <h2 className="text-white font-light mb-14"
             style={{ fontSize: 'clamp(28px, 4vw, 40px)', lineHeight: 1.3, letterSpacing: '-0.015em', maxWidth: 700 }}>
@@ -170,7 +222,7 @@ const PlatformHome: React.FC<Props> = ({ user }) => {
       <div className="h-32" style={{ background: `linear-gradient(180deg, ${TINTE} 0%, #2a1a5e 45%, #ffffff 100%)` }} />
 
       {/* ------------------------------------------------ Das Produkt */}
-      <section className="bg-white">
+      <section id="verwaltung" className="bg-white scroll-mt-20">
         <div className="max-w-[1200px] mx-auto px-6 py-20 md:py-[80px]">
           <Marke farbe={BLAU} className="mb-4">{t('plat.product_eyebrow')}</Marke>
           <h2 className="font-light mb-4" style={{
@@ -220,15 +272,19 @@ const PlatformHome: React.FC<Props> = ({ user }) => {
                   </span>
                 </div>
                 <div className="space-y-3">
-                  {/* Erfundene Namen. Auf einer oeffentlichen Seite haben weder
-                      die Nachbarschaften noch die Zahlen eines Vereins etwas zu
-                      suchen -- auch nicht als Beispiel. */}
+                  {/* Erfundene Namen, und zwar in der gewaehlten Sprache. Auf
+                      einer oeffentlichen Seite haben weder die Nachbarschaften
+                      noch die Zahlen eines Vereins etwas zu suchen -- auch
+                      nicht als Beispiel. Ein deutscher Flurname mitten in
+                      einer albanischen Seite waere zudem ein Fremdkoerper. */}
                   {([
-                    ['Lindenquartier', 43, 18, 42],
-                    ['Talacker', 48, 8, 17],
-                    ['Rosenhof', 10, 6, 60],
-                    ['Buchenweg', 17, 4, 24],
-                  ] as const).map(([name, mitglieder, zahlend, quote]) => (
+                    ['plat.nb1', 43, 18, 42],
+                    ['plat.nb2', 48, 8, 17],
+                    ['plat.nb3', 10, 6, 60],
+                    ['plat.nb4', 17, 4, 24],
+                  ] as const).map(([schluessel, mitglieder, zahlend, quote]) => {
+                    const name = t(schluessel);
+                    return (
                     <div key={name} className="flex items-center gap-4">
                       <span style={{ fontSize: 14, color: TINTE, width: 130 }} className="shrink-0 truncate">
                         {name}
@@ -245,14 +301,14 @@ const PlatformHome: React.FC<Props> = ({ user }) => {
                         {quote}%
                       </span>
                     </div>
-                  ))}
+                  );})}
                 </div>
               </div>
             </div>
           </div>
 
           {/* ------------------------------------------------ Trennung */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-20 md:mt-[80px]">
+          <div id="trennung" className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-20 md:mt-[80px] scroll-mt-20">
             <div>
               <Marke farbe={BLAU} className="mb-4">{t('plat.sep_eyebrow')}</Marke>
               <h2 className="font-light mb-4"

@@ -10,6 +10,19 @@ interface Translations {
 }
 
 const translations: Translations = {
+  // --- NAVIGATION DER PLATTFORM-STARTSEITE ---
+  'plat.nav_what': { en: 'What it does', de: 'Leistung', sq: 'Çfarë bën' },
+  'plat.nav_product': { en: 'Administration', de: 'Verwaltung', sq: 'Administrimi' },
+  'plat.nav_separation': { en: 'Separation', de: 'Trennung', sq: 'Ndarja' },
+
+  // Erfundene Nachbarschaftsnamen fuer die Beispielansicht. In jeder Sprache
+  // Namen, die dort natuerlich klingen -- ein deutscher Flurname mitten in
+  // einer albanischen Seite waere ein Fremdkoerper.
+  'plat.nb1': { en: 'Elmgrove', de: 'Lindenquartier', sq: 'Lagjja e Lisave' },
+  'plat.nb2': { en: 'Millfield', de: 'Talacker', sq: 'Fusha e Mullirit' },
+  'plat.nb3': { en: 'Rosecourt', de: 'Rosenhof', sq: 'Oborri i Trëndafilave' },
+  'plat.nb4': { en: 'Beechway', de: 'Buchenweg', sq: 'Rruga e Ahut' },
+
   // --- KONTAKTFORMULAR DER PLATTFORM ---
   'plat.end_eyebrow': { en: 'Get in touch', de: 'Anfrage', sq: 'Kërkesë' },
   'plat.form_assoc': { en: 'Association', de: 'Verein', sq: 'Shoqata' },
