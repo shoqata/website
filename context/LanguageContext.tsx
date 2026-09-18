@@ -10,6 +10,16 @@ interface Translations {
 }
 
 const translations: Translations = {
+  'board.search_invoice': {
+    en: 'Search by name, invoice number or description',
+    de: 'Nach Name, Rechnungsnummer oder Beschreibung suchen',
+    sq: 'Kërko sipas emrit, numrit të faturës ose përshkrimit'
+  },
+  'board.search_neighborhood': { en: 'Search neighborhood', de: 'Nachbarschaft suchen', sq: 'Kërko lagjen' },
+  'board.search_result': { en: '{found} of {total}', de: '{found} von {total}', sq: '{found} nga {total}' },
+  'board.with_rate': { en: 'with rate', de: 'mit Quote', sq: 'me kuotë' },
+  'board.avg_rate': { en: 'Overall rate', de: 'Quote gesamt', sq: 'Kuota e përgjithshme' },
+
   'minutes.published': { en: 'Visible to members', de: 'Für Mitglieder sichtbar', sq: 'E dukshme për anëtarët' },
   'minutes.not_published': { en: 'Board only', de: 'Nur für den Vorstand', sq: 'Vetëm për bordin' },
   'minutes.published_hint': {
