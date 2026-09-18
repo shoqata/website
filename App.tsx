@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { needsProfileSetup } from './lib/memberQuality';
-import { resolveTenantId } from '@/services/supabase-bridge';
+import { useIstPlattformDomain } from './lib/useIstPlattformDomain';
 import { HashRouter as Router, Routes, Route, Link, useLocation, Navigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -109,27 +109,6 @@ const PageLoader: React.FC = () => (
 // auf einen Verein laeuft ueber eine Betreuungssitzung, die mit Anfang und Ende
 // stehen bleibt. Massgeblich ist die Tabelle platform_admins in der Datenbank;
 // diese Liste steuert nur, was die Anwendung anzeigt.
-// Gehoert die aufgerufene Adresse zu einem Verein?
-//
-// Die Betreiber-Domain ist bewusst in keinem tenant_domains-Eintrag
-// verzeichnet. resolveTenantId() gibt dort deshalb null zurueck -- und genau
-// daran ist sie zu erkennen, ohne eine zweite Liste pflegen zu muessen, die
-// mit der Datenbank auseinanderlaufen koennte.
-function useIstPlattformDomain(): boolean | null {
-  const [istPlattform, setIstPlattform] = useState<boolean | null>(null);
-  useEffect(() => {
-    let lebt = true;
-    resolveTenantId()
-      .then((verein) => { if (lebt) setIstPlattform(!verein); })
-      // Bei einem Fehler lieber die Vereinsseite zeigen als eine leere: ein
-      // voruebergehend nicht erreichbarer Server soll die Website nicht
-      // umbauen.
-      .catch(() => { if (lebt) setIstPlattform(false); });
-    return () => { lebt = false; };
-  }, []);
-  return istPlattform;
-}
-
 const ADMIN_EMAILS = ['burim@dervishi.ch'];
 
 // Betreiber der Plattform: darf Vereine anlegen und verwalten. Serverseitig
