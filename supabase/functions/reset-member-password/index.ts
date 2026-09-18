@@ -57,7 +57,7 @@ async function protokolliere(
       type: "PASSWORD_RESET",
       action,
       userId: userId ?? null,
-      details: details.slice(0, 1000),
+      details: details.slice(0, 1000),  // Spalte ist jsonb; eine Zeichenkette ist gueltiges JSON
       userAgent: userAgent ?? null,
       timestamp: new Date().toISOString(),
       createdAt: new Date().toISOString(),
@@ -98,9 +98,25 @@ Deno.serve(async (req) => {
   } catch {
     return json({ error: "Anfrage nicht lesbar." }, 400);
   }
-  if (!memberId) return json({ error: "Kein Mitglied angegeben." }, 400);
 
   const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
+
+  // Den Eingang festhalten, bevor irgendetwas geprueft wird.
+  //
+  // Zweimal kam bei einem Mitglied kein Konto zustande, und es liess sich nicht
+  // sagen warum: es gab kein Konto und keinen Eintrag, also keinerlei Spur
+  // davon, ob die Anfrage den Server ueberhaupt erreicht hatte. Ein Eintrag
+  // gleich zu Beginn trennt die beiden Faelle -- steht er da, lag es an einer
+  // Pruefung; steht er nicht da, kam die Anfrage nie an.
+  const browser = req.headers.get("user-agent");
+  await protokolliere(admin, null, "ANFRAGE",
+    `Zuruecksetzen angefragt durch ${callerEmail || "<unbekannt>"} fuer Zeile ${memberId || "<leer>"}`,
+    memberId || null, browser);
+
+  if (!memberId) {
+    await protokolliere(admin, null, "FEHLGESCHLAGEN", "Keine Zeile angegeben.", null, browser);
+    return json({ error: "Kein Mitglied angegeben." }, 400);
+  }
 
   // Rolle und Verein des Aufrufers -- serverseitig, nicht aus der Anfrage.
   const { data: callerRows } = await admin
@@ -117,9 +133,16 @@ Deno.serve(async (req) => {
     .limit(1);
   const platformAdmin = (isPlatform?.length ?? 0) > 0;
 
-  if (!caller && !platformAdmin) return json({ error: "Kein Profil gefunden." }, 403);
+  if (!caller && !platformAdmin) {
+    await protokolliere(admin, null, "FEHLGESCHLAGEN",
+      `Kein Profil zu ${callerEmail} gefunden.`, memberId, browser);
+    return json({ error: "Kein Profil gefunden." }, 403);
+  }
   const allowedRole = ["ADMIN", "SUPER_ADMIN", "BOARD"].includes(caller?.role ?? "");
   if (!allowedRole && !platformAdmin) {
+    await protokolliere(admin, caller?.tenantId ?? null, "FEHLGESCHLAGEN",
+      `${callerEmail} hat die Rolle ${caller?.role ?? "-"} und darf nicht zuruecksetzen.`,
+      memberId, browser);
     return json({ error: "Nur Administration oder Vorstand darf Passwoerter zuruecksetzen." }, 403);
   }
 
@@ -129,7 +152,11 @@ Deno.serve(async (req) => {
     .eq("id", memberId)
     .limit(1);
   const member = memberRows?.[0];
-  if (!member) return json({ error: "Mitglied nicht gefunden." }, 404);
+  if (!member) {
+    await protokolliere(admin, caller?.tenantId ?? null, "FEHLGESCHLAGEN",
+      `Zeile ${memberId} gibt es nicht.`, memberId, browser);
+    return json({ error: "Mitglied nicht gefunden." }, 404);
+  }
 
   // Ein Vorstand darf nur im eigenen Verein zuruecksetzen. Der Betreiber der
   // Plattform ist ausgenommen -- er betreut Vereine bei der Einrichtung.
@@ -156,8 +183,6 @@ Deno.serve(async (req) => {
     const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
     authUserId = list?.users?.find((u) => (u.email ?? "").toLowerCase() === email)?.id ?? null;
   }
-
-  const browser = req.headers.get("user-agent");
 
   if (authUserId) {
     const { error } = await admin.auth.admin.updateUserById(authUserId, { password });
