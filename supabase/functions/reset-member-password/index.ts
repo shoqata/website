@@ -36,6 +36,37 @@ function temporaryPassword(length = 14): string {
   return Array.from(bytes, (b) => ALPHABET[b % ALPHABET.length]).join("");
 }
 
+// Jeden Versuch festhalten, nicht nur die gelungenen.
+//
+// Als beim Zuruecksetzen fuer ein Mitglied nichts ankam, liess sich nicht
+// feststellen warum: es gab weder ein Konto noch einen Protokolleintrag, also
+// keinerlei Spur davon, ob die Anfrage den Server ueberhaupt erreicht hatte.
+// Ein Fehlschlag ohne Spur kostet bei jeder Meldung eine Testrunde.
+async function protokolliere(
+  admin: any,
+  tenantId: string | null,
+  action: string,
+  details: string,
+  userId?: string | null,
+  userAgent?: string | null,
+) {
+  try {
+    await admin.from("security_logs").insert({
+      id: crypto.randomUUID(),
+      tenantId: tenantId ?? "unbekannt",
+      type: "PASSWORD_RESET",
+      action,
+      userId: userId ?? null,
+      details: details.slice(0, 1000),
+      userAgent: userAgent ?? null,
+      timestamp: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.error("[reset] Protokolleintrag fehlgeschlagen:", e);
+  }
+}
+
 const PLACEHOLDER = /(@koretini\.legacy|no-email-)/i;
 const LOOKS_LIKE_EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -126,9 +157,15 @@ Deno.serve(async (req) => {
     authUserId = list?.users?.find((u) => (u.email ?? "").toLowerCase() === email)?.id ?? null;
   }
 
+  const browser = req.headers.get("user-agent");
+
   if (authUserId) {
     const { error } = await admin.auth.admin.updateUserById(authUserId, { password });
-    if (error) return json({ error: `Passwort konnte nicht gesetzt werden: ${error.message}` }, 500);
+    if (error) {
+      await protokolliere(admin, member.tenantId, "FEHLGESCHLAGEN",
+        `Passwort setzen fuer ${email} durch ${callerEmail}: ${error.message}`, member.id, browser);
+      return json({ error: `Passwort konnte nicht gesetzt werden: ${error.message}` }, 500);
+    }
   } else {
     const { data, error } = await admin.auth.admin.createUser({
       email,
@@ -136,7 +173,12 @@ Deno.serve(async (req) => {
       email_confirm: true,
     });
     if (error || !data?.user) {
-      return json({ error: `Konto konnte nicht angelegt werden: ${error?.message ?? "?"}` }, 500);
+      await protokolliere(admin, member.tenantId, "FEHLGESCHLAGEN",
+        `Konto anlegen fuer ${email} durch ${callerEmail}: ${error?.message ?? "unbekannt"}`,
+        member.id, browser);
+      return json({
+        error: `Konto konnte nicht angelegt werden: ${error?.message ?? "?"}`,
+      }, 500);
     }
     authUserId = data.user.id;
     created = true;
@@ -144,20 +186,10 @@ Deno.serve(async (req) => {
 
   // Profil mit dem Konto verknuepfen und den Vorgang festhalten.
   await admin.from("users").update({ authUserId }).eq("id", member.id);
-  // Spalten aus dem tatsaechlichen Aufbau von security_logs, nachgesehen statt
-  // geraten: id, ipAddress, userAgent, type, violation, timestamp, userId,
-  // action, details, createdAt, tenantId.
-  await admin.from("security_logs").insert({
-    id: crypto.randomUUID(),
-    tenantId: member.tenantId,
-    type: "PASSWORD_RESET",
-    action: created ? "ACCOUNT_CREATED" : "PASSWORD_SET",
-    userId: member.id,
-    details: `durch ${callerEmail} fuer ${member.displayName ?? email}`,
-    userAgent: req.headers.get("user-agent") ?? null,
-    timestamp: new Date().toISOString(),
-    createdAt: new Date().toISOString(),
-  });
+  await protokolliere(admin, member.tenantId,
+    created ? "ACCOUNT_CREATED" : "PASSWORD_SET",
+    `durch ${callerEmail} fuer ${member.displayName ?? email} (${email})`,
+    member.id, browser);
 
   return json({
     ok: true,

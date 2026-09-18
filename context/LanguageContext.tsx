@@ -10,6 +10,14 @@ interface Translations {
 }
 
 const translations: Translations = {
+  'pw.login_with': { en: 'Sign in with this address', de: 'Anmeldung mit dieser Adresse', sq: 'Hyrja me këtë adresë' },
+  'pw.failed': { en: 'Reset failed', de: 'Zurücksetzen fehlgeschlagen', sq: 'Rivendosja dështoi' },
+  'pw.failed_hint': {
+    en: 'Nothing was changed. The member keeps their previous password, if they had one.',
+    de: 'Es wurde nichts geändert. Das Mitglied behält sein bisheriges Passwort, falls es eines hatte.',
+    sq: 'Asgjë nuk u ndryshua. Anëtari e ruan fjalëkalimin e mëparshëm, nëse kishte një të tillë.'
+  },
+
   'upload.failed': {
     en: 'Upload failed: {reason}',
     de: 'Hochladen fehlgeschlagen: {reason}',
