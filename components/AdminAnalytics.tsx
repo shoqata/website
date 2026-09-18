@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef, useMemo } from 'react';
-import { billingYearOf } from '../lib/memberQuality';
+import { billingYearOf, paidDateOf } from '../lib/memberQuality';
 import * as d3 from 'd3';
 import { Payment, UserProfile, Neighborhood } from '../types';
 import { CheckCircle2, Clock, AlertCircle, TrendingUp, MapPin, DollarSign } from 'lucide-react';
@@ -75,7 +75,10 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ payments = [], users = 
   // --- Calculate Payment Revenue Over Time ---
   const revenueData = useMemo(() => {
     const dataMap = new Map<string, number>();
-    const paidPayments = filteredPayments.filter(p => p.status === 'PAID' && p.timestamp);
+    // Nach dem Zahlungseingang, nicht nach der Entstehung des Datensatzes.
+    // Alle uebernommenen Rechnungen tragen denselben Zeitstempel -- daraus
+    // entstand ein einziger Punkt, und eine Linie durch einen Punkt ist nichts.
+    const paidPayments = filteredPayments.filter(p => p.status === 'PAID' && paidDateOf(p));
 
     if (paidPayments.length === 0) {
         return [
@@ -85,7 +88,7 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ payments = [], users = 
     }
 
     paidPayments.forEach(p => {
-        const d = p.timestamp.toDate();
+        const d = paidDateOf(p)!;
         const key = new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
         const current = dataMap.get(key) || 0;
         dataMap.set(key, current + p.amount);
@@ -97,12 +100,30 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ payments = [], users = 
   }, [filteredPayments]);
 
   useEffect(() => {
-    if (!chartRef.current || revenueData.length === 0) return;
+    if (!chartRef.current) return;
 
+    // Neu zeichnen, sobald sich die Breite aendert.
+    //
+    // Der Effekt hing nur an den Daten. Wird der Reiter eingeblendet oder das
+    // Fenster umgestellt, waehrend die Flaeche noch keine Breite hat, entsteht
+    // ein Diagramm der Breite null -- und weil der Effekt nie wieder laeuft,
+    // bleibt es dauerhaft leer.
+    const zeichnen = () => {
+      if (!chartRef.current) return;
+      const width = chartRef.current.clientWidth;
+      if (width === 0 || revenueData.length === 0) return;
+      malen(width);
+    };
+
+    const beobachter = new ResizeObserver(zeichnen);
+    beobachter.observe(chartRef.current);
+    zeichnen();
+    return () => beobachter.disconnect();
+
+    function malen(width: number) {
     const svg = d3.select(chartRef.current);
     svg.selectAll("*").remove();
 
-    const width = chartRef.current.clientWidth;
     const height = 300;
     const margin = { top: 20, right: 30, bottom: 40, left: 60 };
 
@@ -173,6 +194,29 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ payments = [], users = 
       .call(g => g.select(".domain").remove())
       .call(g => g.selectAll(".tick line").attr("x2", width - margin.left - margin.right).attr("stroke-opacity", 0.1));
 
+    // Punkte auf die Linie. Faellt der ganze Umsatz in einen einzigen Monat,
+    // hat die Linie keine Ausdehnung und ist unsichtbar -- der Punkt bleibt es
+    // nicht. Mit dem Betrag daneben ist der Wert zudem ablesbar, ohne die
+    // Achse abzuschaetzen.
+    const punkte = svg.append("g");
+    punkte.selectAll("circle").data(revenueData).join("circle")
+      .attr("cx", (d: any) => x(d.date))
+      .attr("cy", (d: any) => y(d.value))
+      .attr("r", 4)
+      .attr("fill", "#10b981")
+      .attr("stroke", "#fff")
+      .attr("stroke-width", 2);
+
+    punkte.selectAll("text").data(revenueData).join("text")
+      .attr("x", (d: any) => x(d.date))
+      .attr("y", (d: any) => y(d.value) - 12)
+      .attr("text-anchor", "middle")
+      .attr("font-size", "10px")
+      .attr("font-weight", "bold")
+      .attr("fill", "#57534e")
+      .text((d: any) => `${Math.round(d.value)}`);
+
+    }
   }, [revenueData]);
 
   return (

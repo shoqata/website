@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState } from 'react';
-import { billingYearOf } from '../lib/memberQuality';
+import { billingYearOf, paidDateOf } from '../lib/memberQuality';
 import { 
   Bar, 
   BarChart, 
@@ -87,8 +87,10 @@ const AdminStatistics: React.FC<AdminStatisticsProps> = ({ users, payments, neig
   const historicalData = useMemo(() => {
     const agg: Record<string, number> = {};
     yearPayments.forEach(p => {
-        if (p.status === 'PAID' && p.timestamp) {
-            const date = p.timestamp.toDate();
+        // Nach dem Zahlungseingang statt nach der Entstehung des Datensatzes --
+        // siehe paidDateOf. Sonst faellt der ganze Verlauf in einen Monat.
+        const date = p.status === 'PAID' ? paidDateOf(p) : null;
+        if (date) {
             const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
             agg[key] = (agg[key] || 0) + p.amount;
         }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { billingYearOf, feeStateFor } from '../../lib/memberQuality';
+import { billingYearOf, feeStateFor, paidDateOf } from '../../lib/memberQuality';
 
 // Die Bruecke wandelt ISO-Zeichenketten in Objekte mit toDate(); in Tests wird
 // dasselbe nachgebildet, damit beide Wege geprueft sind.
@@ -43,5 +43,35 @@ describe('feeStateFor nutzt dieselbe Regel', () => {
     expect(feeStateFor('a', zahlungen, 2026)).toBe('PAID');
     expect(feeStateFor('b', zahlungen, 2026)).toBe('OPEN');
     expect(feeStateFor('unbekannt', zahlungen, 2026)).toBe('NONE');
+  });
+});
+
+describe('paidDateOf', () => {
+  const alsTimestamp = (iso: string) => ({ toDate: () => new Date(iso) });
+
+  it('nimmt das Zahlungsdatum, nicht den Zeitstempel des Datensatzes', () => {
+    // Genau der Fall, der die Umsatzentwicklung leer liess: alle
+    // uebernommenen Rechnungen entstanden im Juni, bezahlt wurde im Juli.
+    const d = paidDateOf({ paidAt: '2026-07-05T07:27:18.165Z', timestamp: alsTimestamp('2026-06-01T00:00:00Z') });
+    expect(d?.getMonth()).toBe(6);   // Juli
+  });
+
+  it('faellt ohne Zahlungsdatum auf den Zeitstempel zurueck', () => {
+    const d = paidDateOf({ timestamp: alsTimestamp('2026-06-01T00:00:00Z') });
+    expect(d?.getMonth()).toBe(5);   // Juni
+  });
+
+  it('kommt mit einem Datum ohne Uhrzeit zurecht', () => {
+    expect(paidDateOf({ paidAt: '2026-09-18' })?.getFullYear()).toBe(2026);
+  });
+
+  it('gibt null zurueck, wenn nichts Brauchbares dasteht', () => {
+    expect(paidDateOf({})).toBeNull();
+    expect(paidDateOf(null)).toBeNull();
+    expect(paidDateOf({ paidAt: '', timestamp: null })).toBeNull();
+  });
+
+  it('haelt einen unbrauchbaren Wert aus, statt ein falsches Datum zu behaupten', () => {
+    expect(paidDateOf({ paidAt: 'kein Datum' })).toBeNull();
   });
 });
