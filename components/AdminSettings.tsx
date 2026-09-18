@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import AdminPostausgang from './AdminPostausgang';
 import { useTranslation } from '../context/LanguageContext';
 import { motion } from 'framer-motion';
 import { 
@@ -13,7 +14,6 @@ import {
   ToggleLeft,
   ToggleRight,
   Mail,
-  AlertTriangle,
   Server,
   Banknote
 } from 'lucide-react';
@@ -279,19 +279,13 @@ const AdminSettings: React.FC = () => {
                         />
                         <p className="text-xs text-stone-400 mt-2">{t('set.reply_to_hint')}</p>
                     </div>
-                    <div className="flex items-center justify-center p-4 bg-amber-50 rounded-2xl border border-amber-100">
-                        <div className="flex gap-4 items-start">
-                            <AlertTriangle className="text-amber-500 shrink-0" size={24} />
-                            <div>
-                                <p className="font-bold text-amber-800 text-sm">{t('set.smtp')}</p>
-                                <p className="text-xs text-amber-600/80 mt-1">
-                                    Email delivery relies on the Firebase Extension "Trigger Email". 
-                                    Configure SMTP directly in the Firebase Console.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
                 </div>
+
+                {/* Der Postausgang. Hier stand ein Hinweis aus der
+                    Firebase-Zeit -- "Trigger Email", "Firebase Console" --,
+                    der seit der Umstellung auf Supabase nicht mehr zutraf und
+                    hinter dem sich nichts einstellen liess. */}
+                <AdminPostausgang />
             </section>
 
         </div>
