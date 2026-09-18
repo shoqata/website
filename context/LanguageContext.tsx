@@ -10,25 +10,119 @@ interface Translations {
 }
 
 const translations: Translations = {
-  // --- BETREIBER-DOMAIN ---
-  'platform.title': { en: 'Association platform', de: 'Vereinsplattform', sq: 'Platforma e shoqatave' },
-  'platform.subtitle': {
-    en: 'Administration for the associations run on this platform. This address belongs to no single association.',
-    de: 'Verwaltung der Vereine, die auf dieser Plattform geführt werden. Diese Adresse gehört keinem einzelnen Verein.',
-    sq: 'Administrimi i shoqatave që mbahen në këtë platformë. Kjo adresë nuk i takon asnjë shoqate të vetme.'
+  // --- STARTSEITE DER BETREIBER-DOMAIN ---
+  'plat.eyebrow': { en: 'Association platform', de: 'Plattform für Vereine', sq: 'Platformë për shoqata' },
+  'plat.headline': {
+    en: 'Members, dues and minutes. In one place.',
+    de: 'Mitglieder, Beiträge und Protokolle. An einem Ort.',
+    sq: 'Anëtarët, kuotat dhe procesverbalet. Në një vend.'
   },
-  'platform.login_hint': {
-    en: 'Sign in to manage the associations.',
-    de: 'Melden Sie sich an, um die Vereine zu verwalten.',
-    sq: 'Hyni për të menaxhuar shoqatat.'
+  'plat.sub': {
+    en: 'Every association gets its own website, its own data and an administration that runs from the member register to the QR invoice.',
+    de: 'Jeder Verein bekommt seine eigene Website, seine eigenen Daten und eine Verwaltung, die vom Mitgliederverzeichnis bis zur QR-Rechnung reicht.',
+    sq: 'Çdo shoqatë merr faqen e vet, të dhënat e veta dhe një administrim që shkon nga regjistri i anëtarëve deri te fatura me QR.'
   },
-  'platform.signed_in_as': { en: 'Signed in as', de: 'Angemeldet als', sq: 'I kyçur si' },
-  'platform.open_admin': { en: 'Open administration', de: 'Verwaltung öffnen', sq: 'Hap administrimin' },
-  'platform.footer_note': {
-    en: 'Looking for your association? Then you want its own address, not this one.',
+  'plat.cta': { en: 'Get in touch', de: 'Kontakt aufnehmen', sq: 'Na kontaktoni' },
+  'plat.contact': { en: 'Write to us', de: 'Schreiben Sie uns', sq: 'Na shkruani' },
+  'plat.open_admin': { en: 'Open administration', de: 'Verwaltung öffnen', sq: 'Hap administrimin' },
+
+  'plat.card1_label': { en: 'QR invoice', de: 'QR-Rechnung', sq: 'Faturë QR' },
+  'plat.card1': {
+    en: 'Swiss QR bill with reference number, ready to print or send by email.',
+    de: 'Swiss QR-Rechnung mit Referenznummer, zum Drucken oder als E-Mail.',
+    sq: 'Faturë Swiss QR me numër reference, për shtyp ose me email.'
+  },
+  'plat.card2_label': { en: 'Payment report', de: 'Zahlungsmeldung', sq: 'Raport pagese' },
+  'plat.card2': {
+    en: 'The neighbourhood reports a payment. The board books it — nobody else.',
+    de: 'Die Nachbarschaft meldet eine Zahlung. Buchen kann sie der Vorstand — sonst niemand.',
+    sq: 'Lagjja raporton një pagesë. E kontabilizon bordi — askush tjetër.'
+  },
+  'plat.card3_label': { en: 'Minutes', de: 'Protokoll', sq: 'Procesverbal' },
+  'plat.card3': {
+    en: 'Every revision keeps the previous wording. Earlier versions cannot be changed.',
+    de: 'Jede Überarbeitung bewahrt den bisherigen Wortlaut. Frühere Fassungen bleiben unveränderbar.',
+    sq: 'Çdo rishikim ruan formulimin e mëparshëm. Versionet e mëparshme mbeten të pandryshueshme.'
+  },
+
+  'plat.what_eyebrow': { en: 'What it does', de: 'Was es leistet', sq: 'Çfarë bën' },
+  'plat.what_headline': {
+    en: 'Association work that leaves nothing lying around.',
+    de: 'Vereinsarbeit, bei der nichts liegen bleibt.',
+    sq: 'Punë shoqate ku asgjë nuk mbetet pezull.'
+  },
+  'plat.f1_label': { en: 'Members', de: 'Mitglieder', sq: 'Anëtarët' },
+  'plat.f1_title': { en: 'Register and neighbourhoods', de: 'Verzeichnis und Nachbarschaften', sq: 'Regjistri dhe lagjet' },
+  'plat.f1_text': {
+    en: 'Members belong to a neighbourhood, and each neighbourhood has a responsible person who maintains addresses and reports payments — for their own neighbourhood and no other.',
+    de: 'Mitglieder gehören zu einer Nachbarschaft, und jede hat eine verantwortliche Person, die Adressen pflegt und Zahlungen meldet — für die eigene Nachbarschaft und keine andere.',
+    sq: 'Anëtarët i takojnë një lagjeje, dhe secila ka një person përgjegjës që mban adresat dhe raporton pagesat — për lagjen e vet dhe asnjë tjetër.'
+  },
+  'plat.f2_label': { en: 'Dues', de: 'Beiträge', sq: 'Kuotat' },
+  'plat.f2_title': { en: 'Invoices with Swiss QR', de: 'Rechnungen mit Swiss QR', sq: 'Fatura me Swiss QR' },
+  'plat.f2_text': {
+    en: 'Annual dues as a QR bill, per post or email, with dunning levels and a payment rate you can read per neighbourhood instead of guessing.',
+    de: 'Jahresbeiträge als QR-Rechnung, per Post oder E-Mail, mit Mahnstufen und einer Zahlquote, die sich je Nachbarschaft ablesen lässt statt schätzen.',
+    sq: 'Kuotat vjetore si faturë QR, me postë ose email, me nivele përkujtese dhe një kuotë pagese që lexohet për çdo lagje në vend që të merret me hamendje.'
+  },
+  'plat.f3_label': { en: 'Board', de: 'Vorstand', sq: 'Bordi' },
+  'plat.f3_title': { en: 'Minutes with versions', de: 'Protokolle mit Fassungen', sq: 'Procesverbale me versione' },
+  'plat.f3_text': {
+    en: 'Write minutes, revise them, release them to the members. Every revision keeps the previous wording — a silent correction stays distinguishable from a rewrite.',
+    de: 'Protokolle schreiben, überarbeiten, für die Mitglieder freigeben. Jede Überarbeitung bewahrt den bisherigen Wortlaut — eine stille Korrektur bleibt von einer Umschrift unterscheidbar.',
+    sq: 'Shkruani procesverbale, rishikojini, lëshojini për anëtarët. Çdo rishikim ruan formulimin e mëparshëm — një korrigjim i heshtur mbetet i dallueshëm nga një rishkrim.'
+  },
+
+  'plat.product_eyebrow': { en: 'The administration', de: 'Die Verwaltung', sq: 'Administrimi' },
+  'plat.product_headline': {
+    en: 'Numbers you can act on, not numbers you have to interpret.',
+    de: 'Zahlen, mit denen sich arbeiten lässt — nicht Zahlen, die gedeutet werden müssen.',
+    sq: 'Shifra me të cilat punohet — jo shifra që duhen interpretuar.'
+  },
+  'plat.product_sub': {
+    en: 'Who has paid, where details are missing, which neighbourhood needs attention. Shown as an example — every association sees only its own figures.',
+    de: 'Wer bezahlt hat, wo Angaben fehlen, welche Nachbarschaft Aufmerksamkeit braucht. Beispielhaft dargestellt — jeder Verein sieht allein seine eigenen Zahlen.',
+    sq: 'Kush ka paguar, ku mungojnë të dhëna, cila lagje kërkon vëmendje. Paraqitur si shembull — çdo shoqatë sheh vetëm shifrat e veta.'
+  },
+  'plat.stat1': { en: 'Members', de: 'Mitglieder', sq: 'Anëtarë' },
+  'plat.stat2': { en: 'Neighbourhoods', de: 'Nachbarschaften', sq: 'Lagje' },
+  'plat.stat3': { en: 'Payment rate', de: 'Zahlquote', sq: 'Kuota e pagesave' },
+  'plat.stat4': { en: 'Collected CHF', de: 'Eingegangen CHF', sq: 'Arkëtuar CHF' },
+  'plat.table_label': { en: 'By neighbourhood', de: 'Nach Nachbarschaft', sq: 'Sipas lagjes' },
+
+  'plat.sep_eyebrow': { en: 'Separation', de: 'Trennung', sq: 'Ndarja' },
+  'plat.sep_headline': {
+    en: 'One association never sees another.',
+    de: 'Ein Verein sieht den anderen nie.',
+    sq: 'Një shoqatë nuk e sheh kurrë tjetrën.'
+  },
+  'plat.sep_text': {
+    en: 'The separation sits in the database, not in the interface — an association is not handed another association\'s data, whatever a modified client might ask for. This is verified, not asserted.',
+    de: 'Die Trennung steckt in der Datenbank, nicht in der Oberfläche — einem Verein werden die Daten eines anderen gar nicht erst geliefert, ganz gleich, was ein veränderter Client anfragt. Das ist nachgewiesen, nicht behauptet.',
+    sq: 'Ndarja qëndron në bazën e të dhënave, jo në ndërfaqe — një shoqate nuk i jepen fare të dhënat e një tjetre, pavarësisht çfarë kërkon një klient i ndryshuar. Kjo është e provuar, jo e pretenduar.'
+  },
+  'plat.sep1': { en: 'Own domain and own appearance', de: 'Eigene Domain und eigenes Erscheinungsbild', sq: 'Domen dhe pamje e vetes' },
+  'plat.sep2': { en: 'Own payment details and QR account', de: 'Eigene Zahlungsangaben und eigenes QR-Konto', sq: 'Të dhëna pagese dhe llogari QR të vetat' },
+  'plat.sep3': { en: 'Members, invoices and minutes stay inside the association', de: 'Mitglieder, Rechnungen und Protokolle bleiben im Verein', sq: 'Anëtarët, faturat dhe procesverbalet mbeten brenda shoqatës' },
+  'plat.sep4': { en: 'Support access only on request, with start and end on record', de: 'Betreuung nur auf Wunsch, mit Anfang und Ende im Protokoll', sq: 'Mbështetje vetëm me kërkesë, me fillim dhe fund në procesverbal' },
+
+  'plat.end_headline': {
+    en: 'Shall we set your association up?',
+    de: 'Sollen wir Ihren Verein einrichten?',
+    sq: 'Ta konfigurojmë shoqatën tuaj?'
+  },
+  'plat.end_text': {
+    en: 'We take over the existing member list and set everything up until your administration can take over.',
+    de: 'Wir übernehmen die bestehende Mitgliederliste und richten alles ein, bis Ihre Administration übernehmen kann.',
+    sq: 'Ne marrim listën ekzistuese të anëtarëve dhe konfigurojmë gjithçka derisa administrata juaj të marrë përsipër.'
+  },
+  'plat.footer_note': {
+    en: 'Looking for your association? Then its own address takes you there, not this one.',
     de: 'Sie suchen Ihren Verein? Dann führt Sie dessen eigene Adresse dorthin, nicht diese.',
-    sq: 'Po kërkoni shoqatën tuaj? Atëherë ju duhet adresa e saj, jo kjo.'
+    sq: 'Po kërkoni shoqatën tuaj? Atëherë ju çon adresa e saj, jo kjo.'
   },
+
+  // --- BETREIBER-DOMAIN ---
 
   'board.search_invoice': {
     en: 'Search by name, invoice number or description',
