@@ -203,18 +203,25 @@ Deno.serve(async (req) => {
     try { await client.close(); } catch { /* geschlossen ist geschlossen */ }
   }
 
+  // Wessen Post bleibt liegen? Frueher stand hier ein pauschales "Kein
+  // Postausgang hinterlegt" -- unverstaendlich fuer jemanden, der gerade
+  // einen eingetragen hat, waehrend die wartende Nachricht zu einem anderen
+  // Mandanten gehoert. Jetzt wird der Mandant benannt.
   if (gesendet === 0 && gescheitert === 0 && liegengeblieben > 0) {
+    const wer = ohnePostausgang.map((v) => v || "(ohne Zuordnung)").join(", ");
     return json({
       ok: false,
       configured: false,
       sent: 0, failed: 0, pending: liegengeblieben,
+      ohnePostausgang,
       hinweis:
-        "Kein Postausgang hinterlegt. Tragen Sie ihn in der Verwaltung unter " +
-        "Einstellungen ein. Bis dahin bleibt alles in der Warteschlange " +
-        "stehen und geht nicht verloren.",
+        `${liegengeblieben} Nachricht(en) warten auf einen Postausgang fuer: ${wer}. ` +
+        "Jeder Mandant versendet ueber seinen eigenen Server -- ueber den eines " +
+        "anderen zu versenden waere ein Mandantenbruch. Bis ein Postausgang " +
+        "eingetragen ist, bleibt alles stehen und geht nicht verloren.",
     }, 200);
   }
 
   return json({ ok: true, configured: true, sent: gesendet, failed: gescheitert,
-                pending: liegengeblieben, by: aufrufer });
+                pending: liegengeblieben, ohnePostausgang, by: aufrufer });
 });
