@@ -79,7 +79,13 @@ const AdminPasswordReset: React.FC<Props> = ({ member, onClose }) => {
           )}
 
           {error && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 leading-relaxed">{error}</div>
+            <div className="p-4 bg-red-50 border-2 border-red-300 rounded-xl space-y-1.5">
+              <p className="text-[10px] font-bold text-red-700 uppercase tracking-widest flex items-center gap-1.5">
+                <ShieldAlert size={12} /> {t('pw.failed')}
+              </p>
+              <p className="text-xs text-red-700 leading-relaxed break-words">{error}</p>
+              <p className="text-[11px] text-red-600/80 leading-relaxed">{t('pw.failed_hint')}</p>
+            </div>
           )}
 
           {result && (
@@ -97,6 +103,16 @@ const AdminPasswordReset: React.FC<Props> = ({ member, onClose }) => {
                     {copied ? <Check size={16} /> : <Copy size={16} />}
                   </button>
                 </div>
+              </div>
+              {/* Die Adresse gehoert daneben. Es gibt Mitglieder, die zweimal
+                  erfasst sind und deren zweite Zeile eine kuenstlich
+                  veraenderte Adresse traegt -- wer dort zuruecksetzt, muss
+                  sehen, mit welcher Adresse die Anmeldung dann geht. */}
+              <div className="p-4 bg-stone-50 border border-stone-200 rounded-xl">
+                <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-1">
+                  {t('pw.login_with')}
+                </p>
+                <p className="font-mono text-sm font-bold text-stone-900 break-all select-all">{result.email}</p>
               </div>
               <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex gap-2.5 text-amber-800">
                 <ShieldAlert size={16} className="mt-0.5 shrink-0" />
