@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { TINTE, BLAU, NEBEL, SCHIEFER, LINIE, MONO } from './platform/farben';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -30,38 +30,6 @@ interface Props { user: UserProfile | null; }
 const PlatformHome: React.FC<Props> = ({ user }) => {
   const { t, language, setLanguage } = useTranslation();
   const angemeldet = !!user;
-
-  // Seitentitel und Symbol im Browserreiter.
-  //
-  // Beide Domains teilen sich eine index.html, deren Titel "Koretini" lautet
-  // -- fuer die Betreiber-Domain falsch. Gesetzt wird deshalb zur Laufzeit,
-  // und nur hier: diese Komponente erscheint ausschliesslich dort.
-  useEffect(() => {
-    const vorher = document.title;
-    document.title = 'unityhub';
-
-    const zeichen = encodeURIComponent(
-      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">' +
-      '<rect width="48" height="48" rx="8" fill="#00052e"/>' +
-      '<g fill="#0428cb">' +
-      '<circle cx="24" cy="11" r="3"/><circle cx="35.3" cy="17.5" r="3"/>' +
-      '<circle cx="35.3" cy="30.5" r="3"/><circle cx="24" cy="37" r="3"/>' +
-      '<circle cx="12.7" cy="30.5" r="3"/></g>' +
-      '<circle cx="12.7" cy="17.5" r="3" fill="#34fcff"/>' +
-      '<circle cx="24" cy="24" r="5.4" fill="#0428cb"/>' +
-      '<circle cx="24" cy="24" r="2.1" fill="#00052e"/></svg>'
-    );
-    const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
-      ?? document.head.appendChild(Object.assign(document.createElement('link'), { rel: 'icon' }));
-    const vorherIcon = link.href;
-    link.type = 'image/svg+xml';
-    link.href = `data:image/svg+xml,${zeichen}`;
-
-    return () => {
-      document.title = vorher;
-      if (vorherIcon) link.href = vorherIcon;
-    };
-  }, []);
 
   // Werte aus platform/farben.ts -- dieselben nutzt der Cookie-Hinweis.
   const mono = MONO;
