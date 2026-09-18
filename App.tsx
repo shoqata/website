@@ -111,15 +111,21 @@ const PageLoader: React.FC = () => (
 // diese Liste steuert nur, was die Anwendung anzeigt.
 const ADMIN_EMAILS = ['burim@dervishi.ch'];
 
-// Betreiber der Plattform: darf Vereine anlegen und verwalten. Serverseitig
-// entscheidet allein die Tabelle platform_admins -- diese Liste steuert nur,
-// ob die Oberflaeche den Bereich zeigt.
-const PLATFORM_EMAILS = ['email@dervishi.ch'];
+// Es gab hier zwei Listen fuer dieselbe Sache, und die zweite stand nach der
+// Rollentrennung noch auf der alten Adresse -- der Betreiberbereich waere damit
+// dem falschen Konto angeboten worden. Jetzt ist es eine.
+const PLATFORM_EMAILS = ADMIN_EMAILS;
 
 const AuthRedirectHandler: React.FC<{ user: UserProfile | null, children: React.ReactNode }> = ({ user, children }) => {
   const location = useLocation();
   if (user && (location.pathname === '/login' || location.pathname === '/register')) {
-    const isAdmin = user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN || ADMIN_EMAILS.includes(user.email);
+    // Der Betreiber der Plattform gehoert in seinen Bereich, nicht auf ein
+    // Mitglieder-Dashboard: er ist in keinem Verein Mitglied, und die Ansicht
+    // zeigte ihm folgerichtig einen Beitrag von 0 und "Kein Manager".
+    if (ADMIN_EMAILS.includes(user.email)) {
+      return <Navigate to="/super-admin" replace />;
+    }
+    const isAdmin = user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN;
     // Nicht das Haekchen entscheidet, sondern die Daten selbst -- sonst
     // landen laengst vollstaendige Mitglieder immer wieder im Assistenten.
     const shouldGoToDashboard = isAdmin || !needsProfileSetup(user);
@@ -315,10 +321,10 @@ const AppContent: React.FC = () => {
                         falschen Startseite waere schlechter als eine
                         Verzoegerung von Sekundenbruchteilen. */}
                     <Route path="/" element={istPlattformDomain ? <PlatformHome user={user} /> : <Hero />} />
-                    <Route path="/about" element={<AboutUsPage />} />
-                    <Route path="/live" element={<VillageLive />} />
-                    <Route path="/events" element={<EventsPage />} />
-                    <Route path="/news" element={<NewsPage />} />
+                    <Route path="/about" element={istPlattformDomain ? <Navigate to="/" replace /> : <AboutUsPage />} />
+                    <Route path="/live" element={istPlattformDomain ? <Navigate to="/" replace /> : <VillageLive />} />
+                    <Route path="/events" element={istPlattformDomain ? <Navigate to="/" replace /> : <EventsPage />} />
+                    <Route path="/news" element={istPlattformDomain ? <Navigate to="/" replace /> : <NewsPage />} />
                     {/* Turnier und Sponsoring. Die Adressen werden so geteilt
                         (koretini.me/fussball/sponsoren); index.html schreibt
                         einen Pfad ohne Raute auf die Rauten-Form um und
@@ -326,8 +332,8 @@ const AppContent: React.FC = () => {
                         Route mit Schraegstrich darf es nicht geben -- React
                         Router weist solche Pfade zurueck und legt damit die
                         gesamte Routentabelle lahm. */}
-                    <Route path="/fussball" element={<FutsalPage />} />
-                    <Route path="/fussball/sponsoren" element={<SponsorPage />} />
+                    <Route path="/fussball" element={istPlattformDomain ? <Navigate to="/" replace /> : <FutsalPage />} />
+                    <Route path="/fussball/sponsoren" element={istPlattformDomain ? <Navigate to="/" replace /> : <SponsorPage />} />
                     <Route path="/futsal" element={<Navigate to="/fussball" replace />} />
                     <Route path="/gdpr" element={<LegalPage type="GDPR" />} />
                     <Route path="/privacy" element={<LegalPage type="PRIVACY" />} />
@@ -340,7 +346,12 @@ const AppContent: React.FC = () => {
                     <Route path="/nachbarschaft" element={user ? <NeighborhoodStewardPanel user={user} /> : <Navigate to="/login" />} />
                     <Route path="/setup-profile" element={user ? <ProfileSetup user={user} onComplete={setUser} /> : <Navigate to="/login" />} />
                     
+                    {/* Auf der Betreiber-Domain gibt es kein Mitglieder-Dashboard.
+                        Der Betreiber ist in keinem Verein Mitglied, und die
+                        Ansicht zeigte ihm folgerichtig einen Beitrag von 0 und
+                        "Kein Manager" -- richtig gerechnet, aber sinnlos. */}
                     <Route path="/dashboard" element={
+                        istPlattformDomain ? <Navigate to="/super-admin" replace /> :
                         <ProtectedRoute user={user}>
                             {user?.role === UserRole.BOARD ? <BoardDashboard user={user} /> : <Dashboard user={user!} />}
                             {/* Die Kassen-Ansicht der Vertreter haengt an
@@ -468,11 +479,15 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings }) => {
 
 const ConditionalNavigation = ({ user, branding, systemSettings }: any) => {
   const routeLoc = useLocation();
-  // Auf der Betreiber-Domain gibt es keine Vereinsnavigation: Ueber uns,
-  // Events und Neuigkeiten gehoeren einem Verein, und den gibt es hier nicht.
+  // Auf der Betreiber-Domain gibt es ueberhaupt keine Vereinsnavigation.
+  //
+  // Vorher war das auf die Startseite beschraenkt -- auf /login und
+  // /dashboard erschien dadurch weiterhin die Leiste von Koretini, samt
+  // Herzsymbol, "Ueber uns" und "Koretini Live". Diese Verweise gehoeren
+  // einem Verein, und den gibt es auf dieser Adresse nicht.
   const istPlattform = useIstPlattformDomain();
   const hidePaths = ['/setup-profile', '/super-admin', '/admin'];
-  if (istPlattform && routeLoc.pathname === '/') return null;
+  if (istPlattform) return null;
   if (hidePaths.some(path => routeLoc.pathname.startsWith(path))) return null;
   return <Navigation user={user} branding={branding} systemSettings={systemSettings} />;
 };
@@ -480,9 +495,11 @@ const ConditionalNavigation = ({ user, branding, systemSettings }: any) => {
 const ConditionalFooter = ({ branding, user }: any) => {
   const { t, loc } = useTranslation();
   const routeLoc = useLocation();
+  // Dieselbe Ueberlegung wie bei der Navigation: die Fusszeile eines Vereins
+  // gehoert nicht auf die Adresse der Plattform.
   const istPlattform = useIstPlattformDomain();
   const hidePaths = ['/setup-profile', '/super-admin', '/admin'];
-  if (istPlattform && routeLoc.pathname === '/') return null;
+  if (istPlattform) return null;
   if (hidePaths.some(path => routeLoc.pathname.startsWith(path))) return null;
   
   return (
