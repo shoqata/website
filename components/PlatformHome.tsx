@@ -5,6 +5,7 @@ import { ArrowRight, Check } from 'lucide-react';
 import { useTranslation } from '../context/LanguageContext';
 import { UserProfile } from '../types';
 import Konstellation from './platform/Konstellation';
+import Kontaktformular from './platform/Kontaktformular';
 
 interface Props { user: UserProfile | null; }
 
@@ -45,6 +46,16 @@ const PlatformHome: React.FC<Props> = ({ user }) => {
         {children}
       </p>
     );
+
+  // Ein Sprung auf der Seite, kein Seitenwechsel -- der Router wuerde eine
+  // Raute im Pfad als Route deuten.
+  const Sprung: React.FC<{ ziel: string; children: React.ReactNode }> = ({ ziel, children }) => (
+    <a href={ziel}
+      className="inline-flex items-center gap-2 px-6 py-4 rounded-lg text-white font-normal transition-opacity hover:opacity-90"
+      style={{ background: BLAU, fontSize: 14, letterSpacing: '0.01em' }}>
+      {children}
+    </a>
+  );
 
   const Knopf: React.FC<{ to: string; children: React.ReactNode }> = ({ to, children }) => (
     <Link to={to}
@@ -88,7 +99,7 @@ const PlatformHome: React.FC<Props> = ({ user }) => {
                     style={{ fontSize: 13, letterSpacing: '0.05em' }}>
                 {t('nav.login')}
               </Link>
-              <Knopf to="/login">{t('plat.cta')}</Knopf>
+              <Sprung ziel="#anfrage">{t('plat.cta')}</Sprung>
             </>
           )}
         </div>
@@ -114,8 +125,10 @@ const PlatformHome: React.FC<Props> = ({ user }) => {
               {t('plat.sub')}
             </p>
             <div className="flex flex-wrap items-center justify-center gap-5">
-              <Knopf to="/login">{angemeldet ? t('plat.open_admin') : t('plat.cta')} <ArrowRight size={15} /></Knopf>
-              <a href="mailto:info@koretini.me" className="hover:opacity-70 transition-opacity uppercase"
+              {angemeldet
+                ? <Knopf to="/super-admin">{t('plat.open_admin')} <ArrowRight size={15} /></Knopf>
+                : <Sprung ziel="#anfrage">{t('plat.cta')} <ArrowRight size={15} /></Sprung>}
+              <a href="#anfrage" className="hover:opacity-70 transition-opacity uppercase"
                  style={{ fontFamily: mono, fontSize: 11, letterSpacing: '0.085em', color: NEBEL }}>
                 {t('plat.contact')}
               </a>
@@ -207,11 +220,14 @@ const PlatformHome: React.FC<Props> = ({ user }) => {
                   </span>
                 </div>
                 <div className="space-y-3">
+                  {/* Erfundene Namen. Auf einer oeffentlichen Seite haben weder
+                      die Nachbarschaften noch die Zahlen eines Vereins etwas zu
+                      suchen -- auch nicht als Beispiel. */}
                   {([
-                    ['Selmana-jt', 43, 18, 42],
-                    ['Haxhia-jt', 48, 8, 17],
-                    ['Sylaj-t', 10, 6, 60],
-                    ['Bugaqk-t', 17, 4, 24],
+                    ['Lindenquartier', 43, 18, 42],
+                    ['Talacker', 48, 8, 17],
+                    ['Rosenhof', 10, 6, 60],
+                    ['Buchenweg', 17, 4, 24],
                   ] as const).map(([name, mitglieder, zahlend, quote]) => (
                     <div key={name} className="flex items-center gap-4">
                       <span style={{ fontSize: 14, color: TINTE, width: 130 }} className="shrink-0 truncate">
@@ -257,17 +273,18 @@ const PlatformHome: React.FC<Props> = ({ user }) => {
         </div>
       </section>
 
-      {/* ------------------------------------------------ Abschluss */}
-      <section style={{ background: TINTE }}>
-        <div className="max-w-[1200px] mx-auto px-6 py-20 md:py-[80px] text-center">
-          <h2 className="text-white font-light mb-5 mx-auto"
-              style={{ fontSize: 'clamp(28px, 4vw, 40px)', lineHeight: 1.3, letterSpacing: '-0.015em', maxWidth: 620 }}>
+      {/* ------------------------------------------------ Anfrage */}
+      <section id="anfrage" style={{ background: TINTE }} className="scroll-mt-8">
+        <div className="max-w-[760px] mx-auto px-6 py-20 md:py-[80px]">
+          <Marke farbe="#34fcff" className="mb-4">{t('plat.end_eyebrow')}</Marke>
+          <h2 className="text-white font-light mb-4"
+              style={{ fontSize: 'clamp(28px, 4vw, 40px)', lineHeight: 1.3, letterSpacing: '-0.015em' }}>
             {t('plat.end_headline')}
           </h2>
-          <p className="mx-auto mb-9" style={{ fontSize: 18, lineHeight: 1.6, color: NEBEL, maxWidth: 520 }}>
+          <p className="mb-10" style={{ fontSize: 18, lineHeight: 1.6, color: NEBEL, maxWidth: 560 }}>
             {t('plat.end_text')}
           </p>
-          <Knopf to="/login">{angemeldet ? t('plat.open_admin') : t('plat.cta')} <ArrowRight size={15} /></Knopf>
+          <Kontaktformular farben={{ tinte: TINTE, blau: BLAU, nebel: NEBEL, schiefer: SCHIEFER, linie: LINIE, mono }} />
         </div>
 
         <div style={{ borderTop: `1px solid ${SCHIEFER}` }}>
