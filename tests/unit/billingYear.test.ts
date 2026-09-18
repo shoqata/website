@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { billingYearOf, feeStateFor, paidDateOf } from '../../lib/memberQuality';
+import { billingYearOf, feeStateFor, paidDateOf, isOverdue } from '../../lib/memberQuality';
 
 // Die Bruecke wandelt ISO-Zeichenketten in Objekte mit toDate(); in Tests wird
 // dasselbe nachgebildet, damit beide Wege geprueft sind.
@@ -73,5 +73,38 @@ describe('paidDateOf', () => {
 
   it('haelt einen unbrauchbaren Wert aus, statt ein falsches Datum zu behaupten', () => {
     expect(paidDateOf({ paidAt: 'kein Datum' })).toBeNull();
+  });
+});
+
+describe('isOverdue', () => {
+  const gestern = '2026-09-01';
+  const morgen  = '2027-01-01';
+  const heute   = new Date('2026-09-18');
+
+  it('erkennt eine offene Rechnung mit ueberschrittener Faelligkeit', () => {
+    // Der Fall, der im Armaturenbrett fehlte: 242 Rechnungen sind offen und
+    // faellig, aber keine einzige traegt den Status OVERDUE.
+    expect(isOverdue({ status: 'PENDING', dueDate: gestern }, heute)).toBe(true);
+  });
+
+  it('achtet weiterhin auf den Status, falls der Mahnlauf ihn gesetzt hat', () => {
+    expect(isOverdue({ status: 'OVERDUE' }, heute)).toBe(true);
+  });
+
+  it('haelt eine noch nicht faellige Rechnung nicht fuer ueberfaellig', () => {
+    expect(isOverdue({ status: 'PENDING', dueDate: morgen }, heute)).toBe(false);
+  });
+
+  it('eine bezahlte Rechnung ist nie ueberfaellig, auch nicht verspaetet bezahlt', () => {
+    expect(isOverdue({ status: 'PAID', dueDate: gestern }, heute)).toBe(false);
+  });
+
+  it('ohne Faelligkeitsdatum bleibt es offen, nicht ueberfaellig', () => {
+    expect(isOverdue({ status: 'PENDING' }, heute)).toBe(false);
+  });
+
+  it('haelt einen unbrauchbaren Wert aus', () => {
+    expect(isOverdue({ status: 'PENDING', dueDate: 'kein Datum' }, heute)).toBe(false);
+    expect(isOverdue(null, heute)).toBe(false);
   });
 });

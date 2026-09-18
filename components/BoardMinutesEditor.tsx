@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   FileText, X, Save, Loader2, Plus, Trash2, History, ChevronDown, ChevronRight, Users,
+  Eye, EyeOff, Download,
 } from 'lucide-react';
 import { db } from '../services/firebase';
 import { doc, updateDoc, setDoc, collection, getDocs, query } from '@/services/supabase-bridge';
@@ -18,6 +19,7 @@ interface Props {
 
 const leeresProtokoll = (): any => ({
   id: '',
+  publishedToMembers: false,
   title: '',
   date: new Date().toISOString().slice(0, 10),
   location: '',
@@ -43,6 +45,7 @@ const BoardMinutesEditor: React.FC<Props> = ({ meeting, open, boardUsers, onClos
   const [verlauf, setVerlauf] = useState<any[]>([]);
   const [zeigeVerlauf, setZeigeVerlauf] = useState(false);
   const [offeneFassung, setOffeneFassung] = useState<string | null>(null);
+  const [pdfLaeuft, setPdfLaeuft] = useState(false);
 
   const istNeu = !meeting?.id;
 
@@ -116,6 +119,7 @@ const BoardMinutesEditor: React.FC<Props> = ({ meeting, open, boardUsers, onClos
         agendaItems: form.agendaItems || [],
         decisions: form.decisions || [],
         documents: form.documents || [],
+        publishedToMembers: !!form.publishedToMembers,
       };
 
       if (istNeu) {
@@ -133,6 +137,87 @@ const BoardMinutesEditor: React.FC<Props> = ({ meeting, open, boardUsers, onClos
       showAlert({ type: 'error', message: t('admin.save_failed', { reason: e?.message || '?' }) });
     } finally {
       setSpeichert(false);
+    }
+  };
+
+  // Das Protokoll als PDF.
+  //
+  // Gesetzt wird echter Text, nicht ein Abbild des Bildschirms. Ein
+  // abfotografiertes Fenster laesst sich weder durchsuchen noch kopieren, wird
+  // unnoetig gross und bricht an jeder Bildschirmbreite anders um.
+  const alsPdf = async () => {
+    setPdfLaeuft(true);
+    try {
+      const { default: jsPDF } = await import('jspdf');
+      const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
+      const rand = 18;
+      const breite = 210 - rand * 2;
+      let y = rand;
+
+      const umbruch = (text: string, groesse: number, fett = false, einzug = 0) => {
+        pdf.setFontSize(groesse);
+        pdf.setFont('helvetica', fett ? 'bold' : 'normal');
+        const zeilen = pdf.splitTextToSize(text, breite - einzug);
+        zeilen.forEach((z: string) => {
+          // Neue Seite, bevor der Text unten herauslaeuft.
+          if (y > 275) { pdf.addPage(); y = rand; }
+          pdf.text(z, rand + einzug, y);
+          y += groesse * 0.45 + 1.4;
+        });
+      };
+
+      umbruch(form.title || t('minutes.heading'), 18, true);
+      y += 1;
+      const kopf = [
+        new Date(form.date).toLocaleDateString(),
+        form.location || null,
+        t('minutes.version', { n: (meeting as any)?.version ?? 1 }),
+      ].filter(Boolean).join('  ·  ');
+      pdf.setTextColor(120);
+      umbruch(kopf, 10);
+      pdf.setTextColor(0);
+      y += 3;
+
+      const anwesend = (form.attendees || []).filter((a: any) => a.present).map((a: any) => a.name);
+      umbruch(t('minutes.attendance'), 12, true);
+      umbruch(anwesend.length ? anwesend.join(', ') : '—', 10, false, 2);
+      y += 3;
+
+      const teil = (titel: string, liste: any[]) => {
+        umbruch(titel, 12, true);
+        if (!liste?.length) { umbruch('—', 10, false, 2); y += 2; return; }
+        liste.forEach((e: any, i: number) => {
+          umbruch(`${i + 1}. ${e.title || ''}`, 11, true, 2);
+          if (e.content) umbruch(e.content, 10, false, 6);
+          if (e.responsible || e.dueDate) {
+            const z = [e.responsible && `${t('minutes.responsible')}: ${e.responsible}`,
+                       e.dueDate && new Date(e.dueDate).toLocaleDateString()].filter(Boolean).join('  ·  ');
+            pdf.setTextColor(120); umbruch(z, 9, false, 6); pdf.setTextColor(0);
+          }
+          y += 1.5;
+        });
+        y += 2;
+      };
+      teil(t('minutes.agenda'), form.agendaItems || []);
+      teil(t('minutes.decisions'), form.decisions || []);
+
+      // Fusszeile auf jeder Seite: ohne sie ist ein ausgedrucktes Blatt nicht
+      // zuzuordnen.
+      const seiten = pdf.getNumberOfPages();
+      for (let i = 1; i <= seiten; i++) {
+        pdf.setPage(i);
+        pdf.setFontSize(8);
+        pdf.setTextColor(150);
+        pdf.text(`${form.title || ''} · ${new Date(form.date).toLocaleDateString()}`, rand, 289);
+        pdf.text(`${i} / ${seiten}`, 210 - rand, 289, { align: 'right' });
+      }
+
+      const name = `${(form.title || 'Protokoll').replace(/[^\p{L}\p{N}]+/gu, '-')}-${form.date}.pdf`;
+      pdf.save(name);
+    } catch (e: any) {
+      showAlert({ type: 'error', message: t('minutes.pdf_failed', { reason: e?.message || '?' }) });
+    } finally {
+      setPdfLaeuft(false);
     }
   };
 
@@ -240,6 +325,33 @@ const BoardMinutesEditor: React.FC<Props> = ({ meeting, open, boardUsers, onClos
           {abschnitt('agendaItems', t('minutes.agenda'))}
           {abschnitt('decisions', t('minutes.decisions'))}
 
+          {/* Freigabe ist eine Entscheidung, keine Einstellung -- deshalb steht
+              daneben, was sie bewirkt, und der Zeitpunkt wird festgehalten.
+              Wirksam wird sie ueber die Zugriffsregel: ein Mitglied bekommt ein
+              nicht freigegebenes Protokoll gar nicht erst geliefert. */}
+          <div className="border-t border-stone-100 pt-5">
+            <button type="button" onClick={() => setzen('publishedToMembers', !form.publishedToMembers)}
+              className={`w-full p-4 rounded-2xl border-2 text-left transition-colors flex items-start gap-3 ${
+                form.publishedToMembers ? 'bg-emerald-50 border-emerald-300' : 'bg-stone-50 border-stone-200 hover:border-stone-300'}`}>
+              {form.publishedToMembers
+                ? <Eye size={18} className="text-emerald-600 mt-0.5 shrink-0" />
+                : <EyeOff size={18} className="text-stone-400 mt-0.5 shrink-0" />}
+              <div className="flex-1">
+                <p className={`text-sm font-bold ${form.publishedToMembers ? 'text-emerald-800' : 'text-stone-700'}`}>
+                  {form.publishedToMembers ? t('minutes.published') : t('minutes.not_published')}
+                </p>
+                <p className="text-xs text-stone-500 leading-relaxed mt-0.5">
+                  {form.publishedToMembers ? t('minutes.published_hint') : t('minutes.not_published_hint')}
+                </p>
+                {form.publishedToMembers && (form as any).publishedAt && (
+                  <p className="text-[10px] text-emerald-700 mt-1.5">
+                    {t('minutes.published_since')} {new Date((form as any).publishedAt).toLocaleString()}
+                  </p>
+                )}
+              </div>
+            </button>
+          </div>
+
           {!istNeu && verlauf.length > 0 && (
             <div className="border-t border-stone-100 pt-5">
               <button type="button" onClick={() => setZeigeVerlauf(v => !v)}
@@ -294,10 +406,16 @@ const BoardMinutesEditor: React.FC<Props> = ({ meeting, open, boardUsers, onClos
           )}
         </div>
 
-        <div className="p-6 border-t border-stone-100 bg-stone-50 flex gap-3">
+        <div className="p-6 border-t border-stone-100 bg-stone-50 flex flex-wrap gap-3">
           <button onClick={() => onClose(false)} className="flex-1 py-3 bg-stone-200 text-stone-600 rounded-xl font-bold">
             {t('common.cancel')}
           </button>
+          {!istNeu && (
+            <button onClick={alsPdf} disabled={pdfLaeuft}
+              className="px-5 py-3 bg-white border border-stone-300 text-stone-700 rounded-xl font-bold flex items-center justify-center gap-2 disabled:opacity-60">
+              {pdfLaeuft ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />} PDF
+            </button>
+          )}
           <button onClick={speichern} disabled={speichert}
             className="flex-[2] py-3 bg-primary text-white rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 disabled:opacity-60">
             {speichert ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}

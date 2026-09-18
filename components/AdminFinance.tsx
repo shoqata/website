@@ -36,7 +36,7 @@ import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, u
 import { Payment, UserProfile, GlobalPaymentSettings, Account } from '../types';
 import { useFeedback } from '../context/FeedbackContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { billingYearOf } from '../lib/memberQuality';
+import { billingYearOf, isOverdue } from '../lib/memberQuality';
 import { useTranslation } from '../context/LanguageContext';
 import MemberPicker from './ui/MemberPicker';
 import { hasUsableEmail } from '../lib/memberEmail';
@@ -191,7 +191,10 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
     }, [yearPayments, searchTerm, filterStatus, nameNachId]);
 
     const overduePayments = useMemo(() => {
-        return payments.filter(p => p.status === 'OVERDUE' || (p.status === 'PENDING' && p.dueDate && new Date(p.dueDate) < new Date()));
+        // Dieselbe Regel wie im Armaturenbrett und in der Statistik --
+        // vorher stand sie hier als eigene Fassung und die beiden Ansichten
+        // zeigten Verschiedenes.
+        return payments.filter(p => isOverdue(p));
     }, [payments]);
 
     const budgetStats = useMemo(() => {
