@@ -221,7 +221,7 @@ const TENANT_SCOPED = new Set([
   "fiscal_years", "fiscal_budgets", "board_meetings", "board_members", "tasks",
   "neighborhoods", "events", "news", "polls", "socialmediaposts",
   "event_registrations", "inquiries", "security_logs", "settings",
-  "sponsors", "payment_reports", "mail_queue",
+  "sponsors", "payment_reports", "mail_queue", "board_meeting_versions",
   "public_members", "public_settings",
 ]);
 
@@ -982,6 +982,25 @@ export async function decidePaymentReport(
     p_report: reportId,
     p_approve: approve,
     p_note: note || null,
+  });
+  if (error) throw new Error(error.message);
+}
+
+// Eine Zahlung als bezahlt buchen.
+//
+// Ueber eine Funktion statt ueber ein Update aus der Anwendung: paidAt ist
+// eine Textspalte, die Zuordnung zu einer offenen Meldung gehoert mit erledigt,
+// und ob der Aufrufer buchen darf, entscheidet der Server.
+export async function markPaymentPaid(
+  paymentId: string,
+  method?: string | null,
+  paidOn?: string | null
+): Promise<void> {
+  if (!supabase) throw new Error("Supabase ist nicht eingerichtet.");
+  const { error } = await supabase.rpc("mark_payment_paid", {
+    p_payment: paymentId,
+    p_method: method || null,
+    p_paid_on: paidOn || null,
   });
   if (error) throw new Error(error.message);
 }
