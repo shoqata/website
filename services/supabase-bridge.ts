@@ -227,6 +227,38 @@ const TENANT_SCOPED = new Set([
 
 let tenantLookup: Promise<string | null> | null = null;
 
+// Die Zuordnung Domain -> Verein steht in der Datenbank, ihre Abfrage kostet
+// eine Anfrage. Bis die Antwort da ist, weiss die Seite nicht, wen sie
+// darstellt -- und zeigte bisher solange die Vereinsseite, auch auf der
+// Betreiber-Domain. Genau das Aufblitzen, das nicht sein soll.
+//
+// Deshalb ueberdauert die Antwort den Seitenwechsel. localStorage ist pro
+// Herkunft getrennt: was unter koretini.me abgelegt wird, ist unter
+// unityhub.li nicht sichtbar, eine Verwechslung ist also ausgeschlossen. Der
+// gespeicherte Wert dient ausschliesslich der Darstellung -- welche Daten
+// jemand zu sehen bekommt, entscheidet weiterhin die Datenbank ueber ihre
+// Zeilenregeln, niemals dieser Eintrag.
+const MERKER = "verein-fuer-diese-domain";
+const KEIN_VEREIN = "";  // leerer Text = geprueft, gehoert zu keinem Verein
+
+// Was beim letzten Besuch herauskam. undefined = noch nie geprueft.
+export function tenantIdAusSpeicher(): string | null | undefined {
+  if (typeof localStorage === "undefined") return undefined;
+  try {
+    const wert = localStorage.getItem(MERKER);
+    if (wert === null) return undefined;
+    return wert === KEIN_VEREIN ? null : wert;
+  } catch {
+    // Privater Modus, gesperrter Speicher: dann eben ohne Gedaechtnis.
+    return undefined;
+  }
+}
+
+function merkeTenantId(id: string | null) {
+  if (typeof localStorage === "undefined") return;
+  try { localStorage.setItem(MERKER, id ?? KEIN_VEREIN); } catch { /* egal */ }
+}
+
 export function resolveTenantId(): Promise<string | null> {
   if (!tenantLookup) {
     tenantLookup = (async () => {
@@ -237,9 +269,10 @@ export function resolveTenantId(): Promise<string | null> {
         if (!h) continue;
         const { data } = await supabase
           .from("public_tenant_domains").select("tenantId").eq("domain", h).maybeSingle();
-        if (data?.tenantId) return data.tenantId as string;
+        if (data?.tenantId) { merkeTenantId(data.tenantId as string); return data.tenantId as string; }
       }
       console.warn(`[Bridge] Keine Domain-Zuordnung fuer '${host}' -- Inhalte bleiben ungefiltert.`);
+      merkeTenantId(null);
       return null;
     })();
   }
