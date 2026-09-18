@@ -70,6 +70,11 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
   // New UI States
   const [selectedMember, setSelectedMember] = useState<UserProfile | null>(null); // For Search Result Modal
   const [showInvoiceListModal, setShowInvoiceListModal] = useState<'PAID' | 'OPEN' | null>(null); // For KPI Drilldown
+  // Eigene Suche im Rechnungsfenster -- die Liste umfasst mehrere hundert
+  // Eintraege, und wer eine bestimmte Person sucht, scrollt sonst.
+  const [rechnungsSuche, setRechnungsSuche] = useState('');
+  const [zeigeNachbarschaften, setZeigeNachbarschaften] = useState(false);
+  const [nbSuche, setNbSuche] = useState('');
 
   // FETCH DATA
   useEffect(() => {
@@ -181,6 +186,9 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
           bottom5: sortiert.slice(-5).reverse(),
           zuKlein: data.length - wertbar.length,
           mindest: MINDESTGROESSE,
+          // Alle, auch die kleinen -- in der Uebersicht gehoert nichts
+          // unterschlagen; dort steht die Mitgliederzahl daneben.
+          alle: [...data].sort((a, b) => b.mitglieder - a.mitglieder),
       };
   }, [neighborhoods, users, yearPayments]);
 
@@ -253,6 +261,27 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
           showAlert({ type: 'error', message: e?.message || '?' });
       }
   };
+
+  // Die Liste im Rechnungsfenster, nach Name, Rechnungsnummer oder Beschreibung.
+  const rechnungenImFenster = useMemo(() => {
+      const liste = showInvoiceListModal === 'PAID' ? stats.paidInvoices : stats.openInvoices;
+      const suche = rechnungsSuche.toLowerCase().trim();
+      if (!suche) return liste;
+      return liste.filter((inv: Payment) => {
+          const u = users.find(user => user.id === inv.userId);
+          return (u?.displayName || '').toLowerCase().includes(suche)
+              || (u?.email || '').toLowerCase().includes(suche)
+              || (inv.invoiceNumber || '').toLowerCase().includes(suche)
+              || (inv.description || '').toLowerCase().includes(suche);
+      });
+  }, [showInvoiceListModal, stats, rechnungsSuche, users]);
+
+  const nachbarschaftenGefiltert = useMemo(() => {
+      const suche = nbSuche.toLowerCase().trim();
+      if (!suche) return neighborhoodAnalytics.alle;
+      return neighborhoodAnalytics.alle.filter((n: any) =>
+          n.name.toLowerCase().includes(suche) || (n.city || '').toLowerCase().includes(suche));
+  }, [neighborhoodAnalytics, nbSuche]);
 
   const searchResults = useMemo(() => {
       if (!searchTerm) return { users: [], neighborhoods: [] };
@@ -370,8 +399,36 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                 <p className="text-amber-700/60 text-sm mt-1 font-mono">{stats.openRevenue.toLocaleString()} CHF</p>
             </motion.div>
 
-            {/* 3. Search Bar */}
-            <div className="bg-white p-6 rounded-3xl border border-stone-100 lg:col-span-2 shadow-sm flex flex-col">
+            {/* 3. Nachbarschaften (anklickbar) */}
+            <motion.div
+                whileHover={{ y: -5 }}
+                onClick={() => setZeigeNachbarschaften(true)}
+                className="bg-stone-900 text-white p-6 rounded-3xl cursor-pointer shadow-sm hover:shadow-md transition-all group"
+            >
+                <div className="flex justify-between items-start mb-2">
+                    <p className="text-stone-400 font-bold text-xs uppercase tracking-widest">{t('admin.tab.neighborhoods')}</p>
+                    <div className="bg-white/10 p-2 rounded-full opacity-50 group-hover:opacity-100 transition-opacity">
+                        <MapPin size={16} className="text-white"/>
+                    </div>
+                </div>
+                <div className="flex items-end gap-2">
+                    <h3 className="text-3xl font-display font-bold">{neighborhoodAnalytics.alle.length}</h3>
+                    <span className="text-sm font-bold text-stone-400 mb-1">{t('board.with_rate')}</span>
+                </div>
+                <p className="text-stone-400 text-sm mt-1">
+                    {t('board.avg_rate')}: {
+                        Math.round(
+                            neighborhoodAnalytics.alle.reduce((a: number, n: any) => a + n.mitglieder, 0) > 0
+                            ? neighborhoodAnalytics.alle.reduce((a: number, n: any) => a + n.zahlende, 0) * 100
+                              / neighborhoodAnalytics.alle.reduce((a: number, n: any) => a + n.mitglieder, 0)
+                            : 0
+                        )
+                    }%
+                </p>
+            </motion.div>
+
+            {/* 4. Search Bar */}
+            <div className="bg-white p-6 rounded-3xl border border-stone-100 shadow-sm flex flex-col">
                 <div className="flex items-center gap-2 mb-4">
                     <Search size={18} className="text-stone-400"/>
                     <input 
@@ -656,9 +713,24 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                                 {showInvoiceListModal === 'PAID' ? <CheckCircle2 size={20}/> : <AlertCircle size={20}/>}
                                 {showInvoiceListModal === 'PAID' ? t('board.paid_invoices') : t('board.open_invoices')} ({selectedYear})
                             </h3>
-                            <button onClick={() => setShowInvoiceListModal(null)} className="p-2 bg-white/50 rounded-full hover:bg-white transition-colors"><X size={20}/></button>
+                            <button onClick={() => { setShowInvoiceListModal(null); setRechnungsSuche(''); }} className="p-2 bg-white/50 rounded-full hover:bg-white transition-colors"><X size={20}/></button>
                         </div>
-                        
+
+                        <div className="px-6 pt-5">
+                            <div className="relative">
+                                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400"/>
+                                <input autoFocus value={rechnungsSuche} onChange={e => setRechnungsSuche(e.target.value)}
+                                    placeholder={t('board.search_invoice')}
+                                    className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-primary/30"/>
+                            </div>
+                            {rechnungsSuche && (
+                                <p className="text-[11px] text-stone-400 mt-2">
+                                    {t('board.search_result', { found: rechnungenImFenster.length,
+                                        total: (showInvoiceListModal === 'PAID' ? stats.paidInvoices : stats.openInvoices).length })}
+                                </p>
+                            )}
+                        </div>
+
                         <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
                             <table className="w-full text-left text-sm">
                                 <thead className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100">
@@ -670,11 +742,14 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-stone-50">
-                                    {(showInvoiceListModal === 'PAID' ? stats.paidInvoices : stats.openInvoices).map(inv => {
+                                    {rechnungenImFenster.map(inv => {
                                         const u = users.find(user => user.id === inv.userId);
                                         return (
                                             <tr key={inv.id} className="hover:bg-stone-50">
-                                                <td className="py-3 font-bold text-stone-800">{u?.displayName || 'Unknown'}</td>
+                                                <td className="py-3">
+                                                    <p className="font-bold text-stone-800">{u?.displayName || 'Unknown'}</p>
+                                                    <p className="text-[10px] text-stone-400 font-mono">{inv.invoiceNumber}</p>
+                                                </td>
                                                 <td className="py-3 text-stone-500 font-mono text-xs">{new Date(inv.timestamp?.toDate()).toLocaleDateString()}</td>
                                                 <td className="py-3 text-right font-mono font-bold">{inv.amount} {inv.currency}</td>
                                                 {showInvoiceListModal === 'OPEN' && (
@@ -688,10 +763,109 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                                             </tr>
                                         )
                                     })}
-                                    {(showInvoiceListModal === 'PAID' ? stats.paidInvoices : stats.openInvoices).length === 0 && (
+                                    {rechnungenImFenster.length === 0 && (
                                         <tr><td colSpan={showInvoiceListModal === 'OPEN' ? 4 : 3} className="text-center py-8 text-stone-400 italic">{t('board.no_entries')}</td></tr>
                                     )}
                                 </tbody>
+                            </table>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+        </AnimatePresence>
+
+        {/* Uebersicht aller Nachbarschaften */}
+        <AnimatePresence>
+            {zeigeNachbarschaften && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-stone-900/60 backdrop-blur-sm">
+                    <motion.div initial={{scale:0.95, opacity:0}} animate={{scale:1, opacity:1}} exit={{scale:0.95, opacity:0}}
+                        className="bg-white w-full max-w-3xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+                        <div className="p-6 flex justify-between items-center bg-stone-900 text-white">
+                            <h3 className="font-bold text-lg flex items-center gap-2">
+                                <MapPin size={20}/> {t('admin.tab.neighborhoods')} ({selectedYear})
+                            </h3>
+                            <button onClick={() => { setZeigeNachbarschaften(false); setNbSuche(''); }}
+                                className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors"><X size={20}/></button>
+                        </div>
+
+                        <div className="px-6 pt-5">
+                            <div className="relative">
+                                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400"/>
+                                <input autoFocus value={nbSuche} onChange={e => setNbSuche(e.target.value)}
+                                    placeholder={t('board.search_neighborhood')}
+                                    className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-primary/30"/>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+                            <table className="w-full text-left text-sm">
+                                <thead className="text-[10px] font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100">
+                                    <tr>
+                                        <th className="pb-3">{t('admin.tab.neighborhoods')}</th>
+                                        <th className="pb-3 text-right">{t('steward.members')}</th>
+                                        <th className="pb-3 text-right">{t('board.paid')}</th>
+                                        <th className="pb-3 text-right">{t('status.pending')}</th>
+                                        <th className="pb-3 text-right">{t('board.rate')}</th>
+                                        <th className="pb-3 text-right">CHF</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-stone-50">
+                                    {nachbarschaftenGefiltert.map((n: any) => (
+                                        <tr key={n.name} className="hover:bg-stone-50">
+                                            <td className="py-3">
+                                                <p className="font-bold text-stone-800">{n.name}</p>
+                                                {n.city && <p className="text-[10px] text-stone-400">{n.city}</p>}
+                                            </td>
+                                            <td className="py-3 text-right text-stone-600 tabular-nums">{n.mitglieder}</td>
+                                            <td className="py-3 text-right text-emerald-700 font-bold tabular-nums">{n.zahlende}</td>
+                                            <td className="py-3 text-right text-amber-700 font-bold tabular-nums">
+                                                {n.mitglieder - n.zahlende}
+                                            </td>
+                                            <td className="py-3 text-right">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <span className="text-xs font-bold tabular-nums w-9 text-right">{n.quote}%</span>
+                                                    {/* Der Balken macht den Vergleich auf einen Blick moeglich;
+                                                        die Zahl daneben bleibt ablesbar. */}
+                                                    <div className="w-14 h-1.5 bg-stone-100 rounded-full overflow-hidden shrink-0">
+                                                        <div className={`h-full rounded-full ${
+                                                            n.quote >= 50 ? 'bg-emerald-500' : n.quote >= 25 ? 'bg-amber-500' : 'bg-rose-400'}`}
+                                                            style={{ width: `${Math.min(100, n.quote)}%` }}/>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="py-3 text-right font-mono text-xs tabular-nums">
+                                                {n.chf.toLocaleString('de-CH')}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {nachbarschaftenGefiltert.length === 0 && (
+                                        <tr><td colSpan={6} className="text-center py-8 text-stone-400 italic">{t('board.no_entries')}</td></tr>
+                                    )}
+                                </tbody>
+                                <tfoot className="border-t-2 border-stone-200">
+                                    <tr className="font-bold text-stone-900">
+                                        <td className="pt-3">{t('status.all')}</td>
+                                        <td className="pt-3 text-right tabular-nums">
+                                            {nachbarschaftenGefiltert.reduce((a: number, n: any) => a + n.mitglieder, 0)}
+                                        </td>
+                                        <td className="pt-3 text-right tabular-nums text-emerald-700">
+                                            {nachbarschaftenGefiltert.reduce((a: number, n: any) => a + n.zahlende, 0)}
+                                        </td>
+                                        <td className="pt-3 text-right tabular-nums text-amber-700">
+                                            {nachbarschaftenGefiltert.reduce((a: number, n: any) => a + (n.mitglieder - n.zahlende), 0)}
+                                        </td>
+                                        <td className="pt-3 text-right tabular-nums">
+                                            {(() => {
+                                                const m = nachbarschaftenGefiltert.reduce((a: number, n: any) => a + n.mitglieder, 0);
+                                                const z = nachbarschaftenGefiltert.reduce((a: number, n: any) => a + n.zahlende, 0);
+                                                return m > 0 ? `${Math.round(z * 100 / m)}%` : '-';
+                                            })()}
+                                        </td>
+                                        <td className="pt-3 text-right font-mono text-xs tabular-nums">
+                                            {nachbarschaftenGefiltert.reduce((a: number, n: any) => a + n.chf, 0).toLocaleString('de-CH')}
+                                        </td>
+                                    </tr>
+                                </tfoot>
                             </table>
                         </div>
                     </motion.div>
