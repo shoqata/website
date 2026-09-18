@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import AdminStammbaum from './AdminStammbaum';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Users, Trash2, Search, Filter, Zap, Loader2, Database, RefreshCw, Globe, Plus, Layout, 
@@ -14,7 +15,7 @@ import {
   ClipboardCheck, Send, Ban, Coins, LayoutDashboard, MessageSquare, ToggleRight, 
   ToggleLeft, Printer, Files, UserCog, MoreVertical, ExternalLink, Info, MapPinned, Target, UserCheck,
   ShieldAlert, Activity as ActivityIcon, ArrowRight, Wallet, BarChart2, Hash, History, StickyNote, Image as LucideImage,
-  UserPlus2, UserMinus, UserCheck2, FileEdit, AlertTriangle
+  UserPlus2, UserMinus, UserCheck2, FileEdit, AlertTriangle, Users2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { UserProfile, UserRole, Neighborhood, SolidarityEvent, NewsArticle, Payment, FiscalYear, BillingGroup, GlobalPaymentSettings, EventRegistration, ContentStatus } from '../types';
@@ -52,7 +53,7 @@ import { neighborhoodsLedBy } from '../lib/stewardship';
 import { billingYearOf } from '../lib/memberQuality';
 import { missingFieldKeys, qualityScore, feeStateFor, hasDeliveryConflict } from '../lib/memberQuality';
 import { isPlaceholderEmail, hasUsableEmail, emailMissingForDelivery, deliveryNeedsEmail } from '../lib/memberEmail';
-type AdminTabId = 'USERS' | 'NEIGHBORHOODS' | 'ANALYTICS' | 'STATISTICS' | 'WEBSITE' | 'SOCIAL_AI' | 'EVENTS' | 'NEWS' | 'FINANCE' | 'EXPENSES' | 'DATA' | 'ACCOUNTING' | 'SETTINGS' | 'BOARD' | 'COMMUNICATION' | 'DATA_QUALITY';
+type AdminTabId = 'USERS' | 'NEIGHBORHOODS' | 'ANALYTICS' | 'STATISTICS' | 'WEBSITE' | 'SOCIAL_AI' | 'EVENTS' | 'NEWS' | 'FINANCE' | 'EXPENSES' | 'DATA' | 'ACCOUNTING' | 'SETTINGS' | 'BOARD' | 'COMMUNICATION' | 'DATA_QUALITY' | 'STAMMBAUM';
 
 interface NavItem {
     id: AdminTabId;
@@ -157,6 +158,7 @@ const AdminPanel: React.FC = () => {
               { id: 'DATA_QUALITY', label: t('admin.tab.data_quality'), icon: <ShieldAlert size={18} />, badge: incompleteUsersCount },
               { id: 'NEIGHBORHOODS', label: t('admin.tab.neighborhoods'), icon: <MapPin size={18} /> },
               { id: 'BOARD', label: t('admin.tab.board'), icon: <Briefcase size={18} /> },
+              { id: 'STAMMBAUM', label: t('admin.tab.stammbaum'), icon: <Users2 size={18} /> },
           ]
       },
       {
@@ -518,6 +520,7 @@ const AdminPanel: React.FC = () => {
                         {activeTab === 'WEBSITE' && <AdminWebsite />}
                         {activeTab === 'SOCIAL_AI' && <SocialAI />}
                         {activeTab === 'DATA' && <AdminData />}
+                        {activeTab === 'STAMMBAUM' && <AdminStammbaum />}
                         {activeTab === 'SETTINGS' && <AdminSettings />}
                         {activeTab === 'BOARD' && <AdminBoard users={users} />}
                         {activeTab === 'COMMUNICATION' && (

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import CountrySelect from './ui/CountrySelect';
 import { 
   CreditCard, 
   Plus, 
@@ -822,7 +823,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
                                                 <div className="col-span-2"><label className="text-xs font-bold text-stone-400 uppercase tracking-widest block mb-2">{t('field.street')}</label><input value={customRecipient.street} onChange={e => setCustomRecipient({...customRecipient, street: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none" /></div>
                                                 <div><label className="text-xs font-bold text-stone-400 uppercase tracking-widest block mb-2">{t('field.zip')}</label><input value={customRecipient.zip} onChange={e => setCustomRecipient({...customRecipient, zip: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none" /></div>
                                                 <div><label className="text-xs font-bold text-stone-400 uppercase tracking-widest block mb-2">{t('field.city')}</label><input value={customRecipient.city} onChange={e => setCustomRecipient({...customRecipient, city: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none" /></div>
-                                                <div className="col-span-2"><label className="text-xs font-bold text-stone-400 uppercase tracking-widest block mb-2">{t('field.country')}</label><input value={customRecipient.country} onChange={e => setCustomRecipient({...customRecipient, country: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none" /></div>
+                                                <div className="col-span-2"><label className="text-xs font-bold text-stone-400 uppercase tracking-widest block mb-2">{t('field.country')}</label><CountrySelect value={customRecipient.country} onChange={(v) => setCustomRecipient({...customRecipient, country: v})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none" /></div>
                                             </div>
                                         )}
 

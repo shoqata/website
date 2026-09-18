@@ -1,0 +1,295 @@
+import React, { useMemo, useState } from 'react';
+
+// Zeichnet eine Familie als Baum.
+//
+// Ein Stammbaum ist keine Hierarchie im Sinne von d3.hierarchy: ein Kind hat
+// zwei Eltern, Partner stehen nebeneinander, und Zyklen sind ausgeschlossen,
+// aber Querverbindungen nicht. Deshalb wird nicht d3.tree verwendet, sondern
+// nach Generationen geschichtet -- die Ebene ergibt sich aus dem laengsten
+// Weg von einer Person ohne erfasste Eltern.
+//
+// Die Anordnung ist gerechnet, nicht simuliert: bei gleichen Daten kommt
+// dasselbe Bild heraus. Eine Kraftsimulation sieht lebendiger aus, ordnet aber
+// bei jedem Aufruf anders an -- bei einer Verwandtschaft waere das nicht
+// Darstellung, sondern Verwirrung. Aus demselben Grund gerade Strecken statt
+// Kurven: ein Stammbaum wird gelesen, nicht bewundert.
+
+export type Knoten = {
+  person: string; name: string; geburtsdatum: string | null;
+  eltern: { id: string; name: string }[];
+  partner: { id: string; name: string }[];
+  kinder: { id: string; name: string }[];
+};
+
+// Generation je Person.
+//
+// Zwei Regeln, abwechselnd angewandt, bis sich nichts mehr aendert:
+//   1. Ein Kind steht eine Ebene unter seinem tiefsten Elternteil.
+//   2. Partner stehen auf derselben Ebene, und zwar auf der tieferen.
+//
+// Das Angleichen der Partner kann Regel 1 verletzen -- wird ein Elternteil
+// nach unten gezogen, muessen die Kinder nach. Deshalb die Schleife und nicht
+// zwei Durchgaenge.
+//
+// Frueher stand hier das Minimum statt des Maximums. Ein Elternteil, dessen
+// eigene Eltern erfasst waren, wurde dadurch von seinem Partner ohne erfasste
+// Eltern nach oben gezogen -- und stand neben den eigenen Eltern.
+//
+// Steht hier und nicht in der aufrufenden Ansicht, weil beide dieselbe
+// Antwort brauchen: der Baum fuer die Anordnung, die Kopfzeile fuer die
+// Anzahl der Generationen.
+export function generationen(leute: Knoten[]): Map<string, number> {
+  const dabei = new Set(leute.map(l => l.person));
+  const ebene = new Map<string, number>(leute.map(l => [l.person, 0]));
+
+  for (let runde = 0; runde < 60; runde++) {
+    let geaendert = false;
+
+    for (const p of leute) {
+      const eltern = p.eltern.filter(e => dabei.has(e.id));
+      if (!eltern.length) continue;
+      const soll = Math.max(...eltern.map(e => ebene.get(e.id) ?? 0)) + 1;
+      if (soll > (ebene.get(p.person) ?? 0)) { ebene.set(p.person, soll); geaendert = true; }
+    }
+
+    for (const p of leute) {
+      for (const q of p.partner) {
+        if (!dabei.has(q.id)) continue;
+        const tiefer = Math.max(ebene.get(p.person) ?? 0, ebene.get(q.id) ?? 0);
+        if ((ebene.get(p.person) ?? 0) !== tiefer) { ebene.set(p.person, tiefer); geaendert = true; }
+        if ((ebene.get(q.id) ?? 0) !== tiefer) { ebene.set(q.id, tiefer); geaendert = true; }
+      }
+    }
+
+    if (!geaendert) break;
+  }
+
+  const kleinste = Math.min(...ebene.values());
+  if (kleinste > 0) for (const [k, v] of ebene) ebene.set(k, v - kleinste);
+
+  return ebene;
+}
+
+const BREITE = 168;
+const HOEHE = 52;
+const LUECKE = 28;      // zwischen zwei Kaesten derselben Generation
+const PAARLUECKE = 22;  // zwischen zwei Partnern -- enger, sie gehoeren zusammen,
+                        // aber weit genug, dass die Verbindung sichtbar bleibt
+const ZEILE = 128;
+
+// Eine Einheit ist das, was nebeneinander steht: ein Paar oder eine einzelne
+// Person. Der Baum wird ueber Einheiten angeordnet, nicht ueber Personen --
+// sonst laesst sich ein Paar auseinanderreissen und die Linien zu den
+// gemeinsamen Kindern kreuzen sich.
+type Einheit = { leute: Knoten[]; ebene: number; x: number; breite: number };
+
+const Familienbaum: React.FC<{ leute: Knoten[] }> = ({ leute }) => {
+  const [markiert, setMarkiert] = useState<string | null>(null);
+
+  const plan = useMemo(() => {
+    const dabei = new Set(leute.map(l => l.person));
+    const nach = new Map(leute.map(l => [l.person, l]));
+    const ebene = generationen(leute);
+
+    // --- Einheiten bilden --------------------------------------------------
+    const einheitVon = new Map<string, Einheit>();
+    const einheiten: Einheit[] = [];
+    for (const p of [...leute].sort((a, b) => a.name.localeCompare(b.name))) {
+      if (einheitVon.has(p.person)) continue;
+      const partner = p.partner
+        .map(q => nach.get(q.id))
+        .filter((q): q is Knoten => !!q && !einheitVon.has(q.person)
+                                     && ebene.get(q.person) === ebene.get(p.person));
+      // Nur ein Partner je Einheit. Wer mehrere hat, bekommt den ersten
+      // danebengestellt; die uebrigen Verbindungen bleiben als Linie sichtbar.
+      const mitglieder = partner.length ? [p, partner[0]] : [p];
+      const e: Einheit = {
+        leute: mitglieder, ebene: ebene.get(p.person) ?? 0, x: 0,
+        breite: mitglieder.length * BREITE + (mitglieder.length - 1) * PAARLUECKE,
+      };
+      mitglieder.forEach(m => einheitVon.set(m.person, e));
+      einheiten.push(e);
+    }
+
+    // --- Kinder je Einheit -------------------------------------------------
+    // Ein Kind haengt an der Einheit seiner Eltern. Hat es Eltern in zwei
+    // Einheiten, zaehlt die erste -- die zweite Verbindung bleibt als Linie
+    // erhalten, nur die Anordnung folgt der ersten.
+    const kinderVon = new Map<Einheit, Einheit[]>();
+    const schonZugeordnet = new Set<Einheit>();
+    for (const e of einheiten) {
+      const kinder: Einheit[] = [];
+      const gesehen = new Set<Einheit>();
+      for (const m of e.leute) {
+        for (const k of m.kinder) {
+          const ke = einheitVon.get(k.id);
+          if (!ke || gesehen.has(ke) || schonZugeordnet.has(ke) || ke === e) continue;
+          gesehen.add(ke); schonZugeordnet.add(ke); kinder.push(ke);
+        }
+      }
+      kinderVon.set(e, kinder);
+    }
+
+    // --- Anordnen ----------------------------------------------------------
+    // Nachgeordnete Durchmusterung: erst die Kinder legen, dann die Eltern
+    // ueber deren Mitte. So steht jede Familie zusammen und die Linien
+    // kreuzen sich nicht -- vorher war alphabetisch sortiert, und Kinder
+    // landeten quer ueber das Bild verteilt.
+    let naechstesX = 0;
+    const gelegt = new Set<Einheit>();
+
+    const legen = (e: Einheit): void => {
+      if (gelegt.has(e)) return;
+      gelegt.add(e);
+      const kinder = kinderVon.get(e) ?? [];
+      if (!kinder.length) {
+        e.x = naechstesX;
+        naechstesX += e.breite + LUECKE;
+        return;
+      }
+      kinder.forEach(legen);
+      const links = Math.min(...kinder.map(k => k.x));
+      const rechts = Math.max(...kinder.map(k => k.x + k.breite));
+      e.x = (links + rechts) / 2 - e.breite / 2;
+      // Stiesse die Einheit mit einer bereits gelegten zusammen, wird alles
+      // nach rechts geschoben statt uebereinander gezeichnet.
+      const stoss = einheiten.filter(a => a !== e && gelegt.has(a) && a.ebene === e.ebene
+                                       && a.x < e.x + e.breite + LUECKE
+                                       && a.x + a.breite + LUECKE > e.x);
+      if (stoss.length) {
+        const noetig = Math.max(...stoss.map(a => a.x + a.breite + LUECKE)) - e.x;
+        e.x += noetig;
+      }
+      naechstesX = Math.max(naechstesX, e.x + e.breite + LUECKE);
+    };
+
+    const wurzeln = einheiten.filter(e => !schonZugeordnet.has(e));
+    wurzeln.forEach(legen);
+    einheiten.forEach(legen);  // Nachzuegler aus Kreisen oder losen Teilen
+
+    // --- Stellen der einzelnen Personen -----------------------------------
+    const pos = new Map<string, { x: number; y: number }>();
+    for (const e of einheiten) {
+      e.leute.forEach((m, i) => pos.set(m.person, {
+        x: e.x + i * (BREITE + PAARLUECKE), y: e.ebene * ZEILE,
+      }));
+    }
+
+    // Nach links buendig schieben.
+    const minX = Math.min(...[...pos.values()].map(p => p.x));
+    if (minX !== 0) for (const [k, v] of pos) pos.set(k, { x: v.x - minX, y: v.y });
+    for (const e of einheiten) e.x -= minX;
+
+    // --- Linien ------------------------------------------------------------
+    // Von der Mitte eines Paares hinunter zu einem Geschwisterbalken, von dort
+    // kurze Tropfen zu jedem Kind. Das ist die uebliche Form eines
+    // Stammbaums und halbiert die Zahl der Linien gegenueber je einer Linie
+    // von jedem Elternteil zu jedem Kind.
+    const familienlinien: { d: string; leute: string[] }[] = [];
+    for (const e of einheiten) {
+      const kinder = (kinderVon.get(e) ?? [])
+        .map(k => k.leute.filter(m => m.eltern.some(x => e.leute.some(p => p.person === x.id))))
+        .flat();
+      if (!kinder.length) continue;
+      const mitte = e.x + e.breite / 2;
+      const oben = e.ebene * ZEILE + HOEHE;
+      const balken = (e.ebene + 1) * ZEILE - 34;
+      const xs = kinder.map(k => pos.get(k.person)!.x + BREITE / 2).sort((a, b) => a - b);
+      // Der Balken muss auch die Linie vom Paar erreichen -- sonst haengt sie
+      // bei einem einzelnen Kind, das nicht genau unter der Mitte steht, frei
+      // in der Luft. Genau das war zu sehen.
+      const links = Math.min(xs[0], mitte);
+      const rechts = Math.max(xs[xs.length - 1], mitte);
+      const d = [
+        `M ${mitte} ${oben} V ${balken}`,
+        `M ${links} ${balken} H ${rechts}`,
+        ...xs.map(x => `M ${x} ${balken} V ${(e.ebene + 1) * ZEILE}`),
+      ].join(' ');
+      familienlinien.push({ d, leute: [...e.leute.map(m => m.person), ...kinder.map(k => k.person)] });
+    }
+
+    // Partnerschaften, die nicht schon nebeneinander stehen, bekommen eine
+    // eigene Linie -- sonst waere eine zweite Ehe unsichtbar.
+    const partnerlinien: { x1: number; y1: number; x2: number; y2: number; a: string; b: string }[] = [];
+    const gesehenP = new Set<string>();
+    for (const p of leute) {
+      for (const q of p.partner) {
+        const schluessel = [p.person, q.id].sort().join('|');
+        if (gesehenP.has(schluessel)) continue;
+        gesehenP.add(schluessel);
+        const a = pos.get(p.person), b = pos.get(q.id);
+        if (!a || !b) continue;
+        partnerlinien.push({
+          x1: Math.min(a.x, b.x) + BREITE, y1: a.y + HOEHE / 2,
+          x2: Math.max(a.x, b.x), y2: b.y + HOEHE / 2,
+          a: p.person, b: q.id,
+        });
+      }
+    }
+
+    const alleX = [...pos.values()].map(p => p.x);
+    const alleY = [...pos.values()].map(p => p.y);
+    return {
+      pos, familienlinien, partnerlinien,
+      breite: Math.max(...alleX) + BREITE,
+      hoehe: Math.max(...alleY) + HOEHE,
+    };
+  }, [leute]);
+
+  // Was gehoert zur markierten Person? Eltern, Partner und Kinder bleiben
+  // kraeftig, alles andere tritt zurueck.
+  const verbunden = (id: string) => {
+    if (!markiert) return true;
+    if (id === markiert) return true;
+    const m = leute.find(l => l.person === markiert);
+    if (!m) return true;
+    return [...m.eltern, ...m.partner, ...m.kinder].some(x => x.id === id);
+  };
+
+  const rand = 16;
+
+  return (
+    <div className="overflow-x-auto">
+      <svg width={plan.breite + BREITE + rand * 2} height={plan.hoehe + rand * 2}
+           className="min-w-full" role="img" aria-label="Stammbaum">
+        <g transform={`translate(${rand},${rand})`}>
+          {plan.partnerlinien.map((l, i) => (
+            <line key={`p${i}`} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2}
+                  stroke="var(--primary)" strokeWidth={2.5} strokeLinecap="round"
+                  opacity={verbunden(l.a) && verbunden(l.b) ? 0.8 : 0.12} />
+          ))}
+          {plan.familienlinien.map((l, i) => (
+            <path key={`f${i}`} d={l.d} fill="none" stroke="#d6d3d1" strokeWidth={2}
+                  strokeLinecap="round"
+                  opacity={l.leute.some(verbunden) ? 1 : 0.2} />
+          ))}
+          {leute.map(p => {
+            const s = plan.pos.get(p.person)!;
+            const hell = verbunden(p.person);
+            return (
+              <g key={p.person} transform={`translate(${s.x},${s.y})`}
+                 onMouseEnter={() => setMarkiert(p.person)}
+                 onMouseLeave={() => setMarkiert(null)}
+                 style={{ cursor: 'default' }} opacity={hell ? 1 : 0.28}>
+                <rect width={BREITE} height={HOEHE} rx={10}
+                      fill={p.person === markiert ? 'var(--primary)' : '#ffffff'}
+                      stroke={p.person === markiert ? 'var(--primary)' : '#e7e5e4'}
+                      strokeWidth={1.5} />
+                <text x={12} y={21} fontSize={12} fontWeight={700}
+                      fill={p.person === markiert ? '#ffffff' : '#44403c'}>
+                  {p.name.length > 22 ? p.name.slice(0, 21) + '…' : p.name}
+                </text>
+                <text x={12} y={38} fontSize={10}
+                      fill={p.person === markiert ? 'rgba(255,255,255,.75)' : '#a8a29e'}>
+                  {p.geburtsdatum || '—'}
+                </text>
+              </g>
+            );
+          })}
+        </g>
+      </svg>
+    </div>
+  );
+};
+
+export default Familienbaum;
