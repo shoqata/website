@@ -77,7 +77,7 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const q = query(collection(db, 'socialMediaPosts'), orderBy('timestamp', 'desc'));
+    const q = query(collection(db, 'socialmediaposts'), orderBy('timestamp', 'desc'));
     const unsub = onSnapshot(q, (snap) => {
       setScheduledPosts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     });
@@ -146,7 +146,7 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
     setIsLoading(true);
     try {
       // 1. Store in Firebase History
-      await addDoc(collection(db, 'socialMediaPosts'), {
+      await addDoc(collection(db, 'socialmediaposts'), {
         content,
         platforms,
         status: isScheduling ? 'SCHEDULED' : (triggerAutoPost ? 'PUBLISHED' : 'DRAFT'),
