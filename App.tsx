@@ -103,7 +103,11 @@ const PageLoader: React.FC = () => (
   </div>
 );
 
-const ADMIN_EMAILS = ['email@dervishi.ch'];
+// Der Betreiber der Plattform. Er ist in keinem Verein Mitglied -- der Zugriff
+// auf einen Verein laeuft ueber eine Betreuungssitzung, die mit Anfang und Ende
+// stehen bleibt. Massgeblich ist die Tabelle platform_admins in der Datenbank;
+// diese Liste steuert nur, was die Anwendung anzeigt.
+const ADMIN_EMAILS = ['burim@dervishi.ch'];
 
 // Betreiber der Plattform: darf Vereine anlegen und verwalten. Serverseitig
 // entscheidet allein die Tabelle platform_admins -- diese Liste steuert nur,
@@ -228,10 +232,29 @@ const AppContent: React.FC = () => {
         userUnsubscribe = onSnapshot(userDocRef, async (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data() as UserProfile;
-                if (isAdminEmail && data.role !== UserRole.SUPER_ADMIN) {
-                    await updateDoc(userDocRef, { role: UserRole.SUPER_ADMIN, profileComplete: true });
-                }
+                // Frueher wurde hier die Rolle einer gefundenen Zeile auf
+                // SUPER_ADMIN heraufgestuft, sobald die Adresse in der Liste
+                // stand. Der Betreiber hat jetzt keine Mitgliedszeile mehr --
+                // und eine fremde Zeile deswegen heraufzustufen waere falsch.
                 setUser({ ...data, id: profileId });
+            } else if (isAdminEmail) {
+                // Der Betreiber der Plattform bekommt keine Mitgliedszeile.
+                //
+                // Vorher legte dieser Zweig eine an, mit tenantId 'koretini' --
+                // genau die Kopplung, die gerade aufgeloest wurde, waere bei
+                // der naechsten Anmeldung wieder entstanden. Sein Profil lebt
+                // nur im Speicher; die Rechte haengen ohnehin an der Tabelle
+                // platform_admins und nicht an dieser Zeile.
+                setUser({
+                    id: uid,
+                    authUserId: uid,
+                    email,
+                    role: UserRole.SUPER_ADMIN,
+                    membershipStatus: 'ACTIVE',
+                    displayName: 'Administrator',
+                    joinedAt: new Date().toISOString(),
+                    profileComplete: true,
+                } as any);
             } else {
                 // Weder eine Zeile unter der Auth-UID noch eine beanspruchbare:
                 // es ist wirklich ein neues Konto.
@@ -240,11 +263,11 @@ const AppContent: React.FC = () => {
                     authUserId: uid,
                     tenantId: 'koretini',
                     email,
-                    role: isAdminEmail ? UserRole.SUPER_ADMIN : UserRole.MEMBER,
+                    role: UserRole.MEMBER,
                     membershipStatus: 'ACTIVE',
-                    displayName: isAdminEmail ? 'Administrator' : (email.split('@')[0] || 'Member'),
+                    displayName: email.split('@')[0] || 'Member',
                     joinedAt: new Date().toISOString(),
-                    profileComplete: isAdminEmail
+                    profileComplete: false
                 };
                 try {
                     await setDoc(doc(db, 'users', uid), newUser);
