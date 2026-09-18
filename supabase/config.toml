@@ -1,0 +1,8 @@
+
+# send-mail-queue prueft selbst, wer aufrufen darf: entweder das in
+# mail_settings erzeugte Zeitplan-Kennwort, oder eine angemeldete Person mit
+# Verwaltungsrolle. Ohne eines von beidem antwortet sie 403 -- von aussen
+# geprueft. Die vorgeschaltete JWT-Pruefung muss deshalb aus, sonst kaeme der
+# Zeitplan gar nicht erst bis zu dieser Kontrolle: pg_cron schickt kein JWT.
+[functions.send-mail-queue]
+verify_jwt = false
