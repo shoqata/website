@@ -1046,10 +1046,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                         className="flex-1 p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none"
                                     />
                                 </div>
-                                <input 
-                                    value={managedData.country || ''}
-                                    onChange={e => setManagedData({...managedData, country: e.target.value})}
-                                    placeholder={t('ph.country_hint')}
+                                {/* Auswahl statt freiem Text -- sonst stehen "DE",
+                                    "Holland", "FR" und "Schweiz" nebeneinander. Das
+                                    eigene Profil weiter unten macht es schon so; hier,
+                                    beim Verwalten fremder Profile, war es vergessen. */}
+                                <CountrySelect
+                                    value={managedData.country}
+                                    onChange={(v) => setManagedData({...managedData, country: v})}
                                     className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none"
                                 />
                             </div>
