@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 // Zeichnet eine Familie als Baum.
 //
@@ -102,7 +102,13 @@ const Familienbaum: React.FC<{
   onWaehlen?: (id: string | null) => void;
   gewaehltId?: string | null;
   t3?: (s: string) => string;
-}> = ({ leute, onAblegen, onWaehlen, gewaehltId = null, t3 = (s) => s }) => {
+  // Breite Familien passend verkleinern statt seitlich scrollen zu lassen.
+  // Auf der Betreiberseite ist das noetig -- dort steht der Baum in einem
+  // festen Rahmen, und ein abgeschnittener Kasten sieht nach Fehler aus.
+  einpassen?: boolean;
+}> = ({ leute, onAblegen, onWaehlen, gewaehltId = null, t3 = (s) => s, einpassen = false }) => {
+  const huelle = useRef<HTMLDivElement>(null);
+  const [faktor, setFaktor] = useState(1);
   const [markiert, setMarkiert] = useState<string | null>(null);
   const [zieht, setZieht] = useState<string | null>(null);
   const [ziel, setZiel] = useState<{ id: string; zone: Zone } | null>(null);
@@ -281,8 +287,14 @@ const Familienbaum: React.FC<{
 
   // Was gehoert zur markierten Person? Eltern, Partner und Kinder bleiben
   // kraeftig, alles andere tritt zurueck.
+  // Nur wo mit dem Baum gearbeitet wird. Auf der Betreiberseite steht er als
+  // Bild -- dort liesse ein zufaellig darauf ruhender Zeiger die halbe
+  // Familie verblassen, was nach einem Fehler aussieht statt nach einer
+  // Hervorhebung.
+  const interaktiv = !!(onAblegen || onWaehlen);
+
   const verbunden = (id: string) => {
-    if (!markiert) return true;
+    if (!interaktiv || !markiert) return true;
     if (id === markiert) return true;
     const m = leute.find(l => l.person === markiert);
     if (!m) return true;
@@ -290,6 +302,22 @@ const Familienbaum: React.FC<{
   };
 
   const rand = 16;
+  const vollBreite = plan.breite + rand * 2;
+  const vollHoehe = plan.hoehe + rand * 2 + 16;
+
+  // Der Faktor wird gemessen, nicht geschaetzt: die verfuegbare Breite steht
+  // erst nach dem Anordnen fest, und sie aendert sich beim Drehen des Geraets.
+  useLayoutEffect(() => {
+    if (!einpassen) { setFaktor(1); return; }
+    const messen = () => {
+      const da = huelle.current?.clientWidth ?? 0;
+      setFaktor(da > 0 && vollBreite > da ? da / vollBreite : 1);
+    };
+    messen();
+    const beobachter = new ResizeObserver(messen);
+    if (huelle.current) beobachter.observe(huelle.current);
+    return () => beobachter.disconnect();
+  }, [einpassen, vollBreite]);
 
   const zonen: { zone: Zone; text: string; oben: string }[] = [
     { zone: 'ELTERNTEIL',  text: t3('Elternteil'),  oben: '-16px' },
@@ -299,9 +327,14 @@ const Familienbaum: React.FC<{
   ];
 
   return (
-    <div className="overflow-auto">
+    <div ref={huelle} className={einpassen ? 'overflow-hidden' : 'overflow-auto'}>
+      <div style={einpassen ? { height: vollHoehe * faktor } : undefined}>
       <div className="relative"
-           style={{ width: plan.breite + rand * 2, height: plan.hoehe + rand * 2 + 16 }}>
+           style={{
+             width: vollBreite, height: vollHoehe,
+             transform: faktor < 1 ? `scale(${faktor})` : undefined,
+             transformOrigin: 'top left',
+           }}>
 
         {/* Linien. Liegen unter den Kaesten und nehmen keine Mausereignisse
             an, sonst liesse sich auf ihnen nichts ablegen. */}
@@ -342,8 +375,8 @@ const Familienbaum: React.FC<{
                  draggable={!!onAblegen}
                  onDragStart={(e) => { e.dataTransfer.setData('text/plain', p.person); setZieht(p.person); }}
                  onDragEnd={() => { setZieht(null); setZiel(null); }}
-                 onMouseEnter={() => setMarkiert(p.person)}
-                 onMouseLeave={() => setMarkiert(null)}
+                 onMouseEnter={() => interaktiv && setMarkiert(p.person)}
+                 onMouseLeave={() => interaktiv && setMarkiert(null)}
                  onClick={() => onWaehlen?.(gewaehlt ? null : p.person)}>
               <p className="px-3 pt-2 text-[12px] font-bold truncate"
                  style={{ color: gewaehlt ? '#fff' : '#44403c' }}>{p.name}</p>
@@ -384,6 +417,7 @@ const Familienbaum: React.FC<{
             </div>
           );
         })}
+      </div>
       </div>
     </div>
   );
