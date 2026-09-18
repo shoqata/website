@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Users2, Search, Loader2, AlertTriangle, X, Trash2, ArrowLeft, Plus } from 'lucide-react';
+import { Users2, Search, Loader2, AlertTriangle, X, Trash2, ArrowLeft, Plus, Pencil } from 'lucide-react';
 import { supabase } from '../services/supabase-bridge';
 import { useTranslation } from '../context/LanguageContext';
 import Familienbaum, { generationen, type Knoten, type Zone } from './Familienbaum';
@@ -18,12 +18,12 @@ import { netzAus, verwandteVon, type Kante } from '../lib/verwandtschaft';
 // (lib/verwandtschaft.ts) und werden nicht zusaetzlich abgelegt -- das waere
 // eine zweite Wahrheit, die beim ersten Korrigieren auseinanderlaeuft.
 
+type Bezug = { id: string; name: string };
 type Person = {
-  familie: string; person: string; name: string; nachname: string | null;
+  familie: string; familienname: string | null; familie_id: string | null;
+  person: string; name: string; nachname: string | null;
   nachbarschaft: string | null; geburtsdatum: string | null;
-  eltern: { id: string; name: string }[];
-  partner: { id: string; name: string }[];
-  kinder: { id: string; name: string }[];
+  eltern: Bezug[]; partner: Bezug[]; kinder: Bezug[]; geschwister: Bezug[];
 };
 
 const AdminStammbaum: React.FC = () => {
@@ -35,6 +35,7 @@ const AdminStammbaum: React.FC = () => {
   const [gewaehlt, setGewaehlt] = useState<string | null>(null);
   const [suche, setSuche] = useState('');
   const [arbeitet, setArbeitet] = useState(false);
+  const [benennt, setBenennt] = useState<{ anker: string; name: string; id: string | null } | null>(null);
 
   const laden = async () => {
     setFehler(null);
@@ -64,10 +65,16 @@ const AdminStammbaum: React.FC = () => {
     for (const p of leute) {
       for (const e of p.eltern) raus.push({ von: e.id, nach: p.person, art: 'ELTERNTEIL' });
       for (const q of p.partner) {
-        const k = [p.person, q.id].sort().join('|');
+        const k = 'P' + [p.person, q.id].sort().join('|');
         if (gesehen.has(k)) continue;
         gesehen.add(k);
         raus.push({ von: p.person, nach: q.id, art: 'PARTNER' });
+      }
+      for (const g of p.geschwister ?? []) {
+        const k = 'G' + [p.person, g.id].sort().join('|');
+        if (gesehen.has(k)) continue;
+        gesehen.add(k);
+        raus.push({ von: p.person, nach: g.id, art: 'GESCHWISTER' });
       }
     }
     return raus;
@@ -93,6 +100,7 @@ const AdminStammbaum: React.FC = () => {
       eltern: p.eltern.filter(e => ids.includes(e.id)),
       partner: p.partner.filter(q => ids.includes(q.id)),
       kinder: p.kinder.filter(k => ids.includes(k.id)),
+      geschwister: (p.geschwister ?? []).filter(g => ids.includes(g.id)),
     }));
 
   // --- Beziehung anlegen ---------------------------------------------------
@@ -100,9 +108,10 @@ const AdminStammbaum: React.FC = () => {
     setArbeitet(true); setFehler(null);
     try {
       const zeile =
-        zone === 'PARTNER'    ? { von: quelle, nach: ziel, art: 'PARTNER' } :
-        zone === 'KIND'       ? { von: ziel, nach: quelle, art: 'ELTERNTEIL' } :
-                                { von: quelle, nach: ziel, art: 'ELTERNTEIL' };
+        zone === 'PARTNER'     ? { von: quelle, nach: ziel, art: 'PARTNER' } :
+        zone === 'GESCHWISTER' ? { von: quelle, nach: ziel, art: 'GESCHWISTER' } :
+        zone === 'KIND'        ? { von: ziel, nach: quelle, art: 'ELTERNTEIL' } :
+                                 { von: quelle, nach: ziel, art: 'ELTERNTEIL' };
       const { error } = await supabase.from('family_links').insert(zeile);
       if (error) throw error;
       const neu = await laden();
@@ -117,15 +126,38 @@ const AdminStammbaum: React.FC = () => {
     }
   };
 
-  const loesen = async (a: string, b: string, art: 'ELTERNTEIL' | 'PARTNER') => {
+  const loesen = async (a: string, b: string, art: 'ELTERNTEIL' | 'PARTNER' | 'GESCHWISTER') => {
     setArbeitet(true); setFehler(null);
     try {
       let q = supabase.from('family_links').delete().eq('art', art);
-      q = art === 'PARTNER'
-        ? q.or(`and(von.eq.${a},nach.eq.${b}),and(von.eq.${b},nach.eq.${a})`)
-        : q.eq('von', a).eq('nach', b);
+      // Partner und Geschwister sind ungerichtet -- gespeichert ist nur eine
+      // der beiden Richtungen, geloest werden muss deshalb beides.
+      q = art === 'ELTERNTEIL'
+        ? q.eq('von', a).eq('nach', b)
+        : q.or(`and(von.eq.${a},nach.eq.${b}),and(von.eq.${b},nach.eq.${a})`);
       const { error } = await q;
       if (error) throw error;
+      await laden();
+    } catch (e: any) {
+      setFehler(e?.message ?? String(e));
+    } finally {
+      setArbeitet(false);
+    }
+  };
+
+  // --- Familie benennen ----------------------------------------------------
+  // Der Name haengt an einer Ankerperson, nicht an einer Mitgliederliste:
+  // die Struktur bleibt gerechnet, und wenn jemand dazukommt, wandert der
+  // Name mit, statt doppelt gepflegt werden zu muessen.
+  const benennen = async () => {
+    if (!benennt || !benennt.name.trim()) return;
+    setArbeitet(true); setFehler(null);
+    try {
+      const { error } = benennt.id
+        ? await supabase.from('families').update({ name: benennt.name.trim() }).eq('id', benennt.id)
+        : await supabase.from('families').insert({ anker: benennt.anker, name: benennt.name.trim() });
+      if (error) throw error;
+      setBenennt(null);
       await laden();
     } catch (e: any) {
       setFehler(e?.message ?? String(e));
@@ -210,7 +242,7 @@ const AdminStammbaum: React.FC = () => {
             {knoten.length ? (
               <Familienbaum leute={knoten} onAblegen={ablegen}
                             onWaehlen={setGewaehlt} gewaehltId={gewaehlt}
-                            t3={(s) => t(`stamm.zone_${s.toLowerCase()}`) || s} />
+                            t3={(wort) => t(`stamm.zone_${wort.toLowerCase()}`)} />
             ) : (
               <div className="h-[260px] flex items-center justify-center text-center px-8">
                 <p className="text-xs text-stone-300 max-w-sm leading-relaxed">{t('stamm.canvas_leer')}</p>
@@ -241,7 +273,8 @@ const AdminStammbaum: React.FC = () => {
             <div className="flex flex-wrap gap-2 mb-5">
               {[...person.eltern.map(e => ({ ...e, art: 'ELTERNTEIL' as const, wort: t('stamm.rolle_eltern'), a: e.id, b: person.person })),
                 ...person.kinder.map(k => ({ ...k, art: 'ELTERNTEIL' as const, wort: t('stamm.rolle_kind'), a: person.person, b: k.id })),
-                ...person.partner.map(q => ({ ...q, art: 'PARTNER' as const, wort: t('stamm.zone_partner'), a: person.person, b: q.id }))
+                ...person.partner.map(q => ({ ...q, art: 'PARTNER' as const, wort: t('stamm.zone_partner'), a: person.person, b: q.id })),
+                ...(person.geschwister ?? []).map(g => ({ ...g, art: 'GESCHWISTER' as const, wort: t('stamm.zone_geschwister'), a: person.person, b: g.id }))
               ].map(x => (
                 <span key={`${x.art}${x.id}`}
                       className="inline-flex items-center gap-2 pl-3 pr-1.5 py-1.5 bg-stone-50 rounded-lg text-xs">
@@ -253,7 +286,8 @@ const AdminStammbaum: React.FC = () => {
                   </button>
                 </span>
               ))}
-              {!person.eltern.length && !person.kinder.length && !person.partner.length && (
+              {!person.eltern.length && !person.kinder.length && !person.partner.length
+                && !(person.geschwister ?? []).length && (
                 <span className="text-xs text-stone-300">{t('stamm.noch_nichts')}</span>
               )}
             </div>
@@ -317,8 +351,38 @@ const AdminStammbaum: React.FC = () => {
             return (
               <div key={schluessel} className="bg-white rounded-3xl border border-stone-100 p-5">
                 <div className="flex items-baseline justify-between gap-4 mb-4">
-                  <div>
-                    <p className="font-bold text-stone-700">{kopf.join(' / ') || t('stamm.ohne_namen')}</p>
+                  <div className="min-w-0">
+                    {benennt?.anker === mitglieder[0].person ? (
+                      <div className="flex items-center gap-2">
+                        <input autoFocus value={benennt.name}
+                               onChange={(e) => setBenennt({ ...benennt, name: e.target.value })}
+                               onKeyDown={(e) => { if (e.key === 'Enter') benennen();
+                                                   if (e.key === 'Escape') setBenennt(null); }}
+                               placeholder={t('stamm.name_platzhalter')}
+                               className="px-3 py-1.5 bg-stone-50 border border-stone-200 rounded-lg text-sm font-bold outline-none" />
+                        <button onClick={benennen} disabled={arbeitet}
+                                className="text-[10px] font-bold uppercase tracking-widest"
+                                style={{ color: 'var(--primary)' }}>{t('common.save')}</button>
+                        <button onClick={() => setBenennt(null)}
+                                className="text-stone-300 hover:text-stone-500"><X size={14} /></button>
+                      </div>
+                    ) : (
+                      <button onClick={() => setBenennt({
+                                anker: mitglieder[0].person,
+                                name: mitglieder[0].familienname ?? (kopf.join(' / ') || ''),
+                                id: mitglieder[0].familie_id })}
+                              className="text-left group">
+                        <p className="font-bold text-stone-700 group-hover:opacity-60 transition-opacity">
+                          {mitglieder[0].familienname
+                            || kopf.join(' / ')
+                            || t('stamm.ohne_namen')}
+                          <Pencil size={12} className="inline ml-2 mb-0.5 text-stone-300" />
+                        </p>
+                        {!mitglieder[0].familienname && (
+                          <p className="text-[10px] text-stone-300">{t('stamm.name_fehlt')}</p>
+                        )}
+                      </button>
+                    )}
                     <p className="text-[11px] text-stone-400">
                       {mitglieder.length} {t('stamm.personen')} ·{' '}
                       {new Set(generationen(alsKnoten(mitglieder.map(m => m.person))).values()).size}{' '}
