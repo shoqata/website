@@ -395,8 +395,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   // erst zu sehen, und soll es auch nicht.
   const istBetreuer = betreutNachbarschaften.length > 0;
   const beitragVon = (u: UserProfile) => feeStateFor(u.id!, nachbarschaftsZahlungen, beitragsjahr);
-  // Dieselbe Regel wie in der Nachbarschaftsansicht -- ohne Geburtsdatum, das
-  // laesst sich hier gar nicht nachtragen.
+  // Dieselbe Regel wie in der Nachbarschaftsansicht. selfServiceOnly nimmt nur
+  // die Nachbarschaft heraus -- die ordnet der Vorstand zu, und ein Hinweis auf
+  // etwas, das man nicht aendern kann, hilft niemandem. Das Geburtsdatum bleibt
+  // drin und ist im Bearbeiten-Dialog einzutragen.
   const luckenVon = (u: UserProfile) => missingFieldKeys(u, { selfServiceOnly: true });
 
   const isProfileIncomplete = (u: UserProfile) => {
