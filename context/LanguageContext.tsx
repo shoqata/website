@@ -10,6 +10,43 @@ interface Translations {
 }
 
 const translations: Translations = {
+  // --- PASSWORTSTAERKE ---
+  'pw.strength_zu_kurz': { en: 'Too short', de: 'Zu kurz', sq: 'Shumë i shkurtër' },
+  'pw.strength_schwach': { en: 'Too weak', de: 'Zu schwach', sq: 'Shumë i dobët' },
+  'pw.strength_mittel':  { en: 'Acceptable', de: 'Brauchbar', sq: 'I pranueshëm' },
+  'pw.strength_gut':     { en: 'Good', de: 'Gut', sq: 'I mirë' },
+  'pw.strength_stark':   { en: 'Strong', de: 'Stark', sq: 'I fortë' },
+  'pw.rule_length': {
+    en: 'At least 10 characters. Length helps more than special characters.',
+    de: 'Mindestens 10 Zeichen. Länge hilft mehr als Sonderzeichen.',
+    sq: 'Të paktën 10 shenja. Gjatësia ndihmon më shumë se shenjat speciale.'
+  },
+  'pw.rule_variety': {
+    en: 'Mix upper and lower case, digits or special characters — or make it longer.',
+    de: 'Gross- und Kleinbuchstaben, Ziffern oder Sonderzeichen mischen — oder es länger machen.',
+    sq: 'Përzieni shkronja të mëdha e të vogla, shifra ose shenja speciale — ose bëjeni më të gjatë.'
+  },
+  'pw.rule_common': {
+    en: 'Contains a word that is guessed first. Choose something else.',
+    de: 'Enthält ein Wort, das als Erstes geraten wird. Wählen Sie etwas anderes.',
+    sq: 'Përmban një fjalë që merret me mend e para. Zgjidhni diçka tjetër.'
+  },
+  'pw.rule_personal': {
+    en: 'Contains your name or your address. Anyone who knows you tries that first.',
+    de: 'Enthält Ihren Namen oder Ihre Adresse. Wer Sie kennt, versucht das zuerst.',
+    sq: 'Përmban emrin ose adresën tuaj. Kush ju njeh, e provon këtë të parën.'
+  },
+  'pw.rule_pattern': {
+    en: 'Contains a keyboard sequence or a repetition.',
+    de: 'Enthält eine Tastaturfolge oder eine Wiederholung.',
+    sq: 'Përmban një varg tastiere ose një përsëritje.'
+  },
+  'pw.hint_passphrase': {
+    en: 'A tip: four unrelated words are easier to remember and harder to guess than one word with a digit at the end.',
+    de: 'Ein Rat: vier zusammenhanglose Wörter sind leichter zu merken und schwerer zu raten als ein Wort mit einer Ziffer am Ende.',
+    sq: 'Një këshillë: katër fjalë pa lidhje mbahen mend më lehtë dhe merren me mend më vështirë se një fjalë me një shifër në fund.'
+  },
+
   // --- ANMELDUNG AUF DER BETREIBER-DOMAIN ---
   'plat.login_hero': {
     en: 'The administration of your association.',
