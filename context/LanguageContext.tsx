@@ -10,6 +10,26 @@ interface Translations {
 }
 
 const translations: Translations = {
+  // --- BETREIBER-DOMAIN ---
+  'platform.title': { en: 'Association platform', de: 'Vereinsplattform', sq: 'Platforma e shoqatave' },
+  'platform.subtitle': {
+    en: 'Administration for the associations run on this platform. This address belongs to no single association.',
+    de: 'Verwaltung der Vereine, die auf dieser Plattform geführt werden. Diese Adresse gehört keinem einzelnen Verein.',
+    sq: 'Administrimi i shoqatave që mbahen në këtë platformë. Kjo adresë nuk i takon asnjë shoqate të vetme.'
+  },
+  'platform.login_hint': {
+    en: 'Sign in to manage the associations.',
+    de: 'Melden Sie sich an, um die Vereine zu verwalten.',
+    sq: 'Hyni për të menaxhuar shoqatat.'
+  },
+  'platform.signed_in_as': { en: 'Signed in as', de: 'Angemeldet als', sq: 'I kyçur si' },
+  'platform.open_admin': { en: 'Open administration', de: 'Verwaltung öffnen', sq: 'Hap administrimin' },
+  'platform.footer_note': {
+    en: 'Looking for your association? Then you want its own address, not this one.',
+    de: 'Sie suchen Ihren Verein? Dann führt Sie dessen eigene Adresse dorthin, nicht diese.',
+    sq: 'Po kërkoni shoqatën tuaj? Atëherë ju duhet adresa e saj, jo kjo.'
+  },
+
   'board.search_invoice': {
     en: 'Search by name, invoice number or description',
     de: 'Nach Name, Rechnungsnummer oder Beschreibung suchen',

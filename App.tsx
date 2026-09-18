@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { needsProfileSetup } from './lib/memberQuality';
+import { resolveTenantId } from '@/services/supabase-bridge';
 import { HashRouter as Router, Routes, Route, Link, useLocation, Navigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -65,6 +66,7 @@ const FutsalPage = React.lazy(() => import('./components/FutsalPage'));
 const SponsorPage = React.lazy(() => import('./components/SponsorPage'));
 const LegalPage = React.lazy(() => import('./components/LegalPage'));
 const SuperAdminDashboard = React.lazy(() => import('./components/SuperAdminDashboard'));
+const PlatformHome = React.lazy(() => import('./components/PlatformHome'));
 
 
 
@@ -107,6 +109,27 @@ const PageLoader: React.FC = () => (
 // auf einen Verein laeuft ueber eine Betreuungssitzung, die mit Anfang und Ende
 // stehen bleibt. Massgeblich ist die Tabelle platform_admins in der Datenbank;
 // diese Liste steuert nur, was die Anwendung anzeigt.
+// Gehoert die aufgerufene Adresse zu einem Verein?
+//
+// Die Betreiber-Domain ist bewusst in keinem tenant_domains-Eintrag
+// verzeichnet. resolveTenantId() gibt dort deshalb null zurueck -- und genau
+// daran ist sie zu erkennen, ohne eine zweite Liste pflegen zu muessen, die
+// mit der Datenbank auseinanderlaufen koennte.
+function useIstPlattformDomain(): boolean | null {
+  const [istPlattform, setIstPlattform] = useState<boolean | null>(null);
+  useEffect(() => {
+    let lebt = true;
+    resolveTenantId()
+      .then((verein) => { if (lebt) setIstPlattform(!verein); })
+      // Bei einem Fehler lieber die Vereinsseite zeigen als eine leere: ein
+      // voruebergehend nicht erreichbarer Server soll die Website nicht
+      // umbauen.
+      .catch(() => { if (lebt) setIstPlattform(false); });
+    return () => { lebt = false; };
+  }, []);
+  return istPlattform;
+}
+
 const ADMIN_EMAILS = ['burim@dervishi.ch'];
 
 // Betreiber der Plattform: darf Vereine anlegen und verwalten. Serverseitig
@@ -288,6 +311,8 @@ const AppContent: React.FC = () => {
     return () => { authUnsubscribe(); brandingUnsubscribe(); settingsUnsubscribe(); if (userUnsubscribe) userUnsubscribe(); };
   }, [tenant]);
 
+  const istPlattformDomain = useIstPlattformDomain();
+
   if (loading) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#faf9f6]">
       <Loader2 className="animate-spin text-primary" size={40} />
@@ -305,7 +330,12 @@ const AppContent: React.FC = () => {
                 <ErrorBoundary>
                 <React.Suspense fallback={<PageLoader />}>
                 <Routes>
-                    <Route path="/" element={<Hero />} />
+                    {/* Auf der Betreiber-Domain steht keine Vereinsseite.
+                        Solange die Zuordnung noch geprueft wird (null), bleibt
+                        es bei der bisherigen Seite -- ein kurzes Aufblitzen der
+                        falschen Startseite waere schlechter als eine
+                        Verzoegerung von Sekundenbruchteilen. */}
+                    <Route path="/" element={istPlattformDomain ? <PlatformHome user={user} /> : <Hero />} />
                     <Route path="/about" element={<AboutUsPage />} />
                     <Route path="/live" element={<VillageLive />} />
                     <Route path="/events" element={<EventsPage />} />
@@ -459,7 +489,11 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings }) => {
 
 const ConditionalNavigation = ({ user, branding, systemSettings }: any) => {
   const routeLoc = useLocation();
+  // Auf der Betreiber-Domain gibt es keine Vereinsnavigation: Ueber uns,
+  // Events und Neuigkeiten gehoeren einem Verein, und den gibt es hier nicht.
+  const istPlattform = useIstPlattformDomain();
   const hidePaths = ['/setup-profile', '/super-admin', '/admin'];
+  if (istPlattform && routeLoc.pathname === '/') return null;
   if (hidePaths.some(path => routeLoc.pathname.startsWith(path))) return null;
   return <Navigation user={user} branding={branding} systemSettings={systemSettings} />;
 };
@@ -467,7 +501,9 @@ const ConditionalNavigation = ({ user, branding, systemSettings }: any) => {
 const ConditionalFooter = ({ branding, user }: any) => {
   const { t, loc } = useTranslation();
   const routeLoc = useLocation();
+  const istPlattform = useIstPlattformDomain();
   const hidePaths = ['/setup-profile', '/super-admin', '/admin'];
+  if (istPlattform && routeLoc.pathname === '/') return null;
   if (hidePaths.some(path => routeLoc.pathname.startsWith(path))) return null;
   
   return (
