@@ -10,6 +10,34 @@ interface Translations {
 }
 
 const translations: Translations = {
+  // --- KONTAKTFORMULAR DER PLATTFORM ---
+  'plat.end_eyebrow': { en: 'Get in touch', de: 'Anfrage', sq: 'Kërkesë' },
+  'plat.form_assoc': { en: 'Association', de: 'Verein', sq: 'Shoqata' },
+  'plat.form_assoc_ph': { en: 'Name of the association', de: 'Name des Vereins', sq: 'Emri i shoqatës' },
+  'plat.form_contact': { en: 'Contact person', de: 'Ansprechperson', sq: 'Personi i kontaktit' },
+  'plat.form_members': { en: 'Members, roughly', de: 'Mitglieder, ungefähr', sq: 'Anëtarë, përafërsisht' },
+  'plat.form_note': { en: 'What would you like to know?', de: 'Was möchten Sie wissen?', sq: 'Çfarë dëshironi të dini?' },
+  'plat.form_note_ph': {
+    en: 'How you keep your member list today, what is giving you trouble, when you would like to start.',
+    de: 'Wie Sie Ihre Mitgliederliste heute führen, was Ihnen Mühe macht, wann Sie starten möchten.',
+    sq: 'Si e mbani sot listën e anëtarëve, çfarë ju sjell vështirësi, kur dëshironi të filloni.'
+  },
+  'plat.form_send': { en: 'Send enquiry', de: 'Anfrage senden', sq: 'Dërgo kërkesën' },
+  'plat.form_need_name': { en: 'Please tell us the name of the association.', de: 'Bitte nennen Sie den Namen des Vereins.', sq: 'Ju lutemi shkruani emrin e shoqatës.' },
+  'plat.form_need_contact': { en: 'Please tell us who we may write back to.', de: 'Bitte nennen Sie, wem wir antworten dürfen.', sq: 'Ju lutemi shkruani kujt t\'i përgjigjemi.' },
+  'plat.form_need_email': { en: 'The email address is incomplete.', de: 'Die E-Mail-Adresse ist unvollständig.', sq: 'Adresa e email-it është e paplotë.' },
+  'plat.form_privacy': {
+    en: 'Your details go to us alone and serve only to answer this enquiry.',
+    de: 'Ihre Angaben gehen allein an uns und dienen nur der Beantwortung dieser Anfrage.',
+    sq: 'Të dhënat tuaja shkojnë vetëm te ne dhe shërbejnë vetëm për t\'iu përgjigjur kësaj kërkese.'
+  },
+  'plat.form_done_title': { en: 'Enquiry received', de: 'Anfrage angekommen', sq: 'Kërkesa mbërriti' },
+  'plat.form_done_text': {
+    en: 'We will get back to you at the address you gave. Usually within a few days.',
+    de: 'Wir melden uns an der angegebenen Adresse. In der Regel innerhalb weniger Tage.',
+    sq: 'Do t\'ju kontaktojmë në adresën që dhatë. Zakonisht brenda pak ditësh.'
+  },
+
   // --- STARTSEITE DER BETREIBER-DOMAIN ---
   'plat.eyebrow': { en: 'Association platform', de: 'Plattform für Vereine', sq: 'Platformë për shoqata' },
   'plat.headline': {
@@ -22,8 +50,8 @@ const translations: Translations = {
     de: 'Jeder Verein bekommt seine eigene Website, seine eigenen Daten und eine Verwaltung, die vom Mitgliederverzeichnis bis zur QR-Rechnung reicht.',
     sq: 'Çdo shoqatë merr faqen e vet, të dhënat e veta dhe një administrim që shkon nga regjistri i anëtarëve deri te fatura me QR.'
   },
-  'plat.cta': { en: 'Get in touch', de: 'Kontakt aufnehmen', sq: 'Na kontaktoni' },
-  'plat.contact': { en: 'Write to us', de: 'Schreiben Sie uns', sq: 'Na shkruani' },
+  'plat.cta': { en: 'Request a demo', de: 'Vorstellung anfragen', sq: 'Kërko një prezantim' },
+  'plat.contact': { en: 'Ask a question', de: 'Frage stellen', sq: 'Bëni një pyetje' },
   'plat.open_admin': { en: 'Open administration', de: 'Verwaltung öffnen', sq: 'Hap administrimin' },
 
   'plat.card1_label': { en: 'QR invoice', de: 'QR-Rechnung', sq: 'Faturë QR' },

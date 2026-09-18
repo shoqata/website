@@ -994,3 +994,31 @@ export async function markPaymentPaid(
   });
   if (error) throw new Error(error.message);
 }
+
+// Anfrage von der Startseite der Plattform.
+//
+// Laeuft ueber eine Funktion mit erhoehten Rechten, nicht ueber einen direkten
+// Insert: platform_leads enthaelt alle Gespraeche mit allen Interessenten und
+// bleibt fuer einen nicht angemeldeten Besucher unerreichbar. Er darf etwas
+// hineinlegen, aber nichts sehen und nichts aendern.
+export async function submitPlatformLead(eingabe: {
+  name: string;
+  contactName: string;
+  email: string;
+  phone?: string | null;
+  city?: string | null;
+  expectedMembers?: number | null;
+  note?: string | null;
+}): Promise<void> {
+  if (!supabase) throw new Error("Supabase ist nicht eingerichtet.");
+  const { error } = await supabase.rpc("submit_platform_lead", {
+    p_name: eingabe.name,
+    p_contact: eingabe.contactName,
+    p_email: eingabe.email,
+    p_phone: eingabe.phone || null,
+    p_city: eingabe.city || null,
+    p_members: eingabe.expectedMembers ?? null,
+    p_note: eingabe.note || null,
+  });
+  if (error) throw new Error(error.message);
+}
