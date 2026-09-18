@@ -158,7 +158,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         // Fetch Neighbors (for anonymous stats and list)
         const qNeighbors = query(collection(db, 'users'), where('neighborhoodId', '==', user.neighborhoodId));
         const unsubNeighbors = onSnapshot(qNeighbors, (snap) => {
-            const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as UserProfile));
+            // Wer aus dem Verein entfernt wurde, gehoert nicht mehr in die
+            // Nachbarschaft -- weder in die Uebersicht noch in die Zahlquote.
+            // Der Datensatz bleibt bestehen, weil Rechnungen daran haengen.
+            const data = snap.docs
+                .map(d => ({ id: d.id, ...d.data() } as UserProfile))
+                .filter(u => u.membershipStatus !== 'INACTIVE');
             setNeighbors(data);
             // Die verantwortliche Person wurde frueher an der Rolle
             // NEIGHBORHOOD_MANAGER erkannt. Hinterlegt wird sie aber in der
