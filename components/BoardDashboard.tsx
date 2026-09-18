@@ -2,6 +2,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from '../context/LanguageContext';
 import { UserProfile, Payment, Neighborhood, Inquiry, BoardMeeting } from '../types';
+import BoardMinutesEditor from './BoardMinutesEditor';
+import CountrySelect from './ui/CountrySelect';
+import { missingFieldKeys } from '../lib/memberQuality';
+import { markPaymentPaid } from '@/services/supabase-bridge';
 import { db } from '../services/firebase';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc } from '@/services/supabase-bridge';
 import { 
@@ -23,7 +27,10 @@ import {
   TrendingUp,
   TrendingDown,
   BarChart3,
-  CreditCard
+  CreditCard,
+  Plus,
+  FileEdit,
+  Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFeedback } from '../context/FeedbackContext';
@@ -38,7 +45,7 @@ interface BoardDashboardProps {
 
 const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
   const { t } = useTranslation();
-  const { showAlert } = useFeedback();
+  const { showAlert, showConfirm } = useFeedback();
   
   // Data State
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -53,6 +60,12 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [profileData, setProfileData] = useState<Partial<UserProfile>>({});
   const [selectedMeeting, setSelectedMeeting] = useState<BoardMeeting | null>(null);
+  // Protokoll bearbeiten: null bedeutet ein neues, ein Objekt eine Ueberarbeitung.
+  const [editMeeting, setEditMeeting] = useState<BoardMeeting | null>(null);
+  const [editorOffen, setEditorOffen] = useState(false);
+  // Mitgliedsangaben berichtigen
+  const [memberForm, setMemberForm] = useState<any>(null);
+  const [memberSaving, setMemberSaving] = useState(false);
   
   // New UI States
   const [selectedMember, setSelectedMember] = useState<UserProfile | null>(null); // For Search Result Modal
@@ -142,6 +155,56 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
           bottom5: sorted.slice(-5).reverse() // Show least paying, reverse so least is first if needed or just slice
       };
   }, [neighborhoods, users, yearPayments]);
+
+  // Angaben eines Mitglieds berichtigen.
+  //
+  // Geschrieben werden nur die Felder dieser Maske. Rolle, Nachbarschaft und
+  // Beitragsgruppe bleiben aussen vor -- was nicht mitgeschickt wird, kann sich
+  // nicht versehentlich aendern.
+  const handleSaveMember = async () => {
+      if (!memberForm?.id) return;
+      setMemberSaving(true);
+      try {
+          await updateDoc(doc(db, 'users', memberForm.id), {
+              email: memberForm.email?.trim() || null,
+              phone: memberForm.phone?.trim() || null,
+              birthdate: memberForm.birthdate?.trim() || null,
+              street: memberForm.street?.trim() || '',
+              zip: memberForm.zip?.trim() || '',
+              city: memberForm.city?.trim() || '',
+              country: memberForm.country || '',
+              // Die QR-Rechnung liest address vor street; beide muessen
+              // uebereinstimmen, sonst steht auf der Rechnung die alte Strasse.
+              address: memberForm.street?.trim() || '',
+          } as any);
+          setSelectedMember({ ...(selectedMember as any), ...memberForm });
+          showAlert({ type: 'success', message: t('steward.saved') });
+      } catch (e: any) {
+          showAlert({ type: 'error', message: t('admin.save_failed', { reason: e?.message || '?' }) });
+      } finally {
+          setMemberSaving(false);
+      }
+  };
+
+  // Eine Zahlung buchen. Der Stand wird serverseitig gesetzt -- dort haengt
+  // auch die Erledigung einer offenen Meldung daran.
+  const handleMarkPaid = async (zahlung: Payment) => {
+      const ok = await showConfirm({
+          title: t('board.mark_paid'),
+          message: t('board.mark_paid_confirm', {
+              amount: `${zahlung.amount} ${zahlung.currency || 'CHF'}`,
+              name: users.find(u => u.id === zahlung.userId)?.displayName || '-',
+          }),
+          confirmText: t('board.mark_paid'),
+      });
+      if (!ok) return;
+      try {
+          await markPaymentPaid(zahlung.id, zahlung.method || 'BANK_TRANSFER', new Date().toISOString().slice(0, 10));
+          showAlert({ type: 'success', message: t('board.marked_paid') });
+      } catch (e: any) {
+          showAlert({ type: 'error', message: e?.message || '?' });
+      }
+  };
 
   const searchResults = useMemo(() => {
       if (!searchTerm) return { users: [], neighborhoods: [] };
@@ -276,7 +339,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                         {searchResults.users.map(u => (
                             <div 
                                 key={u.id} 
-                                onClick={() => setSelectedMember(u)}
+                                onClick={() => { setSelectedMember(u); setMemberForm({ ...u }); }}
                                 className="flex justify-between items-center text-sm p-2 hover:bg-stone-50 rounded-lg cursor-pointer"
                             >
                                 <div className="flex items-center gap-2">
@@ -369,14 +432,32 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
             
             {/* LEFT: Protocols */}
             <div className="bg-white p-8 rounded-[2.5rem] border border-stone-100 shadow-sm h-[600px] flex flex-col">
-                <h3 className="text-xl font-bold flex items-center gap-2 mb-6"><FileText size={20} className="text-primary"/> {t('board.minutes')}</h3>
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-bold flex items-center gap-2"><FileText size={20} className="text-primary"/> {t('board.minutes')}</h3>
+                    <button onClick={() => { setEditMeeting(null); setEditorOffen(true); }}
+                        className="px-4 py-2 bg-stone-900 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 hover:bg-stone-700 transition-colors">
+                        <Plus size={13}/> {t('minutes.new')}
+                    </button>
+                </div>
                 
                 <div className="overflow-y-auto custom-scrollbar flex-1 space-y-3">
                     {meetings.map(m => (
-                        <div key={m.id} onClick={() => setSelectedMeeting(m)} className="p-4 rounded-2xl border border-stone-100 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer group">
-                            <div className="flex justify-between items-start mb-2">
-                                <h4 className="font-bold text-stone-800 group-hover:text-primary transition-colors">{m.title}</h4>
-                                <span className="text-[10px] font-bold bg-stone-100 px-2 py-1 rounded text-stone-500">{new Date(m.date).toLocaleDateString()}</span>
+                        <div key={m.id} className="p-4 rounded-2xl border border-stone-100 hover:border-primary/30 hover:shadow-md transition-all group">
+                            <div className="flex justify-between items-start mb-2 gap-2">
+                                <h4 onClick={() => setSelectedMeeting(m)} className="font-bold text-stone-800 group-hover:text-primary transition-colors cursor-pointer flex-1">{m.title}</h4>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                    {((m as any).version ?? 1) > 1 && (
+                                        <span className="text-[9px] font-bold bg-amber-100 text-amber-700 px-1.5 py-1 rounded" title={t('minutes.revised')}>
+                                            v{(m as any).version}
+                                        </span>
+                                    )}
+                                    <span className="text-[10px] font-bold bg-stone-100 px-2 py-1 rounded text-stone-500">{new Date(m.date).toLocaleDateString()}</span>
+                                    <button onClick={(e) => { e.stopPropagation(); setEditMeeting(m); setEditorOffen(true); }}
+                                        title={t('minutes.edit')}
+                                        className="p-1.5 text-stone-400 hover:text-primary bg-white border border-stone-200 rounded-lg">
+                                        <FileEdit size={13}/>
+                                    </button>
+                                </div>
                             </div>
                             <div className="text-xs text-stone-500 line-clamp-2">
                                 {m.agendaItems?.map((item, i) => `${i+1}. ${item.title}`).join(', ')}
@@ -423,7 +504,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
             {selectedMember && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-stone-900/60 backdrop-blur-sm">
                     <motion.div initial={{scale:0.95, opacity:0}} animate={{scale:1, opacity:1}} exit={{scale:0.95, opacity:0}} className="bg-white w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl relative">
-                        <button onClick={() => setSelectedMember(null)} className="absolute top-6 right-6 p-2 bg-stone-50 rounded-full hover:bg-stone-100 text-stone-500"><X size={20}/></button>
+                        <button onClick={() => { setSelectedMember(null); setMemberForm(null); }} className="absolute top-6 right-6 p-2 bg-stone-50 rounded-full hover:bg-stone-100 text-stone-500"><X size={20}/></button>
                         
                         <div className="flex flex-col items-center mb-6">
                             <div className="w-24 h-24 bg-stone-100 rounded-full flex items-center justify-center text-3xl font-bold text-stone-400 mb-4 overflow-hidden border-4 border-white shadow-md">
@@ -435,24 +516,61 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                             </span>
                         </div>
 
-                        <div className="space-y-4 bg-stone-50 p-6 rounded-2xl border border-stone-100">
-                            <div className="flex items-center gap-3 text-sm">
-                                <Mail size={16} className="text-stone-400"/> 
-                                <span className="font-medium">{selectedMember.email}</span>
+                        {/* Fehlendes benennen, statt es nur wegzulassen: sonst faellt
+                            eine Luecke erst auf, wenn eine Rechnung nicht ankommt. */}
+                        {missingFieldKeys(selectedMember, { selfServiceOnly: true }).length > 0 && (
+                            <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700">
+                                <b>{t('steward.data_missing')}:</b>{' '}
+                                {missingFieldKeys(selectedMember, { selfServiceOnly: true }).map(k => t(k)).join(', ')}
                             </div>
-                            <div className="flex items-center gap-3 text-sm">
-                                <Phone size={16} className="text-stone-400"/> 
-                                <span className="font-medium">{selectedMember.phone || '-'}</span>
+                        )}
+
+                        <div className="space-y-3 bg-stone-50 p-6 rounded-2xl border border-stone-100 max-h-[42vh] overflow-y-auto custom-scrollbar">
+                            <div>
+                                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('field.email')}</label>
+                                <input value={memberForm?.email ?? ''} onChange={e => setMemberForm({ ...(memberForm || {}), email: e.target.value })}
+                                    className="w-full p-3 bg-white border border-stone-200 rounded-xl outline-none text-sm focus:border-primary/40"/>
                             </div>
-                            <div className="flex items-center gap-3 text-sm">
-                                <MapPin size={16} className="text-stone-400"/> 
-                                <span className="font-medium">{selectedMember.address || '-'}</span>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('field.phone')}</label>
+                                    <input value={memberForm?.phone ?? ''} onChange={e => setMemberForm({ ...(memberForm || {}), phone: e.target.value })}
+                                        className="w-full p-3 bg-white border border-stone-200 rounded-xl outline-none text-sm focus:border-primary/40"/>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('field.birthdate')}</label>
+                                    <input type="date" value={memberForm?.birthdate ?? ''} onChange={e => setMemberForm({ ...(memberForm || {}), birthdate: e.target.value })}
+                                        className="w-full p-3 bg-white border border-stone-200 rounded-xl outline-none text-sm focus:border-primary/40"/>
+                                </div>
                             </div>
-                            <div className="flex items-center gap-3 text-sm">
-                                <CreditCard size={16} className="text-stone-400"/> 
-                                <span className="font-medium">{selectedMember.billingGroup || 'STANDARD'}</span>
+                            <div>
+                                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('admin.members.street_no')}</label>
+                                <input value={memberForm?.street ?? ''} onChange={e => setMemberForm({ ...(memberForm || {}), street: e.target.value })}
+                                    className="w-full p-3 bg-white border border-stone-200 rounded-xl outline-none text-sm focus:border-primary/40"/>
+                            </div>
+                            <div className="grid grid-cols-3 gap-3">
+                                <div>
+                                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('field.zip')}</label>
+                                    <input value={memberForm?.zip ?? ''} onChange={e => setMemberForm({ ...(memberForm || {}), zip: e.target.value })}
+                                        className="w-full p-3 bg-white border border-stone-200 rounded-xl outline-none text-sm focus:border-primary/40"/>
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('field.city')}</label>
+                                    <input value={memberForm?.city ?? ''} onChange={e => setMemberForm({ ...(memberForm || {}), city: e.target.value })}
+                                        className="w-full p-3 bg-white border border-stone-200 rounded-xl outline-none text-sm focus:border-primary/40"/>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('field.country')}</label>
+                                <CountrySelect value={memberForm?.country} onChange={v => setMemberForm({ ...(memberForm || {}), country: v })}
+                                    className="w-full p-3 bg-white border border-stone-200 rounded-xl outline-none text-sm focus:border-primary/40"/>
                             </div>
                         </div>
+
+                        <button onClick={handleSaveMember} disabled={memberSaving}
+                            className="w-full mt-4 py-3 bg-primary text-white rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 disabled:opacity-60">
+                            {memberSaving ? <Loader2 size={16} className="animate-spin"/> : <Save size={16}/>} {t('common.save_changes')}
+                        </button>
                     </motion.div>
                 </div>
             )}
@@ -478,6 +596,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                                         <th className="pb-3">{t('field.member')}</th>
                                         <th className="pb-3">{t('field.date')}</th>
                                         <th className="pb-3 text-right">{t('field.amount')}</th>
+                                        {showInvoiceListModal === 'OPEN' && <th className="pb-3 text-right">{t('board.action')}</th>}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-stone-50">
@@ -488,11 +607,19 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                                                 <td className="py-3 font-bold text-stone-800">{u?.displayName || 'Unknown'}</td>
                                                 <td className="py-3 text-stone-500 font-mono text-xs">{new Date(inv.timestamp?.toDate()).toLocaleDateString()}</td>
                                                 <td className="py-3 text-right font-mono font-bold">{inv.amount} {inv.currency}</td>
+                                                {showInvoiceListModal === 'OPEN' && (
+                                                    <td className="py-3 text-right">
+                                                        <button onClick={() => handleMarkPaid(inv)}
+                                                            className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg font-bold text-[11px] hover:bg-emerald-700 transition-colors">
+                                                            {t('board.mark_paid')}
+                                                        </button>
+                                                    </td>
+                                                )}
                                             </tr>
                                         )
                                     })}
                                     {(showInvoiceListModal === 'PAID' ? stats.paidInvoices : stats.openInvoices).length === 0 && (
-                                        <tr><td colSpan={3} className="text-center py-8 text-stone-400 italic">{t('board.no_entries')}</td></tr>
+                                        <tr><td colSpan={showInvoiceListModal === 'OPEN' ? 4 : 3} className="text-center py-8 text-stone-400 italic">{t('board.no_entries')}</td></tr>
                                     )}
                                 </tbody>
                             </table>
@@ -501,6 +628,13 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                 </div>
             )}
         </AnimatePresence>
+
+        <BoardMinutesEditor
+            meeting={editMeeting}
+            open={editorOffen}
+            boardUsers={users.filter(u => ['BOARD','ADMIN','SUPER_ADMIN'].includes(u.role || ''))}
+            onClose={() => { setEditorOffen(false); setEditMeeting(null); }}
+        />
 
         {/* 3. PROTOCOL MODAL (READ ONLY) */}
         <AnimatePresence>

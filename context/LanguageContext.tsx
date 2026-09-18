@@ -10,6 +10,46 @@ interface Translations {
 }
 
 const translations: Translations = {
+  // --- SITZUNGSPROTOKOLLE ---
+  'minutes.edit': { en: 'Edit minutes', de: 'Protokoll bearbeiten', sq: 'Redakto procesverbalin' },
+  'minutes.create': { en: 'Create minutes', de: 'Protokoll anlegen', sq: 'Krijo procesverbalin' },
+  'minutes.save_version': { en: 'Save as new version', de: 'Als neue Fassung speichern', sq: 'Ruaj si version i ri' },
+  'minutes.created': { en: 'Minutes created', de: 'Protokoll angelegt', sq: 'Procesverbali u krijua' },
+  'minutes.saved_new_version': { en: 'Saved — a new version was created', de: 'Gespeichert — eine neue Fassung wurde angelegt', sq: 'U ruajt — u krijua një version i ri' },
+  'minutes.title_label': { en: 'Title', de: 'Titel', sq: 'Titulli' },
+  'minutes.title_required': { en: 'The minutes need a title.', de: 'Das Protokoll braucht einen Titel.', sq: 'Procesverbali ka nevojë për një titull.' },
+  'minutes.date_label': { en: 'Date', de: 'Datum', sq: 'Data' },
+  'minutes.date_required': { en: 'The minutes need a date.', de: 'Das Protokoll braucht ein Datum.', sq: 'Procesverbali ka nevojë për një datë.' },
+  'minutes.location': { en: 'Location', de: 'Ort', sq: 'Vendi' },
+  'minutes.status': { en: 'Status', de: 'Stand', sq: 'Gjendja' },
+  'minutes.status_planned': { en: 'Planned', de: 'Geplant', sq: 'E planifikuar' },
+  'minutes.status_held': { en: 'Held', de: 'Durchgeführt', sq: 'E mbajtur' },
+  'minutes.status_approved': { en: 'Approved', de: 'Genehmigt', sq: 'E miratuar' },
+  'minutes.attendance': { en: 'Attendance', de: 'Anwesenheit', sq: 'Prania' },
+  'minutes.no_board': { en: 'No board members recorded.', de: 'Keine Vorstandsmitglieder erfasst.', sq: 'Asnjë anëtar i bordit i regjistruar.' },
+  'minutes.decisions': { en: 'Decisions', de: 'Beschlüsse', sq: 'Vendimet' },
+  'minutes.item_title': { en: 'Heading', de: 'Überschrift', sq: 'Titulli' },
+  'minutes.item_content': { en: 'Text', de: 'Text', sq: 'Teksti' },
+  'minutes.responsible': { en: 'Responsible', de: 'Verantwortlich', sq: 'Përgjegjës' },
+  'minutes.none_yet': { en: 'Nothing recorded yet.', de: 'Noch nichts erfasst.', sq: 'Ende asgjë e regjistruar.' },
+  'minutes.version': { en: 'Version {n}', de: 'Fassung {n}', sq: 'Versioni {n}' },
+  'minutes.revised': { en: 'Revised', de: 'Überarbeitet', sq: 'I rishikuar' },
+  'minutes.last_change': { en: 'last change', de: 'letzte Änderung', sq: 'ndryshimi i fundit' },
+  'minutes.history': { en: 'Earlier versions ({n})', de: 'Frühere Fassungen ({n})', sq: 'Versionet e mëparshme ({n})' },
+  'minutes.history_hint': {
+    en: 'Every revision keeps the previous wording. Earlier versions cannot be changed — that is what makes them evidence.',
+    de: 'Jede Überarbeitung bewahrt den bisherigen Wortlaut. Frühere Fassungen lassen sich nicht ändern — erst das macht sie zum Beleg.',
+    sq: 'Çdo rishikim ruan formulimin e mëparshëm. Versionet e mëparshme nuk mund të ndryshohen — pikërisht kjo i bën ato dëshmi.'
+  },
+  'board.action': { en: 'Action', de: 'Aktion', sq: 'Veprimi' },
+  'board.mark_paid': { en: 'Mark as paid', de: 'Als bezahlt buchen', sq: 'Shëno si të paguar' },
+  'board.mark_paid_confirm': {
+    en: 'Book {amount} from {name} as paid? This changes the books.',
+    de: '{amount} von {name} als bezahlt buchen? Das ändert die Buchhaltung.',
+    sq: 'Të kontabilizohet {amount} nga {name} si e paguar? Kjo ndryshon kontabilitetin.'
+  },
+  'board.marked_paid': { en: 'Booked as paid', de: 'Als bezahlt gebucht', sq: 'U kontabilizua si e paguar' },
+
   'pw.login_with': { en: 'Sign in with this address', de: 'Anmeldung mit dieser Adresse', sq: 'Hyrja me këtë adresë' },
   'pw.failed': { en: 'Reset failed', de: 'Zurücksetzen fehlgeschlagen', sq: 'Rivendosja dështoi' },
   'pw.failed_hint': {
