@@ -100,8 +100,12 @@ interface Branding {
 
 // WHITELISTED ADMIN EMAILS
 const PageLoader: React.FC = () => (
+  // Die Farbe folgt dem Untergrund: auf der dunklen Betreiberdarstellung
+  // waere ein fast schwarzer Kreisel unsichtbar.
   <div className="flex items-center justify-center py-32">
-    <div className="w-8 h-8 border-2 border-stone-200 border-t-stone-900 rounded-full animate-spin" />
+    <div className="w-8 h-8 border-2 rounded-full animate-spin"
+         style={{ borderColor: 'color-mix(in srgb, var(--kontrast) 20%, transparent)',
+                  borderTopColor: 'var(--kontrast)' }} />
   </div>
 );
 
@@ -299,7 +303,8 @@ const AppContent: React.FC = () => {
   const istPlattformDomain = useIstPlattformDomain();
 
   if (loading) return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#faf9f6]">
+    <div className="min-h-screen flex flex-col items-center justify-center"
+         style={{ background: 'var(--accent)' }}>
       <Loader2 className="animate-spin text-primary" size={40} />
       <p className="mt-4 text-stone-400 animate-pulse">{t('app.connecting')}</p>
     </div>
@@ -308,7 +313,9 @@ const AppContent: React.FC = () => {
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <MaintenanceGuard maintenanceMode={systemSettings?.maintenanceMode || false} user={user} branding={branding}>
-        <div className="min-h-screen flex flex-col bg-[#faf9f6]">
+        {/* Grund aus der Variablen: sie steht in index.html je Domain und
+            ist schon vor dem ersten Rendern gesetzt. */}
+        <div className="min-h-screen flex flex-col" style={{ background: 'var(--accent)' }}>
             <ConditionalNavigation user={user} branding={branding} systemSettings={systemSettings} />
             <main className="flex-grow">
             <AnimatePresence mode="wait">
@@ -316,11 +323,15 @@ const AppContent: React.FC = () => {
                 <React.Suspense fallback={<PageLoader />}>
                 <Routes>
                     {/* Auf der Betreiber-Domain steht keine Vereinsseite.
-                        Solange die Zuordnung noch geprueft wird (null), bleibt
-                        es bei der bisherigen Seite -- ein kurzes Aufblitzen der
-                        falschen Startseite waere schlechter als eine
-                        Verzoegerung von Sekundenbruchteilen. */}
-                    <Route path="/" element={istPlattformDomain ? <PlatformHome user={user} /> : <Hero />} />
+                        Solange die Zuordnung noch geprueft wird (null), wird
+                        KEINE von beiden gezeigt: hier stand frueher die
+                        Vereinsseite, und genau deshalb erschien auf
+                        unityhub.li zuerst Koretini. Nach dem ersten Besuch
+                        kennt der Speicher die Antwort und dieser Zustand
+                        tritt gar nicht mehr ein. */}
+                    <Route path="/" element={
+                      istPlattformDomain === null ? <PageLoader />
+                        : istPlattformDomain ? <PlatformHome user={user} /> : <Hero />} />
                     <Route path="/about" element={istPlattformDomain ? <Navigate to="/" replace /> : <AboutUsPage />} />
                     <Route path="/live" element={istPlattformDomain ? <Navigate to="/" replace /> : <VillageLive />} />
                     <Route path="/events" element={istPlattformDomain ? <Navigate to="/" replace /> : <EventsPage />} />

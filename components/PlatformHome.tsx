@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { TINTE, BLAU, NEBEL, SCHIEFER, LINIE, MONO } from './platform/farben';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, Check } from 'lucide-react';
@@ -62,13 +63,8 @@ const PlatformHome: React.FC<Props> = ({ user }) => {
     };
   }, []);
 
-  const TINTE = '#00052e';
-  const BLAU = '#0428cb';
-  const NEBEL = '#6b6b83';
-  const SCHIEFER = '#4f5166';
-  const LINIE = '#dbdcdf';
-
-  const mono = "'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace";
+  // Werte aus platform/farben.ts -- dieselben nutzt der Cookie-Hinweis.
+  const mono = MONO;
 
   // Kleinschrift fuer Systemangaben -- in der Vorlage ausdruecklich von der
   // Fliesstextschrift getrennt, damit Maschinelles als solches lesbar bleibt.

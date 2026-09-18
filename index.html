@@ -6,6 +6,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Koretini</title>
     <script>
+      // Wem gehoert diese Adresse?
+      //
+      // Die Zuordnung steht in der Datenbank und kostet eine Anfrage -- zu
+      // spaet fuer den ersten Anstrich. Das Ergebnis des letzten Besuchs
+      // liegt deshalb im Speicher dieser Herkunft und wird hier synchron
+      // gelesen, bevor irgendetwas erscheint. localStorage ist pro Herkunft
+      // getrennt, koretini.me und unityhub.li koennen sich also nicht
+      // vertauschen.
+      //
+      // Beim allerersten Besuch ist nichts bekannt: dann bleibt es bei
+      // 'unbekannt', einem ruhigen Grund ohne Bekenntnis zu einer der beiden
+      // Welten. Sich hier auf den Verein festzulegen war der Grund, weshalb
+      // auf unityhub.li zuerst Koretini erschien.
+      (function () {
+        var stand = 'unbekannt';
+        try {
+          var wert = localStorage.getItem('verein-fuer-diese-domain');
+          if (wert !== null) stand = wert === '' ? 'plattform' : 'verein';
+        } catch (e) { /* privater Modus: dann eben ohne Gedaechtnis */ }
+        document.documentElement.dataset.domain = stand;
+        if (stand === 'plattform') document.title = 'unityhub';
+      })();
+    </script>
+    <script>
       // Der Router arbeitet mit Rauten-Adressen (/#/...). Damit sich auch saubere
       // Adressen teilen lassen -- koretini.me/fussball/sponsoren statt
       // koretini.me/#/fussball/sponsoren -- wird ein Pfad ohne Raute einmalig
@@ -23,11 +47,34 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
     <style>
+      /* Vereinsdarstellung -- die Vorgabe. */
       :root {
         --primary: #f43f5e;
         --primary-hover: #e11d48;
         --secondary: #1c1917;
         --accent: #faf9f6;
+        --kontrast: #1c1917;  /* lesbare Tinte auf --accent */
+      }
+
+      /* Betreiberdarstellung. Dieselben Namen, andere Werte: was sie
+         verwendet -- Grundflaechen, Ladeanzeige, Cookie-Hinweis -- wechselt
+         damit mit, ohne dass jede Stelle die Domain kennen muss. Die Werte
+         entsprechen components/platform/farben.ts; beide zusammen zu aendern
+         ist Absicht, ein Stylesheet kann kein Modul einlesen. */
+      :root[data-domain="plattform"] {
+        --primary: #0428cb;
+        --primary-hover: #0620a0;
+        --secondary: #00052e;
+        --accent: #00052e;
+        --kontrast: #ffffff;
+      }
+
+      /* Noch nicht bekannt: ein ruhiger Grund, der zu keiner der beiden
+         Welten gehoert. Er steht nur beim allerersten Besuch und nur, bis
+         die Datenbank geantwortet hat. */
+      :root[data-domain="unbekannt"] {
+        --accent: #ffffff;
+        --kontrast: #1c1917;
       }
       body {
         font-family: 'Inter', sans-serif;
