@@ -84,9 +84,45 @@ async function writeWithSchemaRetry(
 ): Promise<number | null> {
   let row = { ...payload };
   const dropped: string[] = [];
+  let netzWiederholt = false;
 
   for (let attempt = 0; attempt < 20; attempt++) {
-    const { error, count } = await exec(row);
+    // Ein Netzfehler kommt nicht als error zurueck, sondern als abgelehntes
+    // Versprechen -- beim Nutzer landete dann die blanke Meldung "TypeError:
+    // Failed to fetch", die nichts darueber sagt, was schiefging. Sie bedeutet:
+    // die Anfrage hat den Server nie erreicht. Das ist kein Zugriffsproblem.
+    //
+    // Einmal wird still wiederholt, weil ein kurzer Aussetzer die haeufigste
+    // Ursache ist. Bleibt es dabei, wird gesagt, was los ist und woran es
+    // liegen kann.
+    let error: any; let count: number | null | undefined;
+    try {
+      ({ error, count } = await exec(row));
+    } catch (netz: any) {
+      const istNetzfehler =
+        netz instanceof TypeError || /failed to fetch|networkerror|load failed/i.test(String(netz?.message || ''));
+      if (!istNetzfehler) throw netz;
+
+      console.error(`Supabase ${label}: Anfrage erreichte den Server nicht.`, {
+        versuch: attempt + 1,
+        felder: Object.keys(row).length,
+        groesse: JSON.stringify(row).length,
+        ursprung: String(netz?.message || netz),
+      });
+
+      if (!netzWiederholt) {
+        netzWiederholt = true;
+        await new Promise((r) => setTimeout(r, 800));
+        attempt--; // dieser Versuch zaehlt nicht als Schema-Versuch
+        continue;
+      }
+      throw new Error(
+        `Die Anfrage an '${label}' hat den Server nicht erreicht. Das ist kein Zugriffsproblem: ` +
+        `die Verbindung kam nicht zustande. Moegliche Ursachen sind eine unterbrochene ` +
+        `Internetverbindung oder eine Erweiterung im Browser, die Anfragen blockiert ` +
+        `(Werbe- oder Skriptblocker). Bitte erneut versuchen.`
+      );
+    }
 
     if (!error) {
       if (dropped.length) {

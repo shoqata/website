@@ -10,6 +10,19 @@ interface Translations {
 }
 
 const translations: Translations = {
+  'steward.left': { en: 'left', de: 'ausgetreten', sq: 'larguar' },
+  'steward.left_hint': { en: 'No longer a member', de: 'Kein Mitglied mehr', sq: 'Nuk është më anëtar' },
+  'steward.left_explain': {
+    en: 'This person was removed from the association. The record stays because invoices and payments are linked to it, but it no longer counts towards the fee or the data check.',
+    de: 'Diese Person wurde aus dem Verein entfernt. Der Datensatz bleibt bestehen, weil Rechnungen und Zahlungen daran hängen, zählt aber weder beim Beitrag noch bei den Angaben mit.',
+    sq: 'Ky person është larguar nga shoqata. Të dhënat mbeten sepse faturat dhe pagesat lidhen me to, por nuk numërohen më as te kuota as te të dhënat.'
+  },
+  'steward.not_editable': {
+    en: 'This person holds the role {role} and can only be edited by the administration. As a responsible person you may edit ordinary members — that limit is in the access rules, not just in this screen.',
+    de: 'Diese Person hat die Rolle {role} und kann nur von der Administration bearbeitet werden. Als verantwortliche Person bearbeiten Sie gewöhnliche Mitglieder — diese Grenze steht in den Zugriffsregeln, nicht bloss in dieser Maske.',
+    sq: 'Ky person ka rolin {role} dhe mund të redaktohet vetëm nga administrata. Si person përgjegjës ju redaktoni anëtarë të zakonshëm — ky kufi është në rregullat e qasjes, jo vetëm në këtë pamje.'
+  },
+
   // --- VERSANDWARTESCHLANGE ---
   'mail.title': { en: 'Outgoing mail', de: 'Ausgehende E-Mails', sq: 'Emailet dalëse' },
   'mail.pending': { en: 'waiting', de: 'wartet', sq: 'në pritje' },
