@@ -10,7 +10,7 @@
 // uebliche Regel und deckt auch die Faelle ab, die man selten von Hand
 // benennt: Cousin zweiten Grades, Grosscousine, Urgrossonkel.
 
-export type Kante = { von: string; nach: string; art: 'ELTERNTEIL' | 'PARTNER' };
+export type Kante = { von: string; nach: string; art: 'ELTERNTEIL' | 'PARTNER' | 'GESCHWISTER' };
 
 export type Grad = {
   id: string;
@@ -33,10 +33,48 @@ export function netzAus(kanten: Kante[]): Netz {
     if (!m.has(a)) m.set(a, new Set());
     m.get(a)!.add(b);
   };
+
+  const geschwisterkanten: [string, string][] = [];
   for (const k of kanten) {
     if (k.art === 'ELTERNTEIL') { dazu(kinder, k.von, k.nach); dazu(eltern, k.nach, k.von); }
-    else { dazu(partner, k.von, k.nach); dazu(partner, k.nach, k.von); }
+    else if (k.art === 'PARTNER') { dazu(partner, k.von, k.nach); dazu(partner, k.nach, k.von); }
+    else geschwisterkanten.push([k.von, k.nach]);
   }
+
+  // Ausdrueckliche Geschwister bekommen einen gemeinsamen, nicht erfassten
+  // Elternteil. Sie werden gebraucht, wenn die Eltern verstorben oder keine
+  // Mitglieder sind -- dann gibt es niemanden, ueber den sich die beiden
+  // sonst verbinden liessen.
+  //
+  // Ueber diesen Platzhalter rechnet alles Weitere von selbst richtig: die
+  // Kinder zweier so verbundener Geschwister sind Cousins, ihre Tante ist
+  // eine Tante. Ohne ihn waere die Geschwisterschaft eine Sackgasse, aus der
+  // sich nichts ableitet.
+  //
+  // Sind die echten Eltern spaeter erfasst, aendert der Platzhalter nichts:
+  // der naechste gemeinsame Vorfahre liegt dann ohnehin auf demselben
+  // Abstand.
+  if (geschwisterkanten.length) {
+    const gruppeVon = new Map<string, number>();
+    let naechste = 0;
+    for (const [a, b] of geschwisterkanten) {
+      const ga = gruppeVon.get(a), gb = gruppeVon.get(b);
+      if (ga === undefined && gb === undefined) {
+        const g = naechste++;
+        gruppeVon.set(a, g); gruppeVon.set(b, g);
+      } else if (ga === undefined) gruppeVon.set(a, gb!);
+      else if (gb === undefined) gruppeVon.set(b, ga!);
+      else if (ga !== gb) {
+        for (const [p, g] of gruppeVon) if (g === gb) gruppeVon.set(p, ga);
+      }
+    }
+    for (const [person, g] of gruppeVon) {
+      const platzhalter = `\u0000geschwister-${g}`;
+      dazu(eltern, person, platzhalter);
+      dazu(kinder, platzhalter, person);
+    }
+  }
+
   return { eltern, kinder, partner };
 }
 
@@ -98,11 +136,24 @@ export function gradZwischen(netz: Netz, a: string, b: string): Grad | null {
   };
 
   // Geschwister.
+  //
+  // "Halb" wird nur behauptet, wenn es sich belegen laesst: von beiden sind
+  // zwei Elternteile erfasst und nur einer davon ist derselbe. Kennt man von
+  // einem nur einen Elternteil, ist der zweite unbekannt -- nicht
+  // verschieden. Und eine ausdrueckliche Geschwisterkante (sie erscheint hier
+  // als gemeinsamer Platzhalter) besagt volle Geschwister; sie wird erfasst,
+  // wenn die Eltern gar nicht bekannt sind.
   if (besterA === 1 && besterB === 1) {
-    const gemeinsam = [...va.keys()].filter(x => va.get(x) === 1 && vb.get(x) === 1).length;
+    const geteilt = [...va.keys()].filter(x => va.get(x) === 1 && vb.get(x) === 1);
+    const ausdruecklich = geteilt.some(x => x.startsWith('\u0000'));
+    const echteEltern = (m: Map<string, number>) =>
+      [...m.keys()].filter(x => m.get(x) === 1 && !x.startsWith('\u0000')).length;
+    const geteilteEchte = geteilt.filter(x => !x.startsWith('\u0000')).length;
+    const halb = !ausdruecklich && geteilteEchte === 1
+                 && echteEltern(va) >= 2 && echteEltern(vb) >= 2;
     return {
       id: b,
-      bezeichnung: gemeinsam >= 2 ? 'Geschwister' : 'Halbgeschwister',
+      bezeichnung: halb ? 'Halbgeschwister' : 'Geschwister',
       gruppe: 'kern', entfernung: 1,
     };
   }
@@ -141,6 +192,7 @@ export function verwandteVon(
 
   for (const anderer of alle) {
     if (anderer === person) continue;
+    if (anderer.startsWith('\u0000')) continue;   // Platzhalter sind keine Personen
     if ((netz.partner.get(person) ?? new Set()).has(anderer)) continue;
     const g = gradZwischen(netz, person, anderer);
     if (g) { raus.push(g); continue; }

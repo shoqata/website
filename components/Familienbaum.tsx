@@ -23,6 +23,9 @@ export type Knoten = {
   eltern: { id: string; name: string }[];
   partner: { id: string; name: string }[];
   kinder: { id: string; name: string }[];
+  // Ausdrueckliche Geschwister. Gebraucht, wenn die Eltern nicht erfasst
+  // sind -- sonst gaebe es niemanden, ueber den sich zwei verbinden liessen.
+  geschwister: { id: string; name: string }[];
 };
 
 // Generation je Person.
@@ -57,7 +60,9 @@ export function generationen(leute: Knoten[]): Map<string, number> {
     }
 
     for (const p of leute) {
-      for (const q of p.partner) {
+      // Partner und Geschwister stehen beide auf derselben Ebene, und zwar
+      // auf der tieferen -- wer erfasste Eltern hat, bestimmt sie.
+      for (const q of [...p.partner, ...p.geschwister]) {
         if (!dabei.has(q.id)) continue;
         const tiefer = Math.max(ebene.get(p.person) ?? 0, ebene.get(q.id) ?? 0);
         if ((ebene.get(p.person) ?? 0) !== tiefer) { ebene.set(p.person, tiefer); geaendert = true; }
@@ -87,7 +92,7 @@ const ZEILE = 128;
 // gemeinsamen Kindern kreuzen sich.
 type Einheit = { leute: Knoten[]; ebene: number; x: number; breite: number };
 
-export type Zone = 'ELTERNTEIL' | 'PARTNER' | 'KIND';
+export type Zone = 'ELTERNTEIL' | 'PARTNER' | 'KIND' | 'GESCHWISTER';
 
 const Familienbaum: React.FC<{
   leute: Knoten[];
@@ -243,10 +248,32 @@ const Familienbaum: React.FC<{
       }
     }
 
+    // Geschwister ohne gemeinsamen erfassten Elternteil bekommen eine eigene
+    // Klammer -- sonst waere die Verbindung unsichtbar, weil kein
+    // Geschwisterbalken von oben kommt.
+    const geschwisterlinien: { d: string; a: string; b: string }[] = [];
+    const gesehenG = new Set<string>();
+    for (const p of leute) {
+      for (const q of p.geschwister) {
+        const schluessel = [p.person, q.id].sort().join('|');
+        if (gesehenG.has(schluessel)) continue;
+        gesehenG.add(schluessel);
+        const a = pos.get(p.person), b = pos.get(q.id);
+        if (!a || !b) continue;
+        const links = Math.min(a.x, b.x) + BREITE / 2;
+        const rechts = Math.max(a.x, b.x) + BREITE / 2;
+        const y = a.y - 16;
+        geschwisterlinien.push({
+          d: `M ${links} ${a.y} V ${y} H ${rechts} V ${b.y}`,
+          a: p.person, b: q.id,
+        });
+      }
+    }
+
     const alleX = [...pos.values()].map(p => p.x);
     const alleY = [...pos.values()].map(p => p.y);
     return {
-      pos, familienlinien, partnerlinien,
+      pos, familienlinien, partnerlinien, geschwisterlinien,
       breite: Math.max(...alleX) + BREITE,
       hoehe: Math.max(...alleY) + HOEHE,
     };
@@ -265,9 +292,10 @@ const Familienbaum: React.FC<{
   const rand = 16;
 
   const zonen: { zone: Zone; text: string; oben: string }[] = [
-    { zone: 'ELTERNTEIL', text: t3('Elternteil'), oben: '-14px' },
-    { zone: 'PARTNER',    text: t3('Partner'),    oben: `${HOEHE / 2 - 11}px` },
-    { zone: 'KIND',       text: t3('Kind'),       oben: `${HOEHE - 8}px` },
+    { zone: 'ELTERNTEIL',  text: t3('Elternteil'),  oben: '-16px' },
+    { zone: 'GESCHWISTER', text: t3('Geschwister'), oben: `${HOEHE / 2 - 22}px` },
+    { zone: 'PARTNER',     text: t3('Partner'),     oben: `${HOEHE / 2 + 1}px` },
+    { zone: 'KIND',        text: t3('Kind'),        oben: `${HOEHE - 6}px` },
   ];
 
   return (
@@ -283,6 +311,11 @@ const Familienbaum: React.FC<{
             {plan.familienlinien.map((l, i) => (
               <path key={`f${i}`} d={l.d} fill="none" stroke="#d6d3d1" strokeWidth={2}
                     strokeLinecap="round" opacity={l.leute.some(verbunden) ? 1 : 0.2} />
+            ))}
+            {plan.geschwisterlinien.map((l, i) => (
+              <path key={`g${i}`} d={l.d} fill="none" stroke="#a8a29e" strokeWidth={1.5}
+                    strokeDasharray="3 3" strokeLinecap="round"
+                    opacity={verbunden(l.a) && verbunden(l.b) ? 0.7 : 0.12} />
             ))}
             {plan.partnerlinien.map((l, i) => (
               <line key={`p${i}`} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2}
@@ -329,7 +362,7 @@ const Familienbaum: React.FC<{
                          className="absolute left-0 right-0 flex items-center justify-center
                                     text-[9px] font-bold uppercase tracking-widest rounded"
                          style={{
-                           top: z.oben, height: 22,
+                           top: z.oben, height: 20,
                            background: ziel?.id === p.person && ziel.zone === z.zone
                              ? 'var(--primary)' : 'rgba(255,255,255,.94)',
                            color: ziel?.id === p.person && ziel.zone === z.zone ? '#fff' : '#a8a29e',
