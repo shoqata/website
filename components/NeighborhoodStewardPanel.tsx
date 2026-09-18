@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   Home, Users, Receipt, Search, Save, Loader2, CheckCircle2, Clock,
-  AlertTriangle, Phone, Mail, MapPin, Send, X,
+  AlertTriangle, Phone, Mail, MapPin, Send, X, ShieldAlert,
 } from 'lucide-react';
 import { db } from '../services/firebase';
 import {
@@ -78,23 +78,43 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
 
   // Beitragsstand und fehlende Angaben einmal je Mitglied, nicht in jeder
   // Zeile neu -- die Liste kann mehrere Dutzend Eintraege lang sein.
+  // Wer im Adminbereich "entfernt" wird, bekommt den Status INACTIVE -- die
+  // Zeile bleibt bestehen, weil Rechnungen und Zahlungen daran haengen. Sie
+  // hier unmarkiert weiterzufuehren liess doppelte Eintraege wie zwei Zeilen
+  // desselben Menschen unveraendert aussehen.
+  //
+  // Bearbeiten darf die Betreuung nur gewoehnliche Mitglieder: die
+  // Zugriffsregel verlangt ausdruecklich role = MEMBER, damit niemand einen
+  // Vorstand oder Vertreter umschreibt. Das gehoert vorher sichtbar zu sein
+  // und nicht erst beim Speichern als technische Meldung.
   const bewertet = useMemo(() => mitglieder.map(m => ({
     m,
     beitrag: feeStateFor(m.id!, rechnungen, jahr),
     fehlt: missingFieldKeys(m, { selfServiceOnly: true }),
+    ausgetreten: m.membershipStatus === 'INACTIVE',
+    bearbeitbar: (m.role || 'MEMBER') === 'MEMBER',
   })), [mitglieder, rechnungen, jahr]);
 
-  const zaehler = useMemo(() => ({
-    bezahlt:       bewertet.filter(b => b.beitrag === 'PAID').length,
-    offen:         bewertet.filter(b => b.beitrag === 'OPEN').length,
-    nichtVerrechnet: bewertet.filter(b => b.beitrag === 'NONE').length,
-    vollstaendig:  bewertet.filter(b => b.fehlt.length === 0).length,
-    luecken:       bewertet.filter(b => b.fehlt.length > 0).length,
-  }), [bewertet]);
+  // Ausgetretene bleiben in der Liste sichtbar, zaehlen aber nirgends mit --
+  // ein offener Beitrag von jemandem, der nicht mehr dabei ist, waere kein
+  // Rueckstand, und eine Luecke in seinen Angaben keine Aufgabe.
+  const zaehler = useMemo(() => {
+    const aktiv = bewertet.filter(b => !b.ausgetreten);
+    return {
+      mitglieder:      aktiv.length,
+      ausgetreten:     bewertet.length - aktiv.length,
+      bezahlt:         aktiv.filter(b => b.beitrag === 'PAID').length,
+      offen:           aktiv.filter(b => b.beitrag === 'OPEN').length,
+      nichtVerrechnet: aktiv.filter(b => b.beitrag === 'NONE').length,
+      vollstaendig:    aktiv.filter(b => b.fehlt.length === 0).length,
+      luecken:         aktiv.filter(b => b.fehlt.length > 0).length,
+    };
+  }, [bewertet]);
 
   const gefiltert = useMemo(() => {
     const s = suche.toLowerCase().trim();
-    return bewertet.filter(({ m, beitrag, fehlt }) => {
+    return bewertet.filter(({ m, beitrag, fehlt, ausgetreten }) => {
+      if (filter !== 'ALLE' && ausgetreten) return false;
       if (filter === 'OFFEN' && beitrag === 'PAID') return false;
       if (filter === 'UNVOLLSTAENDIG' && fehlt.length === 0) return false;
       if (!s) return true;
@@ -183,7 +203,7 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
             ist damit nicht bedient. */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-white/5 rounded-2xl p-4">
-            <p className="text-2xl font-bold">{mitglieder.length}</p>
+            <p className="text-2xl font-bold">{zaehler.mitglieder}</p>
             <p className="text-stone-400 text-[10px] font-bold uppercase tracking-widest mt-1">{t('steward.members')}</p>
           </div>
           <div className="bg-white/5 rounded-2xl p-4">
@@ -228,7 +248,7 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
               Mitgliedern ist die vollstaendige Liste keine Arbeitsgrundlage. */}
           <div className="flex flex-wrap gap-2">
             {([
-              ['ALLE', t('steward.filter_all'), mitglieder.length],
+              ['ALLE', t('steward.filter_all'), bewertet.length],
               ['OFFEN', t('steward.filter_open'), zaehler.offen + zaehler.nichtVerrechnet],
               ['UNVOLLSTAENDIG', t('steward.filter_gaps'), zaehler.luecken],
             ] as const).map(([k, label, n]) => (
@@ -246,11 +266,24 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
           )}
 
           <div className="grid gap-3">
-            {gefiltert.map(({ m, beitrag, fehlt }) => (
+            {gefiltert.map(({ m, beitrag, fehlt, ausgetreten, bearbeitbar }) => (
               <button key={m.id} onClick={() => setBearbeitet({ ...m })}
-                className="text-left bg-white border border-stone-100 rounded-2xl p-5 hover:border-stone-300 transition-colors flex flex-wrap items-start justify-between gap-4">
+                className={`text-left border rounded-2xl p-5 transition-colors flex flex-wrap items-start justify-between gap-4 ${
+                  ausgetreten ? 'bg-stone-50 border-stone-200 opacity-70' : 'bg-white border-stone-100 hover:border-stone-300'}`}>
                 <div className="min-w-0 flex-1 space-y-1.5">
-                  <p className="font-bold text-stone-900 truncate">{m.displayName || '-'}</p>
+                  <p className="font-bold text-stone-900 truncate flex items-center gap-2">
+                    <span className={ausgetreten ? 'line-through' : ''}>{m.displayName || '-'}</span>
+                    {ausgetreten && (
+                      <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-stone-200 text-stone-600 shrink-0">
+                        {t('steward.left')}
+                      </span>
+                    )}
+                    {!bearbeitbar && (
+                      <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-stone-100 text-stone-500 border border-stone-200 shrink-0">
+                        {m.role}
+                      </span>
+                    )}
+                  </p>
                   <p className="text-xs text-stone-500 truncate">
                     {[m.street, [m.zip, m.city].filter(Boolean).join(' ')].filter(Boolean).join(', ') || t('steward.no_address')}
                   </p>
@@ -265,6 +298,11 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
                     bleibt von "offen" getrennt -- das eine liegt beim Mitglied,
                     das andere beim Verein. */}
                 <div className="flex flex-col items-end gap-2 shrink-0">
+                  {ausgetreten ? (
+                    <span className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase bg-stone-100 text-stone-500 border border-stone-200">
+                      {t('steward.left_hint')}
+                    </span>
+                  ) : <>
                   {beitrag === 'PAID' && (
                     <span className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5">
                       <CheckCircle2 size={12} /> {t('steward.fee_paid', { year: jahr })}
@@ -291,6 +329,7 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
                       {t('steward.data_missing')}: {fehlt.map(k => t(k)).join(', ')}
                     </span>
                   )}
+                  </>}
                 </div>
               </button>
             ))}
@@ -346,6 +385,22 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
               <button onClick={() => setBearbeitet(null)} className="p-2 hover:bg-stone-200 rounded-full text-stone-500"><X size={18} /></button>
             </div>
             <div className="p-8 space-y-4 overflow-y-auto custom-scrollbar">
+              {/* Vorher sagen, was nicht geht. Die Zugriffsregel verlangt
+                  role = MEMBER; ohne diesen Hinweis endete der Versuch in einer
+                  technischen Meldung ueber eine nicht geaenderte Zeile. */}
+              {(bearbeitet.role || 'MEMBER') !== 'MEMBER' && (
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex gap-2.5 text-amber-800">
+                  <ShieldAlert size={16} className="mt-0.5 shrink-0" />
+                  <p className="text-xs leading-relaxed">{t('steward.not_editable', { role: bearbeitet.role || '' })}</p>
+                </div>
+              )}
+              {bearbeitet.membershipStatus === 'INACTIVE' && (
+                <div className="p-4 bg-stone-100 border border-stone-200 rounded-xl flex gap-2.5 text-stone-600">
+                  <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+                  <p className="text-xs leading-relaxed">{t('steward.left_explain')}</p>
+                </div>
+              )}
+
               {/* Das Geburtsdatum wurde in der Liste als fehlend bemaengelt, war
                   hier aber nicht einzutragen -- die Ansicht verlangte etwas, das
                   sie nicht anbot. Es ist zugleich die Grundlage der
@@ -385,8 +440,8 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
             </div>
             <div className="p-6 border-t border-stone-100 bg-stone-50 flex gap-3">
               <button onClick={() => setBearbeitet(null)} className="flex-1 py-3 bg-stone-200 text-stone-600 rounded-xl font-bold">{t('common.cancel')}</button>
-              <button onClick={speichern} disabled={speichert}
-                className="flex-[2] py-3 bg-primary text-white rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 disabled:opacity-60">
+              <button onClick={speichern} disabled={speichert || (bearbeitet.role || 'MEMBER') !== 'MEMBER'}
+                className="flex-[2] py-3 bg-primary text-white rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
                 {speichert ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} {t('common.save_changes')}
               </button>
             </div>
