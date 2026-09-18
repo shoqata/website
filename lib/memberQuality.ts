@@ -92,3 +92,24 @@ export const billingYearOf = (p: any): number => {
            : p?.timestamp ? new Date(p.timestamp) : null;
   return ts ? ts.getFullYear() : NaN;
 };
+
+// Wann ist das Geld eingegangen?
+//
+// Die Umsatzentwicklung rechnete bisher mit timestamp -- dem Zeitpunkt, zu dem
+// der Datensatz entstand. Bei den uebernommenen Rechnungen ist das bei allen
+// derselbe Monat, weil sie aus einem Import stammen: 81 Zahlungen, alle im
+// Juni 2026. Ein Verlaufsdiagramm daraus besteht aus einem einzigen Punkt und
+// zeigt deshalb nichts.
+//
+// paidAt sagt, wann tatsaechlich bezahlt wurde, und verteilt sich ueber das
+// Jahr -- Juli 5640 CHF, September 3732 CHF. Der Zeitstempel bleibt Rueckfall
+// fuer Zahlungen ohne Datum.
+export const paidDateOf = (p: any): Date | null => {
+  const roh = p?.paidAt;
+  if (roh) {
+    const d = roh?.toDate ? roh.toDate() : new Date(roh);
+    if (!isNaN(d.getTime())) return d;
+  }
+  const ts = p?.timestamp?.toDate ? p.timestamp.toDate() : p?.timestamp ? new Date(p.timestamp) : null;
+  return ts && !isNaN(ts.getTime()) ? ts : null;
+};
