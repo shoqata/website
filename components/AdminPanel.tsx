@@ -128,9 +128,12 @@ const AdminPanel: React.FC = () => {
     return () => { unsubUsers(); unsubNeighborhoods(); unsubEvents(); unsubNews(); unsubPayments(); unsubRegs(); };
   }, []);
 
+  // Dieselbe Regel wie in der Datenqualitaet selbst. Vorher stand hier eine
+  // eigene Aufzaehlung, die unter anderem die E-Mail-Adresse ausliess -- die
+  // Zahl am Reiter und die Liste darin sprachen damit von Verschiedenem.
   const incompleteUsersCount = useMemo(() => {
       return users.filter(u => u.membershipStatus !== 'INACTIVE'
-          && (!u.phone || !u.street || !u.city || !u.zip || !u.birthdate || !u.neighborhoodId)).length;
+          && missingFieldKeys(u).length > 0).length;
   }, [users]);
 
   const filteredUsers = useMemo(() => {
@@ -1112,11 +1115,26 @@ const AdminDataQuality = ({ users, neighborhoods, onEditUser }: any) => {
     const { showAlert, showConfirm } = useFeedback();
     const [switching, setSwitching] = useState(false);
 
+    // Entfernte Mitglieder gehoeren nicht in die Datenqualitaet.
+    //
+    // Sie standen bisher in der Liste, in der Durchschnittsnote und in den
+    // Zustellkonflikten -- und der Knopf "alle auf Post umstellen" haette in
+    // ihre Datensaetze geschrieben. Eine Luecke bei jemandem, der nicht mehr
+    // dabei ist, ist keine Aufgabe.
+    //
+    // Die Zahl am Reiter schloss sie bereits aus. Damit standen zwei Zahlen
+    // fuer dieselbe Sache nebeneinander; jetzt ist es eine.
+    const aktiveUsers = useMemo(
+        () => users.filter((u: UserProfile) => u.membershipStatus !== 'INACTIVE'),
+        [users]
+    );
+    const ausgetreten = users.length - aktiveUsers.length;
+
     // Mitglieder, bei denen die Zustellart E-Mail verspricht, aber keine
     // brauchbare Adresse hinterlegt ist.
     const deliveryConflicts = useMemo(
-        () => users.filter((u: UserProfile) => hasDeliveryConflict(u)),
-        [users]
+        () => aktiveUsers.filter((u: UserProfile) => hasDeliveryConflict(u)),
+        [aktiveUsers]
     );
 
     const switchConflictsToPost = async () => {
@@ -1142,7 +1160,7 @@ const AdminDataQuality = ({ users, neighborhoods, onEditUser }: any) => {
         }
     };
     const qualityReport = useMemo(() => {
-        return users.map((u: UserProfile) => {
+        return aktiveUsers.map((u: UserProfile) => {
             // Dieselben Regeln wie im Nachbarschafts-Detail, zentral in
             // lib/memberQuality. Die Feldnamen sind Uebersetzungsschluessel.
             const missing = missingFieldKeys(u).map(k => t(k));
@@ -1152,9 +1170,11 @@ const AdminDataQuality = ({ users, neighborhoods, onEditUser }: any) => {
             // Drawer niemals in der users-Tabelle landen.
             return { ...u, missing, score, user: u };
         }).sort((a: any, b: any) => a.score - b.score);
-    }, [users, t]);
+    }, [aktiveUsers, t]);
 
-    const avgQuality = Math.round(qualityReport.reduce((acc: number, u: any) => acc + u.score, 0) / (users.length || 1));
+    const avgQuality = Math.round(
+        qualityReport.reduce((acc: number, u: any) => acc + u.score, 0) / (aktiveUsers.length || 1)
+    );
 
     return (
         <div className="space-y-8">
@@ -1164,6 +1184,12 @@ const AdminDataQuality = ({ users, neighborhoods, onEditUser }: any) => {
                         <span className="text-3xl font-display font-bold text-emerald-600">{avgQuality}%</span>
                     </div>
                     <p className="text-xs font-bold text-stone-400 uppercase tracking-widest">{t('admin.dq.avg')}</p>
+                    {/* Woraus sich die Zahl berechnet, gehoert daneben -- sonst
+                        wirkt eine abweichende Gesamtzahl wie ein Fehler. */}
+                    <p className="text-[10px] text-stone-400 mt-2">
+                        {t('admin.dq.basis', { count: qualityReport.length })}
+                        {ausgetreten > 0 && ` · ${t('admin.dq.excluded', { count: ausgetreten })}`}
+                    </p>
                 </div>
                 <div className="bg-rose-50 p-8 rounded-[2.5rem] border border-rose-100 shadow-sm col-span-2">
                     <h3 className="text-lg font-bold text-rose-900 mb-2">{t('admin.dq.action_needed')}</h3>

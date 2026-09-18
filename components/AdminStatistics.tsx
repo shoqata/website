@@ -41,9 +41,17 @@ const AdminStatistics: React.FC<AdminStatisticsProps> = ({ users, payments, neig
   }, [payments, selectedYear]);
 
   // --- 1. Neighborhood Comparison Data ---
+  // Entfernte Mitglieder bleiben aussen vor. Sie zaehlten sonst im Nenner der
+  // Zahlungsquote mit, ohne je zahlen zu koennen -- die Nachbarschaft saehe
+  // dadurch schlechter aus, als sie ist.
+  const aktiveUsers = useMemo(
+    () => users.filter(u => u.membershipStatus !== 'INACTIVE'),
+    [users]
+  );
+
   const neighborhoodData = useMemo(() => {
     return neighborhoods.map(n => {
-      const nMembers = users.filter(u => u.neighborhoodId === n.id);
+      const nMembers = aktiveUsers.filter(u => u.neighborhoodId === n.id);
       const memberIds = nMembers.map(u => u.id);
       
       const payingMembers = new Set(
@@ -105,7 +113,7 @@ const AdminStatistics: React.FC<AdminStatisticsProps> = ({ users, payments, neig
 
   // --- 3. Member Detailed Payment Analysis ---
   const memberPaymentAnalysis = useMemo(() => {
-    return users.map(u => {
+    return aktiveUsers.map(u => {
       const uPayments = yearPayments.filter(p => p.userId === u.id).sort((a, b) => b.timestamp?.toDate().getTime() - a.timestamp?.toDate().getTime());
       
       const lastPayment = uPayments.find(p => p.status === 'PAID');

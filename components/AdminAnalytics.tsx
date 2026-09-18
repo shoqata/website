@@ -46,9 +46,17 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ payments = [], users = 
   }, [filteredPayments]);
 
   // Calculate Neighborhood Performance
+  // Entfernte Mitglieder bleiben aussen vor. Sie zaehlten sonst im Nenner der
+  // Zahlungsquote mit, ohne je zahlen zu koennen -- die Nachbarschaft saehe
+  // dadurch schlechter aus, als sie ist.
+  const aktiveUsers = useMemo(
+    () => users.filter(u => u.membershipStatus !== 'INACTIVE'),
+    [users]
+  );
+
   const neighborhoodStats = useMemo(() => {
     return neighborhoods.map(n => {
-      const nMembers = users.filter(u => u.neighborhoodId === n.id);
+      const nMembers = aktiveUsers.filter(u => u.neighborhoodId === n.id);
       const memberIds = nMembers.map(u => u.id);
       const nPayments = filteredPayments.filter(p => memberIds.includes(p.userId));
       const paidAmount = nPayments.filter(p => p.status === 'PAID').reduce((acc, p) => acc + p.amount, 0);

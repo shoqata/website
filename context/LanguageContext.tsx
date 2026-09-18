@@ -10,6 +10,13 @@ interface Translations {
 }
 
 const translations: Translations = {
+  'admin.dq.basis': { en: '{count} current members', de: '{count} aktuelle Mitglieder', sq: '{count} anëtarë aktualë' },
+  'admin.dq.excluded': {
+    en: '{count} removed members not counted',
+    de: '{count} entfernte nicht mitgezählt',
+    sq: '{count} të larguar nuk numërohen'
+  },
+
   // --- SITZUNGSPROTOKOLLE ---
   'minutes.edit': { en: 'Edit minutes', de: 'Protokoll bearbeiten', sq: 'Redakto procesverbalin' },
   'minutes.create': { en: 'Create minutes', de: 'Protokoll anlegen', sq: 'Krijo procesverbalin' },
