@@ -138,7 +138,8 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-[#faf9f6]">
+    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2"
+         style={{ background: istPlattform ? '#ffffff' : '#faf9f6' }}>
       {/* Linke Haelfte.
           
           Auf der Betreiber-Domain steht hier kein Verein. Das humanitaere Bild,
@@ -195,7 +196,7 @@ const LoginPage: React.FC = () => {
         <div className="absolute top-8 left-8 lg:top-12 lg:left-12">
           <button 
             onClick={() => step === 'INPUT' ? navigate('/') : setStep('INPUT')}
-            className="flex items-center gap-2 text-stone-500 hover:text-rose-500 transition-colors font-bold text-sm tracking-tight"
+            className="flex items-center gap-2 text-stone-500 zu-primaer transition-colors font-bold text-sm tracking-tight"
           >
             <ArrowLeft size={18} /> {step === 'INPUT' ? t('login.back') : t('common.back')}
           </button>
@@ -205,13 +206,14 @@ const LoginPage: React.FC = () => {
           <AnimatePresence mode="wait">
             {step === 'VERIFYING' ? (
               <motion.div key="verifying" className="text-center py-12">
-                <div className="w-16 h-16 border-4 border-rose-100 border-t-rose-500 rounded-full animate-spin mx-auto mb-8"></div>
+                <div className="w-16 h-16 border-4 border-stone-100 rounded-full animate-spin mx-auto mb-8"
+                     style={{ borderTopColor: 'var(--primary)' }}></div>
                 <h3 className="text-2xl font-bold">{t('login.verifying')}</h3>
               </motion.div>
             ) : step === 'INPUT' ? (
               <motion.div key="input" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                 <div className="mb-12 text-center lg:text-left">
-                  <h2 className="text-4xl font-display font-bold mb-4 italic text-stone-900 tracking-tight">{t('login.title')}</h2>
+                  <h2 className={`text-4xl mb-4 text-stone-900 tracking-tight ${istPlattform ? 'font-light' : 'font-display font-bold italic'}`}>{t('login.title')}</h2>
                   <p className="text-stone-500 text-lg leading-relaxed">
                     {istPlattform ? t('plat.login_sub') : t('login.subtitle')}
                   </p>
@@ -252,7 +254,7 @@ const LoginPage: React.FC = () => {
                             placeholder={t('login.email.placeholder')}
                             value={email} 
                             onChange={(e) => setEmail(e.target.value)} 
-                            className="w-full pl-16 pr-6 py-5 bg-white border-2 border-stone-100 rounded-2xl outline-none focus:border-rose-500/30 transition-all text-lg shadow-sm font-medium" 
+                            className="w-full pl-16 pr-6 py-5 bg-white feld-primaer border-2 border-stone-100 rounded-2xl outline-none transition-all text-lg shadow-sm font-medium" 
                           />
                         </div>
                       </div>
@@ -275,7 +277,7 @@ const LoginPage: React.FC = () => {
                             placeholder={t('ph.password')}
                             value={password} 
                             onChange={(e) => setPassword(e.target.value)} 
-                            className="w-full pl-16 pr-14 py-5 bg-white border-2 border-stone-100 rounded-2xl outline-none focus:border-rose-500/30 transition-all text-lg shadow-sm font-medium" 
+                            className="w-full pl-16 pr-14 py-5 bg-white feld-primaer border-2 border-stone-100 rounded-2xl outline-none transition-all text-lg shadow-sm font-medium" 
                           />
                           <button 
                             type="button"
@@ -289,7 +291,7 @@ const LoginPage: React.FC = () => {
                       <button 
                         type="submit" 
                         disabled={isLoading} 
-                        className="w-full bg-rose-500 text-white font-bold py-5 rounded-2xl flex items-center justify-center gap-3 hover:bg-rose-600 transition-all shadow-2xl shadow-rose-200 disabled:opacity-50 text-lg"
+                        className="knopf-primaer w-full text-white font-bold py-5 rounded-2xl flex items-center justify-center gap-3 transition-all disabled:opacity-50 text-lg"
                       >
                         {isLoading ? (
                           <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -310,14 +312,14 @@ const LoginPage: React.FC = () => {
                             placeholder={t('login.email.placeholder')}
                             value={email} 
                             onChange={(e) => setEmail(e.target.value)} 
-                            className="w-full pl-16 pr-6 py-5 bg-white border-2 border-stone-100 rounded-2xl outline-none focus:border-rose-500/30 transition-all text-lg shadow-sm font-medium" 
+                            className="w-full pl-16 pr-6 py-5 bg-white feld-primaer border-2 border-stone-100 rounded-2xl outline-none transition-all text-lg shadow-sm font-medium" 
                           />
                         </div>
                       </div>
                       <button 
                         type="submit" 
                         disabled={isLoading} 
-                        className="w-full bg-rose-500 text-white font-bold py-5 rounded-2xl flex items-center justify-center gap-3 hover:bg-rose-600 transition-all shadow-2xl shadow-rose-200 disabled:opacity-50 text-lg"
+                        className="knopf-primaer w-full text-white font-bold py-5 rounded-2xl flex items-center justify-center gap-3 transition-all disabled:opacity-50 text-lg"
                       >
                         {isLoading ? (
                           <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -333,7 +335,7 @@ const LoginPage: React.FC = () => {
             ) : step === 'FORGOT' ? (
               <motion.div key="forgot" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                 <div className="mb-12 text-center lg:text-left">
-                  <h2 className="text-4xl font-display font-bold mb-4 italic text-stone-900 tracking-tight">{t('login.password.forgot')}</h2>
+                  <h2 className={`text-4xl mb-4 text-stone-900 tracking-tight ${istPlattform ? 'font-light' : 'font-display font-bold italic'}`}>{t('login.password.forgot')}</h2>
                   <p className="text-stone-500 text-lg leading-relaxed">{t('login.subtitle')}</p>
                 </div>
 
@@ -355,14 +357,14 @@ const LoginPage: React.FC = () => {
                         placeholder={t('login.email.placeholder')}
                         value={email} 
                         onChange={(e) => setEmail(e.target.value)} 
-                        className="w-full pl-16 pr-6 py-5 bg-white border-2 border-stone-100 rounded-2xl outline-none focus:border-rose-500/30 transition-all text-lg shadow-sm font-medium" 
+                        className="w-full pl-16 pr-6 py-5 bg-white feld-primaer border-2 border-stone-100 rounded-2xl outline-none transition-all text-lg shadow-sm font-medium" 
                       />
                     </div>
                   </div>
                   <button 
                     type="submit" 
                     disabled={isLoading} 
-                    className="w-full bg-rose-500 text-white font-bold py-5 rounded-2xl flex items-center justify-center gap-3 hover:bg-rose-600 transition-all shadow-2xl shadow-rose-200 disabled:opacity-50 text-lg"
+                    className="knopf-primaer w-full text-white font-bold py-5 rounded-2xl flex items-center justify-center gap-3 transition-all disabled:opacity-50 text-lg"
                   >
                     {isLoading ? (
                       <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -381,13 +383,13 @@ const LoginPage: React.FC = () => {
               </motion.div>
             ) : step === 'RESET_SENT' ? (
               <motion.div key="reset-sent" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-12">
-                <div className="w-24 h-24 bg-rose-50 text-rose-500 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-inner">
+                <div className="tupfer-primaer w-24 h-24 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-inner">
                   <RefreshCcw size={48} className="animate-spin-slow" />
                 </div>
-                <h3 className="text-3xl font-display font-bold mb-4 italic">{t('login.sent.title')}</h3>
+                <h3 className={`text-3xl mb-4 ${istPlattform ? 'font-light tracking-tight' : 'font-display font-bold italic'}`}>{t('login.sent.title')}</h3>
                 <p className="text-stone-500 text-lg mb-8 leading-relaxed">
                   {t('login.sent.desc')} <br /> 
-                  <span className="font-bold text-stone-900 border-b-2 border-rose-100">{email}</span>
+                  <span className="font-bold text-stone-900 linie-primaer border-b-2">{email}</span>
                 </p>
                 <button 
                   onClick={() => setStep('INPUT')} 
@@ -401,10 +403,10 @@ const LoginPage: React.FC = () => {
                 <div className="w-24 h-24 bg-green-50 text-green-500 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-inner">
                   <ShieldCheck size={48} />
                 </div>
-                <h3 className="text-3xl font-display font-bold mb-4 italic">{t('login.sent.title')}</h3>
+                <h3 className={`text-3xl mb-4 ${istPlattform ? 'font-light tracking-tight' : 'font-display font-bold italic'}`}>{t('login.sent.title')}</h3>
                 <p className="text-stone-500 text-lg mb-8 leading-relaxed">
                   {t('login.sent.desc')} <br /> 
-                  <span className="font-bold text-stone-900 border-b-2 border-rose-100">{email}</span>
+                  <span className="font-bold text-stone-900 linie-primaer border-b-2">{email}</span>
                 </p>
                 <button 
                   onClick={() => setStep('INPUT')} 
