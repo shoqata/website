@@ -8,6 +8,10 @@ import React, { useMemo, useState } from 'react';
 // nach Generationen geschichtet -- die Ebene ergibt sich aus dem laengsten
 // Weg von einer Person ohne erfasste Eltern.
 //
+// Gezeichnet wird zweischichtig: die Linien als SVG, die Kaesten als HTML
+// darueber. Grund ist das Ziehen -- das draggable-Attribut wirkt auf
+// SVG-Elementen nicht in allen Browsern, auf einem div dagegen ueberall.
+//
 // Die Anordnung ist gerechnet, nicht simuliert: bei gleichen Daten kommt
 // dasselbe Bild heraus. Eine Kraftsimulation sieht lebendiger aus, ordnet aber
 // bei jedem Aufruf anders an -- bei einer Verwandtschaft waere das nicht
@@ -83,8 +87,20 @@ const ZEILE = 128;
 // gemeinsamen Kindern kreuzen sich.
 type Einheit = { leute: Knoten[]; ebene: number; x: number; breite: number };
 
-const Familienbaum: React.FC<{ leute: Knoten[] }> = ({ leute }) => {
+export type Zone = 'ELTERNTEIL' | 'PARTNER' | 'KIND';
+
+const Familienbaum: React.FC<{
+  leute: Knoten[];
+  // Ohne diese Rueckrufe ist der Baum reine Anzeige -- so wird er in der
+  // Uebersicht verwendet. Mit ihnen laesst sich ziehen und ablegen.
+  onAblegen?: (ziel: string, zone: Zone, quelle: string) => void;
+  onWaehlen?: (id: string | null) => void;
+  gewaehltId?: string | null;
+  t3?: (s: string) => string;
+}> = ({ leute, onAblegen, onWaehlen, gewaehltId = null, t3 = (s) => s }) => {
   const [markiert, setMarkiert] = useState<string | null>(null);
+  const [zieht, setZieht] = useState<string | null>(null);
+  const [ziel, setZiel] = useState<{ id: string; zone: Zone } | null>(null);
 
   const plan = useMemo(() => {
     const dabei = new Set(leute.map(l => l.person));
@@ -248,46 +264,94 @@ const Familienbaum: React.FC<{ leute: Knoten[] }> = ({ leute }) => {
 
   const rand = 16;
 
+  const zonen: { zone: Zone; text: string; oben: string }[] = [
+    { zone: 'ELTERNTEIL', text: t3('Elternteil'), oben: '-14px' },
+    { zone: 'PARTNER',    text: t3('Partner'),    oben: `${HOEHE / 2 - 11}px` },
+    { zone: 'KIND',       text: t3('Kind'),       oben: `${HOEHE - 8}px` },
+  ];
+
   return (
-    <div className="overflow-x-auto">
-      <svg width={plan.breite + BREITE + rand * 2} height={plan.hoehe + rand * 2}
-           className="min-w-full" role="img" aria-label="Stammbaum">
-        <g transform={`translate(${rand},${rand})`}>
-          {plan.partnerlinien.map((l, i) => (
-            <line key={`p${i}`} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2}
-                  stroke="var(--primary)" strokeWidth={2.5} strokeLinecap="round"
-                  opacity={verbunden(l.a) && verbunden(l.b) ? 0.8 : 0.12} />
-          ))}
-          {plan.familienlinien.map((l, i) => (
-            <path key={`f${i}`} d={l.d} fill="none" stroke="#d6d3d1" strokeWidth={2}
-                  strokeLinecap="round"
-                  opacity={l.leute.some(verbunden) ? 1 : 0.2} />
-          ))}
-          {leute.map(p => {
-            const s = plan.pos.get(p.person)!;
-            const hell = verbunden(p.person);
-            return (
-              <g key={p.person} transform={`translate(${s.x},${s.y})`}
+    <div className="overflow-auto">
+      <div className="relative"
+           style={{ width: plan.breite + rand * 2, height: plan.hoehe + rand * 2 + 16 }}>
+
+        {/* Linien. Liegen unter den Kaesten und nehmen keine Mausereignisse
+            an, sonst liesse sich auf ihnen nichts ablegen. */}
+        <svg width={plan.breite + rand * 2} height={plan.hoehe + rand * 2}
+             className="absolute inset-0 pointer-events-none" role="img" aria-label="Stammbaum">
+          <g transform={`translate(${rand},${rand})`}>
+            {plan.familienlinien.map((l, i) => (
+              <path key={`f${i}`} d={l.d} fill="none" stroke="#d6d3d1" strokeWidth={2}
+                    strokeLinecap="round" opacity={l.leute.some(verbunden) ? 1 : 0.2} />
+            ))}
+            {plan.partnerlinien.map((l, i) => (
+              <line key={`p${i}`} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2}
+                    stroke="var(--primary)" strokeWidth={2.5} strokeLinecap="round"
+                    opacity={verbunden(l.a) && verbunden(l.b) ? 0.8 : 0.12} />
+            ))}
+          </g>
+        </svg>
+
+        {leute.map(p => {
+          const s = plan.pos.get(p.person)!;
+          const hell = verbunden(p.person);
+          const gewaehlt = p.person === gewaehltId;
+          return (
+            <div key={p.person}
+                 className="absolute rounded-[10px] border transition-opacity select-none"
+                 style={{
+                   left: s.x + rand, top: s.y + rand, width: BREITE, height: HOEHE,
+                   opacity: hell ? 1 : 0.28,
+                   background: gewaehlt ? 'var(--primary)' : '#ffffff',
+                   borderColor: gewaehlt ? 'var(--primary)' : '#e7e5e4',
+                   cursor: onAblegen ? 'grab' : 'default',
+                 }}
+                 draggable={!!onAblegen}
+                 onDragStart={(e) => { e.dataTransfer.setData('text/plain', p.person); setZieht(p.person); }}
+                 onDragEnd={() => { setZieht(null); setZiel(null); }}
                  onMouseEnter={() => setMarkiert(p.person)}
                  onMouseLeave={() => setMarkiert(null)}
-                 style={{ cursor: 'default' }} opacity={hell ? 1 : 0.28}>
-                <rect width={BREITE} height={HOEHE} rx={10}
-                      fill={p.person === markiert ? 'var(--primary)' : '#ffffff'}
-                      stroke={p.person === markiert ? 'var(--primary)' : '#e7e5e4'}
-                      strokeWidth={1.5} />
-                <text x={12} y={21} fontSize={12} fontWeight={700}
-                      fill={p.person === markiert ? '#ffffff' : '#44403c'}>
-                  {p.name.length > 22 ? p.name.slice(0, 21) + '…' : p.name}
-                </text>
-                <text x={12} y={38} fontSize={10}
-                      fill={p.person === markiert ? 'rgba(255,255,255,.75)' : '#a8a29e'}>
-                  {p.geburtsdatum || '—'}
-                </text>
-              </g>
-            );
-          })}
-        </g>
-      </svg>
+                 onClick={() => onWaehlen?.(gewaehlt ? null : p.person)}>
+              <p className="px-3 pt-2 text-[12px] font-bold truncate"
+                 style={{ color: gewaehlt ? '#fff' : '#44403c' }}>{p.name}</p>
+              <p className="px-3 text-[10px]"
+                 style={{ color: gewaehlt ? 'rgba(255,255,255,.75)' : '#a8a29e' }}>
+                {p.geburtsdatum || '—'}
+              </p>
+
+              {/* Ablegeflaechen. Sie erscheinen nur waehrend eines Zuges und
+                  nur an fremden Kaesten -- auf sich selbst kann niemand
+                  abgelegt werden. */}
+              {onAblegen && zieht && zieht !== p.person && (
+                <div className="absolute inset-0">
+                  {zonen.map(z => (
+                    <div key={z.zone}
+                         className="absolute left-0 right-0 flex items-center justify-center
+                                    text-[9px] font-bold uppercase tracking-widest rounded"
+                         style={{
+                           top: z.oben, height: 22,
+                           background: ziel?.id === p.person && ziel.zone === z.zone
+                             ? 'var(--primary)' : 'rgba(255,255,255,.94)',
+                           color: ziel?.id === p.person && ziel.zone === z.zone ? '#fff' : '#a8a29e',
+                           border: '1px dashed #d6d3d1',
+                         }}
+                         onDragOver={(e) => { e.preventDefault(); setZiel({ id: p.person, zone: z.zone }); }}
+                         onDragLeave={() => setZiel(null)}
+                         onDrop={(e) => {
+                           e.preventDefault();
+                           const quelle = e.dataTransfer.getData('text/plain');
+                           setZiel(null); setZieht(null);
+                           if (quelle && quelle !== p.person) onAblegen(p.person, z.zone, quelle);
+                         }}>
+                      {z.text}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };
