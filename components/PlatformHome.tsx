@@ -1,4 +1,5 @@
 import React from 'react';
+import Produktbilder from './platform/Produktbilder';
 import { TINTE, BLAU, NEBEL, SCHIEFER, LINIE, MONO } from './platform/farben';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -315,6 +316,11 @@ const PlatformHome: React.FC<Props> = ({ user }) => {
           </div>
 
           {/* ------------------------------------------------ Trennung */}
+          {/* Drei Bilder der Anwendung. Erfundene Namen und Zahlen -- Daten
+              eines Vereins haben auf einer oeffentlichen Seite nichts zu
+              suchen. */}
+          <Produktbilder />
+
           <div id="trennung" className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-20 md:mt-[80px] scroll-mt-20">
             <div>
               <Marke farbe={BLAU} className="mb-4">{t('plat.sep_eyebrow')}</Marke>
