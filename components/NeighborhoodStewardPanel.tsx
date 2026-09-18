@@ -118,6 +118,9 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
       // ohnehin zurueckweisen, und was nicht mitgeschickt wird, kann sich
       // nicht versehentlich aendern.
       await updateDoc(doc(db, 'users', bearbeitet.id), {
+        // Leer wird zu NULL: in der Spalte steht heute keine einzige leere
+        // Zeichenkette, und dabei soll es bleiben.
+        birthdate: bearbeitet.birthdate?.trim() || null,
         street: bearbeitet.street || '',
         zip: bearbeitet.zip || '',
         city: bearbeitet.city || '',
@@ -343,6 +346,16 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
               <button onClick={() => setBearbeitet(null)} className="p-2 hover:bg-stone-200 rounded-full text-stone-500"><X size={18} /></button>
             </div>
             <div className="p-8 space-y-4 overflow-y-auto custom-scrollbar">
+              {/* Das Geburtsdatum wurde in der Liste als fehlend bemaengelt, war
+                  hier aber nicht einzutragen -- die Ansicht verlangte etwas, das
+                  sie nicht anbot. Es ist zugleich die Grundlage der
+                  Geburtstagsgruesse: bisher haben 17 von 350 Mitgliedern eines. */}
+              <div>
+                <label className={marke}>{t('field.birthdate')}</label>
+                <input type="date" value={bearbeitet.birthdate || ''}
+                  onChange={e => setBearbeitet({ ...bearbeitet, birthdate: e.target.value })}
+                  className={feld} />
+              </div>
               <div>
                 <label className={marke}>{t('admin.members.street_no')}</label>
                 <input value={bearbeitet.street || ''} onChange={e => setBearbeitet({ ...bearbeitet, street: e.target.value })} className={feld} />
