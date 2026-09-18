@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, Check } from 'lucide-react';
@@ -6,6 +6,7 @@ import { useTranslation } from '../context/LanguageContext';
 import { UserProfile } from '../types';
 import Konstellation from './platform/Konstellation';
 import Kontaktformular from './platform/Kontaktformular';
+import Wortmarke, { Knotenpunkt } from './platform/Wortmarke';
 
 interface Props { user: UserProfile | null; }
 
@@ -28,6 +29,38 @@ interface Props { user: UserProfile | null; }
 const PlatformHome: React.FC<Props> = ({ user }) => {
   const { t, language, setLanguage } = useTranslation();
   const angemeldet = !!user;
+
+  // Seitentitel und Symbol im Browserreiter.
+  //
+  // Beide Domains teilen sich eine index.html, deren Titel "Koretini" lautet
+  // -- fuer die Betreiber-Domain falsch. Gesetzt wird deshalb zur Laufzeit,
+  // und nur hier: diese Komponente erscheint ausschliesslich dort.
+  useEffect(() => {
+    const vorher = document.title;
+    document.title = 'unityhub';
+
+    const zeichen = encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">' +
+      '<rect width="48" height="48" rx="8" fill="#00052e"/>' +
+      '<g fill="#0428cb">' +
+      '<circle cx="24" cy="11" r="3"/><circle cx="35.3" cy="17.5" r="3"/>' +
+      '<circle cx="35.3" cy="30.5" r="3"/><circle cx="24" cy="37" r="3"/>' +
+      '<circle cx="12.7" cy="30.5" r="3"/></g>' +
+      '<circle cx="12.7" cy="17.5" r="3" fill="#34fcff"/>' +
+      '<circle cx="24" cy="24" r="5.4" fill="#0428cb"/>' +
+      '<circle cx="24" cy="24" r="2.1" fill="#00052e"/></svg>'
+    );
+    const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
+      ?? document.head.appendChild(Object.assign(document.createElement('link'), { rel: 'icon' }));
+    const vorherIcon = link.href;
+    link.type = 'image/svg+xml';
+    link.href = `data:image/svg+xml,${zeichen}`;
+
+    return () => {
+      document.title = vorher;
+      if (vorherIcon) link.href = vorherIcon;
+    };
+  }, []);
 
   const TINTE = '#00052e';
   const BLAU = '#0428cb';
@@ -101,9 +134,8 @@ const PlatformHome: React.FC<Props> = ({ user }) => {
       <header className="relative z-20 border-b" style={{ borderColor: 'rgba(79,81,102,0.4)' }}>
         <div className="max-w-[1200px] mx-auto px-6 py-4 flex items-center justify-between gap-6">
           <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                  className="text-white font-light shrink-0"
-                  style={{ fontSize: 20, letterSpacing: '-0.01em' }}>
-            unityhub
+                  className="shrink-0" aria-label="unityhub">
+            <Wortmarke size={30} grund={TINTE} />
           </button>
 
           {/* Verweise auf die Abschnitte dieser Seite. Die Vorlage sieht sie in
@@ -345,8 +377,11 @@ const PlatformHome: React.FC<Props> = ({ user }) => {
 
         <div style={{ borderTop: `1px solid ${SCHIEFER}` }}>
           <div className="max-w-[1200px] mx-auto px-6 py-7 flex flex-wrap items-center justify-between gap-4">
-            <span style={{ fontFamily: mono, fontSize: 11, letterSpacing: '0.085em', color: NEBEL }}>
-              UNITYHUB.LI
+            <span className="inline-flex items-center gap-2.5">
+              <Knotenpunkt size={18} grund={TINTE} />
+              <span style={{ fontFamily: mono, fontSize: 11, letterSpacing: '0.085em', color: NEBEL }}>
+                UNITYHUB.LI
+              </span>
             </span>
             <span style={{ fontSize: 13, color: NEBEL }}>{t('plat.footer_note')}</span>
           </div>

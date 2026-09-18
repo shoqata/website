@@ -36,8 +36,6 @@ import {
   supabaseSendSignInLinkToEmail,
   supabaseIsSignInWithEmailLink,
   supabaseSignInWithEmailLink,
-  supabaseSignInWithPopup,
-  GoogleAuthProvider,
   sendEmailVerification,
   updateProfile,
 } from './supabase-bridge';
@@ -57,8 +55,6 @@ export {
   supabaseSendSignInLinkToEmail as sendSignInLinkToEmail,
   supabaseIsSignInWithEmailLink as isSignInWithEmailLink,
   supabaseSignInWithEmailLink as signInWithEmailLink,
-  supabaseSignInWithPopup as signInWithPopup,
-  GoogleAuthProvider,
   sendEmailVerification,
   updateProfile,
 };

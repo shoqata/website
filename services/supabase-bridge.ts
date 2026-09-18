@@ -741,17 +741,12 @@ export async function supabaseSignInWithEmailLink(authObj: any, email: string, h
   return { user: authObj.currentUser };
 }
 
-export async function supabaseSignInWithPopup(authObj: any, provider: any) {
-  if (!supabase) throw new Error("Supabase is not configured.");
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo: window.location.origin
-    }
-  });
-  if (error) throw error;
-  return { user: authObj.currentUser };
-}
+// Die Anmeldung ueber Google ist entfernt.
+//
+// Sie soll spaeter wiederkommen. Bis dahin steht hier nichts -- eine Funktion,
+// die niemand aufruft, sieht bei der naechsten Durchsicht wie eine
+// einsatzbereite Faehigkeit aus und wird versehentlich wieder angeschlossen,
+// obwohl beim Anbieter nichts eingerichtet ist.
 
 
 export async function sendEmailVerification(user: any) {
@@ -872,7 +867,6 @@ export async function createTenant(
   return data as string;
 }
 
-export class GoogleAuthProvider {}
 
 // --- firebase/auth compatible aliases ---
 // Components import these names directly; without them the app would have to pull
@@ -887,7 +881,6 @@ export {
   supabaseSendSignInLinkToEmail as sendSignInLinkToEmail,
   supabaseIsSignInWithEmailLink as isSignInWithEmailLink,
   supabaseSignInWithEmailLink as signInWithEmailLink,
-  supabaseSignInWithPopup as signInWithPopup,
 };
 
 export function getAuth(_app?: any) {

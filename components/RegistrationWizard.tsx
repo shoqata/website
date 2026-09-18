@@ -1,10 +1,11 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import CountrySelect from './ui/CountrySelect';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, ArrowRight, ArrowLeft, User, Phone, Home, MapPin, Heart, CheckCircle2, ShieldCheck, Loader2, Search, X, Flag, Lock, Eye, EyeOff, Chrome, Camera, FileText } from 'lucide-react';
+import { Mail, ArrowRight, ArrowLeft, User, Phone, Home, MapPin, Heart, CheckCircle2, ShieldCheck, Loader2, Search, X, Flag, Lock, Eye, EyeOff, Camera, FileText } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from '../context/LanguageContext';
+import { bewertePasswort } from '../lib/passwortStaerke';
 
 // Firebase
 import { auth, db } from '../services/firebase';
@@ -12,8 +13,6 @@ import {
   createUserWithEmailAndPassword, 
   sendEmailVerification, 
   signOut,
-  GoogleAuthProvider,
-  signInWithPopup
 } from '@/services/supabase-bridge';
 import { collection, getDocs, query, orderBy, doc, setDoc } from '@/services/supabase-bridge';
 import { Neighborhood } from '../types';
@@ -66,22 +65,6 @@ const RegistrationWizard: React.FC = () => {
 
   const handlePrev = () => {
     if (step > 1) setStep(step - 1);
-  };
-
-  const handleGoogleSignUp = async () => {
-    setIsLoading(true);
-    setError(null);
-    const provider = new GoogleAuthProvider();
-    try {
-      const result = await signInWithPopup(auth, provider);
-      // If user doc doesn't exist, they'll be redirected to profile setup by App.tsx logic
-      navigate('/dashboard');
-    } catch (err: any) {
-      console.error(err);
-      setError(t('common.error'));
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   const handleSubmit = async () => {
@@ -143,7 +126,13 @@ const RegistrationWizard: React.FC = () => {
     { id: 4, label: t('wizard.step.4'), icon: <ShieldCheck size={18} /> },
   ];
 
-  const isStep1Valid = formData.email && formData.password.length >= 6;
+  // Das Passwort ist seit dem Entfernen der Google-Anmeldung der einzige Weg
+  // herein. Sechs Zeichen waren dafuer zu wenig.
+  const bewertung = useMemo(
+    () => bewertePasswort(formData.password, [formData.email, formData.firstName, formData.lastName]),
+    [formData.password, formData.email, formData.firstName, formData.lastName]
+  );
+  const isStep1Valid = !!formData.email && bewertung.genuegt;
   const isStep2Valid = formData.salutation && formData.firstName && formData.lastName && formData.phone;
   const isStep3Valid = formData.street && formData.zip && formData.city && formData.country && formData.neighborhoodId;
 
@@ -200,13 +189,6 @@ const RegistrationWizard: React.FC = () => {
                 )}
 
                 <div className="space-y-6">
-                  <button 
-                    onClick={handleGoogleSignUp}
-                    disabled={isLoading}
-                    className="w-full flex items-center justify-center gap-4 py-5 bg-white border-2 border-stone-100 rounded-2xl font-bold text-stone-700 hover:bg-stone-50 transition-all shadow-sm hover:shadow-md disabled:opacity-50"
-                  >
-                    <Chrome size={22} className="text-blue-500" /> {t('login.google')}
-                  </button>
 
                   <div className="relative py-4">
                     <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-stone-100"></div></div>
@@ -248,6 +230,35 @@ const RegistrationWizard: React.FC = () => {
                         {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                       </button>
                     </div>
+
+                    {/* Rueckmeldung waehrend der Eingabe, nicht erst beim
+                        Absenden. Wer erst nach dem Klick erfaehrt, dass sein
+                        Passwort nicht genuegt, haengt eine Ziffer an und ist
+                        damit keinen Schritt weiter. */}
+                    {formData.password.length > 0 && (
+                      <div className="mt-3">
+                        <div className="flex gap-1.5 mb-2" aria-hidden="true">
+                          {[1, 2, 3, 4].map((i) => (
+                            <span key={i} className="h-1 flex-1 rounded-sm transition-colors"
+                              style={{ background:
+                                i > bewertung.balken ? '#e7e5e4'
+                                : bewertung.genuegt ? (bewertung.balken >= 4 ? '#059669' : '#10b981')
+                                : '#f59e0b' }} />
+                          ))}
+                        </div>
+                        <p className="text-xs font-bold" style={{
+                          color: bewertung.genuegt ? '#047857' : '#b45309' }}>
+                          {t('pw.strength_' + bewertung.staerke.toLowerCase())}
+                        </p>
+                        {bewertung.hinweise.length > 0 && (
+                          <ul className="mt-1.5 space-y-0.5">
+                            {bewertung.hinweise.map((h) => (
+                              <li key={h} className="text-xs text-stone-500 leading-relaxed">· {t(h)}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <p className="text-sm text-stone-400 italic text-center">{t('auth.has_account')} <Link to="/login" className="text-primary font-bold hover:underline">{t('nav.login')}</Link></p>
                 </div>

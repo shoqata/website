@@ -1,11 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, ArrowRight, ShieldCheck, Heart, ArrowLeft, AlertCircle, Chrome, Lock, Eye, EyeOff, RefreshCcw, Key, LogIn } from 'lucide-react';
+import { Mail, ArrowRight, ShieldCheck, Heart, ArrowLeft, AlertCircle, Lock, Eye, EyeOff, RefreshCcw, Key, LogIn } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from '../context/LanguageContext';
 import { useIstPlattformDomain } from '../lib/useIstPlattformDomain';
 import Konstellation from './platform/Konstellation';
+import Wortmarke from './platform/Wortmarke';
 
 // Supabase Auth (replaces Firebase Auth)
 import { 
@@ -13,8 +14,6 @@ import {
   sendSignInLinkToEmail,
   isSignInWithEmailLink,
   signInWithEmailLink,
-  GoogleAuthProvider,
-  signInWithPopup,
   signInWithEmailAndPassword,
   sendPasswordResetEmail
 } from '../services/firebase';
@@ -138,18 +137,6 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    setError(null);
-    setIsLoading(true);
-    const provider = new GoogleAuthProvider();
-    try {
-      await signInWithPopup(auth, provider);
-      navigate('/dashboard');
-    } catch (err: any) {
-      handleAuthError(err);
-    }
-  };
-
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-[#faf9f6]">
       {/* Linke Haelfte.
@@ -169,11 +156,9 @@ const LoginPage: React.FC = () => {
                style={{ background: 'radial-gradient(ellipse 70% 60% at 50% 45%, #06105a 0%, #00052e 72%)' }} />
           <Konstellation className="absolute inset-0 w-full h-full pointer-events-none opacity-80" />
           <div className="relative z-10 max-w-md text-white">
-            <p className="uppercase mb-6"
-               style={{ fontFamily: "'IBM Plex Mono', ui-monospace, monospace", fontSize: 11,
-                        letterSpacing: '0.085em', color: '#6b6b83' }}>
-              unityhub
-            </p>
+            <div className="mb-8">
+              <Wortmarke size={34} grund="#00052e" />
+            </div>
             <h1 className="font-light mb-5"
                 style={{ fontSize: 44, lineHeight: 1.2, letterSpacing: '-0.019em' }}>
               {t('plat.login_hero')}
@@ -343,18 +328,6 @@ const LoginPage: React.FC = () => {
                     </form>
                   )}
 
-                  <div className="relative py-6">
-                    <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-stone-100"></div></div>
-                    <div className="relative flex justify-center text-[10px] uppercase tracking-[0.4em] font-bold text-stone-300 bg-[#faf9f6] px-6">{t('common.or')}</div>
-                  </div>
-
-                  <button 
-                    onClick={handleGoogleLogin}
-                    disabled={isLoading}
-                    className="w-full flex items-center justify-center gap-4 py-5 bg-white border-2 border-stone-100 rounded-2xl font-bold text-stone-700 hover:bg-stone-50 transition-all shadow-sm hover:shadow-md disabled:opacity-50"
-                  >
-                    <Chrome size={22} className="text-blue-500" /> {t('login.google')}
-                  </button>
                 </div>
               </motion.div>
             ) : step === 'FORGOT' ? (
