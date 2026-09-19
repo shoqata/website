@@ -66,6 +66,24 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [viewInvoice, setViewInvoice] = useState<Payment | null>(null);
   const [neighborhood, setNeighborhood] = useState<Neighborhood | null>(null);
   const [neighbors, setNeighbors] = useState<UserProfile[]>([]);
+  // Der Puls kommt vom Server, nicht aus den geladenen Nachbarn.
+  //
+  // Gemessen: die Zeilenregel auf users gibt einem Mitglied ohne
+  // Verantwortung nur die eigene Zeile heraus. Die Quote wurde aus genau
+  // diesen Zeilen gerechnet und stand deshalb auf 1 von 1, obwohl die
+  // Nachbarschaft 41 Mitglieder hat. Die Regel ist richtig -- falsch war,
+  // eine Gemeinschaftskennzahl aus Datensaetzen zu rechnen, die es gar
+  // nicht zu sehen gibt. nachbarschaft_puls() gibt nur Zahlen heraus, nie
+  // wer bezahlt hat.
+  // Steht hier und nicht weiter unten: der Effekt, der den Puls laedt,
+  // braucht das Jahr. Eine Konstante unterhalb ihrer Verwendung laeuft nur
+  // deshalb, weil Effekte nach dem Rendern ausgefuehrt werden -- eine Falle
+  // fuer den Naechsten, der etwas verschiebt.
+  const beitragsjahr = new Date().getFullYear();
+
+  const [puls, setPuls] = useState<{
+    mitglieder: number; aktiv: number; bezahlt: number; offen: number; ohne_rechnung: number;
+  } | null>(null);
   const [manager, setManager] = useState<UserProfile | null>(null);
   // Weitere Verantwortliche derselben Nachbarschaft -- es koennen mehrere
   // hinterlegt sein, die Karte zeigte bisher nur eine Person.
@@ -153,6 +171,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
     // 4. Neighborhood & Neighbors
     if (user.neighborhoodId) {
+        (async () => {
+          const { supabase } = await import('../services/supabase-bridge');
+          const { data, error } = await supabase.rpc('nachbarschaft_puls', { p_jahr: beitragsjahr });
+          const zeile = Array.isArray(data) ? data[0] : data;
+          if (!error && zeile) setPuls(zeile);
+        })();
+
         // Fetch Neighborhood Details
         const unsubNeighborhood = onSnapshot(doc(db, 'neighborhoods', user.neighborhoodId), (snap) => {
             if (snap.exists()) setNeighborhood({ id: snap.id, ...snap.data() } as Neighborhood);
@@ -182,7 +207,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     }
 
     return () => { unsubPayments(); unsubInquiries(); };
-  }, [user.id, user.neighborhoodId, user.role]);
+  }, [user.id, user.neighborhoodId, user.role, beitragsjahr]);
 
   // Verantwortliche der eigenen Nachbarschaft und eigene Zustaendigkeit.
   //
@@ -333,7 +358,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       }
   };
 
-  const beitragsjahr = new Date().getFullYear();
 
   // Der Puls rechnete ACTIVE / alle. Gemessen: in jeder der 27 Nachbarschaften
   // sind hundert Prozent ACTIVE -- die Kennzahl war eine Konstante und zeigte
@@ -343,11 +367,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   // "Nicht verrechnet" bleibt als eigener Anteil sichtbar, statt in "offen"
   // aufzugehen: das eine liegt beim Mitglied, das andere beim Verein.
   const stats = useMemo(() => {
-      const total = neighbors.length;
-      const active = neighbors.filter(n => n.membershipStatus === 'ACTIVE').length;
-      const bezahlt = neighbors.filter(n => feeStateFor(n.id!, nachbarschaftsZahlungen, beitragsjahr) === 'PAID').length;
-      const offen = neighbors.filter(n => feeStateFor(n.id!, nachbarschaftsZahlungen, beitragsjahr) === 'OPEN').length;
-      const nichtVerrechnet = Math.max(0, total - bezahlt - offen);
+      // Vorrang hat der Server. Antwortet er nicht, wird wie bisher aus den
+      // geladenen Nachbarn gerechnet -- fuer Vorstand und verantwortliche
+      // Personen ergibt das dasselbe, weil sie ohnehin alle Zeilen sehen.
+      const total = puls ? Number(puls.mitglieder) : neighbors.length;
+      const active = puls ? Number(puls.aktiv)
+                          : neighbors.filter(n => n.membershipStatus === 'ACTIVE').length;
+      const bezahlt = puls ? Number(puls.bezahlt)
+                           : neighbors.filter(n => feeStateFor(n.id!, nachbarschaftsZahlungen, beitragsjahr) === 'PAID').length;
+      const offen = puls ? Number(puls.offen)
+                         : neighbors.filter(n => feeStateFor(n.id!, nachbarschaftsZahlungen, beitragsjahr) === 'OPEN').length;
+      const nichtVerrechnet = puls ? Number(puls.ohne_rechnung)
+                                   : Math.max(0, total - bezahlt - offen);
       const rate = total > 0 ? Math.round((bezahlt / total) * 100) : 0;
       return {
         total, active, bezahlt, offen, nichtVerrechnet, rate,
@@ -357,7 +388,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           { name: 'Nicht verrechnet', value: nichtVerrechnet, color: '#e7e5e4' },
         ].filter(d => d.value > 0),
       };
-  }, [neighbors, nachbarschaftsZahlungen, beitragsjahr]);
+  }, [puls, neighbors, nachbarschaftsZahlungen, beitragsjahr]);
 
   const groupedNeighbors = useMemo(() => {
       const families: Record<string, UserProfile[]> = {};
@@ -709,9 +740,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                         <div className="flex-1 space-y-2.5">
                             <div>
                                 <p className="text-2xl font-bold text-stone-900">{stats.bezahlt} <span className="text-sm font-normal text-stone-400">/ {stats.total}</span></p>
-                                {/* Einem gewoehnlichen Mitglied gibt die Leseregel nur die
-                                    eigene Zeile heraus. Eine Quote ueber eine Person als
-                                    Gemeinschaftskennzahl auszugeben waere irrefuehrend. */}
+                                {/* Der Rueckfall auf eine einzelne Person greift nur,
+                                    wenn der Server nicht antwortet -- dann waere eine
+                                    Quote ueber eine Person irrefuehrend. */}
                                 <p className="text-xs text-stone-500 font-medium">
                                     {stats.total > 1 ? t('dash.community.paid_of', { year: beitragsjahr })
                                                      : t('dash.community.own_fee', { year: beitragsjahr })}
