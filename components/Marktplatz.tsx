@@ -29,8 +29,12 @@ const Marktplatz: React.FC<{
   // Nur der Betreiber darf umschalten; ohne diesen Rueckruf ist die Liste
   // reine Anzeige.
   umschalten?: (modul: string, zustand: string) => Promise<void>;
+  // Welche Zustaende angeboten werden. Der Verein bucht an und aus;
+  // GESPERRT setzt und loest nur der Betreiber -- sonst waere eine Sperre
+  // eine Bitte.
+  zustaende?: readonly string[];
   dunkel?: boolean;
-}> = ({ verein, umschalten, dunkel = false }) => {
+}> = ({ verein, umschalten, zustaende = ['AN','AUS','GESPERRT'], dunkel = false }) => {
   const { t } = useTranslation();
   const [zeilen, setZeilen] = useState<Modulzeile[]>([]);
   const [laedt, setLaedt] = useState(true);
@@ -145,9 +149,10 @@ const Marktplatz: React.FC<{
                   )}
                 </div>
 
-                {umschalten && !m.ist_kern && !eingestellt && (
+                {umschalten && !m.ist_kern && !eingestellt
+                  && !(gesperrt && !zustaende.includes('GESPERRT')) && (
                   <div className="flex gap-1.5 shrink-0">
-                    {(['AN','AUS','GESPERRT'] as const).map(z => (
+                    {zustaende.map(z => (
                       <button key={z} onClick={() => schalten(m, z)}
                               disabled={arbeitet === m.schluessel || m.zustand === z}
                               className={`px-2.5 py-1 rounded text-[9px] font-bold uppercase tracking-widest transition-colors disabled:opacity-100 ${
@@ -163,6 +168,9 @@ const Marktplatz: React.FC<{
                   </div>
                 )}
 
+                {gesperrt && !zustaende.includes('GESPERRT') && (
+                  <span className="text-[10px] text-rose-400 shrink-0">{t('markt.gesperrt_hinweis')}</span>
+                )}
                 {!umschalten && m.aktiv && !m.ist_kern && (
                   <Check size={14} className="text-emerald-500 shrink-0" />
                 )}
@@ -172,6 +180,9 @@ const Marktplatz: React.FC<{
         })}
       </div>
 
+      {umschalten && !zustaende.includes('GESPERRT') && (
+        <p className={`text-[11px] ${F.marke} pt-2`}>{t('markt.selbst_buchen_hinweis')}</p>
+      )}
       {!umschalten && (
         <p className={`text-[11px] ${F.marke} pt-2`}>{t('markt.nur_betreiber')}</p>
       )}

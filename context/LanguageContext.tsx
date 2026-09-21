@@ -573,6 +573,8 @@ const translations: Translations = {
   'plat.bild_s6': { de: 'Timo Verhoeven', en: 'Timo Verhoeven', sq: 'Endrit Veseli' },
   'plat.bild_s7': { de: 'Sara Verhoeven', en: 'Sara Verhoeven', sq: 'Rina Veseli' },
   'set.modules_verschoben': { de: 'Module werden im Marktplatz verwaltet — dort sieht man, was aktiv ist und was es gibt.', en: 'Modules are managed in the marketplace — it shows what is active and what is available.', sq: 'Modulet menaxhohen në Treg — atje shihet çfarë është aktive dhe çfarë ofrohet.' },
+  'markt.gesperrt_hinweis': { de: 'Gesperrt — bitte beim Betreiber melden', en: 'Locked — please contact the operator', sq: 'Bllokuar — kontaktoni operatorin' },
+  'markt.selbst_buchen_hinweis': { de: 'Sie buchen selbst. Kostenpflichtige Module werden mit der nächsten Jahresrechnung verrechnet.', en: 'You book these yourself. Paid modules are billed with the next annual invoice.', sq: 'Ju i rezervoni vetë. Modulet me pagesë faturohen me faturën e ardhshme vjetore.' },
   'markt.titel': { de: 'Marktplatz', en: 'Marketplace', sq: 'Tregu' },
   'markt.laedt': { de: 'Module werden geladen …', en: 'Loading modules …', sq: 'Duke ngarkuar modulet …' },
   'markt.kern': { de: 'Kern', en: 'Core', sq: 'Bazë' },
