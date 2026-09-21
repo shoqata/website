@@ -625,7 +625,7 @@ const translations: Translations = {
 
   'legal.empty': { en: 'No content has been published yet.', de: 'Es wurde noch kein Inhalt veröffentlicht.', sq: 'Ende nuk është publikuar asnjë përmbajtje.' },
 
-  'live.header.badge': { en: 'Koretini Live', de: 'Koretini Live', sq: 'Koretini Live' },
+  'live.header.badge': { en: 'Village life', de: 'Dorfleben', sq: 'Jeta e fshatit' },
   'live.empty': { en: 'No events scheduled yet.', de: 'Zurzeit sind keine Veranstaltungen geplant.', sq: 'Ende nuk ka ngjarje të planifikuara.' },
   'live.contact': { en: 'Contact us', de: 'Kontaktieren Sie uns', sq: 'Na kontaktoni' },
 
@@ -652,7 +652,7 @@ const translations: Translations = {
   'nav.news.desc': { en: 'Updates from Koretin and the Diaspora.', de: 'Updates aus Koretin und der Diaspora.', sq: 'Lajme nga Koretini dhe Diaspora.' },
   'nav.events.title': { en: 'Events & Live', de: 'Events & Live', sq: 'Ngjarjet & Live' },
   'nav.events.desc': { en: 'Join community gatherings and projects.', de: 'Nimm an Treffen und Projekten teil.', sq: 'Bashkohuni në tubime dhe projekte.' },
-  'nav.live': { en: 'Koretini Live', de: 'Koretini Live', sq: 'Koretini Live' },
+  'nav.live': { en: 'Village life', de: 'Dorfleben', sq: 'Jeta e fshatit' },
   'nav.dashboard': { en: 'Dashboard', de: 'Dashboard', sq: 'Paneli' },
   'nav.admin': { en: 'Admin', de: 'Admin', sq: 'Admin' },
   'nav.logout': { en: 'Logout', de: 'Abmelden', sq: 'Dilni' },
