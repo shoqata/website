@@ -25,6 +25,7 @@ import {
   Blocks,
 } from 'lucide-react';
 import { db, auth } from '../services/firebase';
+import { supabase } from '../services/supabase-bridge';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, createTenant, setTenantAdmin, startTenantSupport, endTenantSupport } from '@/services/supabase-bridge';
 import { Tenant } from '../types';
 import SuperAdminTenantDialog from './SuperAdminTenantDialog';
@@ -39,6 +40,10 @@ const SuperAdminDashboard: React.FC<{ user?: any }> = ({ user }) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'CRM' | 'FINANCES' | 'MODULE' | 'CONFIG'>('OVERVIEW');
   const [tenants, setTenants] = useState<Tenant[]>([]);
+  // Die Meta-App. Nur Nummer und Rueckruf-Adresse -- das App-Geheimnis
+  // gehoert in die Umgebung der Funktion meta-oauth und nie hierher.
+  const [metaApp, setMetaApp] = useState<{ id: string; ziel: string }>({ id: '', ziel: '' });
+  const [metaSpeichert, setMetaSpeichert] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [leads, setLeads] = useState<any[]>([]);
@@ -70,6 +75,12 @@ const SuperAdminDashboard: React.FC<{ user?: any }> = ({ user }) => {
   };
 
   useEffect(() => {
+    (async () => {
+      const { data } = await supabase.rpc('plattform_geheimnisse');
+      const w = (k: string) => (data || []).find((r: any) => r.schluessel === k)?.wert || '';
+      setMetaApp({ id: w('meta_app_id'), ziel: w('meta_redirect_uri') });
+    })();
+
     const q = query(collection(db, 'tenants'), orderBy('createdAt', 'desc'));
     const unsub = onSnapshot(q, (snap) => {
       setTenants(snap.docs.map(d => ({ id: d.id, ...d.data() } as Tenant)));
@@ -215,6 +226,22 @@ const SuperAdminDashboard: React.FC<{ user?: any }> = ({ user }) => {
       } catch (e: any) {
           console.error('[SuperAdmin] Verein anlegen fehlgeschlagen:', e);
           showAlert({ type: 'error', message: `Anlegen fehlgeschlagen: ${e?.message || e?.code || 'unbekannter Fehler'}` });
+      }
+  };
+
+  const metaSpeichern = async () => {
+      setMetaSpeichert(true);
+      try {
+          for (const [k, v] of [['meta_app_id', metaApp.id], ['meta_redirect_uri', metaApp.ziel]]) {
+              const { error } = await supabase.rpc('plattform_geheimnis_setzen',
+                { p_schluessel: k, p_wert: v });
+              if (error) throw error;
+          }
+          showAlert({ type: 'success', message: 'Meta-App gespeichert.' });
+      } catch (e: any) {
+          showAlert({ type: 'error', message: e?.message || 'Speichern fehlgeschlagen.' });
+      } finally {
+          setMetaSpeichert(false);
       }
   };
 
@@ -364,6 +391,39 @@ const SuperAdminDashboard: React.FC<{ user?: any }> = ({ user }) => {
                                   </div>
                               </div>
                               <button className="w-full bg-white text-stone-900 py-3 rounded-xl font-bold">{t('sa.update_pricing')}</button>
+                          </div>
+
+                          <div className="bg-white/5 border border-white/10 p-8 rounded-3xl space-y-6 col-span-2">
+                              <div>
+                                  <h3 className="font-bold flex items-center gap-2"><Blocks size={18}/> Meta-App für Facebook und Instagram</h3>
+                                  <p className="text-xs text-stone-400 mt-2 leading-relaxed max-w-3xl">
+                                      Die App-Nummer steht offen im Anmeldelink und ist kein Geheimnis. Das
+                                      <strong className="text-stone-300"> App-Geheimnis gehört nicht hierher</strong> — es wird als
+                                      <code className="mx-1 text-stone-300">META_APP_SECRET</code> in der Umgebung der Funktion
+                                      <code className="mx-1 text-stone-300">meta-oauth</code> gesetzt und geht nie durch den Browser.
+                                  </p>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div>
+                                      <label className="text-xs font-bold text-stone-400 block mb-1">App-Nummer (client_id)</label>
+                                      <input value={metaApp.id} onChange={e => setMetaApp({ ...metaApp, id: e.target.value })}
+                                             placeholder="1234567890123456"
+                                             className="w-full bg-stone-900 border border-white/10 p-3 rounded-xl text-white outline-none font-mono text-sm" />
+                                  </div>
+                                  <div>
+                                      <label className="text-xs font-bold text-stone-400 block mb-1">Rückruf-Adresse (OAuth Redirect URI)</label>
+                                      <input value={metaApp.ziel} onChange={e => setMetaApp({ ...metaApp, ziel: e.target.value })}
+                                             className="w-full bg-stone-900 border border-white/10 p-3 rounded-xl text-white outline-none font-mono text-xs" />
+                                  </div>
+                              </div>
+                              <p className="text-[11px] text-stone-500 leading-relaxed">
+                                  Diese Adresse muss in der Meta-App unter „Gültige OAuth-Redirect-URIs" wortgleich eingetragen sein,
+                                  sonst weist Meta die Anmeldung ab.
+                              </p>
+                              <button onClick={metaSpeichern} disabled={metaSpeichert}
+                                      className="bg-white text-stone-900 px-8 py-3 rounded-xl font-bold disabled:opacity-50">
+                                  {metaSpeichert ? 'Speichert …' : 'Meta-App speichern'}
+                              </button>
                           </div>
 
                           <div className="bg-white/5 border border-white/10 p-8 rounded-3xl space-y-6">
