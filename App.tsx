@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useWerBinIch, type WerBinIch } from './lib/useWerBinIch';
 const SpendenSeite = React.lazy(() => import('./components/SpendenSeite'));
 import { needsProfileSetup } from './lib/memberQuality';
 import { useIstPlattformDomain } from './lib/useIstPlattformDomain';
@@ -117,10 +118,14 @@ const PageLoader: React.FC = () => (
 // diese Liste steuert nur, was die Anwendung anzeigt.
 const ADMIN_EMAILS = ['burim@dervishi.ch'];
 
-// Es gab hier zwei Listen fuer dieselbe Sache, und die zweite stand nach der
-// Rollentrennung noch auf der alten Adresse -- der Betreiberbereich waere damit
-// dem falschen Konto angeboten worden. Jetzt ist es eine.
-const PLATFORM_EMAILS = ADMIN_EMAILS;
+// Wer Plattformbetreiber ist, entscheidet inzwischen die Datenbank
+// (wer_bin_ich / platform_admins). Die frueher hier gefuehrte zweite Liste
+// ist entfallen: sie stand nach der Rollentrennung noch auf der alten
+// Adresse, und ausserdem galt jede Vereinsrolle SUPER_ADMIN als Betreiber
+// -- damit landete ein Vereinsadministrator im Betreiberbereich.
+//
+// ADMIN_EMAILS bleibt: sie oeffnet dem Betreiber die Vereinsverwaltung fuer
+// die Betreuung. Das ist eine andere Frage als der Betreiberbereich.
 
 const AuthRedirectHandler: React.FC<{ user: UserProfile | null, children: React.ReactNode }> = ({ user, children }) => {
   const location = useLocation();
@@ -128,6 +133,11 @@ const AuthRedirectHandler: React.FC<{ user: UserProfile | null, children: React.
     // Der Betreiber der Plattform gehoert in seinen Bereich, nicht auf ein
     // Mitglieder-Dashboard: er ist in keinem Verein Mitglied, und die Ansicht
     // zeigte ihm folgerichtig einen Beitrag von 0 und "Kein Manager".
+    // Wohin nach der Anmeldung? Die Liste im Quelltext entscheidet das
+    // nicht mehr -- /super-admin prueft selbst und weist ab, wer nicht
+    // hingehoert. Der Betreiber kommt ueber den Verweis in der Kopfzeile
+    // hin; ihn hier anhand einer Adresse vorzusortieren war die zweite
+    // Stelle, an der dieselbe Frage anders beantwortet wurde.
     if (ADMIN_EMAILS.includes(user.email)) {
       return <Navigate to="/super-admin" replace />;
     }
@@ -140,13 +150,56 @@ const AuthRedirectHandler: React.FC<{ user: UserProfile | null, children: React.
   return <>{children}</>;
 };
 
+// Wer sich auf der Betreiber-Domain anmeldet, aber zu einem Verein
+// gehoert, steht vor der falschen Tuer. Frueher bekam er den
+// Betreiberbereich zu sehen -- die Datenbank gab ihm dort nichts heraus,
+// die Ansicht war also leer und wirkte kaputt. Jetzt steht dort, wohin er
+// gehoert.
+const FalscheTuer: React.FC<{ wer: WerBinIch }> = ({ wer }) => {
+  const { t } = useTranslation();
+  const ziel = wer.vereinsdomain ? `https://${wer.vereinsdomain}` : null;
+  return (
+    <div className="min-h-screen flex items-center justify-center px-6"
+         style={{ background: 'var(--accent)' }}>
+      <div className="max-w-md text-center">
+        <p className="uppercase mb-4"
+           style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11,
+                    letterSpacing: '.14em', color: 'var(--kontrast)', opacity: .5 }}>
+          {t('tuer.marke')}
+        </p>
+        <h1 className="text-3xl font-light mb-4"
+            style={{ color: 'var(--kontrast)', letterSpacing: '-.02em' }}>
+          {t('tuer.titel')}
+        </h1>
+        <p className="text-sm leading-relaxed mb-8" style={{ color: 'var(--kontrast)', opacity: .6 }}>
+          {wer.vereinsname
+            ? t('tuer.text').replace('{verein}', wer.vereinsname)
+            : t('tuer.text_ohne')}
+        </p>
+        {ziel && (
+          <a href={ziel}
+             className="knopf-primaer inline-flex items-center gap-2 px-6 py-3 text-white rounded-lg text-xs font-bold">
+            {t('tuer.hin').replace('{domain}', wer.vereinsdomain!)}
+          </a>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const ProtectedRoute: React.FC<{ user: UserProfile | null, children: React.ReactNode, adminOnly?: boolean, superAdminOnly?: boolean }> = ({ user, children, adminOnly, superAdminOnly }) => {
+  const wer = useWerBinIch(!!user);
   if (!user) return <Navigate to="/login" replace />;
-  
+
   const isAdmin = user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN || ADMIN_EMAILS.includes(user.email);
-  const isSuper = user.role === UserRole.SUPER_ADMIN || PLATFORM_EMAILS.includes(user.email);
-  
-  if (superAdminOnly && !isSuper) return <Navigate to="/" replace />;
+
+  // Den Betreiberbereich betritt nur, wen die Datenbank als Betreiber
+  // fuehrt. Frueher genuegte die Vereinsrolle SUPER_ADMIN -- zwei ganz
+  // verschiedene Dinge, die hier verwechselt wurden.
+  if (superAdminOnly) {
+    if (wer === null) return <PageLoader />;
+    if (!wer.ist_betreiber) return <FalscheTuer wer={wer} />;
+  }
   if (isAdmin) return <>{children}</>;
   
   if (needsProfileSetup(user) && adminOnly === undefined) return <Navigate to="/setup-profile" replace />;
@@ -371,6 +424,10 @@ const AppContent: React.FC = () => {
                         Ansicht zeigte ihm folgerichtig einen Beitrag von 0 und
                         "Kein Manager" -- richtig gerechnet, aber sinnlos. */}
                     <Route path="/dashboard" element={
+                        // Auf der Betreiber-Domain gibt es kein Mitglieder-
+                        // Dashboard. /super-admin prueft selbst, wer dort
+                        // hingehoert, und weist Vereinsleute an ihre eigene
+                        // Adresse weiter.
                         istPlattformDomain ? <Navigate to="/super-admin" replace /> :
                         <ProtectedRoute user={user}>
                             {user?.role === UserRole.BOARD ? <BoardDashboard user={user} /> : <Dashboard user={user!} />}
@@ -402,6 +459,10 @@ const AppContent: React.FC = () => {
 };
 
 const Navigation: React.FC<any> = ({ user, branding, systemSettings }) => {
+  // Derselbe Massstab wie bei der Route: nur wer laut Datenbank Betreiber
+  // ist, bekommt den Verweis. Ihn jedem Vereins-SUPER_ADMIN anzubieten
+  // fuehrte auf eine Seite, die ihm nichts zeigt.
+  const werIch = useWerBinIch(!!user);
   const { t, loc, setLanguage, language } = useTranslation();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -451,7 +512,7 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings }) => {
                 <>
                    <Link to="/dashboard" className="text-sm font-bold text-stone-500 hover:text-stone-900">{t('nav.dashboard')}</Link>
                    {(user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN || ADMIN_EMAILS.includes(user.email)) && ( <Link to="/admin" className="w-9 h-9 bg-stone-900 text-white rounded-xl flex items-center justify-center shadow-lg"><ShieldCheck size={16} /></Link> )}
-                   {(user.role === UserRole.SUPER_ADMIN || PLATFORM_EMAILS.includes(user.email)) && (
+                   {werIch?.ist_betreiber && (
                      <Link to="/super-admin" title={t('nav.platform')} className="w-9 h-9 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg hover:bg-rose-600 transition-colors">
                        <Building2 size={16} />
                      </Link>
