@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import Marktplatz from './Marktplatz';
+import { supabase } from '../services/supabase-bridge';
 import { motion } from 'framer-motion';
-import { Building2, X, Save, Loader2, Receipt, Globe, Users, ShieldCheck } from 'lucide-react';
+import { Building2, X, Save, Loader2, Receipt, Globe, Users, ShieldCheck, Blocks } from 'lucide-react';
 import { db } from '../services/firebase';
 import { doc, updateDoc, addDoc, collection } from '@/services/supabase-bridge';
 import { Tenant } from '../types';
@@ -158,6 +160,24 @@ const SuperAdminTenantDialog: React.FC<Props> = ({ tenant, domains, memberCount,
                 {t('sa.support_start')}
               </button>
             )}
+          </div>
+
+          {/* Module dieses Vereins. Dieselbe Komponente wie in der
+              Vereinsverwaltung -- nur mit Schaltern, weil hier der Betreiber
+              sitzt. Eine zweite, fast gleiche Maske wuerde auseinanderlaufen. */}
+          <div className="border-t border-stone-100 pt-6">
+            <h4 className="font-bold text-stone-900 mb-4 flex items-center gap-2">
+              <Blocks size={16} className="text-primary" /> {t('markt.titel')}
+            </h4>
+            <Marktplatz
+              verein={tenant.id}
+              umschalten={async (modul, zustand) => {
+                const { error } = await supabase.rpc('modul_umschalten', {
+                  p_verein: tenant.id, p_modul: modul, p_zustand: zustand,
+                });
+                if (error) throw error;
+              }}
+            />
           </div>
 
           <div className="border-t border-stone-100 pt-6">

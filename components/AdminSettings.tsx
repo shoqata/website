@@ -156,28 +156,21 @@ const AdminSettings: React.FC = () => {
                 </div>
             </section>
 
-            {/* Modules */}
+            {/* Die frueheren Modulschalter sind entfallen.
+                Gemessen: sie wurden gespeichert und an keiner einzigen Stelle
+                ausgewertet -- "Events aus" liess die Seite erreichbar und die
+                Daten ueber die Schnittstelle abrufbar. Ein Schalter, der nur
+                die Oberflaeche verbirgt, ist schlimmer als keiner: er
+                behauptet eine Wirkung, die es nicht gibt.
+                Ersetzt durch den Marktplatz, dessen Schalter in den
+                Zeilenregeln sitzt. */}
             <section className="space-y-4">
                 <div className="flex items-center gap-2 mb-2">
                     <LayoutTemplate size={18} className="text-stone-400" />
                     <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500">{t('set.modules')}</h3>
                 </div>
-                <div className="bg-stone-50 p-6 rounded-3xl border border-stone-100 space-y-4">
-                    <Toggle 
-                        label={t('set.mod_live')} 
-                        checked={settings.modules.villageLive} 
-                        onChange={v => setSettings({...settings, modules: {...settings.modules, villageLive: v}})} 
-                    />
-                    <Toggle 
-                        label={t('set.mod_events')} 
-                        checked={settings.modules.events} 
-                        onChange={v => setSettings({...settings, modules: {...settings.modules, events: v}})} 
-                    />
-                    <Toggle 
-                        label={t('set.mod_news')} 
-                        checked={settings.modules.news} 
-                        onChange={v => setSettings({...settings, modules: {...settings.modules, news: v}})} 
-                    />
+                <div className="bg-stone-50 p-6 rounded-3xl border border-stone-100">
+                    <p className="text-xs text-stone-500 leading-relaxed">{t('set.modules_verschoben')}</p>
                 </div>
             </section>
 
