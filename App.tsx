@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+const SpendenSeite = React.lazy(() => import('./components/SpendenSeite'));
 import { needsProfileSetup } from './lib/memberQuality';
 import { useIstPlattformDomain } from './lib/useIstPlattformDomain';
 import { useReiterKennzeichen } from './lib/useReiterKennzeichen';
@@ -351,6 +352,10 @@ const AppContent: React.FC = () => {
                     <Route path="/fussball/sponsoren" element={istPlattformDomain ? <Navigate to="/" replace /> : <SponsorPage />} />
                     <Route path="/futsal" element={<Navigate to="/fussball" replace />} />
                     <Route path="/gdpr" element={<LegalPage type="GDPR" />} />
+                    {/* Spenden. Die Zeilenregel sperrt die Daten ohnehin; die Route
+                        faellt zusaetzlich weg, damit kein Verweis auf eine
+                        Seite fuehrt, die nichts annehmen kann. */}
+                    <Route path="/spenden" element={<SpendenSeite />} />
                     <Route path="/privacy" element={<LegalPage type="PRIVACY" />} />
                     <Route path="/login" element={<AuthRedirectHandler user={user}><LoginPage /></AuthRedirectHandler>} />
                     <Route path="/register" element={<AuthRedirectHandler user={user}><RegistrationWizard /></AuthRedirectHandler>} />
