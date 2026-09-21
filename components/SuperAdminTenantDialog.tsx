@@ -173,7 +173,7 @@ const SuperAdminTenantDialog: React.FC<Props> = ({ tenant, domains, memberCount,
               verein={tenant.id}
               umschalten={async (modul, zustand) => {
                 const { error } = await supabase.rpc('modul_umschalten', {
-                  p_verein: tenant.id, p_modul: modul, p_zustand: zustand,
+                  p_modul: modul, p_zustand: zustand, p_verein: tenant.id,
                 });
                 if (error) throw error;
               }}

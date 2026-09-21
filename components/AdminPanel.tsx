@@ -523,7 +523,18 @@ const AdminPanel: React.FC = () => {
                         {activeTab === 'SOCIAL_AI' && <SocialAI />}
                         {activeTab === 'DATA' && <AdminData />}
                         {activeTab === 'STAMMBAUM' && <AdminStammbaum />}
-                        {activeTab === 'MARKTPLATZ' && <Marktplatz />}
+                        {activeTab === 'MARKTPLATZ' && (
+                          <Marktplatz
+                            zustaende={['AN','AUS']}
+                            umschalten={async (modul, zustand) => {
+                              const { supabase } = await import('../services/supabase-bridge');
+                              const { error } = await supabase.rpc('modul_umschalten', {
+                                p_modul: modul, p_zustand: zustand,   // ohne Verein = der eigene
+                              });
+                              if (error) throw error;
+                            }}
+                          />
+                        )}
                         {activeTab === 'SETTINGS' && <AdminSettings />}
                         {activeTab === 'BOARD' && <AdminBoard users={users} />}
                         {activeTab === 'COMMUNICATION' && (
