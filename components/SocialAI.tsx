@@ -19,11 +19,14 @@ import {
   Settings,
   Layout,
   Lock,
-  Globe
+  Globe,
+  Link2,
+  Unlink,
+  AlertTriangle
 } from 'lucide-react';
 import { generateSocialMediaContent, analyzeImageAndSuggestPost } from '../services/geminiService';
 import { db } from '../services/firebase';
-import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from '@/services/supabase-bridge';
+import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, supabase } from '@/services/supabase-bridge';
 import { useFeedback } from '../context/FeedbackContext';
 import { useTranslation } from '../context/LanguageContext';
 
@@ -49,6 +52,17 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
   const [scheduledTime, setScheduledTime] = useState<string>('');
   
 
+  // Welche Kanaele verbunden sind. Der Zugriffstoken kommt hier nie an --
+  // social_verbindungen() gibt ihn nicht heraus, und die Tabelle selbst ist
+  // fuer angemeldete Clients gesperrt.
+  const [verbindungen, setVerbindungen] = useState<any[]>([]);
+  const [verbindeGerade, setVerbindeGerade] = useState(false);
+
+  const fbVerbindung = verbindungen.find(v => v.plattform === 'FACEBOOK');
+  const igVerbindung = verbindungen.find(v => v.plattform === 'INSTAGRAM');
+  const kannSenden = verbindungen.some(v => v.zustand === 'AKTIV');
+  const zurWahl = fbVerbindung?.zustand === 'WAEHLEN' ? (fbVerbindung.kandidaten || []) : [];
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -57,8 +71,61 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
       setScheduledPosts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     });
 
+    ladeVerbindungen();
+
+    // Meta schickt den Browser mit ?social=... zurueck. Der Hinweis wird
+    // einmal gezeigt und danach aus der Adresse entfernt, damit er beim
+    // Neuladen nicht wieder auftaucht.
+    const roh = window.location.hash.split('?')[1] || '';
+    const zurueck = new URLSearchParams(roh).get('social');
+    if (zurueck) {
+      const grund = new URLSearchParams(roh).get('grund') || '';
+      showAlert({
+        type: zurueck === 'verbunden' || zurueck === 'nur_facebook' ? 'success' : 'warning',
+        message: t('social.rueck.' + zurueck, { grund }) || grund,
+      });
+      window.location.hash = window.location.hash.split('?')[0];
+    }
+
     return () => unsub();
   }, []);
+
+  const ladeVerbindungen = async () => {
+    const { data, error } = await supabase.rpc('social_verbindungen');
+    if (!error) setVerbindungen(data || []);
+  };
+
+  const verbindenStarten = async () => {
+    setVerbindeGerade(true);
+    try {
+      const { data, error } = await supabase.rpc('social_verbinden_starten', {
+        p_zurueck: window.location.origin + window.location.pathname + '#/admin',
+      });
+      if (error) throw error;
+      window.location.href = data as string;
+    } catch (e: any) {
+      showAlert({ type: 'error', message: e?.message || t('common.error') });
+      setVerbindeGerade(false);
+    }
+  };
+
+  const seiteWaehlen = async (kontoId: string) => {
+    const { error } = await supabase.rpc('social_seite_waehlen', { p_konto_id: kontoId });
+    if (error) { showAlert({ type: 'error', message: error.message }); return; }
+    await ladeVerbindungen();
+    showAlert({ type: 'success', message: t('social.rueck.verbunden') });
+  };
+
+  const trennen = async () => {
+    const ja = await showConfirm({
+      title: t('social.trennen'), message: t('social.trennen_frage'),
+      confirmText: t('social.trennen'), type: 'danger',
+    });
+    if (!ja) return;
+    const { error } = await supabase.rpc('social_trennen', { p_plattform: null });
+    if (error) { showAlert({ type: 'error', message: error.message }); return; }
+    await ladeVerbindungen();
+  };
 
   const handleGenerate = async () => {
     if (!topic && !previewImage) return;
@@ -96,29 +163,55 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
         return;
     }
 
+    // Gesendet wird nur, wenn wirklich ein Kanal verbunden ist. Ohne
+    // Verbindung entsteht ein Entwurf -- und die Meldung sagt das auch.
+    // Bis zum 21.09.2026 stand hier ein "Mock API Call": der Beitrag ging
+    // als PUBLISHED in die Datenbank, die Funktion wartete 1500 ms und
+    // meldete Erfolg, ohne je etwas gesendet zu haben.
+    const sendenJetzt = !isScheduling && kannSenden;
+
+    if (sendenJetzt) {
+        const ja = await showConfirm({
+            title: t('social.publish'),
+            message: t('social.senden_frage', {
+                kanaele: platforms.map(x => x === 'FACEBOOK' ? 'Facebook' : 'Instagram').join(' + '),
+            }),
+            confirmText: t('social.publish'),
+            type: 'primary',
+        });
+        if (!ja) return;
+    }
+
     setIsLoading(true);
     try {
-      await addDoc(collection(db, 'socialmediaposts'), {
+      const { id } = await addDoc(collection(db, 'socialmediaposts'), {
         content,
         platforms,
-        status: isScheduling ? 'SCHEDULED' : 'DRAFT',
+        status: isScheduling ? 'SCHEDULED' : (sendenJetzt ? 'QUEUED' : 'DRAFT'),
         timestamp: serverTimestamp(),
         image: previewImage || null,
         scheduledTime: isScheduling ? scheduledTime : null,
       });
 
+      if (sendenJetzt) {
+        const { error } = await supabase.rpc('social_jetzt_senden', { p_beitrag: id });
+        if (error) throw error;
+      }
+
       showAlert({
           type: 'success',
-          message: isScheduling ? t('social.vorgemerkt') : t('social.gesichert')
+          message: isScheduling ? t('social.vorgemerkt')
+                 : sendenJetzt ? t('social.unterwegs')
+                 : t('social.gesichert')
       });
 
       setContent('');
       setTopic('');
       setPreviewImage(null);
       setScheduledTime('');
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      showAlert({ type: 'error', message: t('common.error') });
+      showAlert({ type: 'error', message: error?.message || t('common.error') });
     } finally {
       setIsLoading(false);
     }
@@ -247,8 +340,8 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
                                         <button onClick={() => togglePlatform('FACEBOOK')} className={`p-2.5 rounded-xl transition-all ${platforms.includes('FACEBOOK') ? 'bg-blue-600 text-white' : 'bg-stone-800 text-stone-500'}`}><Facebook size={18} /></button>
                                         <button onClick={() => togglePlatform('INSTAGRAM')} className={`p-2.5 rounded-xl transition-all ${platforms.includes('INSTAGRAM') ? 'bg-gradient-to-tr from-yellow-500 via-rose-500 to-purple-600 text-white' : 'bg-stone-800 text-stone-500'}`}><Instagram size={18} /></button>
                                     </div>
-                                    <span className="text-[9px] font-bold text-stone-500 bg-white/5 px-2.5 py-1 rounded-full uppercase tracking-widest">
-                                        {t('social.nur_vorbereiten')}
+                                    <span className={`text-[9px] font-bold px-2.5 py-1 rounded-full uppercase tracking-widest ${kannSenden ? 'text-emerald-400 bg-emerald-500/10' : 'text-stone-500 bg-white/5'}`}>
+                                        {kannSenden ? t('social.verbunden_kurz') : t('social.nur_vorbereiten')}
                                     </span>
                                 </div>
                                 <div className="min-h-[150px] bg-white/5 p-6 rounded-2xl border border-white/5 text-stone-300 text-sm leading-relaxed mb-8 whitespace-pre-wrap italic">
@@ -283,7 +376,7 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
                                         </button>
                                     ) : (
                                         <button onClick={() => handlePublish(false)} className="flex-[2] bg-primary text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-rose-600 transition-all shadow-lg shadow-rose-900/20">
-                                            <Send size={18} /> {t('social.sichern')}
+                                            <Send size={18} /> {kannSenden ? t('social.publish') : t('social.sichern')}
                                         </button>
                                     )}
                                 </div>
@@ -321,6 +414,9 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
                                     <div className="flex gap-2 items-center mt-2">
                                         {p.status === 'SCHEDULED' && p.scheduledTime && <span className="text-[8px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded uppercase flex items-center gap-1"><Clock size={8}/> {new Date(p.scheduledTime).toLocaleString()}</span>}
                                         {p.status === 'DRAFT' && <span className="text-[8px] font-bold text-stone-500 bg-stone-100 px-1.5 py-0.5 rounded inline-block uppercase">{t('social.entwurf')}</span>}
+                                        {(p.status === 'QUEUED' || p.status === 'PUBLISHING') && <span className="text-[8px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded uppercase flex items-center gap-1"><RefreshCw size={8} className="animate-spin"/> {t('social.unterwegs_kurz')}</span>}
+                                        {p.status === 'PUBLISHED' && <span className="text-[8px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded inline-block uppercase">{t('ai.autoposted')}</span>}
+                                        {p.status === 'FAILED' && <span title={p.lastError || ''} className="text-[8px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded uppercase flex items-center gap-1"><AlertTriangle size={8}/> {t('social.gescheitert')}</span>}
                                     </div>
                                 </div>
                             </div>
@@ -343,23 +439,90 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
             exit={{ opacity: 0, x: -10 }}
             className="max-w-4xl space-y-8 flex-1 pb-20"
           >
-              {/* Hier standen Felder fuer Seiten-ID und Zugriffstoken sowie ein
-                  Schalter "Automatisches Posten". Alle drei waren wirkungslos --
-                  es gab keinen Aufruf an Meta, den sie haetten steuern koennen.
-                  Ein Eingabefeld, das nichts bewirkt, ist schlimmer als keines:
-                  der Vorstand traegt ein Zugriffstoken ein, glaubt an eine
-                  Verbindung und wundert sich, warum nichts erscheint. */}
-              <div className="bg-white p-10 rounded-[2.5rem] border border-stone-100 shadow-sm">
-                  <div className="flex items-start gap-5">
-                      <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl shrink-0"><Lock size={24}/></div>
-                      <div className="space-y-3">
-                          <h4 className="font-bold text-xl text-stone-900">{t('social.nicht_verbunden')}</h4>
-                          <p className="text-sm text-stone-500 leading-relaxed max-w-2xl">
-                              {t('social.nicht_verbunden_text')}
-                          </p>
-                      </div>
-                  </div>
-              </div>
+              {/* Es gibt hier bewusst kein Feld fuer ein Zugriffstoken mehr.
+                  Ein Token, das ein Mensch in ein Formular tippt, landet im
+                  Browser, im Netzwerkprotokoll und frueher oder spaeter in
+                  einer Sicht, die jemand oeffentlich lesen kann -- genau das
+                  ist im September passiert. Verbunden wird ueber die
+                  Anmeldung bei Facebook; der Token entsteht dabei auf dem
+                  Server und bleibt dort. */}
+
+              {zurWahl.length > 0 ? (
+                <div className="bg-white p-10 rounded-[2.5rem] border border-stone-100 shadow-sm space-y-6">
+                    <div className="flex items-start gap-5">
+                        <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl shrink-0"><Facebook size={24}/></div>
+                        <div className="space-y-2">
+                            <h4 className="font-bold text-xl text-stone-900">{t('social.seite_waehlen')}</h4>
+                            <p className="text-sm text-stone-500 leading-relaxed max-w-2xl">{t('social.seite_waehlen_text')}</p>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {zurWahl.map((k: any) => (
+                            <button key={k.id} onClick={() => seiteWaehlen(k.id)}
+                                className="text-left p-5 rounded-2xl border border-stone-200 hover:border-primary/40 hover:bg-stone-50 transition-all">
+                                <p className="font-bold text-stone-900 text-sm">{k.name}</p>
+                                <p className="text-[10px] text-stone-400 font-mono mt-1">{k.id}</p>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+              ) : kannSenden ? (
+                <div className="bg-white p-10 rounded-[2.5rem] border border-stone-100 shadow-sm space-y-8">
+                    <div className="flex items-start justify-between gap-6 flex-wrap">
+                        <div className="flex items-start gap-5">
+                            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl shrink-0"><Link2 size={24}/></div>
+                            <div className="space-y-2">
+                                <h4 className="font-bold text-xl text-stone-900">{t('social.verbunden')}</h4>
+                                <p className="text-sm text-stone-500 leading-relaxed max-w-xl">{t('social.verbunden_text')}</p>
+                            </div>
+                        </div>
+                        <button onClick={trennen}
+                            className="px-5 py-2.5 rounded-xl text-xs font-bold text-stone-500 border border-stone-200 hover:border-rose-200 hover:text-rose-600 transition-colors flex items-center gap-2">
+                            <Unlink size={14}/> {t('social.trennen')}
+                        </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {[fbVerbindung, igVerbindung].filter(Boolean).map((v: any) => (
+                            <div key={v.plattform} className="p-5 rounded-2xl bg-stone-50 border border-stone-100 flex items-center gap-4">
+                                <div className={`p-2.5 rounded-xl ${v.plattform === 'FACEBOOK' ? 'bg-blue-50 text-blue-600' : 'bg-rose-50 text-rose-600'}`}>
+                                    {v.plattform === 'FACEBOOK' ? <Facebook size={18}/> : <Instagram size={18}/>}
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="font-bold text-stone-900 text-sm truncate">{v.konto_name || '—'}</p>
+                                    <p className={`text-[10px] font-bold uppercase tracking-widest ${v.zustand === 'AKTIV' ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                        {v.zustand === 'AKTIV' ? t('social.aktiv') : t('social.abgelaufen')}
+                                    </p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {verbindungen.some(v => v.letzter_fehler) && (
+                        <div className="flex gap-3 p-5 rounded-2xl bg-amber-50 border border-amber-100">
+                            <AlertTriangle size={18} className="text-amber-500 shrink-0 mt-0.5"/>
+                            <p className="text-xs text-amber-800 leading-relaxed">
+                                {verbindungen.find(v => v.letzter_fehler)?.letzter_fehler}
+                            </p>
+                        </div>
+                    )}
+                </div>
+              ) : (
+                <div className="bg-white p-10 rounded-[2.5rem] border border-stone-100 shadow-sm space-y-8">
+                    <div className="flex items-start gap-5">
+                        <div className="p-3 bg-stone-100 text-stone-500 rounded-2xl shrink-0"><Lock size={24}/></div>
+                        <div className="space-y-3">
+                            <h4 className="font-bold text-xl text-stone-900">{t('social.nicht_verbunden')}</h4>
+                            <p className="text-sm text-stone-500 leading-relaxed max-w-2xl">{t('social.nicht_verbunden_text')}</p>
+                        </div>
+                    </div>
+                    <button onClick={verbindenStarten} disabled={verbindeGerade}
+                        className="bg-[#1877F2] text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-3 hover:bg-[#0f5fce] transition-colors disabled:opacity-50">
+                        {verbindeGerade ? <RefreshCw size={18} className="animate-spin"/> : <Facebook size={18}/>}
+                        {t('social.verbinden')}
+                    </button>
+                </div>
+              )}
 
               <div className="bg-white p-10 rounded-[2.5rem] border border-stone-100 shadow-sm space-y-6">
                   <h4 className="font-bold text-stone-900 flex items-center gap-2">
