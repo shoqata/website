@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useModule } from '../lib/useModule';
 import Marktplatz from './Marktplatz';
 import AdminStammbaum from './AdminStammbaum';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -73,6 +74,7 @@ const AdminPanel: React.FC = () => {
   const { showConfirm, showAlert, showPrompt } = useFeedback();
   
   const [activeTab, setActiveTab] = useState<AdminTabId>('ANALYTICS');
+  const { aktiv: modulAktiv } = useModule();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -149,6 +151,17 @@ const AdminPanel: React.FC = () => {
           return matchSearch && matchStatus && matchRole;
       });
   }, [users, search, statusFilter, roleFilter]);
+
+  // Welcher Reiter gehoert zu welchem Modul. Was hier nicht steht, gehoert
+  // zum Kern und bleibt immer sichtbar.
+  const modulVonReiter: Partial<Record<AdminTabId, string>> = {
+    STAMMBAUM: 'STAMMBAUM',
+    ACCOUNTING: 'BUCHHALTUNG',
+    EXPENSES: 'BUCHHALTUNG',
+    EVENTS: 'ANLAESSE',
+    NEWS: 'NEUIGKEITEN',
+    SOCIAL_AI: 'SOCIAL',
+  };
 
   const navGroups: NavGroup[] = [
       {
@@ -378,7 +391,12 @@ const AdminPanel: React.FC = () => {
                   <div key={idx}>
                       <h3 className="px-4 text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-2">{group.title}</h3>
                       <div className="space-y-1">
-                          {group.items.map(item => (
+                          {group.items
+                            .filter(item => {
+                              const m = modulVonReiter[item.id];
+                              return !m || modulAktiv(m);
+                            })
+                            .map(item => (
                               <button key={item.id} onClick={() => { setActiveTab(item.id); setSelectedNeighborhoodId(null); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === item.id ? 'bg-primary/5 text-primary border-r-4 border-primary shadow-sm' : 'text-stone-500 hover:bg-stone-50 hover:text-stone-900'}`}>
                                   {item.icon}<span className="flex-1 text-left">{item.label}</span>
                                   {item.badge !== undefined && <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${item.id === 'DATA_QUALITY' ? 'bg-amber-500 text-white' : 'bg-red-500 text-white'}`}>{item.badge}</span>}

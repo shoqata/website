@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import SuperAdminModule from './SuperAdminModule';
 import { AnimatePresence } from 'framer-motion';
 import { useTranslation } from '../context/LanguageContext';
 import { 
@@ -20,7 +21,8 @@ import {
   Bell,
   Mail,
   Trash2,
-  ArrowRight
+  ArrowRight,
+  Blocks,
 } from 'lucide-react';
 import { db, auth } from '../services/firebase';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, createTenant, startTenantSupport, endTenantSupport } from '@/services/supabase-bridge';
@@ -35,7 +37,7 @@ const SuperAdminDashboard: React.FC<{ user?: any }> = ({ user }) => {
   const { t } = useTranslation();
   const { showAlert, showPrompt } = useFeedback();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'CRM' | 'FINANCES' | 'CONFIG'>('OVERVIEW');
+  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'CRM' | 'FINANCES' | 'MODULE' | 'CONFIG'>('OVERVIEW');
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -204,6 +206,7 @@ const SuperAdminDashboard: React.FC<{ user?: any }> = ({ user }) => {
   // Render Sub-Views
   const renderContent = () => {
       switch(activeTab) {
+        case 'MODULE': return <SuperAdminModule />;
           case 'CRM':
               return (
                   <div className="space-y-6">
@@ -449,6 +452,9 @@ const SuperAdminDashboard: React.FC<{ user?: any }> = ({ user }) => {
                     </button>
                     <button onClick={() => setActiveTab('FINANCES')} className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-3 transition-all ${activeTab === 'FINANCES' ? 'bg-white/10 text-white' : 'text-stone-400 hover:text-white hover:bg-white/5'}`}>
                         <DollarSign size={18} /> {t('sa.finances')}
+                    </button>
+                    <button onClick={() => setActiveTab('MODULE')} className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-3 transition-all ${activeTab === 'MODULE' ? 'bg-white/10 text-white' : 'text-stone-400 hover:text-white hover:bg-white/5'}`}>
+                        <Blocks size={18} /> {t('samod.titel')}
                     </button>
                     <button onClick={() => setActiveTab('CONFIG')} className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-3 transition-all ${activeTab === 'CONFIG' ? 'bg-white/10 text-white' : 'text-stone-400 hover:text-white hover:bg-white/5'}`}>
                         <Settings size={18} /> {t('sa.configuration')}
