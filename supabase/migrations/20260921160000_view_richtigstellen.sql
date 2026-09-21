@@ -1,0 +1,12 @@
+-- Richtigstellung meiner eigenen Aenderung.
+--
+-- Ich hatte security_invoker eingeschaltet. Dadurch laeuft die Sicht als
+-- aufrufende Rolle -- und anon hat auf settings keinerlei Recht. Ergebnis:
+-- die oeffentliche Seite bekam gar nichts mehr, auch keine Zahlangaben.
+--
+-- Hier ist security_invoker AUS richtig: die Sicht ist eine Schranke. Sie
+-- laeuft als Eigentuemer, gibt aber nur heraus, was oeffentlich sein darf --
+-- die Auswahl der Spalten und die Erlaubnisliste auf data sind der Schutz,
+-- nicht die Zeilenregel der Tabelle darunter. Schreibrechte hat anon auf
+-- die Sicht ohnehin keine.
+ALTER VIEW public.public_settings SET (security_invoker = off);
