@@ -9,42 +9,27 @@ import {
   Image as ImageIcon, 
   Facebook, 
   Instagram, 
-  Camera, 
   Upload, 
   Trash2, 
   CheckCircle2,
   Calendar,
   Clock,
   History,
-  MoreHorizontal,
-  Plus,
   Mail,
   Settings,
   Layout,
   Lock,
-  Eye,
-  EyeOff,
-  Zap,
-  Globe,
-  Languages
+  Globe
 } from 'lucide-react';
 import { generateSocialMediaContent, analyzeImageAndSuggestPost } from '../services/geminiService';
 import { db } from '../services/firebase';
-import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, getDoc, setDoc } from '@/services/supabase-bridge';
+import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from '@/services/supabase-bridge';
 import { useFeedback } from '../context/FeedbackContext';
 import { useTranslation } from '../context/LanguageContext';
 
 import { onImageError } from '../lib/imageFallback';
 interface SocialAIProps {
     viewMode?: 'LIST' | 'GRID' | 'KANBAN';
-}
-
-interface SocialConfig {
-    fbPageId: string;
-    fbAccessToken: string;
-    igUserId: string;
-    igAccessToken: string;
-    autoPostingEnabled: boolean;
 }
 
 const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
@@ -63,16 +48,6 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
   const [scheduledPosts, setScheduledPosts] = useState<any[]>([]);
   const [scheduledTime, setScheduledTime] = useState<string>('');
   
-  // Config State
-  const [socialConfig, setSocialConfig] = useState<SocialConfig>({
-      fbPageId: '',
-      fbAccessToken: '',
-      igUserId: '',
-      igAccessToken: '',
-      autoPostingEnabled: false
-  });
-  const [showTokens, setShowTokens] = useState(false);
-  const [isSavingConfig, setIsSavingConfig] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -81,13 +56,6 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
     const unsub = onSnapshot(q, (snap) => {
       setScheduledPosts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     });
-
-    // Load Config
-    const loadConfig = async () => {
-        const snap = await getDoc(doc(db, 'settings', 'social'));
-        if (snap.exists()) setSocialConfig(snap.data() as SocialConfig);
-    };
-    loadConfig();
 
     return () => unsub();
   }, []);
@@ -111,65 +79,39 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
     }
   };
 
-  const handleSaveConfig = async () => {
-      setIsSavingConfig(true);
-      try {
-          await setDoc(doc(db, 'settings', 'social'), socialConfig);
-          showAlert({ type: 'success', message: t('common.success') });
-      } catch (e) {
-          showAlert({ type: 'error', message: t('common.error') });
-      } finally {
-          setIsSavingConfig(false);
-      }
-  };
-
+  // Hier wurde bis zum 21.09.2026 ein Erfolg vorgetaeuscht: der Beitrag ging
+  // als PUBLISHED in die Datenbank, danach wartete die Funktion 1500 ms
+  // ("Mock API Call") und meldete "veroeffentlicht". Gesendet wurde nie
+  // etwas. Solange die Anbindung an Meta fehlt, entstehen hier Entwuerfe und
+  // Vormerkungen -- und die Meldung sagt genau das.
+  //
+  // Ausserdem wurden die Felder autoPosted und scheduledFor geschrieben, die
+  // es in socialmediaposts nicht gibt; die Spalte heisst scheduledTime. Der
+  // einzige gespeicherte Beitrag stand deshalb auf SCHEDULED ohne Termin.
   const handlePublish = async (isScheduling: boolean = false) => {
     if (!content) return;
-    
+
     if (isScheduling && !scheduledTime) {
         showAlert({ type: 'warning', message: t('ai.pick_datetime') });
         return;
     }
 
-    const triggerAutoPost = !isScheduling && socialConfig.autoPostingEnabled && (socialConfig.fbAccessToken || socialConfig.igAccessToken);
-    
-    if (triggerAutoPost) {
-        const confirm = await showConfirm({
-            title: t('social.publish'),
-            message: t('ai.publish_confirm'),
-            confirmText: t('social.publish'),
-            type: 'primary'
-        });
-        if (!confirm) return;
-    }
-
     setIsLoading(true);
     try {
-      // 1. Store in Firebase History
       await addDoc(collection(db, 'socialmediaposts'), {
         content,
         platforms,
-        status: isScheduling ? 'SCHEDULED' : (triggerAutoPost ? 'PUBLISHED' : 'DRAFT'),
+        status: isScheduling ? 'SCHEDULED' : 'DRAFT',
         timestamp: serverTimestamp(),
         image: previewImage || null,
-        autoPosted: triggerAutoPost,
-        scheduledFor: isScheduling ? scheduledTime : null
+        scheduledTime: isScheduling ? scheduledTime : null,
       });
 
-      // 2. Mock API Call for Automated Posting
-      if (triggerAutoPost) {
-          // Meta Graph API Integration would go here
-          await new Promise(r => setTimeout(r, 1500));
-      }
-
-      showAlert({ 
-          type: 'success', 
-          message: isScheduling 
-            ? t('social.schedule') 
-            : (triggerAutoPost ? t('social.publish') : t('social.save_draft')) 
+      showAlert({
+          type: 'success',
+          message: isScheduling ? t('social.vorgemerkt') : t('social.gesichert')
       });
-      
-      // Reset
+
       setContent('');
       setTopic('');
       setPreviewImage(null);
@@ -305,9 +247,9 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
                                         <button onClick={() => togglePlatform('FACEBOOK')} className={`p-2.5 rounded-xl transition-all ${platforms.includes('FACEBOOK') ? 'bg-blue-600 text-white' : 'bg-stone-800 text-stone-500'}`}><Facebook size={18} /></button>
                                         <button onClick={() => togglePlatform('INSTAGRAM')} className={`p-2.5 rounded-xl transition-all ${platforms.includes('INSTAGRAM') ? 'bg-gradient-to-tr from-yellow-500 via-rose-500 to-purple-600 text-white' : 'bg-stone-800 text-stone-500'}`}><Instagram size={18} /></button>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        {socialConfig.autoPostingEnabled && <span className="flex items-center gap-1 text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-full uppercase tracking-widest"><Zap size={10}/> {t('ai.autopost_on')}</span>}
-                                    </div>
+                                    <span className="text-[9px] font-bold text-stone-500 bg-white/5 px-2.5 py-1 rounded-full uppercase tracking-widest">
+                                        {t('social.nur_vorbereiten')}
+                                    </span>
                                 </div>
                                 <div className="min-h-[150px] bg-white/5 p-6 rounded-2xl border border-white/5 text-stone-300 text-sm leading-relaxed mb-8 whitespace-pre-wrap italic">
                                     {content}
@@ -341,7 +283,7 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
                                         </button>
                                     ) : (
                                         <button onClick={() => handlePublish(false)} className="flex-[2] bg-primary text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-rose-600 transition-all shadow-lg shadow-rose-900/20">
-                                            <Send size={18} /> {socialConfig.autoPostingEnabled ? t('social.publish') : t('social.publish')}
+                                            <Send size={18} /> {t('social.sichern')}
                                         </button>
                                     )}
                                 </div>
@@ -377,8 +319,8 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
                                     </div>
                                     <p className="text-xs font-medium text-stone-800 line-clamp-2 italic leading-relaxed">"{p.content}"</p>
                                     <div className="flex gap-2 items-center mt-2">
-                                        {p.status === 'SCHEDULED' && <span className="text-[8px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded uppercase flex items-center gap-1"><Clock size={8}/> {new Date(p.scheduledFor).toLocaleString()}</span>}
-                                        {p.autoPosted && <span className="text-[8px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded inline-block uppercase">{t('ai.autoposted')}</span>}
+                                        {p.status === 'SCHEDULED' && p.scheduledTime && <span className="text-[8px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded uppercase flex items-center gap-1"><Clock size={8}/> {new Date(p.scheduledTime).toLocaleString()}</span>}
+                                        {p.status === 'DRAFT' && <span className="text-[8px] font-bold text-stone-500 bg-stone-100 px-1.5 py-0.5 rounded inline-block uppercase">{t('social.entwurf')}</span>}
                                     </div>
                                 </div>
                             </div>
@@ -401,137 +343,40 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
             exit={{ opacity: 0, x: -10 }}
             className="max-w-4xl space-y-8 flex-1 pb-20"
           >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {/* FACEBOOK CONFIG */}
-                  <div className="bg-white p-8 rounded-[2.5rem] border border-stone-100 shadow-sm space-y-6">
-                      <div className="flex items-center gap-3 mb-4">
-                          <div className="bg-blue-50 text-blue-600 p-3 rounded-2xl"><Facebook size={24}/></div>
-                          <div>
-                              <h4 className="font-bold text-stone-900">{t('social.api.fb.title')}</h4>
-                              <p className="text-xs text-stone-400">{t('ai.meta_settings')}</p>
-                          </div>
-                      </div>
-
-                      <div className="space-y-4">
-                          <div>
-                              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-2 px-1">{t('social.api.id.label')} (Page ID)</label>
-                              <input 
-                                value={socialConfig.fbPageId}
-                                onChange={e => setSocialConfig({...socialConfig, fbPageId: e.target.value})}
-                                className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-mono outline-none" 
-                                placeholder="123456789..."
-                              />
-                          </div>
-                          <div>
-                              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-2 px-1 flex justify-between items-center">
-                                  {t('social.api.token.label')}
-                                  <button onClick={() => setShowTokens(!showTokens)} className="text-primary hover:underline">{showTokens ? <EyeOff size={12}/> : <Eye size={12}/>}</button>
-                              </label>
-                              <input 
-                                type={showTokens ? "text" : "password"}
-                                value={socialConfig.fbAccessToken}
-                                onChange={e => setSocialConfig({...socialConfig, fbAccessToken: e.target.value})}
-                                className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-mono outline-none" 
-                                placeholder="EAAB..."
-                              />
-                          </div>
-                      </div>
-                  </div>
-
-                  {/* INSTAGRAM CONFIG */}
-                  <div className="bg-white p-8 rounded-[2.5rem] border border-stone-100 shadow-sm space-y-6">
-                      <div className="flex items-center gap-3 mb-4">
-                          <div className="bg-rose-50 text-rose-600 p-3 rounded-2xl"><Instagram size={24}/></div>
-                          <div>
-                              <h4 className="font-bold text-stone-900">{t('social.api.ig.title')}</h4>
-                              <p className="text-xs text-stone-400">{t('ai.business_login')}</p>
-                          </div>
-                      </div>
-
-                      <div className="space-y-4">
-                          <div>
-                              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-2 px-1">{t('social.api.id.label')} (IG Business ID)</label>
-                              <input 
-                                value={socialConfig.igUserId}
-                                onChange={e => setSocialConfig({...socialConfig, igUserId: e.target.value})}
-                                className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-mono outline-none" 
-                                placeholder="178414..."
-                              />
-                          </div>
-                          <div>
-                              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-2 px-1">{t('social.api.token.label')}</label>
-                              <input 
-                                type={showTokens ? "text" : "password"}
-                                value={socialConfig.igAccessToken}
-                                onChange={e => setSocialConfig({...socialConfig, igAccessToken: e.target.value})}
-                                className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-mono outline-none" 
-                                placeholder="EAAB..."
-                              />
-                          </div>
-                      </div>
-                  </div>
-              </div>
-
-              {/* GLOBAL AUTOMATION TOGGLE */}
-              <div className="bg-stone-900 text-white p-10 rounded-[3rem] border border-stone-800 shadow-2xl relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/10 to-transparent pointer-events-none" />
-                  
-                  <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
-                      <div className="space-y-2 text-center md:text-left">
-                          <h3 className="text-2xl font-display font-bold italic flex items-center justify-center md:justify-start gap-3">
-                              <Zap className="text-emerald-400" /> {t('social.autopost.label')}
-                          </h3>
-                          <p className="text-stone-400 text-sm max-w-lg leading-relaxed">
-                              {t('social.autopost.desc')}
+              {/* Hier standen Felder fuer Seiten-ID und Zugriffstoken sowie ein
+                  Schalter "Automatisches Posten". Alle drei waren wirkungslos --
+                  es gab keinen Aufruf an Meta, den sie haetten steuern koennen.
+                  Ein Eingabefeld, das nichts bewirkt, ist schlimmer als keines:
+                  der Vorstand traegt ein Zugriffstoken ein, glaubt an eine
+                  Verbindung und wundert sich, warum nichts erscheint. */}
+              <div className="bg-white p-10 rounded-[2.5rem] border border-stone-100 shadow-sm">
+                  <div className="flex items-start gap-5">
+                      <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl shrink-0"><Lock size={24}/></div>
+                      <div className="space-y-3">
+                          <h4 className="font-bold text-xl text-stone-900">{t('social.nicht_verbunden')}</h4>
+                          <p className="text-sm text-stone-500 leading-relaxed max-w-2xl">
+                              {t('social.nicht_verbunden_text')}
                           </p>
                       </div>
-
-                      <div className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10">
-                          <div 
-                              onClick={() => setSocialConfig({...socialConfig, autoPostingEnabled: !socialConfig.autoPostingEnabled})}
-                              className={`w-16 h-8 rounded-full relative cursor-pointer transition-colors ${socialConfig.autoPostingEnabled ? 'bg-emerald-500' : 'bg-stone-700'}`}
-                          >
-                              <motion.div 
-                                  animate={{ x: socialConfig.autoPostingEnabled ? 32 : 4 }}
-                                  className="absolute top-1 w-6 h-6 bg-white rounded-full shadow-lg"
-                              />
-                          </div>
-                          <span className={`text-xs font-bold uppercase tracking-widest ${socialConfig.autoPostingEnabled ? 'text-emerald-400' : 'text-stone-400'}`}>
-                              {socialConfig.autoPostingEnabled ? t('ai.active') : t('ai.inactive')}
-                          </span>
-                      </div>
                   </div>
               </div>
 
-              <div className="flex justify-end pt-4">
-                  <button 
-                    onClick={handleSaveConfig}
-                    disabled={isSavingConfig}
-                    className="bg-stone-900 text-white px-10 py-4 rounded-2xl font-bold flex items-center gap-2 hover:bg-black transition-all shadow-xl disabled:opacity-50"
-                  >
-                      {isSavingConfig ? <RefreshCw size={18} className="animate-spin" /> : <Lock size={18} />} 
-                      {t('common.save_changes')}
-                  </button>
-              </div>
-
-              {/* Info Area */}
-              <div className="bg-blue-50 border border-blue-100 p-8 rounded-3xl flex gap-6 items-start">
-                  <div className="p-3 bg-blue-100 text-blue-600 rounded-2xl"><Globe size={24}/></div>
-                  <div className="space-y-4">
-                      <h5 className="font-bold text-blue-900">{t('ai.instructions')}</h5>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="space-y-2">
-                            <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Deutsch</p>
-                            <p className="text-xs text-blue-700 leading-relaxed">
-                                Um automatisches Posten zu aktivieren, erstelle eine App auf <strong>developers.facebook.com</strong>. Füge die "Graph API" hinzu und generiere ein "Long-lived Token" mit Berechtigungen wie <code>pages_manage_posts</code>.
-                            </p>
-                        </div>
-                        <div className="space-y-2">
-                            <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">English</p>
-                            <p className="text-xs text-blue-700 leading-relaxed">
-                                To enable auto-posting, create an App at <strong>developers.facebook.com</strong>. Add "Graph API" and "Instagram Graph API". Generate a "Long-lived Page Access Token" with <code>pages_manage_posts</code> permissions.
-                            </p>
-                        </div>
+              <div className="bg-white p-10 rounded-[2.5rem] border border-stone-100 shadow-sm space-y-6">
+                  <h4 className="font-bold text-stone-900 flex items-center gap-2">
+                      <CheckCircle2 size={18} className="text-stone-300" /> {t('social.voraussetzung')}
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="flex gap-3">
+                          <div className="bg-blue-50 text-blue-600 p-2.5 rounded-xl h-fit"><Facebook size={18}/></div>
+                          <p className="text-xs text-stone-500 leading-relaxed">{t('social.v1')}</p>
+                      </div>
+                      <div className="flex gap-3">
+                          <div className="bg-rose-50 text-rose-600 p-2.5 rounded-xl h-fit"><Instagram size={18}/></div>
+                          <p className="text-xs text-stone-500 leading-relaxed">{t('social.v2')}</p>
+                      </div>
+                      <div className="flex gap-3">
+                          <div className="bg-stone-100 text-stone-500 p-2.5 rounded-xl h-fit"><Globe size={18}/></div>
+                          <p className="text-xs text-stone-500 leading-relaxed">{t('social.v3')}</p>
                       </div>
                   </div>
               </div>
