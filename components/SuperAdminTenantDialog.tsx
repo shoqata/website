@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Marktplatz from './Marktplatz';
-import { supabase } from '../services/supabase-bridge';
+import { supabase, setTenantAdmin } from '../services/supabase-bridge';
 import { motion } from 'framer-motion';
-import { Building2, X, Save, Loader2, Receipt, Globe, Users, ShieldCheck, Blocks } from 'lucide-react';
+import { Building2, X, Save, Loader2, Receipt, Globe, Users, ShieldCheck, Blocks, KeyRound } from 'lucide-react';
 import { db } from '../services/firebase';
 import { doc, updateDoc, addDoc, collection } from '@/services/supabase-bridge';
 import { Tenant } from '../types';
@@ -30,8 +30,17 @@ const SuperAdminTenantDialog: React.FC<Props> = ({ tenant, domains, memberCount,
   const { showAlert } = useFeedback();
   const [form, setForm] = useState<any>({});
   const [saving, setSaving] = useState(false);
+  // Der Zugang wird genau einmal angezeigt. Deshalb steht er hier im
+  // Zustand und nicht in einer Meldung, die von selbst verschwindet.
+  const [adminMail, setAdminMail] = useState('');
+  const [adminZugang, setAdminZugang] = useState<{ email: string; password: string; created: boolean } | null>(null);
+  const [adminLaeuft, setAdminLaeuft] = useState(false);
 
-  useEffect(() => { if (tenant) setForm({ currency: 'CHF', ...tenant }); }, [tenant]);
+  useEffect(() => {
+    if (tenant) setForm({ currency: 'CHF', ...tenant });
+    // Sonst haengt das Passwort des vorigen Vereins im naechsten Dialog.
+    setAdminZugang(null); setAdminMail('');
+  }, [tenant]);
 
   // Alle Hooks stehen vor dem vorzeitigen Ausstieg. Stand useMemo darunter,
   // rendert React beim Oeffnen des Dialogs mehr Hooks als beim Schliessen --
@@ -72,6 +81,22 @@ const SuperAdminTenantDialog: React.FC<Props> = ({ tenant, domains, memberCount,
       showAlert({ type: 'error', message: t('admin.save_failed', { reason: e?.message || '?' }) });
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Nur der Betreiber setzt den Administrator eines Vereins -- selbst
+  // registrieren und die Rolle uebernehmen geht seit dem 21.09.2026 nicht
+  // mehr, claim_my_profile() laesst nur gewoehnliche Zeilen zu.
+  const adminSetzen = async () => {
+    const mail = adminMail.trim();
+    if (!mail) return;
+    setAdminLaeuft(true); setAdminZugang(null);
+    try {
+      setAdminZugang(await setTenantAdmin(tenant.id, mail));
+    } catch (e: any) {
+      showAlert({ type: 'error', message: e?.message || 'Zugang konnte nicht gesetzt werden.' });
+    } finally {
+      setAdminLaeuft(false);
     }
   };
 
@@ -159,6 +184,37 @@ const SuperAdminTenantDialog: React.FC<Props> = ({ tenant, domains, memberCount,
                 className="px-5 py-2.5 bg-stone-900 text-white rounded-xl text-xs font-bold hover:bg-black transition-colors">
                 {t('sa.support_start')}
               </button>
+            )}
+          </div>
+
+          <div className="border-t border-stone-100 pt-6">
+            <h4 className="font-bold text-stone-900 mb-2 flex items-center gap-2">
+              <KeyRound size={16} className="text-primary" /> Administrator setzen
+            </h4>
+            <p className="text-xs text-stone-500 leading-relaxed mb-4 max-w-2xl">
+              Der Verein kommt nur herein, wenn Sie hier ein Anmeldekonto setzen. Wer sich selbst
+              mit dieser Adresse registriert, wird dadurch nicht Administrator. Das Passwort wird
+              einmal angezeigt — danach nie wieder.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input value={adminMail} onChange={(e) => setAdminMail(e.target.value)}
+                placeholder="administrator@verein.ch" className={field + ' sm:flex-1'} />
+              <button onClick={adminSetzen} disabled={adminLaeuft || !adminMail.trim()}
+                className="px-5 py-2.5 bg-stone-900 text-white rounded-xl text-xs font-bold hover:bg-black transition-colors disabled:opacity-40 whitespace-nowrap">
+                {adminLaeuft ? <Loader2 size={14} className="animate-spin" /> : 'Zugang setzen'}
+              </button>
+            </div>
+            {adminZugang && (
+              <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                <p className="text-xs font-bold text-emerald-900 uppercase tracking-widest mb-2">
+                  {adminZugang.created ? 'Konto angelegt' : 'Passwort neu gesetzt'}
+                </p>
+                <p className="text-sm text-emerald-900">{adminZugang.email}</p>
+                <p className="font-mono text-lg font-bold text-emerald-950 tracking-wider select-all">{adminZugang.password}</p>
+                <p className="text-[11px] text-emerald-800 mt-2 leading-relaxed">
+                  Einmal weitergeben, danach ändern lassen. Schliessen Sie den Dialog, ist es weg.
+                </p>
+              </div>
             )}
           </div>
 

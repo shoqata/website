@@ -898,6 +898,24 @@ export async function endTenantSupport(): Promise<number> {
   return Number(data) || 0;
 }
 
+// Der Administrator eines Vereins wird vom Betreiber gesetzt, nicht erworben.
+// Die Gegenprobe steckt in claim_my_profile(): seit dem 21.09.2026 verknuepft
+// sich niemand mehr selbst mit einer bevorrechtigten Zeile.
+export async function setTenantAdmin(
+  tenantId: string, email: string
+): Promise<{ email: string; password: string; created: boolean }> {
+  if (!supabase) throw new Error("Supabase is not configured.");
+  const { data, error } = await supabase.rpc("vereins_administrator_setzen", {
+    p_verein: tenantId, p_email: email,
+  });
+  if (error) {
+    console.error("[Bridge] vereins_administrator_setzen failed:", error);
+    throw new Error(error.message || "vereins_administrator_setzen failed");
+  }
+  const d = (data || {}) as any;
+  return { email: d.email, password: d.password, created: !!d.created };
+}
+
 export async function createTenant(
   name: string, slug: string, domain: string, adminEmail?: string
 ): Promise<string> {

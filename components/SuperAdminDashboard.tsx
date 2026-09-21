@@ -25,7 +25,7 @@ import {
   Blocks,
 } from 'lucide-react';
 import { db, auth } from '../services/firebase';
-import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, createTenant, startTenantSupport, endTenantSupport } from '@/services/supabase-bridge';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, createTenant, setTenantAdmin, startTenantSupport, endTenantSupport } from '@/services/supabase-bridge';
 import { Tenant } from '../types';
 import SuperAdminTenantDialog from './SuperAdminTenantDialog';
 import SuperAdminLeadDialog from './SuperAdminLeadDialog';
@@ -186,9 +186,31 @@ const SuperAdminDashboard: React.FC<{ user?: any }> = ({ user }) => {
 
       try {
           const id = await createTenant(name, slug, domain.trim(), (adminEmail || '').trim());
+
+          // Der Administrator bekommt sein Anmeldekonto hier, vom Betreiber.
+          // Sich selbst registrieren und die Rolle uebernehmen kann er nicht
+          // mehr -- claim_my_profile() laesst nur gewoehnliche Zeilen zu.
+          let zugang = '';
+          if ((adminEmail || '').trim()) {
+              try {
+                  const z = await setTenantAdmin(id, adminEmail.trim());
+                  zugang = `\n\nZugang für ${z.email} — Passwort: ${z.password}\n`
+                         + `Einmal weitergeben und danach ändern lassen; es wird nirgends noch einmal angezeigt.`;
+              } catch (e: any) {
+                  console.error('[SuperAdmin] Zugang setzen fehlgeschlagen:', e);
+                  zugang = `\n\nDer Verein steht, aber der Zugang für ${adminEmail.trim()} kam nicht zustande: `
+                         + `${e?.message || 'unbekannter Fehler'}. Über „Administrator setzen“ im Verein nachholen.`;
+              }
+          } else {
+              zugang = `\n\nNoch kein Administrator. Solange keiner gesetzt ist, kommt niemand in den Verein — `
+                     + `das ist Absicht.`;
+          }
+
           showAlert({
               type: 'success',
-              message: `Verein "${name}" angelegt (${id}). Erreichbar über ${domain.trim()}, sobald die Domain auf die Anwendung zeigt. ${adminEmail.trim()} kann sich jetzt registrieren und übernimmt ihn.`
+              message: `Verein „${name}“ angelegt (${id}). Erreichbar über ${domain.trim()}, sobald die Domain `
+                     + `auf die Anwendung zeigt.${zugang}\n\nDie Zahlungsangaben sind bewusst leer: IBAN, TWINT und `
+                     + `PayPal trägt jeder Verein selbst ein. Bis dahin lässt sich keine Rechnung stellen.`
           });
       } catch (e: any) {
           console.error('[SuperAdmin] Verein anlegen fehlgeschlagen:', e);
