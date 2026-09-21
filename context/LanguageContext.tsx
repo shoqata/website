@@ -754,6 +754,19 @@ const translations: Translations = {
   'social.api.ig.title': { en: 'Instagram Business API', de: 'Instagram Business API', sq: 'Instagram Business API' },
   'social.api.token.label': { en: 'Access Token', de: 'Zugriffstoken', sq: 'Token i qasjes' },
   'social.api.id.label': { en: 'Entity ID', de: 'Entity ID', sq: 'ID e entitetit' },
+  // Das Modul bereitet Beitraege vor, mehr nicht. Die Worte hier sagen das
+  // ausdruecklich -- "veroeffentlichen" wuerde behaupten, es ginge hinaus.
+  'social.sichern': { en: 'Save post', de: 'Beitrag sichern', sq: 'Ruaj postimin' },
+  'social.gesichert': { en: 'Post saved. Nothing has been sent yet.', de: 'Beitrag gesichert. Gesendet wird noch nichts.', sq: 'Postimi u ruajt. Ende nuk dërgohet asgjë.' },
+  'social.vorgemerkt': { en: 'Post scheduled. Nothing has been sent yet.', de: 'Beitrag vorgemerkt. Gesendet wird noch nichts.', sq: 'Postimi u planifikua. Ende nuk dërgohet asgjë.' },
+  'social.entwurf': { en: 'Draft', de: 'Entwurf', sq: 'Draft' },
+  'social.nur_vorbereiten': { en: 'Prepare only', de: 'Nur vorbereiten', sq: 'Vetëm përgatitje' },
+  'social.nicht_verbunden': { en: 'Not connected to Facebook and Instagram yet', de: 'Noch nicht mit Facebook und Instagram verbunden', sq: 'Ende i palidhur me Facebook dhe Instagram' },
+  'social.nicht_verbunden_text': { en: 'Posts can be written, illustrated and scheduled here. Nothing is sent — the connection to Meta is not built yet. Once it is, you will sign in once with your Facebook page; there will be no access tokens to copy by hand.', de: 'Beiträge lassen sich hier schreiben, mit Bild versehen und vormerken. Gesendet wird nichts — die Anbindung an Meta ist noch nicht gebaut. Sobald sie steht, melden Sie sich einmal mit Ihrer Facebook-Seite an; Zugriffstoken von Hand einzutragen wird nicht nötig sein.', sq: 'Postimet mund të shkruhen, të ilustrohen dhe të planifikohen këtu. Nuk dërgohet asgjë — lidhja me Meta ende nuk është ndërtuar. Sapo të jetë, kyçeni një herë me faqen tuaj në Facebook; nuk do të duhet të kopjoni token qasjeje me dorë.' },
+  'social.voraussetzung': { en: 'What your association can prepare for it', de: 'Was Ihr Verein dafür vorbereiten kann', sq: 'Çfarë mund të përgatisë shoqata juaj për këtë' },
+  'social.v1': { en: 'A Facebook page for the association — posting from a personal profile is not possible.', de: 'Eine Facebook-Seite für den Verein — über ein persönliches Profil lässt sich nicht posten.', sq: 'Një faqe Facebook për shoqatën — nga një profil personal nuk mund të postohet.' },
+  'social.v2': { en: 'Instagram as a business or creator account, linked to that page. A private account will not work.', de: 'Instagram als Business- oder Creator-Konto, mit dieser Seite verknüpft. Ein privates Konto geht nicht.', sq: 'Instagram si llogari biznesi ose krijuesi, e lidhur me atë faqe. Një llogari private nuk funksionon.' },
+  'social.v3': { en: 'One person who administers both — they will do the sign-in later.', de: 'Eine Person, die für beide Administrator ist — sie meldet sich später einmal an.', sq: 'Një person që i administron të dyja — ai do të kyçet më vonë një herë.' },
 
   // --- AUTH (Login) ---
   'auth.has_account': { en: 'Already have an account?', de: 'Bereits ein Konto?', sq: 'Keni llogari?' },
