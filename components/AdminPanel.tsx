@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import AdminSpenden from './AdminSpenden';
 import { useModule } from '../lib/useModule';
 import Marktplatz from './Marktplatz';
 import AdminStammbaum from './AdminStammbaum';
@@ -17,7 +18,7 @@ import {
   ClipboardCheck, Send, Ban, Coins, LayoutDashboard, MessageSquare, ToggleRight, 
   ToggleLeft, Printer, Files, UserCog, MoreVertical, ExternalLink, Info, MapPinned, Target, UserCheck,
   ShieldAlert, Activity as ActivityIcon, ArrowRight, Wallet, BarChart2, Hash, History, StickyNote, Image as LucideImage,
-  UserPlus2, UserMinus, UserCheck2, FileEdit, AlertTriangle, Users2, Blocks
+  UserPlus2, UserMinus, UserCheck2, FileEdit, AlertTriangle, Users2, Blocks, Heart
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { UserProfile, UserRole, Neighborhood, SolidarityEvent, NewsArticle, Payment, FiscalYear, BillingGroup, GlobalPaymentSettings, EventRegistration, ContentStatus } from '../types';
@@ -55,7 +56,7 @@ import { neighborhoodsLedBy } from '../lib/stewardship';
 import { billingYearOf } from '../lib/memberQuality';
 import { missingFieldKeys, qualityScore, feeStateFor, hasDeliveryConflict } from '../lib/memberQuality';
 import { isPlaceholderEmail, hasUsableEmail, emailMissingForDelivery, deliveryNeedsEmail } from '../lib/memberEmail';
-type AdminTabId = 'USERS' | 'NEIGHBORHOODS' | 'ANALYTICS' | 'STATISTICS' | 'WEBSITE' | 'SOCIAL_AI' | 'EVENTS' | 'NEWS' | 'FINANCE' | 'EXPENSES' | 'DATA' | 'ACCOUNTING' | 'SETTINGS' | 'BOARD' | 'COMMUNICATION' | 'DATA_QUALITY' | 'STAMMBAUM' | 'MARKTPLATZ';
+type AdminTabId = 'USERS' | 'NEIGHBORHOODS' | 'ANALYTICS' | 'STATISTICS' | 'WEBSITE' | 'SOCIAL_AI' | 'EVENTS' | 'NEWS' | 'FINANCE' | 'EXPENSES' | 'DATA' | 'ACCOUNTING' | 'SETTINGS' | 'BOARD' | 'COMMUNICATION' | 'DATA_QUALITY' | 'STAMMBAUM' | 'MARKTPLATZ' | 'SPENDEN';
 
 interface NavItem {
     id: AdminTabId;
@@ -161,6 +162,7 @@ const AdminPanel: React.FC = () => {
     EVENTS: 'ANLAESSE',
     NEWS: 'NEUIGKEITEN',
     SOCIAL_AI: 'SOCIAL',
+    SPENDEN: 'SPENDEN',
   };
 
   const navGroups: NavGroup[] = [
@@ -180,6 +182,7 @@ const AdminPanel: React.FC = () => {
           title: t('admin.group.finance'),
           items: [
               { id: 'FINANCE', label: t('admin.tab.finance'), icon: <DollarSign size={18} /> },
+              { id: 'SPENDEN', label: t('admin.tab.spenden'), icon: <Heart size={18} /> },
               { id: 'EXPENSES', label: t('admin.tab.expenses'), icon: <Receipt size={18} /> },
               { id: 'ACCOUNTING', label: t('admin.tab.accounting'), icon: <BookOpen size={18} /> },
               { id: 'STATISTICS', label: t('admin.tab.statistics'), icon: <BarChart2 size={18} /> },
@@ -541,6 +544,7 @@ const AdminPanel: React.FC = () => {
                         {activeTab === 'SOCIAL_AI' && <SocialAI />}
                         {activeTab === 'DATA' && <AdminData />}
                         {activeTab === 'STAMMBAUM' && <AdminStammbaum />}
+                        {activeTab === 'SPENDEN' && <AdminSpenden />}
                         {activeTab === 'MARKTPLATZ' && (
                           <Marktplatz
                             zustaende={['AN','AUS']}
