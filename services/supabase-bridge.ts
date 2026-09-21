@@ -355,16 +355,26 @@ async function writeSettingsDoc(id: string, data: any, merge: boolean) {
   const incoming: any = { ...(cleanDataForSupabase(data) || {}) };
   delete incoming.id;
 
+  // Der Verein muss mit. settings traegt seit der Umstellung den
+  // Primaerschluessel (tenantId, id) -- vorher galt id allein, und damit
+  // konnte es settings/payment nur einmal auf der ganzen Plattform geben.
+  // Ohne Kennung schriebe ein Verein ausserdem in die Zeile eines anderen.
+  const tenantId = await resolveTenantId();
+  if (!tenantId) throw new Error("Kein Verein zugeordnet -- Einstellungen nicht speicherbar.");
+
   let body = incoming;
   if (merge) {
     const { data: current } = await supabase
-      .from(SETTINGS_TABLE).select("*").eq("id", id).maybeSingle();
+      .from(SETTINGS_TABLE).select("*")
+      .eq("id", id).eq("tenantId", tenantId).maybeSingle();
     const existing = current?.[column];
     body = { ...(existing && typeof existing === "object" ? existing : {}), ...incoming };
   }
 
-  await writeWithSchemaRetry(`settings write for ${id}`, { id, [column]: body }, (payload) =>
-    supabase.from(SETTINGS_TABLE).upsert([payload], { onConflict: "id", ignoreDuplicates: false })
+  await writeWithSchemaRetry(`settings write for ${id}`,
+    { id, tenantId, [column]: body },
+    (payload) => supabase.from(SETTINGS_TABLE)
+      .upsert([payload], { onConflict: "tenantId,id", ignoreDuplicates: false })
   );
 }
 
