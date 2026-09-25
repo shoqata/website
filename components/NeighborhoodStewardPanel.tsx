@@ -149,6 +149,10 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
         address: bearbeitet.street || '',
         phone: bearbeitet.phone || '',
         email: bearbeitet.email || '',
+        // Die wenigsten Mitglieder koennen sich anmelden -- 6 von 340. Wer
+        // anruft und nicht oeffentlich erscheinen will, muss den Widerspruch
+        // hier eintragen lassen koennen, sonst hat er keinen.
+        nicht_oeffentlich: !!bearbeitet.nicht_oeffentlich,
       } as any);
       setMitglieder(l => l.map(m => (m.id === bearbeitet.id ? bearbeitet : m)));
       showAlert({ type: 'success', message: t('steward.saved') });
@@ -419,6 +423,15 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
                 <label className={marke}>{t('field.email')}</label>
                 <input value={bearbeitet.email || ''} onChange={e => setBearbeitet({ ...bearbeitet, email: e.target.value })} className={feld} />
               </div>
+              <label className="flex items-start gap-3 p-4 rounded-2xl border border-stone-200 bg-stone-50 cursor-pointer">
+                <input type="checkbox" checked={!!bearbeitet.nicht_oeffentlich}
+                  onChange={e => setBearbeitet({ ...bearbeitet, nicht_oeffentlich: e.target.checked })}
+                  className="mt-0.5 w-4 h-4 accent-primary shrink-0" />
+                <span>
+                  <span className="block text-sm font-bold text-stone-800">{t('oeff.mitglied')}</span>
+                  <span className="block text-xs text-stone-500 leading-relaxed mt-0.5">{t('oeff.mitglied_text')}</span>
+                </span>
+              </label>
             </div>
             <div className="p-6 border-t border-stone-100 bg-stone-50 flex gap-3">
               <button onClick={() => setBearbeitet(null)} className="flex-1 py-3 bg-stone-200 text-stone-600 rounded-xl font-bold">{t('common.cancel')}</button>

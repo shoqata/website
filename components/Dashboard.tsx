@@ -1329,6 +1329,22 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                     />
                                 </div>
                             </div>
+
+                            {/* Der Widerspruch gegen das oeffentliche
+                                Erscheinen. Er gewinnt gegen die Einstellung
+                                des Vereins -- auch wenn dieser Namen
+                                veroeffentlicht, steht dieses Mitglied nicht
+                                dabei, und im Mitgliederband der Startseite
+                                ebenfalls nicht. */}
+                            <label className="flex items-start gap-3 p-4 rounded-2xl border border-stone-200 bg-stone-50 cursor-pointer mt-6">
+                                <input type="checkbox" checked={!!profileData.nicht_oeffentlich}
+                                    onChange={e => setProfileData({ ...profileData, nicht_oeffentlich: e.target.checked })}
+                                    className="mt-0.5 w-4 h-4 accent-primary shrink-0" />
+                                <span>
+                                    <span className="block text-sm font-bold text-stone-800">{t('oeff.mitglied')}</span>
+                                    <span className="block text-xs text-stone-500 leading-relaxed mt-0.5">{t('oeff.mitglied_text')}</span>
+                                </span>
+                            </label>
                         </div>
                     </div>
 

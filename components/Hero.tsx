@@ -5,7 +5,7 @@ import { ArrowRight, Heart, UserPlus, LogIn, ChevronRight, X, Smartphone } from 
 import { Link } from 'react-router-dom';
 import { useTranslation } from '../context/LanguageContext';
 import { db } from '../services/firebase';
-import { collection, query, where, onSnapshot, doc, getDoc, getDocs } from '@/services/supabase-bridge';
+import { collection, query, where, onSnapshot, doc, getDoc, getDocs, supabase } from '@/services/supabase-bridge';
 import { SolidarityEvent, UserProfile, GlobalPaymentSettings } from '../types';
 import { Marquee } from './ui/Marquee';
 import HyperTextParagraph from './ui/HyperText';
@@ -25,6 +25,10 @@ const Hero: React.FC = () => {
   const [heroImages, setHeroImages] = useState<string[]>(DEFAULT_HERO_IMAGES);
   const [members, setMembers] = useState<UserProfile[]>([]);
   const [diasporaCount, setDiasporaCount] = useState(0);
+  // Was der Verein ueber die Beitraege zeigen will. Entschieden wird das in
+  // der Datenbank: steht der Schalter auf AUS, kommt hier nichts an -- auch
+  // nicht fuer den, der die Schnittstelle von Hand aufruft.
+  const [beitragsstand, setBeitragsstand] = useState<any>(null);
   const [branding, setBranding] = useState<any>({});
   
   // Payment Settings for TWINT
@@ -78,6 +82,8 @@ const Hero: React.FC = () => {
         setDiasporaCount(activeMembers.filter(m => !m.livesInKoretin).length);
         setMembers(activeMembers.slice(0, 30));
     });
+
+    supabase.rpc('beitragsstand_oeffentlich').then(({ data }) => setBeitragsstand(data));
 
     return () => { unsubEvents(); unsubUsers(); };
   }, []);
@@ -232,6 +238,37 @@ const Hero: React.FC = () => {
                 <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-[#faf9f6] to-transparent"></div>
             </div>
         </div>
+
+        {/* Was der Verein ueber die Beitraege zeigt. Steht der Schalter auf
+            AUS, liefert die Datenbank gar nichts und dieser Block entfaellt. */}
+        {beitragsstand && beitragsstand.stellung !== 'AUS' && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-32">
+            <div className="max-w-3xl mx-auto text-center">
+                <p className="text-xs font-bold text-stone-400 uppercase tracking-[0.2em] mb-6">
+                    {t('oeff.oeffentlich_titel', { jahr: beitragsstand.jahr })}
+                </p>
+                <p className="font-display text-5xl md:text-6xl font-bold text-stone-900 mb-3">
+                    {beitragsstand.stellung === 'NAMEN'
+                      ? (beitragsstand.namen || []).length
+                      : beitragsstand.anzahl}
+                    <span className="text-stone-300 font-light"> / {beitragsstand.gesamt}</span>
+                </p>
+                <p className="text-stone-500 leading-relaxed">
+                    {t('oeff.oeffentlich_text', { jahr: beitragsstand.jahr })}
+                </p>
+
+                {beitragsstand.stellung === 'NAMEN' && (beitragsstand.namen || []).length > 0 && (
+                    <div className="mt-10 flex flex-wrap justify-center gap-x-3 gap-y-2">
+                        {(beitragsstand.namen as string[]).map(n => (
+                            <span key={n} className="text-sm text-stone-600 bg-white border border-stone-100 rounded-full px-4 py-1.5 shadow-sm">
+                                {n}
+                            </span>
+                        ))}
+                    </div>
+                )}
+            </div>
+          </motion.div>
+        )}
 
         {/* Featured Events */}
         {featuredEvents.length > 0 && (
