@@ -201,7 +201,7 @@ const AdminSettings: React.FC = () => {
                                 <button key={o.wert} type="button"
                                     onClick={() => setSettings({ ...settings, beitraegeOeffentlich: o.wert as SystemSettings['beitraegeOeffentlich'] })}
                                     className={`text-left p-5 rounded-2xl border transition-all ${aktiv
-                                        ? 'bg-white border-primary/40 shadow-sm ring-1 ring-primary/20'
+                                        ? 'bg-white border-primary shadow-sm'
                                         : 'bg-white/60 border-stone-200 hover:border-stone-300'}`}>
                                     <p className={`font-bold text-sm mb-1 ${aktiv ? 'text-primary' : 'text-stone-900'}`}>{o.titel}</p>
                                     <p className="text-[11px] text-stone-500 leading-relaxed">{o.text}</p>
