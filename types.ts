@@ -37,6 +37,10 @@ export interface UserReminder {
 export type BillingGroup = 'STANDARD' | 'KOSOVO' | 'REDUCED';
 
 export interface UserProfile {
+  /** Mitglied moechte nicht auf der oeffentlichen Website erscheinen --
+      weder im Mitgliederband noch in einer Liste der Beitragszahler.
+      Der Widerspruch gewinnt gegen die Einstellung des Vereins. */
+  nicht_oeffentlich?: boolean;
   id: string;
   tenantId: string; // Critical for data separation
   email?: string;
@@ -266,6 +270,8 @@ export interface GlobalPaymentSettings {
 }
 
 export interface SystemSettings {
+  /** 'AUS' | 'ZAHL' | 'NAMEN' -- was die Website ueber die Beitraege zeigt. */
+  beitraegeOeffentlich?: 'AUS' | 'ZAHL' | 'NAMEN';
   maintenanceMode: boolean;
   allowRegistration: boolean;
   modules: {

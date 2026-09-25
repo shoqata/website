@@ -15,10 +15,12 @@ import {
   ToggleRight,
   Mail,
   Server,
-  Banknote
+  Banknote,
+  Eye,
+  Users
 } from 'lucide-react';
 import { db } from '../services/firebase';
-import { doc, onSnapshot, setDoc, serverTimestamp } from '@/services/supabase-bridge';
+import { doc, onSnapshot, setDoc, serverTimestamp, supabase } from '@/services/supabase-bridge';
 import { SystemSettings, GlobalPaymentSettings } from '../types';
 import { useFeedback } from '../context/FeedbackContext';
 
@@ -26,6 +28,12 @@ const AdminSettings: React.FC = () => {
   const { t } = useTranslation();
   const { showAlert } = useFeedback();
   const [loading, setLoading] = useState(false);
+  // Was oeffentlich ueber die Beitraege steht. Die Stellung liegt in
+  // settings/system; entschieden wird sie aber in der Datenbank, nicht hier
+  // -- beitragsstand_oeffentlich() liest sie selbst, sonst koennte jeder die
+  // Sicht direkt abfragen und den Schalter umgehen.
+  const [vorschau, setVorschau] = useState<any>(null);
+  const [widersprueche, setWidersprueche] = useState(0);
   
   // System Settings
   const [settings, setSettings] = useState<SystemSettings>({
@@ -36,7 +44,8 @@ const AdminSettings: React.FC = () => {
       events: true,
       news: true
     },
-    systemEmail: 'admin@koretini.org'
+    systemEmail: 'admin@koretini.org',
+    beitraegeOeffentlich: 'AUS'
   });
 
   // Payment Settings (for Fee Structure)
@@ -78,6 +87,17 @@ const AdminSettings: React.FC = () => {
 
     return () => { unsubSystem(); unsubPayment(); };
   }, []);
+
+  useEffect(() => {
+    (async () => {
+      const [{ data: stand }, { data: wid }] = await Promise.all([
+        supabase.rpc('beitragsstand_oeffentlich'),
+        supabase.rpc('widersprueche_zaehlen'),
+      ]);
+      setVorschau(stand);
+      setWidersprueche(typeof wid === 'number' ? wid : 0);
+    })();
+  }, [settings.beitraegeOeffentlich, loading]);
 
   const handleSave = async () => {
     setLoading(true);
@@ -153,6 +173,73 @@ const AdminSettings: React.FC = () => {
                         checked={settings.allowRegistration} 
                         onChange={v => setSettings({...settings, allowRegistration: v})} 
                     />
+                </div>
+            </section>
+
+            {/* Was die Website ueber die Beitraege sagt.
+                Drei Stellungen statt ein/aus, weil zwischen "nichts" und
+                "Namensliste" ein Schritt liegt, der oft der richtige ist: die
+                blosse Zahl zeigt den Rueckhalt des Vereins, ohne dass
+                jemand durch Abwesenheit als saeumig dasteht. */}
+            <section>
+                <div className="flex items-center gap-2 mb-4">
+                    <Eye size={18} className="text-stone-400" />
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500">{t('oeff.titel')}</h3>
+                </div>
+
+                <div className="bg-stone-50 p-6 rounded-3xl border border-stone-100 space-y-5">
+                    <p className="text-xs text-stone-500 leading-relaxed max-w-2xl">{t('oeff.hinweis')}</p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {([
+                            { wert: 'AUS',   titel: t('oeff.aus'),   text: t('oeff.aus_text') },
+                            { wert: 'ZAHL',  titel: t('oeff.zahl'),  text: t('oeff.zahl_text') },
+                            { wert: 'NAMEN', titel: t('oeff.namen'), text: t('oeff.namen_text') },
+                        ]).map(o => {
+                            const aktiv = (settings.beitraegeOeffentlich || 'AUS') === o.wert;
+                            return (
+                                <button key={o.wert} type="button"
+                                    onClick={() => setSettings({ ...settings, beitraegeOeffentlich: o.wert as SystemSettings['beitraegeOeffentlich'] })}
+                                    className={`text-left p-5 rounded-2xl border transition-all ${aktiv
+                                        ? 'bg-white border-primary/40 shadow-sm ring-1 ring-primary/20'
+                                        : 'bg-white/60 border-stone-200 hover:border-stone-300'}`}>
+                                    <p className={`font-bold text-sm mb-1 ${aktiv ? 'text-primary' : 'text-stone-900'}`}>{o.titel}</p>
+                                    <p className="text-[11px] text-stone-500 leading-relaxed">{o.text}</p>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {/* Die Vorschau kommt aus derselben Funktion, die auch die
+                        Website aufruft -- was hier steht, steht dort. */}
+                    <div className="bg-white rounded-2xl border border-stone-100 p-5">
+                        <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-3">{t('oeff.vorschau')}</p>
+                        {!vorschau || vorschau.stellung === 'AUS' ? (
+                            <p className="text-sm text-stone-400 italic">{t('oeff.vorschau_nichts')}</p>
+                        ) : vorschau.stellung === 'ZAHL' ? (
+                            <p className="text-sm text-stone-800">
+                                <strong>{vorschau.anzahl}</strong> {t('oeff.vorschau_zahl', { jahr: vorschau.jahr, gesamt: vorschau.gesamt })}
+                            </p>
+                        ) : (
+                            <div className="space-y-2">
+                                <p className="text-sm text-stone-800">
+                                    <strong>{(vorschau.namen || []).length}</strong> {t('oeff.vorschau_namen', { jahr: vorschau.jahr })}
+                                </p>
+                                <p className="text-xs text-stone-500 leading-relaxed">
+                                    {(vorschau.namen || []).slice(0, 12).join(' · ')}
+                                    {(vorschau.namen || []).length > 12 ? ' …' : ''}
+                                </p>
+                            </div>
+                        )}
+                        {vorschau && vorschau.stellung !== 'AUS' && (
+                            <p className="text-[11px] text-stone-400 mt-3 flex items-center gap-1.5 pt-3 border-t border-stone-100">
+                                <Users size={12} /> {t('oeff.widersprueche', { anzahl: widersprueche })}
+                            </p>
+                        )}
+                        {(settings.beitraegeOeffentlich || 'AUS') !== (vorschau?.stellung || 'AUS') && (
+                            <p className="text-[11px] text-amber-600 mt-3">{t('oeff.erst_speichern')}</p>
+                        )}
+                    </div>
                 </div>
             </section>
 
