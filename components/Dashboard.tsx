@@ -1339,7 +1339,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                             <label className="flex items-start gap-3 p-4 rounded-2xl border border-stone-200 bg-stone-50 cursor-pointer mt-6">
                                 <input type="checkbox" checked={!!profileData.nicht_oeffentlich}
                                     onChange={e => setProfileData({ ...profileData, nicht_oeffentlich: e.target.checked })}
-                                    className="mt-0.5 w-4 h-4 accent-primary shrink-0" />
+                                    className="mt-0.5 w-4 h-4 accent-[color:var(--primary)] shrink-0" />
                                 <span>
                                     <span className="block text-sm font-bold text-stone-800">{t('oeff.mitglied')}</span>
                                     <span className="block text-xs text-stone-500 leading-relaxed mt-0.5">{t('oeff.mitglied_text')}</span>
