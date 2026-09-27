@@ -272,6 +272,10 @@ export interface GlobalPaymentSettings {
 export interface SystemSettings {
   /** 'AUS' | 'ZAHL' | 'NAMEN' -- was die Website ueber die Beitraege zeigt. */
   beitraegeOeffentlich?: 'AUS' | 'ZAHL' | 'NAMEN';
+  /** 'STANDARD' | 'PREMIUM' -- welche Startseite Besucher bekommen.
+      PREMIUM wirkt nur mit gebuchtem Modul; entschieden wird das in
+      startseite_variante(), nicht im Browser. */
+  startseiteVariante?: 'STANDARD' | 'PREMIUM';
   maintenanceMode: boolean;
   allowRegistration: boolean;
   modules: {

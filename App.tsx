@@ -2,8 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { useWerBinIch, type WerBinIch } from './lib/useWerBinIch';
 const SpendenSeite = React.lazy(() => import('./components/SpendenSeite'));
+const StartseitePremium = React.lazy(() => import('./components/StartseitePremium'));
 import { needsProfileSetup } from './lib/memberQuality';
 import { useIstPlattformDomain } from './lib/useIstPlattformDomain';
+import { useStartseiteVariante } from './lib/useStartseiteVariante';
 import { useReiterKennzeichen } from './lib/useReiterKennzeichen';
 import { HashRouter as Router, Routes, Route, Link, useLocation, Navigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -356,6 +358,7 @@ const AppContent: React.FC = () => {
   }, [tenant]);
 
   const istPlattformDomain = useIstPlattformDomain();
+  const startseite = useStartseiteVariante();
   // Reitertitel und Symbol -- fuer jede Seite der Betreiber-Domain,
   // nicht nur fuer deren Startseite.
   useReiterKennzeichen(istPlattformDomain);
@@ -387,9 +390,18 @@ const AppContent: React.FC = () => {
                         unityhub.li zuerst Koretini. Nach dem ersten Besuch
                         kennt der Speicher die Antwort und dieser Zustand
                         tritt gar nicht mehr ein. */}
+                    {/* Solange eine der beiden Antworten fehlt, wird gewartet.
+                        Frueher fiel hier eine unbekannte Domain auf die
+                        Vereinsseite durch -- auf der Betreiber-Domain erschien
+                        dadurch zuerst Koretini. Dieselbe Falle gilt fuer die
+                        Startseitenvariante: wer sich zu frueh festlegt, zeigt
+                        die Standardseite und springt dann weg. */}
                     <Route path="/" element={
                       istPlattformDomain === null ? <PageLoader />
-                        : istPlattformDomain ? <PlatformHome user={user} /> : <Hero />} />
+                        : istPlattformDomain ? <PlatformHome user={user} />
+                        : startseite === null ? <PageLoader />
+                        : startseite === 'PREMIUM' ? <StartseitePremium />
+                        : <Hero />} />
                     <Route path="/about" element={istPlattformDomain ? <Navigate to="/" replace /> : <AboutUsPage />} />
                     <Route path="/live" element={istPlattformDomain ? <Navigate to="/" replace /> : <VillageLive />} />
                     <Route path="/events" element={istPlattformDomain ? <Navigate to="/" replace /> : <EventsPage />} />

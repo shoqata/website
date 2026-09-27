@@ -35,9 +35,19 @@ const SuperAdminTenantDialog: React.FC<Props> = ({ tenant, domains, memberCount,
   const [adminMail, setAdminMail] = useState('');
   const [adminZugang, setAdminZugang] = useState<{ email: string; password: string; created: boolean } | null>(null);
   const [adminLaeuft, setAdminLaeuft] = useState(false);
+  // Grundpreis plus gebuchte Module. Gerechnet wird in der Datenbank, nicht
+  // hier: die Liste der gebuchten Module und ihre Preise stehen dort, und
+  // eine zweite Rechenstelle im Browser liefe frueher oder spaeter
+  // auseinander.
+  const [rechnung, setRechnung] = useState<any>(null);
 
   useEffect(() => {
     if (tenant) setForm({ currency: 'CHF', ...tenant });
+    setRechnung(null);
+    if (tenant) {
+      supabase.rpc('jahresrechnung_betrag', { p_verein: tenant.id })
+        .then(({ data, error }) => { if (!error) setRechnung(data); });
+    }
     // Sonst haengt das Passwort des vorigen Vereins im naechsten Dialog.
     setAdminZugang(null); setAdminMail('');
   }, [tenant]);
@@ -101,7 +111,19 @@ const SuperAdminTenantDialog: React.FC<Props> = ({ tenant, domains, memberCount,
   };
 
   const createInvoice = async (kind: 'SETUP' | 'ANNUAL') => {
-    const amount = kind === 'SETUP' ? Number(form.setupFee) : Number(form.annualFee);
+    // Bis zum 27.09.2026 nahm die Jahresrechnung allein annualFee. Gebuchte
+    // Module standen mit Preis im Marktplatz und wurden nie berechnet -- ein
+    // Schaufenster ohne Kasse. Jetzt kommt der Betrag aus
+    // jahresrechnung_betrag(), und die Posten stehen im Text der Rechnung,
+    // damit der Verein sieht, wofuer er zahlt.
+    const posten: any[] = kind === 'ANNUAL' ? (rechnung?.module ?? []) : [];
+    const amount = kind === 'SETUP'
+      ? Number(form.setupFee)
+      : Number(rechnung?.summe ?? form.annualFee);
+    const text = kind === 'ANNUAL' && posten.length
+      ? `Grundpreis ${Number(rechnung.grundpreis).toFixed(2)}`
+        + posten.map((m: any) => ` · ${m.name} ${Number(m.jahr).toFixed(2)}`).join('')
+      : null;
     if (!(amount > 0)) { showAlert({ type: 'error', message: t('sa.fee_missing') }); return; }
     if (kind === 'ANNUAL' && annualDone) { showAlert({ type: 'error', message: t('sa.already_invoiced', { year }) }); return; }
     try {
@@ -116,6 +138,7 @@ const SuperAdminTenantDialog: React.FC<Props> = ({ tenant, domains, memberCount,
         invoiceNumber: `PF-${year}-${String(Date.now()).slice(-5)}`,
         issuedAt: new Date().toISOString().slice(0, 10),
         dueDate: due.toISOString().slice(0, 10),
+        ...(text ? { description: text } : {}),
       });
       showAlert({ type: 'success', message: t('sa.invoice_created') });
     } catch (e: any) {
@@ -254,6 +277,28 @@ const SuperAdminTenantDialog: React.FC<Props> = ({ tenant, domains, memberCount,
             </div>
 
             <div className="flex flex-wrap gap-3 mt-5">
+              {rechnung && (
+                <div className="mb-4 rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                  <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-2">Jahresrechnung {year}</p>
+                  {rechnung.alles_frei ? (
+                    <p className="text-xs text-emerald-700">Dieser Verein hat alle Module frei und zahlt keine Modulgebühren.</p>
+                  ) : (
+                    <div className="space-y-1 text-xs text-stone-600">
+                      <div className="flex justify-between"><span>Grundpreis</span>
+                        <span className="font-mono">{Number(rechnung.grundpreis).toFixed(2)}</span></div>
+                      {(rechnung.module ?? []).map((m: any) => (
+                        <div key={m.schluessel} className="flex justify-between">
+                          <span>{m.name} <span className="text-stone-400">({Number(m.monat).toFixed(2)}/Mt.)</span></span>
+                          <span className="font-mono">{Number(m.jahr).toFixed(2)}</span>
+                        </div>
+                      ))}
+                      <div className="flex justify-between border-t border-stone-200 pt-1 mt-1 font-bold text-stone-900">
+                        <span>Summe</span><span className="font-mono">{Number(rechnung.summe).toFixed(2)} {form.currency || 'CHF'}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               <button onClick={() => createInvoice('SETUP')} disabled={setupDone}
                 className="px-5 py-2.5 bg-stone-900 text-white rounded-xl text-xs font-bold hover:bg-black transition-colors disabled:opacity-40">
                 {t('sa.create_setup_invoice')}

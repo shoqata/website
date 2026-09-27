@@ -17,12 +17,14 @@ import {
   Server,
   Banknote,
   Eye,
-  Users
+  Users,
+  Sparkles
 } from 'lucide-react';
 import { db } from '../services/firebase';
 import { doc, onSnapshot, setDoc, serverTimestamp, supabase } from '@/services/supabase-bridge';
 import { SystemSettings, GlobalPaymentSettings } from '../types';
 import { useFeedback } from '../context/FeedbackContext';
+import { useModule } from '../lib/useModule';
 
 const AdminSettings: React.FC = () => {
   const { t } = useTranslation();
@@ -34,6 +36,7 @@ const AdminSettings: React.FC = () => {
   // Sicht direkt abfragen und den Schalter umgehen.
   const [vorschau, setVorschau] = useState<any>(null);
   const [widersprueche, setWidersprueche] = useState(0);
+  const { aktiv: modulAktiv } = useModule();
   
   // System Settings
   const [settings, setSettings] = useState<SystemSettings>({
@@ -45,7 +48,8 @@ const AdminSettings: React.FC = () => {
       news: true
     },
     systemEmail: 'admin@koretini.org',
-    beitraegeOeffentlich: 'AUS'
+    beitraegeOeffentlich: 'AUS',
+    startseiteVariante: 'STANDARD'
   });
 
   // Payment Settings (for Fee Structure)
@@ -173,6 +177,45 @@ const AdminSettings: React.FC = () => {
                         checked={settings.allowRegistration} 
                         onChange={v => setSettings({...settings, allowRegistration: v})} 
                     />
+                </div>
+            </section>
+
+            {/* Welche Startseite Besucher bekommen.
+                Der Schalter steht hier und nicht im Marktplatz: die Buchung
+                entscheidet, ob Premium zur Wahl steht, der Verein entscheidet,
+                wann er umschaltet. Beides zusammen prueft
+                startseite_variante() in der Datenbank -- ein Verein ohne
+                Buchung bekaeme die Seite auch dann nicht, wenn er hier
+                umstellte. */}
+            <section>
+                <div className="flex items-center gap-2 mb-4">
+                    <Sparkles size={18} className="text-stone-400" />
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500">{t('prem.titel')}</h3>
+                </div>
+                <div className="bg-stone-50 p-6 rounded-3xl border border-stone-100 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {([
+                            { wert: 'STANDARD', titel: t('prem.standard'), text: t('prem.standard_text'), gesperrt: false },
+                            { wert: 'PREMIUM',  titel: t('prem.premium'),  text: t('prem.premium_text'),  gesperrt: !modulAktiv('LANDINGPAGE') },
+                        ]).map(o => {
+                            const gewaehlt = (settings.startseiteVariante || 'STANDARD') === o.wert;
+                            return (
+                                <button key={o.wert} type="button" disabled={o.gesperrt}
+                                    onClick={() => setSettings({ ...settings, startseiteVariante: o.wert as SystemSettings['startseiteVariante'] })}
+                                    className={`text-left p-5 rounded-2xl border transition-all ${o.gesperrt
+                                        ? 'bg-stone-100 border-stone-200 opacity-60 cursor-not-allowed'
+                                        : gewaehlt ? 'bg-white border-primary shadow-sm'
+                                        : 'bg-white/60 border-stone-200 hover:border-stone-300'}`}>
+                                    <p className={`font-bold text-sm mb-1 ${gewaehlt && !o.gesperrt ? 'text-primary' : 'text-stone-900'}`}>{o.titel}</p>
+                                    <p className="text-[11px] text-stone-500 leading-relaxed">{o.text}</p>
+                                </button>
+                            );
+                        })}
+                    </div>
+                    {!modulAktiv('LANDINGPAGE') && (
+                        <p className="text-[11px] text-amber-600 leading-relaxed">{t('prem.nicht_gebucht')}</p>
+                    )}
+                    <p className="text-[11px] text-stone-400 leading-relaxed">{t('prem.hinweis')}</p>
                 </div>
             </section>
 
