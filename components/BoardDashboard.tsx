@@ -350,7 +350,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
 
                 <button 
                     onClick={handleOpenProfile}
-                    className="p-3 bg-white rounded-2xl shadow-sm border border-stone-100 hover:border-primary/50 transition-colors group"
+                    className="p-3 bg-white rounded-2xl shadow-sm border border-stone-100 hover:border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)] transition-colors group"
                     title={t('profile.edit')}
                 >
                     <UserCog size={20} className="text-stone-400 group-hover:text-primary"/>
@@ -569,7 +569,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                 
                 <div className="overflow-y-auto custom-scrollbar flex-1 space-y-3">
                     {meetings.map(m => (
-                        <div key={m.id} className="p-4 rounded-2xl border border-stone-100 hover:border-primary/30 hover:shadow-md transition-all group">
+                        <div key={m.id} className="p-4 rounded-2xl border border-stone-100 hover:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] hover:shadow-md transition-all group">
                             <div className="flex justify-between items-start mb-2 gap-2">
                                 <h4 onClick={() => setSelectedMeeting(m)} className="font-bold text-stone-800 group-hover:text-primary transition-colors cursor-pointer flex-1">{m.title}</h4>
                                 <div className="flex items-center gap-1.5 shrink-0">
@@ -656,41 +656,41 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                             <div>
                                 <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('field.email')}</label>
                                 <input value={memberForm?.email ?? ''} onChange={e => setMemberForm({ ...(memberForm || {}), email: e.target.value })}
-                                    className="w-full p-3 bg-white border border-stone-200 rounded-xl outline-none text-sm focus:border-primary/40"/>
+                                    className="w-full p-3 bg-white border border-stone-200 rounded-xl outline-none text-sm focus:border-[color:color-mix(in_srgb,var(--primary)_40%,transparent)]"/>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('field.phone')}</label>
                                     <input value={memberForm?.phone ?? ''} onChange={e => setMemberForm({ ...(memberForm || {}), phone: e.target.value })}
-                                        className="w-full p-3 bg-white border border-stone-200 rounded-xl outline-none text-sm focus:border-primary/40"/>
+                                        className="w-full p-3 bg-white border border-stone-200 rounded-xl outline-none text-sm focus:border-[color:color-mix(in_srgb,var(--primary)_40%,transparent)]"/>
                                 </div>
                                 <div>
                                     <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('field.birthdate')}</label>
                                     <input type="date" value={memberForm?.birthdate ?? ''} onChange={e => setMemberForm({ ...(memberForm || {}), birthdate: e.target.value })}
-                                        className="w-full p-3 bg-white border border-stone-200 rounded-xl outline-none text-sm focus:border-primary/40"/>
+                                        className="w-full p-3 bg-white border border-stone-200 rounded-xl outline-none text-sm focus:border-[color:color-mix(in_srgb,var(--primary)_40%,transparent)]"/>
                                 </div>
                             </div>
                             <div>
                                 <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('admin.members.street_no')}</label>
                                 <input value={memberForm?.street ?? ''} onChange={e => setMemberForm({ ...(memberForm || {}), street: e.target.value })}
-                                    className="w-full p-3 bg-white border border-stone-200 rounded-xl outline-none text-sm focus:border-primary/40"/>
+                                    className="w-full p-3 bg-white border border-stone-200 rounded-xl outline-none text-sm focus:border-[color:color-mix(in_srgb,var(--primary)_40%,transparent)]"/>
                             </div>
                             <div className="grid grid-cols-3 gap-3">
                                 <div>
                                     <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('field.zip')}</label>
                                     <input value={memberForm?.zip ?? ''} onChange={e => setMemberForm({ ...(memberForm || {}), zip: e.target.value })}
-                                        className="w-full p-3 bg-white border border-stone-200 rounded-xl outline-none text-sm focus:border-primary/40"/>
+                                        className="w-full p-3 bg-white border border-stone-200 rounded-xl outline-none text-sm focus:border-[color:color-mix(in_srgb,var(--primary)_40%,transparent)]"/>
                                 </div>
                                 <div className="col-span-2">
                                     <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('field.city')}</label>
                                     <input value={memberForm?.city ?? ''} onChange={e => setMemberForm({ ...(memberForm || {}), city: e.target.value })}
-                                        className="w-full p-3 bg-white border border-stone-200 rounded-xl outline-none text-sm focus:border-primary/40"/>
+                                        className="w-full p-3 bg-white border border-stone-200 rounded-xl outline-none text-sm focus:border-[color:color-mix(in_srgb,var(--primary)_40%,transparent)]"/>
                                 </div>
                             </div>
                             <div>
                                 <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('field.country')}</label>
                                 <CountrySelect value={memberForm?.country} onChange={v => setMemberForm({ ...(memberForm || {}), country: v })}
-                                    className="w-full p-3 bg-white border border-stone-200 rounded-xl outline-none text-sm focus:border-primary/40"/>
+                                    className="w-full p-3 bg-white border border-stone-200 rounded-xl outline-none text-sm focus:border-[color:color-mix(in_srgb,var(--primary)_40%,transparent)]"/>
                             </div>
                         </div>
 
@@ -721,7 +721,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                                 <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400"/>
                                 <input autoFocus value={rechnungsSuche} onChange={e => setRechnungsSuche(e.target.value)}
                                     placeholder={t('board.search_invoice')}
-                                    className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-primary/30"/>
+                                    className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)]"/>
                             </div>
                             {rechnungsSuche && (
                                 <p className="text-[11px] text-stone-400 mt-2">
@@ -793,7 +793,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                                 <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400"/>
                                 <input autoFocus value={nbSuche} onChange={e => setNbSuche(e.target.value)}
                                     placeholder={t('board.search_neighborhood')}
-                                    className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-primary/30"/>
+                                    className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)]"/>
                             </div>
                         </div>
 

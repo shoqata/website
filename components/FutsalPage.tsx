@@ -54,7 +54,7 @@ const FutsalPage: React.FC = () => {
             </a>
             <Link
               to="/fussball/sponsoren"
-              className="bg-white border border-stone-200 text-stone-800 px-8 py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 hover:border-primary/40 hover:text-primary transition-colors"
+              className="bg-white border border-stone-200 text-stone-800 px-8 py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 hover:border-[color:color-mix(in_srgb,var(--primary)_40%,transparent)] hover:text-primary transition-colors"
             >
               <Handshake size={18} /> {t('futsal.become_sponsor')} <ArrowRight size={16} />
             </Link>
@@ -85,7 +85,7 @@ const FutsalPage: React.FC = () => {
 
         {/* Sponsoren-Aufruf */}
         <div className="bg-stone-900 text-white rounded-[2.5rem] p-10 md:p-14 relative overflow-hidden">
-          <div className="absolute -right-16 -top-16 w-64 h-64 bg-primary/20 rounded-full blur-3xl" />
+          <div className="absolute -right-16 -top-16 w-64 h-64 bg-[color:color-mix(in_srgb,var(--primary)_20%,transparent)] rounded-full blur-3xl" />
           <div className="relative z-10 max-w-2xl">
             <Heart size={32} className="text-primary mb-6" fill="currentColor" />
             <h2 className="font-display text-3xl md:text-4xl font-bold italic mb-4">{t('futsal.sponsor_hint')}</h2>

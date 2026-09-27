@@ -1,3 +1,20 @@
+-- ACHTUNG, GELESEN AM 27.09.2026
+--
+-- Diese Datei ist das einmalige Ergebnis der Uebernahme aus Firestore
+-- (erzeugt von migrate-firestore-to-supabase.js). Sie wird im Betrieb nicht
+-- mehr gebraucht.
+--
+-- Sie enthielt das PayPal-Geheimnis und die PayPal-Client-ID im Klartext.
+-- Beide sind hier durch ENTFERNT-SIEHE-KOPF ersetzt. Das genuegt NICHT:
+-- die Werte stehen weiterhin in der Versionsgeschichte dieses Projekts und
+-- sind damit als kompromittiert zu behandeln. Sie muessen bei PayPal neu
+-- erzeugt werden -- das kann nur der Inhaber des Kontos.
+--
+-- Die gueltigen Zahlungsangaben stehen in der Datenbank unter
+-- settings/payment, je Verein getrennt, und werden ueber die Verwaltung
+-- gepflegt. Diese Datei darf nie wieder eingespielt werden, ohne dass
+-- vorher geprueft wird, was sie ueberschreibt.
+
 -- =========================================================
 -- SUPABASE DATA SEED SCRIPT (MIGRATED FROM FIRESTORE)
 -- Generated on: 2026-09-04T20:34:06.504Z
@@ -15568,7 +15585,7 @@ ON CONFLICT ("id") DO UPDATE SET
 -- Data for Table: settings
 -- ---------------------------------------------------------
 INSERT INTO "settings" ("id", "payment", "system") 
-VALUES ('global', '{"qrIban":"CH13 0630 0508 6189 1750 0","twintUrl":"https://go.twint.ch/1/e/tw?tw=acq.heLTE_9DR0mrnhtPooMhRpa0rkjD3baQnpKB75AbzJeRUvgKYMA5Jj6L_30fz0GJ.","paypalSecret":"EIjfAtmp5wwZVUo_MoxmLEJHdndrF90fb7c_dRp-Sqjqz77qRmkoNGDF3urAZiSSHdxu4clbsI59Zdl_","accountHolder":"Shoqata Humanitare Koretini","zip":"8909","bic":"KBAGCH22","bankName":"Valiant Bank AG","paypalEmail":"info@koretini.me","city":"Zwillikon","paypalClientId":"AdAtIVe2kp27J-5Sm8zDsxCtjVNIs0tZ7J7-FCib2dd6sh3BA7VXYsVVy1UtB1a2niMqOb6TenXNHrFj","currency":"CHF","street":"Weidgartenstrasse 8","country":"CH","iban":"CH13 0630 0508 6189 1750 0","fees":{"STANDARD":{"label":"Standard","currency":"CHF","amount":120},"KOSOVO":{"label":"Resident","currency":"EUR","amount":12},"REDUCED":{"currency":"EUR","label":"Reduced","amount":100}},"annualFeeAmount":120}', '{"updatedAt":"2026-02-16T22:25:24.829Z","systemEmail":"info@koretini.me","maintenanceMode":false,"allowRegistration":true,"modules":{"news":true,"villageLive":false,"events":true}}') 
+VALUES ('global', '{"qrIban":"CH13 0630 0508 6189 1750 0","twintUrl":"https://go.twint.ch/1/e/tw?tw=acq.heLTE_9DR0mrnhtPooMhRpa0rkjD3baQnpKB75AbzJeRUvgKYMA5Jj6L_30fz0GJ.","paypalSecret":"ENTFERNT-SIEHE-KOPF","accountHolder":"Shoqata Humanitare Koretini","zip":"8909","bic":"KBAGCH22","bankName":"Valiant Bank AG","paypalEmail":"info@koretini.me","city":"Zwillikon","paypalClientId":"ENTFERNT-SIEHE-KOPF","currency":"CHF","street":"Weidgartenstrasse 8","country":"CH","iban":"CH13 0630 0508 6189 1750 0","fees":{"STANDARD":{"label":"Standard","currency":"CHF","amount":120},"KOSOVO":{"label":"Resident","currency":"EUR","amount":12},"REDUCED":{"currency":"EUR","label":"Reduced","amount":100}},"annualFeeAmount":120}', '{"updatedAt":"2026-02-16T22:25:24.829Z","systemEmail":"info@koretini.me","maintenanceMode":false,"allowRegistration":true,"modules":{"news":true,"villageLive":false,"events":true}}') 
 ON CONFLICT ("id") DO UPDATE SET 
   "payment" = EXCLUDED."payment",
   "system" = EXCLUDED."system";

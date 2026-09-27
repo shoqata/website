@@ -108,7 +108,7 @@ const EventsPage: React.FC = () => {
           to="/fussball"
           className="group block bg-stone-900 text-white rounded-[2rem] p-8 md:p-10 mb-16 relative overflow-hidden hover:bg-black transition-colors"
         >
-          <div className="absolute -right-12 -top-12 w-56 h-56 bg-primary/20 rounded-full blur-3xl" />
+          <div className="absolute -right-12 -top-12 w-56 h-56 bg-[color:color-mix(in_srgb,var(--primary)_20%,transparent)] rounded-full blur-3xl" />
           <div className="relative z-10 flex flex-wrap items-center justify-between gap-6">
             <div className="max-w-xl">
               <span className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-amber-300 mb-3">
@@ -241,15 +241,15 @@ const EventsPage: React.FC = () => {
                                           <p className="text-sm text-stone-500 mb-2">{t('events.reg.intro')}</p>
                                           <div className="relative">
                                               <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" />
-                                              <input required type="text" placeholder={t('events.reg.name')} value={guestForm.name} onChange={e => setGuestForm({...guestForm, name: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-primary/50" />
+                                              <input required type="text" placeholder={t('events.reg.name')} value={guestForm.name} onChange={e => setGuestForm({...guestForm, name: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)]" />
                                           </div>
                                           <div className="relative">
                                               <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" />
-                                              <input required type="email" placeholder={t('events.reg.email')} value={guestForm.email} onChange={e => setGuestForm({...guestForm, email: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-primary/50" />
+                                              <input required type="email" placeholder={t('events.reg.email')} value={guestForm.email} onChange={e => setGuestForm({...guestForm, email: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)]" />
                                           </div>
                                           <div className="relative">
                                               <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" />
-                                              <input type="tel" placeholder={t('events.reg.phone')} value={guestForm.phone} onChange={e => setGuestForm({...guestForm, phone: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-primary/50" />
+                                              <input type="tel" placeholder={t('events.reg.phone')} value={guestForm.phone} onChange={e => setGuestForm({...guestForm, phone: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)]" />
                                           </div>
                                       </>
                                   )}

@@ -215,7 +215,7 @@ const MaintenanceScreen = ({ branding }: { branding: Branding }) => {
   return (
   <div className="fixed inset-0 z-[9999] bg-stone-900 flex flex-col items-center justify-center text-white p-6">
       <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.8 }} className="relative mb-12">
-          <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full" />
+          <div className="absolute inset-0 bg-[color:color-mix(in_srgb,var(--primary)_20%,transparent)] blur-[100px] rounded-full" />
           {branding.logoUrl ? (
               <img src={branding.logoUrl} className="h-40 w-auto object-contain relative z-10 drop-shadow-2xl animate-pulse" alt="Logo"  onError={onImageError}/>
           ) : (

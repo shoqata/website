@@ -617,7 +617,7 @@ const AdminData: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
           {/* USERS CARD */}
-          <div className="border border-stone-200 rounded-3xl p-6 hover:border-primary/30 transition-all group">
+          <div className="border border-stone-200 rounded-3xl p-6 hover:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-all group">
               <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                   <Users size={24} />
               </div>
@@ -635,7 +635,7 @@ const AdminData: React.FC = () => {
           </div>
 
           {/* NEIGHBORHOODS CARD */}
-          <div className="border border-stone-200 rounded-3xl p-6 hover:border-primary/30 transition-all group">
+          <div className="border border-stone-200 rounded-3xl p-6 hover:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-all group">
               <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                   <MapPin size={24} />
               </div>
@@ -653,7 +653,7 @@ const AdminData: React.FC = () => {
           </div>
 
           {/* PAYMENTS CARD */}
-          <div className="border border-stone-200 rounded-3xl p-6 hover:border-primary/30 transition-all group">
+          <div className="border border-stone-200 rounded-3xl p-6 hover:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-all group">
               <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                   <CreditCard size={24} />
               </div>

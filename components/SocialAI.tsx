@@ -262,7 +262,7 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
                     <div className="space-y-6">
                         <div 
                         onClick={() => fileInputRef.current?.click()}
-                        className={`p-10 border-2 border-dashed rounded-[2.5rem] flex flex-col items-center gap-4 cursor-pointer transition-all ${previewImage ? 'border-primary bg-rose-50/20' : 'border-stone-100 hover:border-primary/30'}`}
+                        className={`p-10 border-2 border-dashed rounded-[2.5rem] flex flex-col items-center gap-4 cursor-pointer transition-all ${previewImage ? 'border-primary bg-rose-50/20' : 'border-stone-100 hover:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)]'}`}
                         >
                             {previewImage ? (
                             <div className="relative group">
@@ -294,7 +294,7 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
                             value={topic}
                             onChange={(e) => setTopic(e.target.value)}
                             placeholder={t('social.topic.placeholder')}
-                            className="w-full p-5 bg-stone-50 border border-stone-100 rounded-[1.5rem] outline-none focus:border-primary/30 h-32 transition-all font-medium text-stone-700 leading-relaxed"
+                            className="w-full p-5 bg-stone-50 border border-stone-100 rounded-[1.5rem] outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] h-32 transition-all font-medium text-stone-700 leading-relaxed"
                             />
                         </div>
 
@@ -333,7 +333,7 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
                 <AnimatePresence>
                     {content && (
                         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-stone-900 text-white p-8 rounded-[2.5rem] border border-stone-800 shadow-2xl relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-[color:color-mix(in_srgb,var(--primary)_10%,transparent)] rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
                             <div className="relative z-10">
                                 <div className="flex justify-between items-center mb-6">
                                     <div className="flex gap-2">
@@ -357,7 +357,7 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
                                                 type="datetime-local" 
                                                 value={scheduledTime}
                                                 onChange={e => setScheduledTime(e.target.value)}
-                                                className="w-full pl-10 pr-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs outline-none focus:border-primary/50 text-white"
+                                                className="w-full pl-10 pr-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)] text-white"
                                             />
                                         </div>
                                     </div>
@@ -459,7 +459,7 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {zurWahl.map((k: any) => (
                             <button key={k.id} onClick={() => seiteWaehlen(k.id)}
-                                className="text-left p-5 rounded-2xl border border-stone-200 hover:border-primary/40 hover:bg-stone-50 transition-all">
+                                className="text-left p-5 rounded-2xl border border-stone-200 hover:border-[color:color-mix(in_srgb,var(--primary)_40%,transparent)] hover:bg-stone-50 transition-all">
                                 <p className="font-bold text-stone-900 text-sm">{k.name}</p>
                                 <p className="text-[10px] text-stone-400 font-mono mt-1">{k.id}</p>
                             </button>

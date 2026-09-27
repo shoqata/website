@@ -43,7 +43,7 @@ const CountrySelect: React.FC<Props> = ({ value, onChange, className }) => {
 
   const feld =
     className ||
-    'w-full p-4 bg-white border border-stone-200 rounded-xl outline-none focus:border-primary/40 transition-colors';
+    'w-full p-4 bg-white border border-stone-200 rounded-xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_40%,transparent)] transition-colors';
 
   const kachel = (aktiv: boolean) =>
     `px-3.5 py-2 rounded-xl text-xs font-bold border transition-colors ${

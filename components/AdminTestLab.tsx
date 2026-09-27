@@ -87,7 +87,7 @@ const AdminTestLab: React.FC<AdminTestLabProps> = ({ users, payments }) => {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder={t('lab.password_ph')}
-                        className="flex-1 px-4 py-3 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-primary/50 font-mono"
+                        className="flex-1 px-4 py-3 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[color:color-mix(in_srgb,var(--primary)_50%,transparent)] font-mono"
                     />
                     <button type="submit" className="px-6 py-3 bg-stone-900 text-white rounded-xl font-bold hover:bg-stone-800 transition-colors">
                         {t('lab.unlock')}

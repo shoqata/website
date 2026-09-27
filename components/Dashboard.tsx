@@ -522,7 +522,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             {/* INVOICE STATUS CARD */}
             {activeInvoice ? (
                 <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-stone-900 text-white p-8 rounded-[2.5rem] shadow-xl shadow-stone-300 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-primary/30 transition-colors" />
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-[color:color-mix(in_srgb,var(--primary)_20%,transparent)] rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-colors" />
                     <div className="relative z-10">
                         <div className="flex justify-between items-start mb-8">
                             <div>
@@ -669,7 +669,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                     <div className="space-y-2">
                         {protokolle.map(m => (
                             <button key={m.id} onClick={() => setOffenesProtokoll(m)}
-                                className="w-full text-left p-4 bg-stone-50 rounded-2xl border border-stone-100 hover:border-primary/30 transition-colors flex justify-between items-center gap-3">
+                                className="w-full text-left p-4 bg-stone-50 rounded-2xl border border-stone-100 hover:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-colors flex justify-between items-center gap-3">
                                 <div className="min-w-0">
                                     <p className="font-bold text-sm text-stone-900 truncate">{m.title}</p>
                                     <p className="text-xs text-stone-500">
@@ -890,7 +890,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                             <div 
                                                 key={m.id} 
                                                 onClick={() => handleOpenManageNeighbor(m)}
-                                                className={`bg-white px-3 py-1.5 rounded-lg border border-stone-100 shadow-sm flex items-center gap-2 relative ${istBetreuer ? 'cursor-pointer hover:border-primary/50 hover:shadow-md transition-all' : ''}`}
+                                                className={`bg-white px-3 py-1.5 rounded-lg border border-stone-100 shadow-sm flex items-center gap-2 relative ${istBetreuer ? 'cursor-pointer hover:border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)] hover:shadow-md transition-all' : ''}`}
                                             >
                                                 {istBetreuer && luckenVon(m).length > 0 && (
                                                     <div className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full flex items-center justify-center z-10 border border-white"
@@ -1144,7 +1144,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                     <button 
                                         key={type} 
                                         onClick={() => setNewRequest({...newRequest, type})}
-                                        className={`py-3 rounded-xl text-xs font-bold border-2 transition-all ${newRequest.type === type ? 'border-primary bg-primary/5 text-primary' : 'border-stone-100 text-stone-400 hover:border-stone-200'}`}
+                                        className={`py-3 rounded-xl text-xs font-bold border-2 transition-all ${newRequest.type === type ? 'border-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)] text-primary' : 'border-stone-100 text-stone-400 hover:border-stone-200'}`}
                                     >
                                         {t(`req.type.${type}`)}
                                     </button>
@@ -1163,7 +1163,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                             <input 
                                 value={newRequest.subject}
                                 onChange={e => setNewRequest({...newRequest, subject: e.target.value})}
-                                className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl font-bold text-stone-900 outline-none focus:border-primary/50"
+                                className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl font-bold text-stone-900 outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)]"
                                 placeholder="..."
                             />
                         </div>
@@ -1173,7 +1173,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                             <textarea 
                                 value={newRequest.message}
                                 onChange={e => setNewRequest({...newRequest, message: e.target.value})}
-                                className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-primary/50 h-32"
+                                className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)] h-32"
                                 placeholder="..."
                             />
                         </div>

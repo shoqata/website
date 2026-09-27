@@ -92,7 +92,7 @@ const CookieConsent: React.FC = () => {
             /* ---------------------------------------- Vereinsdarstellung */
             <div className="bg-stone-900 text-white p-6 rounded-[2rem] shadow-2xl border border-white/10 backdrop-blur-xl">
                <div className="flex items-start gap-4 mb-6">
-                  <div className="p-3 bg-primary/20 text-primary rounded-xl shrink-0">
+                  <div className="p-3 bg-[color:color-mix(in_srgb,var(--primary)_20%,transparent)] text-primary rounded-xl shrink-0">
                       <ShieldCheck size={24} />
                   </div>
                   <div>

@@ -146,7 +146,7 @@ const SuperAdminTenantDialog: React.FC<Props> = ({ tenant, domains, memberCount,
     }
   };
 
-  const field = 'w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none text-sm focus:border-primary/40 transition-colors';
+  const field = 'w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none text-sm focus:border-[color:color-mix(in_srgb,var(--primary)_40%,transparent)] transition-colors';
   const label = 'text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1.5';
 
   return (

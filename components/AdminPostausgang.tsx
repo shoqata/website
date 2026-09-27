@@ -117,7 +117,7 @@ const AdminPostausgang: React.FC = () => {
   // Klartext ueber die Leitung.
   const unsicher = stand.tls === 'keine' || stand.port === 25;
 
-  const feld = 'w-full p-3 bg-white border border-stone-200 rounded-xl text-sm text-stone-700 outline-none focus:border-primary/50';
+  const feld = 'w-full p-3 bg-white border border-stone-200 rounded-xl text-sm text-stone-700 outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)]';
   const schild = 'text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-2 block';
 
   if (laedt) {

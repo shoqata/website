@@ -166,7 +166,7 @@ const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) =
               ))}
             </div>
           </div>
-          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-[color:color-mix(in_srgb,var(--primary)_20%,transparent)] blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
         </div>
 
         <div className="p-12 min-h-[450px] flex flex-col">
@@ -189,7 +189,7 @@ const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) =
                       value={formData.name}
                       onChange={(e) => setFormData({...formData, name: e.target.value})}
                       placeholder={t('ph.fullname')}
-                      className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-primary/30 transition-all text-lg font-medium"
+                      className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-all text-lg font-medium"
                     />
                   </div>
                   <div className="space-y-3">
@@ -201,7 +201,7 @@ const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) =
                       value={formData.phone}
                       onChange={(e) => setFormData({...formData, phone: e.target.value})}
                       placeholder={t('ph.phone')}
-                      className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-primary/30 transition-all text-lg font-medium"
+                      className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-all text-lg font-medium"
                     />
                   </div>
                 </div>
@@ -228,20 +228,20 @@ const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) =
                     value={formData.street}
                     onChange={(e) => setFormData({...formData, street: e.target.value})}
                     placeholder={t('admin.members.street_no')}
-                    className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-primary/30 transition-all text-lg font-medium"
+                    className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-all text-lg font-medium"
                   />
                   <div className="grid grid-cols-3 gap-4">
                     <input
                       value={formData.zip}
                       onChange={(e) => setFormData({...formData, zip: e.target.value})}
                       placeholder={t('field.zip')}
-                      className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-primary/30 transition-all text-lg font-medium"
+                      className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-all text-lg font-medium"
                     />
                     <input
                       value={formData.city}
                       onChange={(e) => setFormData({...formData, city: e.target.value})}
                       placeholder={t('field.city')}
-                      className="col-span-2 w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-primary/30 transition-all text-lg font-medium"
+                      className="col-span-2 w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-all text-lg font-medium"
                     />
                   </div>
                 </div>
@@ -254,7 +254,7 @@ const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) =
                         <CountrySelect
                             value={formData.country}
                             onChange={(v) => setFormData({...formData, country: v})}
-                            className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-primary/30 transition-all text-lg font-medium"
+                            className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-all text-lg font-medium"
                         />
                         <p className="text-xs text-stone-400 italic">{t('form.fee_hint')}</p>
                     </div>
@@ -269,7 +269,7 @@ const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) =
                                     key={method}
                                     type="button"
                                     onClick={() => setFormData({...formData, invoiceDeliveryMethod: method})}
-                                    className={`p-4 rounded-2xl border-2 text-sm font-bold transition-all ${formData.invoiceDeliveryMethod === method ? 'border-primary bg-primary/5 text-primary' : 'border-stone-100 text-stone-400 hover:border-stone-200'}`}
+                                    className={`p-4 rounded-2xl border-2 text-sm font-bold transition-all ${formData.invoiceDeliveryMethod === method ? 'border-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)] text-primary' : 'border-stone-100 text-stone-400 hover:border-stone-200'}`}
                                 >
                                     {method}
                                 </button>
@@ -294,7 +294,7 @@ const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) =
                       key={n.id}
                       type="button"
                       onClick={() => setFormData({...formData, neighborhoodId: n.id})}
-                      className={`p-6 rounded-2xl border-2 text-left transition-all flex items-center justify-between group ${formData.neighborhoodId === n.id ? 'border-primary bg-primary/5 shadow-lg' : 'border-stone-100 hover:border-stone-200 hover:bg-stone-50'}`}
+                      className={`p-6 rounded-2xl border-2 text-left transition-all flex items-center justify-between group ${formData.neighborhoodId === n.id ? 'border-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)] shadow-lg' : 'border-stone-100 hover:border-stone-200 hover:bg-stone-50'}`}
                     >
                       <div>
                         <p className={`font-bold transition-colors ${formData.neighborhoodId === n.id ? 'text-primary' : 'text-stone-900'}`}>{n.name}</p>

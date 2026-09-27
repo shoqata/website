@@ -178,7 +178,7 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
     }
   };
 
-  const feld = 'w-full p-3 bg-white border border-stone-200 rounded-xl outline-none text-sm focus:border-primary/40 transition-colors';
+  const feld = 'w-full p-3 bg-white border border-stone-200 rounded-xl outline-none text-sm focus:border-[color:color-mix(in_srgb,var(--primary)_40%,transparent)] transition-colors';
   const marke = 'text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1.5';
 
   if (laedt) {
@@ -246,7 +246,7 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
           <div className="relative">
             <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" />
             <input value={suche} onChange={e => setSuche(e.target.value)} placeholder={t('common.search')}
-              className="w-full pl-11 pr-4 py-3.5 bg-stone-50 border border-stone-200 rounded-2xl outline-none focus:border-primary/40 transition-colors" />
+              className="w-full pl-11 pr-4 py-3.5 bg-stone-50 border border-stone-200 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_40%,transparent)] transition-colors" />
           </div>
 
           {/* Filter statt blosser Warnungen: bei 35 offenen Beitraegen unter 46

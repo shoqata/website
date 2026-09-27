@@ -274,7 +274,7 @@ const AdminExpenses: React.FC = () => {
 
                 {/* Right: Upload / Form */}
                 <div className="lg:col-span-5">
-                    <div className={`bg-white rounded-[2rem] border border-stone-200 shadow-xl overflow-hidden sticky top-8 transition-all ${isFormOpen ? 'ring-4 ring-primary/10' : ''}`}>
+                    <div className={`bg-white rounded-[2rem] border border-stone-200 shadow-xl overflow-hidden sticky top-8 transition-all ${isFormOpen ? 'ring-4 ring-[color:color-mix(in_srgb,var(--primary)_10%,transparent)]' : ''}`}>
                         
                         {/* Action Header */}
                         <div className="bg-stone-900 text-white p-6">
@@ -290,7 +290,7 @@ const AdminExpenses: React.FC = () => {
                                         <ScanLine size={32} className="group-hover:scale-110 transition-transform" />
                                     )}
                                     <span className="text-sm font-bold">{isScanning ? "Scanne..." : t('admin.expenses.scan')}</span>
-                                    <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <div className="absolute inset-0 bg-gradient-to-tr from-[color:color-mix(in_srgb,var(--primary)_20%,transparent)] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                 </div>
 
                                 <div 
@@ -323,14 +323,14 @@ const AdminExpenses: React.FC = () => {
                                     <div className="space-y-4">
                                         <div>
                                             <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('admin.expenses.vendor')}</label>
-                                            <input value={formData.vendor} onChange={e => setFormData({...formData, vendor: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-primary/50 font-bold" placeholder={t('exp.vendor_ph')} />
+                                            <input value={formData.vendor} onChange={e => setFormData({...formData, vendor: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)] font-bold" placeholder={t('exp.vendor_ph')} />
                                         </div>
                                         
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
                                                 <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('admin.finance.amount')}</label>
                                                 <div className="relative">
-                                                    <input type="number" value={formData.amount} onChange={e => setFormData({...formData, amount: parseFloat(e.target.value)})} className="w-full pl-3 pr-16 p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-primary/50 font-mono font-bold" />
+                                                    <input type="number" value={formData.amount} onChange={e => setFormData({...formData, amount: parseFloat(e.target.value)})} className="w-full pl-3 pr-16 p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)] font-mono font-bold" />
                                                     <div className="absolute right-1 top-1 bottom-1 flex bg-white rounded-lg border border-stone-100 p-1">
                                                         <button 
                                                             onClick={() => setFormData({...formData, currency: 'CHF', paymentAccountCode: '1020'})} // Reset to bank default
@@ -345,13 +345,13 @@ const AdminExpenses: React.FC = () => {
                                             </div>
                                             <div>
                                                 <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('admin.finance.date')}</label>
-                                                <input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-primary/50" />
+                                                <input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)]" />
                                             </div>
                                         </div>
 
                                         <div>
                                             <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('admin.expenses.description')}</label>
-                                            <input value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-primary/50 text-sm" placeholder={t('exp.purpose_ph')} />
+                                            <input value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)] text-sm" placeholder={t('exp.purpose_ph')} />
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-4">

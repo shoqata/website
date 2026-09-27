@@ -205,7 +205,7 @@ const RegistrationWizard: React.FC = () => {
                         value={formData.email}
                         onChange={(e) => setFormData({...formData, email: e.target.value})}
                         placeholder={t('login.email.placeholder')}
-                        className="w-full pl-16 pr-6 py-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-primary/30 transition-all text-lg font-medium"
+                        className="w-full pl-16 pr-6 py-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-all text-lg font-medium"
                       />
                     </div>
                   </div>
@@ -220,7 +220,7 @@ const RegistrationWizard: React.FC = () => {
                         value={formData.password}
                         onChange={(e) => setFormData({...formData, password: e.target.value})}
                         placeholder={t('ph.password')}
-                        className="w-full pl-16 pr-14 py-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-primary/30 transition-all text-lg font-medium"
+                        className="w-full pl-16 pr-14 py-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-all text-lg font-medium"
                       />
                       <button 
                         type="button"
@@ -275,7 +275,7 @@ const RegistrationWizard: React.FC = () => {
                       <select 
                         value={formData.salutation}
                         onChange={(e) => setFormData({...formData, salutation: e.target.value})}
-                        className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-primary/30 transition-all text-lg font-medium appearance-none"
+                        className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-all text-lg font-medium appearance-none"
                       >
                         <option value="">{t('common.select')}</option>
                         <option value="Z.">Z.</option>
@@ -291,7 +291,7 @@ const RegistrationWizard: React.FC = () => {
                           value={formData.firstName}
                           onChange={(e) => setFormData({...formData, firstName: e.target.value})}
                           placeholder={t('ph.firstname')}
-                          className="w-full pl-16 pr-6 py-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-primary/30 transition-all text-lg font-medium"
+                          className="w-full pl-16 pr-6 py-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-all text-lg font-medium"
                         />
                       </div>
                     </div>
@@ -307,7 +307,7 @@ const RegistrationWizard: React.FC = () => {
                           value={formData.lastName}
                           onChange={(e) => setFormData({...formData, lastName: e.target.value})}
                           placeholder={t('ph.lastname')}
-                          className="w-full pl-16 pr-6 py-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-primary/30 transition-all text-lg font-medium"
+                          className="w-full pl-16 pr-6 py-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-all text-lg font-medium"
                         />
                       </div>
                     </div>
@@ -320,7 +320,7 @@ const RegistrationWizard: React.FC = () => {
                           value={formData.phone}
                           onChange={(e) => setFormData({...formData, phone: e.target.value})}
                           placeholder={t('ph.phone')}
-                          className="w-full pl-16 pr-6 py-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-primary/30 transition-all text-lg font-medium"
+                          className="w-full pl-16 pr-6 py-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-all text-lg font-medium"
                         />
                       </div>
                     </div>
@@ -351,7 +351,7 @@ const RegistrationWizard: React.FC = () => {
                           value={formData.street}
                           onChange={(e) => setFormData({...formData, street: e.target.value})}
                           placeholder={t('ph.street')}
-                          className="w-full pl-12 pr-4 py-3 bg-stone-50 border-2 border-stone-100 rounded-xl outline-none focus:border-primary/30 text-sm font-medium"
+                          className="w-full pl-12 pr-4 py-3 bg-stone-50 border-2 border-stone-100 rounded-xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] text-sm font-medium"
                         />
                       </div>
                     </div>
@@ -363,7 +363,7 @@ const RegistrationWizard: React.FC = () => {
                           value={formData.zip}
                           onChange={(e) => setFormData({...formData, zip: e.target.value})}
                           placeholder={t('ph.zip')}
-                          className="w-full px-4 py-3 bg-stone-50 border-2 border-stone-100 rounded-xl outline-none focus:border-primary/30 text-sm font-medium"
+                          className="w-full px-4 py-3 bg-stone-50 border-2 border-stone-100 rounded-xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] text-sm font-medium"
                         />
                       </div>
                       <div className="space-y-2 col-span-2">
@@ -373,7 +373,7 @@ const RegistrationWizard: React.FC = () => {
                           value={formData.city}
                           onChange={(e) => setFormData({...formData, city: e.target.value})}
                           placeholder={t('ph.city')}
-                          className="w-full px-4 py-3 bg-stone-50 border-2 border-stone-100 rounded-xl outline-none focus:border-primary/30 text-sm font-medium"
+                          className="w-full px-4 py-3 bg-stone-50 border-2 border-stone-100 rounded-xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] text-sm font-medium"
                         />
                       </div>
                     </div>
@@ -385,7 +385,7 @@ const RegistrationWizard: React.FC = () => {
                         <CountrySelect
                           value={formData.country}
                           onChange={(v) => setFormData({...formData, country: v})}
-                          className="w-full px-4 py-3 bg-stone-50 border-2 border-stone-100 rounded-xl outline-none focus:border-primary/30 text-sm font-medium"
+                          className="w-full px-4 py-3 bg-stone-50 border-2 border-stone-100 rounded-xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] text-sm font-medium"
                         />
                       </div>
                       
@@ -398,7 +398,7 @@ const RegistrationWizard: React.FC = () => {
                                     key={method}
                                     type="button"
                                     onClick={() => setFormData({...formData, invoiceDeliveryMethod: method})}
-                                    className={`py-2 px-1 rounded-xl border-2 text-[10px] font-bold uppercase tracking-wider transition-all ${formData.invoiceDeliveryMethod === method ? 'border-primary bg-primary/10 text-primary' : 'border-stone-100 text-stone-400 hover:border-stone-200 bg-white'}`}
+                                    className={`py-2 px-1 rounded-xl border-2 text-[10px] font-bold uppercase tracking-wider transition-all ${formData.invoiceDeliveryMethod === method ? 'border-primary bg-[color:color-mix(in_srgb,var(--primary)_10%,transparent)] text-primary' : 'border-stone-100 text-stone-400 hover:border-stone-200 bg-white'}`}
                                 >
                                     {method}
                                 </button>
@@ -416,7 +416,7 @@ const RegistrationWizard: React.FC = () => {
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         placeholder={t('ph.search_neighborhood')}
-                        className="w-full pl-12 pr-4 py-3 bg-stone-50 border-2 border-stone-100 rounded-xl outline-none focus:border-primary/30 text-sm font-medium"
+                        className="w-full pl-12 pr-4 py-3 bg-stone-50 border-2 border-stone-100 rounded-xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] text-sm font-medium"
                       />
                     </div>
                   </div>

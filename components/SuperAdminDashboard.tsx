@@ -378,19 +378,26 @@ const SuperAdminDashboard: React.FC<{ user?: any }> = ({ user }) => {
                   <div className="space-y-8">
                       <h2 className="text-2xl font-bold">{t('sa.global_config')}</h2>
                       <div className="grid grid-cols-2 gap-8">
-                          <div className="bg-white/5 border border-white/10 p-8 rounded-3xl space-y-6">
+                          {/* Hier standen zwei Preisfelder (50 Mitglieder frei, 49 pro
+                              Monat) und ein Knopf "Preise aktualisieren". Die Zahlen
+                              waren defaultValue, kamen also aus dem Quelltext und
+                              gingen nirgendwohin; der Knopf hatte kein onClick. Sie
+                              beschrieben ausserdem ein Preismodell, das es hier nie
+                              gab: bepreist wird je Verein ueber den Grundpreis im
+                              Verwalten-Dialog und je Modul unter Module.
+                              Ein Bedienelement, das nichts tut, ist schlimmer als
+                              keines -- es behauptet eine Wirkung. */}
+                          <div className="bg-white/5 border border-white/10 p-8 rounded-3xl space-y-4">
                               <h3 className="font-bold flex items-center gap-2"><Settings size={18}/> {t('sa.pricing')}</h3>
-                              <div className="space-y-4">
-                                  <div>
-                                      <label className="text-xs font-bold text-stone-400 block mb-1">{t('sa.free_limit')}</label>
-                                      <input type="number" defaultValue="50" className="w-full bg-stone-900 border border-white/10 p-3 rounded-xl text-white outline-none" />
-                                  </div>
-                                  <div>
-                                      <label className="text-xs font-bold text-stone-400 block mb-1">{t('sa.pro_price')}</label>
-                                      <input type="number" defaultValue="49" className="w-full bg-stone-900 border border-white/10 p-3 rounded-xl text-white outline-none" />
-                                  </div>
-                              </div>
-                              <button className="w-full bg-white text-stone-900 py-3 rounded-xl font-bold">{t('sa.update_pricing')}</button>
+                              <p className="text-xs text-stone-400 leading-relaxed">
+                                  Der Grundpreis eines Vereins steht in seinem Verwalten-Dialog,
+                                  die Modulpreise unter <strong className="text-stone-300">Module</strong>.
+                                  Die Jahresrechnung rechnet beides zusammen.
+                              </p>
+                              <button onClick={() => setActiveTab('MODULE')}
+                                      className="bg-white/10 text-white px-6 py-2.5 rounded-xl text-xs font-bold hover:bg-white/20 transition-colors">
+                                  Zu den Modulen
+                              </button>
                           </div>
 
                           <div className="bg-white/5 border border-white/10 p-8 rounded-3xl space-y-6 col-span-2">
@@ -428,15 +435,21 @@ const SuperAdminDashboard: React.FC<{ user?: any }> = ({ user }) => {
 
                           <div className="bg-white/5 border border-white/10 p-8 rounded-3xl space-y-6">
                               <h3 className="font-bold flex items-center gap-2"><Server size={18}/> {t('set.status')}</h3>
-                              <div className="space-y-4">
-                                  <div className="flex items-center justify-between p-3 bg-stone-900 rounded-xl">
-                                      <span className="font-bold text-sm">{t('sa.maintenance_global')}</span>
-                                      <div className="w-10 h-5 bg-stone-700 rounded-full relative cursor-pointer"><div className="absolute left-1 top-1 w-3 h-3 bg-white rounded-full"></div></div>
-                                  </div>
-                                  <div className="flex items-center justify-between p-3 bg-stone-900 rounded-xl">
-                                      <span className="font-bold text-sm">{t('sa.allow_signups')}</span>
-                                      <div className="w-10 h-5 bg-green-500 rounded-full relative cursor-pointer"><div className="absolute right-1 top-1 w-3 h-3 bg-white rounded-full"></div></div>
-                                  </div>
+                              {/* Hier sassen zwei Dinge, die wie Schalter aussahen:
+                                  Divs mit cursor-pointer, ohne onClick. Der eine stand
+                                  fest auf aus, der andere fest auf gruen -- unabhaengig
+                                  davon, was wirklich galt. Wartungsmodus und
+                                  Registrierung gehoeren ohnehin je Verein in dessen
+                                  Einstellungen, nicht plattformweit hierher. */}
+                              <div className="space-y-3 text-xs text-stone-400 leading-relaxed">
+                                  <p>
+                                      Wartungsmodus und offene Registrierung werden je Verein
+                                      gesetzt — in dessen Verwaltung unter Einstellungen.
+                                      Plattformweit gibt es beides nicht.
+                                  </p>
+                                  <p className="text-stone-500">
+                                      Betrieb: {tenants.length} Verein(e), {Object.values(memberCounts).reduce((a, b) => a + b, 0)} Mitglieder.
+                                  </p>
                               </div>
                           </div>
                       </div>

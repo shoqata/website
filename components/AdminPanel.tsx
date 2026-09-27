@@ -400,7 +400,7 @@ const AdminPanel: React.FC = () => {
                               return !m || modulAktiv(m);
                             })
                             .map(item => (
-                              <button key={item.id} onClick={() => { setActiveTab(item.id); setSelectedNeighborhoodId(null); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === item.id ? 'bg-primary/5 text-primary border-r-4 border-primary shadow-sm' : 'text-stone-500 hover:bg-stone-50 hover:text-stone-900'}`}>
+                              <button key={item.id} onClick={() => { setActiveTab(item.id); setSelectedNeighborhoodId(null); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === item.id ? 'bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)] text-primary border-r-4 border-primary shadow-sm' : 'text-stone-500 hover:bg-stone-50 hover:text-stone-900'}`}>
                                   {item.icon}<span className="flex-1 text-left">{item.label}</span>
                                   {item.badge !== undefined && <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${item.id === 'DATA_QUALITY' ? 'bg-amber-500 text-white' : 'bg-red-500 text-white'}`}>{item.badge}</span>}
                               </button>
@@ -455,7 +455,7 @@ const AdminPanel: React.FC = () => {
                             <div className="space-y-6">
                                 <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-4 rounded-3xl border border-stone-100 shadow-sm">
                                     <div className="flex gap-2 w-full md:w-auto">
-                                        <div className="relative flex-1 md:w-64"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={16}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('admin.members.search')} className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-primary/30" /></div>
+                                        <div className="relative flex-1 md:w-64"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={16}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('admin.members.search')} className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)]" /></div>
                                         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="p-2.5 bg-stone-50 border border-stone-100 rounded-xl text-xs font-bold outline-none"><option value="ALL">{t('status.all')}</option><option value="ACTIVE">{t('status.active')}</option><option value="PENDING">{t('status.pending')}</option><option value="INACTIVE">{t('status.inactive')}</option></select>
                                     </div>
                                     <button onClick={() => { setSelectedUser({ id: '', email: '', role: UserRole.MEMBER, membershipStatus: 'PENDING', joinedAt: new Date().toISOString(), tenantId: 'koretini' }); setUserDrawerTab('GENERAL'); setIsUserDrawerOpen(true); }} className="bg-stone-900 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-black transition-all shadow-lg"><UserPlus size={16}/> {t('admin.members.add_new')}</button>
@@ -909,7 +909,7 @@ const AdminPanel: React.FC = () => {
                                           nicht an der Rollenbezeichnung, ist dies die eigentliche
                                           Auskunft ueber die Befugnis dieser Person. */}
                                       {neighborhoodsLedBy(selectedUser.id, neighborhoods).map(n => (
-                                          <span key={n.id} className="bg-primary/20 text-rose-200 px-3 py-1 rounded-lg text-[10px] font-bold uppercase border border-primary/40 flex items-center gap-1.5">
+                                          <span key={n.id} className="bg-[color:color-mix(in_srgb,var(--primary)_20%,transparent)] text-rose-200 px-3 py-1 rounded-lg text-[10px] font-bold uppercase border border-[color:color-mix(in_srgb,var(--primary)_40%,transparent)] flex items-center gap-1.5">
                                               <Home size={10}/> {t('steward.responsible_for')} {n.name}
                                           </span>
                                       ))}
@@ -1006,7 +1006,7 @@ const AdminPanel: React.FC = () => {
                                       )}
                                       <div className="flex gap-4">
                                           {(['EMAIL', 'POST', 'BOTH'] as const).map(method => (
-                                              <button key={method} onClick={() => setSelectedUser({...selectedUser, invoiceDeliveryMethod: method})} className={`flex-1 py-4 rounded-xl text-xs font-bold border-2 transition-all ${selectedUser.invoiceDeliveryMethod === method ? 'border-primary bg-primary/5 text-primary' : 'border-stone-200 bg-white text-stone-400'}`}>
+                                              <button key={method} onClick={() => setSelectedUser({...selectedUser, invoiceDeliveryMethod: method})} className={`flex-1 py-4 rounded-xl text-xs font-bold border-2 transition-all ${selectedUser.invoiceDeliveryMethod === method ? 'border-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)] text-primary' : 'border-stone-200 bg-white text-stone-400'}`}>
                                                   {method}
                                               </button>
                                           ))}
@@ -1381,14 +1381,14 @@ const AdminNeighborhoodDetail = ({ neighborhoodId, neighborhoods, users, payment
                 <button onClick={onBack} className="flex items-center gap-2 text-stone-400 hover:text-stone-900 font-bold text-sm transition-colors">
                     <ArrowLeft size={16}/> {t('admin.members.back_to_list')}
                 </button>
-                <button onClick={() => onEdit?.(neighborhood)} className="flex items-center gap-2 bg-white border border-stone-200 text-stone-700 px-5 py-2.5 rounded-xl font-bold text-sm hover:border-primary/40 hover:text-primary transition-colors shadow-sm">
+                <button onClick={() => onEdit?.(neighborhood)} className="flex items-center gap-2 bg-white border border-stone-200 text-stone-700 px-5 py-2.5 rounded-xl font-bold text-sm hover:border-[color:color-mix(in_srgb,var(--primary)_40%,transparent)] hover:text-primary transition-colors shadow-sm">
                     <Settings size={16}/> {t('admin.nb.edit_button')}
                 </button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 <div className="lg:col-span-8 bg-white p-10 rounded-[3rem] border border-stone-100 shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[320px]">
-                    <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
+                    <div className="absolute top-0 right-0 w-96 h-96 bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)] rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
                     <div className="relative z-10 flex justify-between items-start">
                         <div>
                             <div className="inline-flex items-center gap-2 bg-rose-50 text-rose-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest mb-4">{t('admin.nb.local_unit')}</div>

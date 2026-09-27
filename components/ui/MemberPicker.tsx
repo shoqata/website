@@ -66,8 +66,8 @@ const MemberPicker: React.FC<Props> = ({ users, value, onChange, max = 40, place
             <span
               key={u.id}
               className={`inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1.5 rounded-xl text-xs font-bold border transition-colors ${
-                i === 0 && !single ? 'bg-rose-50 border-primary/30 text-primary'
-                : single ? 'bg-rose-50 border-primary/30 text-primary'
+                i === 0 && !single ? 'bg-rose-50 border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] text-primary'
+                : single ? 'bg-rose-50 border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] text-primary'
                 : 'bg-stone-100 border-stone-200 text-stone-600'
               }`}
             >
@@ -110,7 +110,7 @@ const MemberPicker: React.FC<Props> = ({ users, value, onChange, max = 40, place
             if (e.key === 'Escape') setOpen(false);
           }}
           placeholder={placeholder || t('picker.search')}
-          className="w-full pl-9 pr-3 py-3 bg-stone-50 border border-stone-200 rounded-xl outline-none text-sm focus:border-primary/40 transition-colors"
+          className="w-full pl-9 pr-3 py-3 bg-stone-50 border border-stone-200 rounded-xl outline-none text-sm focus:border-[color:color-mix(in_srgb,var(--primary)_40%,transparent)] transition-colors"
         />
       </div>
       )}

@@ -267,7 +267,7 @@ const AdminStatistics: React.FC<AdminStatisticsProps> = ({ users, payments, neig
                             placeholder={t('common.search')} 
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-primary/30"
+                            className="w-full pl-10 pr-4 py-2 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)]"
                         />
                     </div>
                     <div className="flex bg-stone-50 p-1 rounded-xl border border-stone-200">

@@ -809,7 +809,7 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                     <input 
                                         value={newTaskData.title} 
                                         onChange={e => setNewTaskData({...newTaskData, title: e.target.value})} 
-                                        className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl font-medium outline-none focus:border-primary/50"
+                                        className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl font-medium outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)]"
                                     />
                                 </div>
                                 <div>
@@ -827,7 +827,7 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                         type="date"
                                         value={newTaskData.dueDate} 
                                         onChange={e => setNewTaskData({...newTaskData, dueDate: e.target.value})} 
-                                        className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl font-medium outline-none focus:border-primary/50"
+                                        className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl font-medium outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)]"
                                     />
                                 </div>
                                 <div>
@@ -835,7 +835,7 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                     <select 
                                         value={newTaskData.priority} 
                                         onChange={e => setNewTaskData({...newTaskData, priority: e.target.value as any})} 
-                                        className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl font-medium outline-none focus:border-primary/50"
+                                        className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl font-medium outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)]"
                                     >
                                         <option value="LOW">{t('prio.low')}</option>
                                         <option value="MEDIUM">{t('prio.medium')}</option>

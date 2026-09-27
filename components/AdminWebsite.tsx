@@ -324,7 +324,7 @@ const AdminWebsite: React.FC = () => {
 
   // Reusable Section Component
   const BuilderSection = ({ id, title, icon, children }: { id: string, title: string, icon: React.ReactNode, children?: React.ReactNode }) => (
-      <div className={`bg-stone-50 rounded-3xl border transition-all duration-300 ${expandedSection === id ? 'border-primary/50 shadow-lg bg-white' : 'border-stone-200'}`}>
+      <div className={`bg-stone-50 rounded-3xl border transition-all duration-300 ${expandedSection === id ? 'border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)] shadow-lg bg-white' : 'border-stone-200'}`}>
           <button 
               onClick={() => setExpandedSection(expandedSection === id ? null : id)}
               className="w-full flex items-center justify-between p-6 text-left"
@@ -441,18 +441,18 @@ const AdminWebsite: React.FC = () => {
                         <div className="space-y-4">
                             <div>
                                 <label className="text-[10px] font-bold text-stone-400 uppercase mb-1 block">{t('field.address')}</label>
-                                <input value={branding.footerAddress} onChange={e => updateField('footerAddress', e.target.value)} className="w-full p-3 bg-stone-50 rounded-xl text-sm border border-stone-100 outline-none focus:border-primary/30" />
+                                <input value={branding.footerAddress} onChange={e => updateField('footerAddress', e.target.value)} className="w-full p-3 bg-stone-50 rounded-xl text-sm border border-stone-100 outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)]" />
                             </div>
                             <div>
                                 <label className="text-[10px] font-bold text-stone-400 uppercase mb-1 block">{t('web.public_email')}</label>
-                                <input value={branding.footerEmail} onChange={e => updateField('footerEmail', e.target.value)} className="w-full p-3 bg-stone-50 rounded-xl text-sm border border-stone-100 outline-none focus:border-primary/30" />
+                                <input value={branding.footerEmail} onChange={e => updateField('footerEmail', e.target.value)} className="w-full p-3 bg-stone-50 rounded-xl text-sm border border-stone-100 outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)]" />
                             </div>
                             <div>
                                 <label className="text-[10px] font-bold text-stone-400 uppercase mb-1 flex items-center gap-1">{t('web.mission_footer')} <Languages size={10} className="text-primary"/></label>
                                 <textarea 
                                     value={getLoc(branding.footerText)} 
                                     onChange={e => updateField('footerText', e.target.value, true)} 
-                                    className="w-full p-3 bg-stone-50 rounded-xl text-sm border border-stone-100 outline-none focus:border-primary/30 h-24" 
+                                    className="w-full p-3 bg-stone-50 rounded-xl text-sm border border-stone-100 outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] h-24" 
                                 />
                             </div>
                         </div>
@@ -499,7 +499,7 @@ const AdminWebsite: React.FC = () => {
                                         </div>
                                     ))}
                                     <div className="flex flex-col gap-2">
-                                        <button onClick={() => heroInputRef.current?.click()} className="flex-1 aspect-video border-2 border-dashed border-stone-200 rounded-lg flex items-center justify-center text-stone-300 hover:text-primary hover:border-primary/50 transition-all flex-col gap-1 text-[10px] font-bold">
+                                        <button onClick={() => heroInputRef.current?.click()} className="flex-1 aspect-video border-2 border-dashed border-stone-200 rounded-lg flex items-center justify-center text-stone-300 hover:text-primary hover:border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)] transition-all flex-col gap-1 text-[10px] font-bold">
                                             <Plus size={16}/> {t('web.upload')}
                                         </button>
                                         <button onClick={() => handleManualLink('hero')} className="py-2 bg-stone-100 text-stone-500 rounded-lg text-[10px] font-bold hover:bg-stone-200">
@@ -514,15 +514,15 @@ const AdminWebsite: React.FC = () => {
 
                     <BuilderSection id="hypertext" title={t('web.mission_interactive')} icon={<Type size={18}/>}>
                         <div className="space-y-6">
-                            <div className="p-4 bg-primary/5 border border-primary/10 rounded-2xl">
-                                <p className="text-xs text-primary/80 italic">{t('web.highlights_hint')}</p>
+                            <div className="p-4 bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)] border border-[color:color-mix(in_srgb,var(--primary)_10%,transparent)] rounded-2xl">
+                                <p className="text-xs text-[color:color-mix(in_srgb,var(--primary)_80%,transparent)] italic">{t('web.highlights_hint')}</p>
                             </div>
                             <div>
                                 <label className="text-[10px] font-bold text-stone-400 uppercase mb-1 flex items-center gap-1">{t('web.main_paragraph')} <Languages size={10} className="text-primary"/></label>
                                 <textarea 
                                     value={getLoc(branding.whyJoinText)} 
                                     onChange={e => updateField('whyJoinText', e.target.value, true)} 
-                                    className="w-full p-4 bg-stone-50 rounded-2xl text-sm border border-stone-100 h-32 focus:border-primary/30 outline-none leading-relaxed"
+                                    className="w-full p-4 bg-stone-50 rounded-2xl text-sm border border-stone-100 h-32 focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] outline-none leading-relaxed"
                                     placeholder={t('web.mission_ph')}
                                 />
                             </div>
@@ -654,7 +654,7 @@ const AdminWebsite: React.FC = () => {
                                     <button onClick={() => removeArrayItem('roadmap', idx)} className="text-stone-300 hover:text-red-500 self-start mt-2"><X size={16}/></button>
                                 </div>
                             ))}
-                            <button onClick={() => addArrayItem('roadmap', { title: '', description: '' })} className="w-full py-2 border-2 border-dashed border-stone-200 rounded-xl text-stone-400 text-xs font-bold hover:text-primary hover:border-primary/50 transition-colors">+ Add Milestone</button>
+                            <button onClick={() => addArrayItem('roadmap', { title: '', description: '' })} className="w-full py-2 border-2 border-dashed border-stone-200 rounded-xl text-stone-400 text-xs font-bold hover:text-primary hover:border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)] transition-colors">+ Add Milestone</button>
                         </div>
                     </BuilderSection>
                 </>

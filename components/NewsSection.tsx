@@ -308,7 +308,7 @@ export function NewsSection() {
                     <div className="absolute inset-0 bg-gradient-to-t from-stone-900/80 via-transparent to-transparent md:bg-gradient-to-r"></div>
                     <div className="absolute bottom-8 left-8 text-white">
                         <motion.div 
-                            className="inline-flex items-center gap-2 bg-primary/90 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest mb-4"
+                            className="inline-flex items-center gap-2 bg-[color:color-mix(in_srgb,var(--primary)_90%,transparent)] backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest mb-4"
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.3 }}

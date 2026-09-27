@@ -221,7 +221,7 @@ const BoardMinutesEditor: React.FC<Props> = ({ meeting, open, boardUsers, onClos
     }
   };
 
-  const feld = 'w-full p-3 bg-white border border-stone-200 rounded-xl outline-none text-sm focus:border-primary/40 transition-colors';
+  const feld = 'w-full p-3 bg-white border border-stone-200 rounded-xl outline-none text-sm focus:border-[color:color-mix(in_srgb,var(--primary)_40%,transparent)] transition-colors';
   const marke = 'text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1.5';
 
   const abschnitt = (feldName: 'agendaItems' | 'decisions', titel: string) => (

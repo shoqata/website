@@ -398,7 +398,7 @@ const AdminSettings: React.FC = () => {
                             type="email" 
                             value={settings.systemEmail} 
                             onChange={e => setSettings({...settings, systemEmail: e.target.value})}
-                            className="w-full p-4 bg-white border border-stone-200 rounded-xl font-bold text-stone-700 outline-none focus:border-primary/50"
+                            className="w-full p-4 bg-white border border-stone-200 rounded-xl font-bold text-stone-700 outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)]"
                         />
                         <p className="text-xs text-stone-400 mt-2">{t('set.reply_to_hint')}</p>
                     </div>
