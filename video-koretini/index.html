@@ -1,0 +1,192 @@
+<!doctype html>
+<!--
+  Shoqata Humanitare Koretini — Testfilm.
+
+  Alle Zahlen sind am 28.09.2026 in der Datenbank gemessen und nicht
+  ausgedacht: 340 Mitglieder, 27 Nachbarschaften, 78 von 331 haben den
+  Beitrag 2026 geleistet. Ein Film, der mit erfundenen Zahlen wirbt, ist
+  schlimmer als keiner.
+
+  Farbe und Schrift folgen der Website: Rose #f43f5e, Playfair Display fuer
+  die Anzeige, Inter fuer den Rest.
+-->
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:ital,wght@1,700;1,900&display=swap");
+
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0; width: 1920px; height: 1080px; overflow: hidden;
+        background: #14100f;
+      }
+      body { font-family: "Inter", sans-serif; color: #faf9f6; }
+
+      :root { --rose: #f43f5e; --tinte: #14100f; --nebel: #8b8580; }
+
+      .buehne { position: absolute; inset: 0; }
+
+      /* Ein ruhiger Schimmer, damit der Grund nicht flach wirkt. */
+      .schimmer {
+        position: absolute; width: 1400px; height: 1400px;
+        left: 50%; top: 50%; transform: translate(-50%, -50%);
+        background: radial-gradient(circle, rgba(244,63,94,.16), transparent 62%);
+      }
+
+      .mitte {
+        position: absolute; inset: 0;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center; text-align: center;
+      }
+
+      .marke {
+        font-family: "Playfair Display", serif; font-style: italic; font-weight: 900;
+        font-size: 150px; letter-spacing: -.03em; line-height: 1;
+      }
+      .marke em { color: var(--rose); font-style: italic; }
+
+      .unterzeile {
+        font-size: 34px; font-weight: 300; color: var(--nebel);
+        letter-spacing: .01em; margin-top: 34px;
+      }
+
+      .kennzahl {
+        font-family: "Playfair Display", serif; font-style: italic; font-weight: 900;
+        /* Kursives Playfair in 900 ragt weit ueber seinen Zeilenkasten
+           hinaus. Mit 300px und line-height .9 lief die Zeile darunter
+           mitten in die Ziffern. Kleiner und mit echtem Abstand statt mit
+           einer groesseren Zeilenhoehe -- die haette den Block nur
+           verschoben, nicht die Ueberlappung geloest. */
+        font-size: 230px; line-height: 1.1; letter-spacing: -.04em;
+        font-variant-numeric: tabular-nums;
+      }
+      .kennzahl .von { color: #7b736d; }  /* war #3c3532 -- 1.45:1, zu dunkel zum Lesen */
+      .bezeichnung {
+        font-size: 38px; font-weight: 400; color: var(--nebel);
+        margin-top: 42px; letter-spacing: .02em;
+      }
+      .aufschrift {
+        font-size: 22px; font-weight: 600; letter-spacing: .34em;
+        text-transform: uppercase; color: var(--rose); margin-bottom: 40px;
+      }
+
+      .strich {
+        position: absolute; left: 50%; bottom: 150px; transform: translateX(-50%);
+        width: 260px; height: 2px; background: var(--rose); transform-origin: left center;
+      }
+
+      .adresse {
+        font-family: "Playfair Display", serif; font-style: italic; font-weight: 700;
+        font-size: 96px; color: #faf9f6;
+      }
+      .adresse em { color: var(--rose); font-style: italic; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main"
+         data-start="0" data-duration="15" data-width="1920" data-height="1080">
+
+      <div id="schimmer" class="schimmer clip" data-start="0" data-duration="15" data-track-index="0"></div>
+
+      <!-- 1 · Wer -->
+      <div id="akt1" class="buehne clip" data-start="0" data-duration="4" data-track-index="1">
+        <div class="mitte">
+          <div class="marke">Shoqata<br>Humanitare <em>Koretini</em></div>
+          <div class="unterzeile">Bashkë për vendlindjen tonë · Gemeinsam für unseren Heimatort</div>
+        </div>
+      </div>
+
+      <!-- 2 · Wie viele -->
+      <div id="akt2" class="buehne clip" data-start="4" data-duration="3.6" data-track-index="2">
+        <div class="mitte">
+          <div class="aufschrift">Anëtarë · Mitglieder</div>
+          <div class="kennzahl"><span id="zahl1">0</span></div>
+          <div class="bezeichnung">in der Schweiz, in Kosovo, in der Diaspora</div>
+        </div>
+      </div>
+
+      <!-- 3 · Wie organisiert -->
+      <div id="akt3" class="buehne clip" data-start="7.6" data-duration="3.4" data-track-index="3">
+        <div class="mitte">
+          <div class="aufschrift">Lagje · Nachbarschaften</div>
+          <div class="kennzahl"><span id="zahl2">0</span></div>
+          <div class="bezeichnung">jede mit einer verantwortlichen Person</div>
+        </div>
+      </div>
+
+      <!-- 4 · Was getragen wird -->
+      <div id="akt4" class="buehne clip" data-start="11" data-duration="4" data-track-index="4">
+        <div class="mitte">
+          <div class="aufschrift">Kuotat 2026 · Beiträge 2026</div>
+          <div class="kennzahl"><span id="zahl3">0</span><span class="von"> / 331</span></div>
+          <div class="bezeichnung">haben ihren Beitrag bereits geleistet</div>
+          <div class="adresse" style="margin-top:44px">koretini<em>.me</em></div>
+        </div>
+      </div>
+
+      <div id="strich" class="strich clip" data-start="0" data-duration="15" data-track-index="5"></div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // Zwei Dinge hat die Pruefung zu Recht bemaengelt und beide sind hier
+      // behoben:
+      //
+      // 1. Selektoren standen in Vorlagen-Zeichenketten ("#akt" + nr). Der
+      //    Buendler bricht daran ab, weil sein CSS-Leser die eingesetzte
+      //    Variable nicht aufloesen kann. Jetzt steht jeder Selektor
+      //    ausgeschrieben da -- laenger, aber lesbar fuer Mensch und Werkzeug.
+      //
+      // 2. Ein Element, das sich am Ende seines Aktes wegblendet, war beim
+      //    Vorspulen an eine spaetere Stelle trotzdem sichtbar: eine Tween
+      //    beschreibt nur den Weg, nicht den Zustand davor und danach. Nach
+      //    jedem Abgang steht deshalb ein tl.set().
+
+      tl.fromTo('#schimmer', { scale: .85, opacity: .5 },
+                { scale: 1.15, opacity: .9, duration: 15, ease: 'none' }, 0);
+      tl.fromTo('#strich', { scaleX: 0 }, { scaleX: 1, duration: 14.4, ease: 'none' }, .3);
+
+      // 1 · Wer
+      tl.from('#akt1 .marke', { opacity: 0, y: 40, duration: 1.1, ease: 'power3.out' }, .15);
+      tl.from('#akt1 .unterzeile', { opacity: 0, y: 16, duration: .8, ease: 'power2.out' }, .85);
+      tl.to('#akt1 .mitte', { opacity: 0, y: -26, duration: .5, ease: 'power2.in' }, 3.5);
+      tl.set('#akt1 .mitte', { opacity: 0 }, 4.0);
+
+      // 2 · Mitglieder
+      const z2 = { v: 0 };
+      tl.from('#akt2 .aufschrift', { opacity: 0, y: 14, duration: .5, ease: 'power2.out' }, 4.15);
+      tl.from('#akt2 .kennzahl', { opacity: 0, scale: .92, duration: .7, ease: 'power3.out' }, 4.30);
+      tl.to(z2, { v: 340, duration: 1.5, ease: 'power2.out',
+        onUpdate: function () { document.getElementById('zahl1').textContent = Math.round(z2.v); } }, 4.35);
+      tl.from('#akt2 .bezeichnung', { opacity: 0, y: 14, duration: .6, ease: 'power2.out' }, 4.95);
+      tl.to('#akt2 .mitte', { opacity: 0, y: -22, duration: .45, ease: 'power2.in' }, 7.25);
+      tl.set('#akt2 .mitte', { opacity: 0 }, 7.7);
+
+      // 3 · Nachbarschaften
+      const z3 = { v: 0 };
+      tl.from('#akt3 .aufschrift', { opacity: 0, y: 14, duration: .5, ease: 'power2.out' }, 7.75);
+      tl.from('#akt3 .kennzahl', { opacity: 0, scale: .92, duration: .7, ease: 'power3.out' }, 7.90);
+      tl.to(z3, { v: 27, duration: 1.5, ease: 'power2.out',
+        onUpdate: function () { document.getElementById('zahl2').textContent = Math.round(z3.v); } }, 7.95);
+      tl.from('#akt3 .bezeichnung', { opacity: 0, y: 14, duration: .6, ease: 'power2.out' }, 8.55);
+      tl.to('#akt3 .mitte', { opacity: 0, y: -22, duration: .45, ease: 'power2.in' }, 10.65);
+      tl.set('#akt3 .mitte', { opacity: 0 }, 11.1);
+
+      // 4 · Beitraege — der Schlussakt bleibt stehen
+      const z4 = { v: 0 };
+      tl.from('#akt4 .aufschrift', { opacity: 0, y: 14, duration: .5, ease: 'power2.out' }, 11.15);
+      tl.from('#akt4 .kennzahl', { opacity: 0, scale: .92, duration: .7, ease: 'power3.out' }, 11.30);
+      tl.to(z4, { v: 78, duration: 1.5, ease: 'power2.out',
+        onUpdate: function () { document.getElementById('zahl3').textContent = Math.round(z4.v); } }, 11.35);
+      tl.from('#akt4 .bezeichnung', { opacity: 0, y: 14, duration: .6, ease: 'power2.out' }, 11.95);
+      tl.from('#akt4 .adresse', { opacity: 0, y: 20, duration: .8, ease: 'power3.out' }, 12.85);
+
+      window.__timelines['main'] = tl;
+    </script>
+  </body>
+</html>

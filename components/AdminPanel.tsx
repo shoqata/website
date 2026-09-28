@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import AdminSpenden from './AdminSpenden';
+import AdminVideos from './AdminVideos';
 import { useModule } from '../lib/useModule';
 import Marktplatz from './Marktplatz';
 import AdminStammbaum from './AdminStammbaum';
@@ -18,7 +19,7 @@ import {
   ClipboardCheck, Send, Ban, Coins, LayoutDashboard, MessageSquare, ToggleRight, 
   ToggleLeft, Printer, Files, UserCog, MoreVertical, ExternalLink, Info, MapPinned, Target, UserCheck,
   ShieldAlert, Activity as ActivityIcon, ArrowRight, Wallet, BarChart2, Hash, History, StickyNote, Image as LucideImage,
-  UserPlus2, UserMinus, UserCheck2, FileEdit, AlertTriangle, Users2, Blocks, Heart
+  UserPlus2, UserMinus, UserCheck2, FileEdit, AlertTriangle, Users2, Blocks, Heart, Film
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { UserProfile, UserRole, Neighborhood, SolidarityEvent, NewsArticle, Payment, FiscalYear, BillingGroup, GlobalPaymentSettings, EventRegistration, ContentStatus } from '../types';
@@ -56,7 +57,7 @@ import { neighborhoodsLedBy } from '../lib/stewardship';
 import { billingYearOf } from '../lib/memberQuality';
 import { missingFieldKeys, qualityScore, feeStateFor, hasDeliveryConflict } from '../lib/memberQuality';
 import { isPlaceholderEmail, hasUsableEmail, emailMissingForDelivery, deliveryNeedsEmail } from '../lib/memberEmail';
-type AdminTabId = 'USERS' | 'NEIGHBORHOODS' | 'ANALYTICS' | 'STATISTICS' | 'WEBSITE' | 'SOCIAL_AI' | 'EVENTS' | 'NEWS' | 'FINANCE' | 'EXPENSES' | 'DATA' | 'ACCOUNTING' | 'SETTINGS' | 'BOARD' | 'COMMUNICATION' | 'DATA_QUALITY' | 'STAMMBAUM' | 'MARKTPLATZ' | 'SPENDEN';
+type AdminTabId = 'USERS' | 'NEIGHBORHOODS' | 'ANALYTICS' | 'STATISTICS' | 'WEBSITE' | 'SOCIAL_AI' | 'EVENTS' | 'NEWS' | 'FINANCE' | 'EXPENSES' | 'DATA' | 'ACCOUNTING' | 'SETTINGS' | 'BOARD' | 'COMMUNICATION' | 'DATA_QUALITY' | 'STAMMBAUM' | 'MARKTPLATZ' | 'SPENDEN' | 'VIDEOS';
 
 interface NavItem {
     id: AdminTabId;
@@ -163,6 +164,7 @@ const AdminPanel: React.FC = () => {
     NEWS: 'NEUIGKEITEN',
     SOCIAL_AI: 'SOCIAL',
     SPENDEN: 'SPENDEN',
+    VIDEOS: 'VIDEOS',
   };
 
   const navGroups: NavGroup[] = [
@@ -192,6 +194,7 @@ const AdminPanel: React.FC = () => {
           title: t('admin.group.content'),
           items: [
               { id: 'EVENTS', label: t('admin.tab.events'), icon: <Calendar size={18} /> },
+              { id: 'VIDEOS', label: t('admin.tab.videos'), icon: <Film size={18} /> },
               { id: 'NEWS', label: t('admin.tab.news'), icon: <Newspaper size={18} /> },
               { id: 'WEBSITE', label: t('admin.tab.website'), icon: <Globe size={18} /> },
               { id: 'SOCIAL_AI', label: 'Social AI', icon: <Zap size={18} /> },
@@ -545,6 +548,7 @@ const AdminPanel: React.FC = () => {
                         {activeTab === 'DATA' && <AdminData />}
                         {activeTab === 'STAMMBAUM' && <AdminStammbaum />}
                         {activeTab === 'SPENDEN' && <AdminSpenden />}
+                        {activeTab === 'VIDEOS' && <AdminVideos />}
                         {activeTab === 'MARKTPLATZ' && (
                           <Marktplatz
                             zustaende={['AN','AUS']}

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useWerBinIch, type WerBinIch } from './lib/useWerBinIch';
 const SpendenSeite = React.lazy(() => import('./components/SpendenSeite'));
 const StartseitePremium = React.lazy(() => import('./components/StartseitePremium'));
+const VideoSeite = React.lazy(() => import('./components/VideoSeite'));
 import { needsProfileSetup } from './lib/memberQuality';
 import { useIstPlattformDomain } from './lib/useIstPlattformDomain';
 import { useStartseiteVariante } from './lib/useStartseiteVariante';
@@ -452,6 +453,11 @@ const AppContent: React.FC = () => {
                         faellt zusaetzlich weg, damit kein Verweis auf eine
                         Seite fuehrt, die nichts annehmen kann. */}
                     <Route path="/spenden" element={<SpendenSeite />} />
+                    {/* Was die Seite zeigt, entscheidet die Zeilenregel:
+                        freigegeben UND Modul aktiv. Ohne gebuchtes Modul
+                        bleibt sie leer statt zu fehlen -- eine Adresse, die
+                        ins Leere laeuft, verwirrt mehr als eine leere Seite. */}
+                    <Route path="/videos" element={istPlattformDomain ? <Navigate to="/" replace /> : <VideoSeite />} />
                     <Route path="/privacy" element={<LegalPage type="PRIVACY" />} />
                     <Route path="/login" element={<AuthRedirectHandler user={user}><LoginPage /></AuthRedirectHandler>} />
                     <Route path="/register" element={<AuthRedirectHandler user={user}><RegistrationWizard /></AuthRedirectHandler>} />
