@@ -158,9 +158,18 @@ const AuthRedirectHandler: React.FC<{ user: UserProfile | null, children: React.
 // Betreiberbereich zu sehen -- die Datenbank gab ihm dort nichts heraus,
 // die Ansicht war also leer und wirkte kaputt. Jetzt steht dort, wohin er
 // gehoert.
-const FalscheTuer: React.FC<{ wer: WerBinIch }> = ({ wer }) => {
+const FalscheTuer: React.FC<{ wer: WerBinIch; abmelden?: boolean }> = ({ wer, abmelden }) => {
   const { t } = useTranslation();
   const ziel = wer.vereinsdomain ? `https://${wer.vereinsdomain}` : null;
+
+  // Auf der Betreiber-Domain bleibt niemand angemeldet, der nicht der
+  // Betreiber ist. Vorher bekam er eine Sitzung und danach diese Seite --
+  // angemeldet war er trotzdem. Die Anmeldung dort ist dem Betreiber
+  // vorbehalten, also wird sie auch beendet.
+  useEffect(() => {
+    if (!abmelden) return;
+    signOut(auth).catch(() => { /* dann bleibt wenigstens diese Seite stehen */ });
+  }, [abmelden]);
   return (
     <div className="min-h-screen flex items-center justify-center px-6"
          style={{ background: 'var(--accent)' }}>
@@ -174,11 +183,17 @@ const FalscheTuer: React.FC<{ wer: WerBinIch }> = ({ wer }) => {
             style={{ color: 'var(--kontrast)', letterSpacing: '-.02em' }}>
           {t('tuer.titel')}
         </h1>
-        <p className="text-sm leading-relaxed mb-8" style={{ color: 'var(--kontrast)', opacity: .6 }}>
+        <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--kontrast)', opacity: .6 }}>
           {wer.vereinsname
             ? t('tuer.text').replace('{verein}', wer.vereinsname)
             : t('tuer.text_ohne')}
         </p>
+        {abmelden && (
+          <p className="text-xs leading-relaxed mb-8"
+             style={{ color: 'var(--kontrast)', opacity: .45 }}>
+            {t('tuer.abgemeldet')}
+          </p>
+        )}
         {ziel && (
           <a href={ziel}
              className="knopf-primaer inline-flex items-center gap-2 px-6 py-3 text-white rounded-lg text-xs font-bold">
@@ -360,9 +375,24 @@ const AppContent: React.FC = () => {
 
   const istPlattformDomain = useIstPlattformDomain();
   const startseite = useStartseiteVariante();
+  // Wer auf unityhub.li angemeldet ist, muss der Betreiber sein. Die Frage
+  // wird hier gestellt und nicht erst an der Tuer zu /super-admin: vorher
+  // konnte sich jeder anmelden, bekam eine Sitzung und danach nur die Seite
+  // "Hier sind Sie falsch" -- angemeldet blieb er trotzdem.
+  const werAufPlattform = useWerBinIch(!!user && istPlattformDomain === true);
   // Reitertitel und Symbol -- fuer jede Seite der Betreiber-Domain,
   // nicht nur fuer deren Startseite.
   useReiterKennzeichen(istPlattformDomain);
+
+  // Solange die Antwort aussteht, wird gewartet statt geraten -- dieselbe
+  // Lehre wie bei der Domain selbst: wer sich zu frueh festlegt, zeigt die
+  // falsche Welt und springt dann weg.
+  if (istPlattformDomain === true && user && werAufPlattform === null && !loading) {
+    return <PageLoader />;
+  }
+  if (istPlattformDomain === true && user && werAufPlattform && !werAufPlattform.ist_betreiber) {
+    return <FalscheTuer wer={werAufPlattform} abmelden />;
+  }
 
   if (loading) return (
     <div className="min-h-screen flex flex-col items-center justify-center"

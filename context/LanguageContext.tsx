@@ -58,10 +58,13 @@ const translations: Translations = {
     de: 'Mitglieder, Beiträge und Protokolle — für jeden Verein, der auf dieser Plattform geführt wird.',
     sq: 'Anëtarët, kuotat dhe procesverbalet — për çdo shoqatë që mbahet në këtë platformë.'
   },
+  // Vorher stand hier nur "Melden Sie sich an der Plattformverwaltung an" --
+  // was nicht sagte, dass es ausschliesslich der Betrieb ist. Wer zu einem
+  // Verein gehoert, soll das lesen, bevor er es versucht.
   'plat.login_sub': {
-    en: 'Sign in to the platform administration.',
-    de: 'Melden Sie sich an der Plattformverwaltung an.',
-    sq: 'Hyni në administrimin e platformës.'
+    en: 'For running the platform. If you belong to an association, sign in on its own website.',
+    de: 'Für den Betrieb der Plattform. Wenn Sie zu einem Verein gehören, melden Sie sich auf dessen eigener Website an.',
+    sq: 'Për operimin e platformës. Nëse i përkisni një shoqate, kyçuni në faqen e saj.'
   },
 
   // --- NAVIGATION DER PLATTFORM-STARTSEITE ---
@@ -625,6 +628,7 @@ const translations: Translations = {
   'tuer.titel': { de: 'Hier sind Sie falsch.', en: 'You are in the wrong place.', sq: 'Jeni në vendin e gabuar.' },
   'tuer.text': { de: 'Dieses Konto gehört zu {verein}. Der Bereich hier ist für den Betrieb der Plattform selbst — melden Sie sich bei Ihrem Verein an.', en: 'This account belongs to {verein}. This area is for running the platform itself — please sign in at your association.', sq: 'Kjo llogari i përket {verein}. Kjo zonë është për operimin e vetë platformës — kyçuni te shoqata juaj.' },
   'tuer.text_ohne': { de: 'Dieses Konto gehört zu keinem Verein und hat hier nichts zu tun.', en: 'This account belongs to no association and has nothing to do here.', sq: 'Kjo llogari nuk i përket asnjë shoqate dhe nuk ka çfarë të bëjë këtu.' },
+  'tuer.abgemeldet': { de: 'Sie wurden hier wieder abgemeldet — diese Anmeldung ist dem Betrieb der Plattform vorbehalten.', en: 'You have been signed out again — this login is reserved for running the platform.', sq: 'Jeni shkyçur sërish — ky hyrje është e rezervuar për operimin e platformës.' },
   'tuer.hin': { de: 'Zu {domain}', en: 'Go to {domain}', sq: 'Te {domain}' },
   'prem.wer_titel': { en: 'Who is behind it', de: 'Wer dahintersteht', sq: 'Kush qëndron pas' },
   'prem.mitglieder': { en: 'members', de: 'Mitglieder', sq: 'anëtarë' },
