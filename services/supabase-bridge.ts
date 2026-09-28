@@ -706,9 +706,18 @@ export function supabaseOnAuthStateChanged(authObj: any, callback: (user: any) =
   };
 }
 
-export async function supabaseSignOut(_auth?: any) {
+// Abmelden -- und zwar standardmaessig nur hier.
+//
+// supabase.auth.signOut() ohne Angabe meldet GLOBAL ab: es verwirft alle
+// Sitzungen dieses Kontos, auf jedem Geraet und jeder Domain. Fuer den
+// Abmeldeknopf ist das schon ueberraschend; fuer die Wache auf der
+// Betreiber-Domain war es ein Fehler. Am 28.09.2026 gemeldet: "weshalb hat
+// koretini nun 0 Daten?" -- wer sich auf unityhub.li mit dem
+// Vereinskonto angemeldet hatte, wurde von dieser Wache abgewiesen und
+// dabei zugleich auf koretini.me abgemeldet.
+export async function supabaseSignOut(_auth?: any, bereich: 'local' | 'global' = 'local') {
   if (!supabase) return;
-  const { error } = await supabase.auth.signOut();
+  const { error } = await supabase.auth.signOut({ scope: bereich });
   if (error) throw error;
 }
 
