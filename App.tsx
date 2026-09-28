@@ -86,6 +86,7 @@ const PlatformHome = React.lazy(() => import('./components/PlatformHome'));
 
  
 import CookieConsent from './components/CookieConsent'; 
+import BetreuungHinweis from './components/BetreuungHinweis';
 import BackToTop from './components/BackToTop';
 
 import { AntiScrapeProtection } from './components/AntiScrapeProtection';
@@ -463,6 +464,10 @@ const AppContent: React.FC = () => {
             </main>
             <ConditionalFooter branding={branding} user={user} />
             <CookieConsent />
+            {/* Zeigt sich nur dem Betreiber auf der Domain eines Vereins --
+                und nur, wenn er selbst zu keinem Verein gehoert. Sonst sieht
+                er vollstaendige Menues und ueberall 0 Zeilen. */}
+            <BetreuungHinweis user={user} />
             <BackToTop />
         </div>
       </MaintenanceGuard>
