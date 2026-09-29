@@ -8,6 +8,7 @@ import { needsProfileSetup } from './lib/memberQuality';
 import { useIstPlattformDomain } from './lib/useIstPlattformDomain';
 import { useStartseiteVariante } from './lib/useStartseiteVariante';
 import { useOeffentlicheModule } from './lib/useOeffentlicheModule';
+import { useSpendenseiteSichtbar } from './lib/useSpendenseiteSichtbar';
 import { useReiterKennzeichen } from './lib/useReiterKennzeichen';
 import { HashRouter as Router, Routes, Route, Link, useLocation, Navigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -377,6 +378,7 @@ const AppContent: React.FC = () => {
 
   const istPlattformDomain = useIstPlattformDomain();
   const startseite = useStartseiteVariante();
+  const spendenSeiteSichtbar = useSpendenseiteSichtbar();
   // Wer auf unityhub.li angemeldet ist, muss der Betreiber sein. Die Frage
   // wird hier gestellt und nicht erst an der Tuer zu /super-admin: vorher
   // konnte sich jeder anmelden, bekam eine Sitzung und danach nur die Seite
@@ -453,7 +455,14 @@ const AppContent: React.FC = () => {
                     {/* Spenden. Die Zeilenregel sperrt die Daten ohnehin; die Route
                         faellt zusaetzlich weg, damit kein Verweis auf eine
                         Seite fuehrt, die nichts annehmen kann. */}
-                    <Route path="/spenden" element={<SpendenSeite />} />
+                    {/* Ausgeblendet heisst auch nicht erreichbar. Nur den
+                        Verweis wegzunehmen hiesse "schwerer zu finden", nicht
+                        "aus" -- ueber die eingetippte Adresse stuende die
+                        Seite weiter offen. */}
+                    <Route path="/spenden" element={
+                      spendenSeiteSichtbar === null ? <PageLoader />
+                        : spendenSeiteSichtbar ? <SpendenSeite />
+                        : <Navigate to="/" replace />} />
                     {/* Was die Seite zeigt, entscheidet die Zeilenregel:
                         freigegeben UND Modul aktiv. Ohne gebuchtes Modul
                         bleibt sie leer statt zu fehlen -- eine Adresse, die
@@ -522,6 +531,9 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings }) => {
   // Spendenseite war nur ueber die eingetippte Adresse erreichbar.
   const oeffentlicheModule = useOeffentlicheModule();
   const hatModul = (k: string) => !!oeffentlicheModule?.has(k);
+  // Fuer Spenden genuegt das gebuchte Modul nicht: der Verein kann die Seite
+  // ganz abschalten oder nur waehrend eines laufenden Aufrufs zeigen.
+  const spendenSichtbar = useSpendenseiteSichtbar();
   const { t, loc, setLanguage, language } = useTranslation();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -565,7 +577,7 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings }) => {
                   <Film size={16} className="text-violet-600"/><span className="font-bold text-sm">{t('video.oeff_titel')}</span>
               </Link>
             )}
-            {hatModul('SPENDEN') && (
+            {spendenSichtbar && (
               <Link to="/spenden" className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${isActive('/spenden') ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}>
                   <Heart size={16} className="text-primary"/><span className="font-bold text-sm">{t('nav.spenden')}</span>
               </Link>

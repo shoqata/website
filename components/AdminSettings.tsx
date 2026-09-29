@@ -18,7 +18,8 @@ import {
   Banknote,
   Eye,
   Users,
-  Sparkles
+  Sparkles,
+  Heart
 } from 'lucide-react';
 import { db } from '../services/firebase';
 import { doc, onSnapshot, setDoc, serverTimestamp, supabase } from '@/services/supabase-bridge';
@@ -49,7 +50,8 @@ const AdminSettings: React.FC = () => {
     },
     systemEmail: 'admin@koretini.org',
     beitraegeOeffentlich: 'AUS',
-    startseiteVariante: 'STANDARD'
+    startseiteVariante: 'STANDARD',
+    spendenseite: 'IMMER'
   });
 
   // Payment Settings (for Fee Structure)
@@ -179,6 +181,41 @@ const AdminSettings: React.FC = () => {
                     />
                 </div>
             </section>
+
+            {/* Wann die Spendenseite erscheint.
+                Drei Stellungen statt ein/aus, weil eine allgemeine Spende
+                ohne Aufruf sinnvoll bleibt -- bis heute war das der
+                Normalfall. */}
+            {modulAktiv('SPENDEN') && (
+            <section>
+                <div className="flex items-center gap-2 mb-4">
+                    <Heart size={18} className="text-stone-400" />
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500">{t('spseite.titel')}</h3>
+                </div>
+                <div className="bg-stone-50 p-6 rounded-3xl border border-stone-100 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {([
+                            { wert: 'IMMER',      titel: t('spseite.immer'),   text: t('spseite.immer_text') },
+                            { wert: 'BEI_AUFRUF', titel: t('spseite.aufruf'),  text: t('spseite.aufruf_text') },
+                            { wert: 'AUS',        titel: t('spseite.aus'),     text: t('spseite.aus_text') },
+                        ]).map(o => {
+                            const gewaehlt = (settings.spendenseite || 'IMMER') === o.wert;
+                            return (
+                                <button key={o.wert} type="button"
+                                    onClick={() => setSettings({ ...settings, spendenseite: o.wert as SystemSettings['spendenseite'] })}
+                                    className={`text-left p-5 rounded-2xl border transition-all ${gewaehlt
+                                        ? 'bg-white border-primary shadow-sm'
+                                        : 'bg-white/60 border-stone-200 hover:border-stone-300'}`}>
+                                    <p className={`font-bold text-sm mb-1 ${gewaehlt ? 'text-primary' : 'text-stone-900'}`}>{o.titel}</p>
+                                    <p className="text-[11px] text-stone-500 leading-relaxed">{o.text}</p>
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <p className="text-[11px] text-stone-400 leading-relaxed">{t('spseite.hinweis')}</p>
+                </div>
+            </section>
+            )}
 
             {/* Welche Startseite Besucher bekommen.
                 Der Schalter steht hier und nicht im Marktplatz: die Buchung
