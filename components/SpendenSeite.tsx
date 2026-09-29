@@ -29,10 +29,26 @@ const SpendenSeite: React.FC = () => {
     nachricht: '', zweck: '',
   });
   const [anonym, setAnonym] = useState(false);
+  // Die Aufrufe des Vereins. Was hier ankommt, entscheidet die Datenbank:
+  // veroeffentlicht, im Zeitraum, Modul gebucht. Gibt es keinen, bleibt die
+  // Seite allgemein -- so war sie bis zum 29.09.2026 immer.
+  const [aufrufe, setAufrufe] = useState<any[]>([]);
+  const [aufruf, setAufruf] = useState<string | null>(null);
   const [laeuft, setLaeuft] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
   const [ergebnis, setErgebnis] = useState<{ referenz: string; betrag: number; waehrung: string } | null>(null);
   const [zahlung, setZahlung] = useState<any>(null);
+
+  useEffect(() => {
+    supabase.rpc('spendenaufrufe_oeffentlich').then(({ data, error }) => {
+      if (error) return;
+      const liste = (data as any[]) || [];
+      setAufrufe(liste);
+      // Gibt es genau einen, ist er die naheliegende Wahl. Bei mehreren
+      // waehlt der Spender selbst, statt dass einer bevorzugt wird.
+      if (liste.length === 1) setAufruf(liste[0].id);
+    });
+  }, []);
 
   useEffect(() => {
     getDoc(doc(db, 'public_settings', 'payment'))
@@ -56,6 +72,12 @@ const SpendenSeite: React.FC = () => {
       });
       if (error) throw error;
       const z = Array.isArray(data) ? data[0] : data;
+      // Der Aufruf wird in einem eigenen Schritt gesetzt. spende_anlegen
+      // rechnet Referenz und Pruefziffer aus; diese Funktion anzufassen, nur
+      // um eine Spalte zu fuellen, waere ein schlechter Handel.
+      if (aufruf && z?.id) {
+        await supabase.rpc('spende_aufruf_zuordnen', { p_spende: z.id, p_aufruf: aufruf });
+      }
       setErgebnis({ referenz: z.referenz, betrag: Number(z.betrag), waehrung: z.waehrung });
     } catch (e: any) {
       setFehler(e?.message ?? String(e));
@@ -157,11 +179,44 @@ const SpendenSeite: React.FC = () => {
             </div>
           </div>
 
-          <div>
-            <label className={marke}>{t('spende.zweck')}</label>
-            <input value={form.zweck} onChange={e => setForm({ ...form, zweck: e.target.value })}
-                   placeholder={t('spende.zweck_platzhalter')} className={feld} />
-          </div>
+          {aufrufe.length > 0 ? (
+            <div>
+              <label className={marke}>{t('spende.wofuer')}</label>
+              <div className="space-y-2">
+                {aufrufe.map((a: any) => {
+                  const ziel = Number(a.ziel_betrag || 0);
+                  const teil = ziel > 0 ? Math.min(100, Math.round((Number(a.gesammelt || 0) / ziel) * 100)) : null;
+                  const gewaehlt = aufruf === a.id;
+                  return (
+                    <button type="button" key={a.id} onClick={() => setAufruf(gewaehlt ? null : a.id)}
+                      className={`w-full text-left p-4 rounded-2xl border transition-all ${gewaehlt
+                        ? 'bg-white border-primary shadow-sm'
+                        : 'bg-white/60 border-stone-200 hover:border-stone-300'}`}>
+                      <p className={`font-bold text-sm ${gewaehlt ? 'text-primary' : 'text-stone-900'}`}>{a.titel}</p>
+                      {a.text && <p className="text-xs text-stone-500 leading-relaxed mt-1">{a.text}</p>}
+                      {teil !== null && (
+                        <>
+                          <div className="mt-3 h-1.5 bg-stone-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-primary rounded-full" style={{ width: `${teil}%` }} />
+                          </div>
+                          <p className="text-[11px] text-stone-400 mt-1.5 tabular-nums">
+                            {Number(a.gesammelt || 0).toLocaleString('de-CH')} von {ziel.toLocaleString('de-CH')} {a.waehrung}
+                          </p>
+                        </>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[11px] text-stone-400 mt-2">{t('spende.wofuer_frei')}</p>
+            </div>
+          ) : (
+            <div>
+              <label className={marke}>{t('spende.zweck')}</label>
+              <input value={form.zweck} onChange={e => setForm({ ...form, zweck: e.target.value })}
+                     placeholder={t('spende.zweck_platzhalter')} className={feld} />
+            </div>
+          )}
 
           <label className="flex items-center gap-3 text-sm text-stone-600 cursor-pointer">
             <input type="checkbox" checked={anonym} onChange={e => setAnonym(e.target.checked)}

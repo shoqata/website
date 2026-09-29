@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import AdminSpendenaufrufe from './AdminSpendenaufrufe';
 import { Heart, Loader2, AlertTriangle, Check, FileText, Search } from 'lucide-react';
 import { collection, onSnapshot, query, orderBy, supabase } from '../services/supabase-bridge';
 import { db } from '../services/supabase-bridge';
@@ -65,7 +66,9 @@ const AdminSpenden: React.FC = () => {
   );
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-8">
+      <AdminSpendenaufrufe />
+
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="bg-white p-5 rounded-2xl border border-stone-100">
           <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-1">{t('spenden.eingegangen')}</p>
