@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import AdminSpenden from './AdminSpenden';
 import AdminVideos from './AdminVideos';
+import AdminProzesse from './AdminProzesse';
 import { useModule } from '../lib/useModule';
 import Marktplatz from './Marktplatz';
 import AdminStammbaum from './AdminStammbaum';
@@ -57,7 +58,7 @@ import { neighborhoodsLedBy } from '../lib/stewardship';
 import { billingYearOf } from '../lib/memberQuality';
 import { missingFieldKeys, qualityScore, feeStateFor, hasDeliveryConflict } from '../lib/memberQuality';
 import { isPlaceholderEmail, hasUsableEmail, emailMissingForDelivery, deliveryNeedsEmail } from '../lib/memberEmail';
-type AdminTabId = 'USERS' | 'NEIGHBORHOODS' | 'ANALYTICS' | 'STATISTICS' | 'WEBSITE' | 'SOCIAL_AI' | 'EVENTS' | 'NEWS' | 'FINANCE' | 'EXPENSES' | 'DATA' | 'ACCOUNTING' | 'SETTINGS' | 'BOARD' | 'COMMUNICATION' | 'DATA_QUALITY' | 'STAMMBAUM' | 'MARKTPLATZ' | 'SPENDEN' | 'VIDEOS';
+type AdminTabId = 'USERS' | 'NEIGHBORHOODS' | 'ANALYTICS' | 'STATISTICS' | 'WEBSITE' | 'SOCIAL_AI' | 'EVENTS' | 'NEWS' | 'FINANCE' | 'EXPENSES' | 'DATA' | 'ACCOUNTING' | 'SETTINGS' | 'BOARD' | 'COMMUNICATION' | 'DATA_QUALITY' | 'STAMMBAUM' | 'MARKTPLATZ' | 'SPENDEN' | 'VIDEOS' | 'PROZESSE';
 
 interface NavItem {
     id: AdminTabId;
@@ -178,6 +179,7 @@ const AdminPanel: React.FC = () => {
               { id: 'BOARD', label: t('admin.tab.board'), icon: <Briefcase size={18} /> },
               { id: 'STAMMBAUM', label: t('admin.tab.stammbaum'), icon: <Users2 size={18} /> },
               { id: 'MARKTPLATZ', label: t('admin.tab.marktplatz'), icon: <Blocks size={18} /> },
+              { id: 'PROZESSE', label: t('admin.tab.prozesse'), icon: <Map size={18} /> },
           ]
       },
       {
@@ -549,6 +551,7 @@ const AdminPanel: React.FC = () => {
                         {activeTab === 'STAMMBAUM' && <AdminStammbaum />}
                         {activeTab === 'SPENDEN' && <AdminSpenden />}
                         {activeTab === 'VIDEOS' && <AdminVideos />}
+                        {activeTab === 'PROZESSE' && <AdminProzesse />}
                         {activeTab === 'MARKTPLATZ' && (
                           <Marktplatz
                             zustaende={['AN','AUS']}

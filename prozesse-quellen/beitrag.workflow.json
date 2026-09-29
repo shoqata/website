@@ -1,0 +1,249 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Der Mitgliederbeitrag",
+    "subtitle": "Von der Rechnung bis zur Buchung",
+    "output": "beitrag.html",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1080,
+      660
+    ],
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "backend": {
+          "label": "Plattform"
+        },
+        "messagebus": {
+          "label": "Versand"
+        },
+        "security": {
+          "label": "Ausnahme"
+        },
+        "database": {
+          "label": "Buchung"
+        },
+        "external": {
+          "label": "Mensch"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "verein",
+      "label": "Verein"
+    },
+    {
+      "id": "system",
+      "label": "Plattform"
+    },
+    {
+      "id": "mitglied",
+      "label": "Mitglied"
+    },
+    {
+      "id": "buch",
+      "label": "Buchhaltung"
+    }
+  ],
+  "phases": [
+    {
+      "id": "stellen",
+      "label": "Rechnung stellen",
+      "fromCol": 0,
+      "toCol": 2
+    },
+    {
+      "id": "zahlen",
+      "label": "Zahlen",
+      "fromCol": 3,
+      "toCol": 4,
+      "variant": "emphasis"
+    },
+    {
+      "id": "buchen",
+      "label": "Verbuchen",
+      "fromCol": 5,
+      "toCol": 5
+    }
+  ],
+  "mainPath": [
+    "festlegen",
+    "rechnung",
+    "zustellen",
+    "zahlt",
+    "erfassen",
+    "eingang"
+  ],
+  "nodes": [
+    {
+      "id": "festlegen",
+      "lane": "verein",
+      "col": 0,
+      "type": "backend",
+      "label": "Beiträge festlegen",
+      "sublabel": "Jahr, Gruppe, Betrag",
+      "width": 140
+    },
+    {
+      "id": "rechnung",
+      "lane": "system",
+      "col": 1,
+      "type": "backend",
+      "label": "QR-Rechnung",
+      "sublabel": "Referenz RF… (SCOR)",
+      "tag": "je Mitglied eine",
+      "width": 140
+    },
+    {
+      "id": "zustellen",
+      "lane": "system",
+      "col": 2,
+      "type": "messagebus",
+      "label": "Zustellen",
+      "sublabel": "E-Mail oder Post",
+      "width": 140
+    },
+    {
+      "id": "zahlt",
+      "lane": "mitglied",
+      "col": 3,
+      "type": "external",
+      "label": "Mitglied zahlt",
+      "sublabel": "QR, TWINT, PayPal",
+      "width": 140
+    },
+    {
+      "id": "bar",
+      "lane": "verein",
+      "col": 3,
+      "type": "backend",
+      "label": "oder bar",
+      "sublabel": "Nachbarschaft kassiert",
+      "width": 140
+    },
+    {
+      "id": "mahnung",
+      "lane": "system",
+      "col": 3,
+      "type": "security",
+      "label": "Mahnung",
+      "sublabel": "wenn die Frist verstreicht",
+      "width": 140
+    },
+    {
+      "id": "erfassen",
+      "lane": "system",
+      "col": 4,
+      "type": "backend",
+      "label": "Eingang erfassen",
+      "sublabel": "die Referenz ordnet zu",
+      "width": 140
+    },
+    {
+      "id": "forderung",
+      "lane": "buch",
+      "col": 1,
+      "type": "database",
+      "label": "Forderung gebucht",
+      "sublabel": "1100 an 3000",
+      "width": 140
+    },
+    {
+      "id": "eingang",
+      "lane": "buch",
+      "col": 5,
+      "type": "database",
+      "label": "Zahlung gebucht",
+      "sublabel": "Bank oder Kasse an 1100",
+      "width": 140
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "festlegen",
+      "to": "rechnung",
+      "label": "erzeugen",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e2",
+      "from": "rechnung",
+      "to": "forderung",
+      "label": "sofort",
+      "variant": "dashed"
+    },
+    {
+      "id": "e3",
+      "from": "rechnung",
+      "to": "zustellen",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e4",
+      "from": "zustellen",
+      "to": "zahlt",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e5",
+      "from": "zahlt",
+      "to": "erfassen",
+      "label": "Eingang",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e6",
+      "from": "bar",
+      "to": "erfassen",
+      "label": "melden",
+      "variant": "dashed",
+      "role": "branch"
+    },
+    {
+      "id": "e7",
+      "from": "erfassen",
+      "to": "eingang",
+      "label": "bezahlt",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e8",
+      "from": "zustellen",
+      "to": "mahnung",
+      "label": "Frist vorbei",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "e9",
+      "from": "mahnung",
+      "to": "zahlt",
+      "label": "erinnert",
+      "variant": "dashed",
+      "role": "branch"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Die Referenz ordnet zu",
+      "items": [
+        "Jede Rechnung trägt eine eigene Referenz RF… (ISO 11649)",
+        "Kommt Geld, findet die Referenz das richtige Mitglied"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Zweimal wird gebucht",
+      "items": [
+        "Bei der Rechnung: 1100 an 3000",
+        "Beim Eingang: Bank oder Kasse an 1100"
+      ]
+    }
+  ]
+}

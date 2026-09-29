@@ -1,0 +1,56 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Die Spende",
+    "subtitle": "Von der Spendenseite bis zur Bescheinigung",
+    "output": "spende.html",
+    "quality_profile": "showcase",
+    "viewBox": [1080, 660],
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "backend": { "label": "Plattform" },
+        "frontend": { "label": "Seite" },
+        "database": { "label": "Buchung" },
+        "external": { "label": "Mensch" },
+        "messagebus": { "label": "Versand" }
+      }
+    }
+  },
+  "lanes": [
+    { "id": "spender", "label": "Spender" },
+    { "id": "system",  "label": "Plattform" },
+    { "id": "verein",  "label": "Verein" },
+    { "id": "buch",    "label": "Buchhaltung" }
+  ],
+  "phases": [
+    { "id": "erfassen", "label": "Erfassen", "fromCol": 0, "toCol": 1 },
+    { "id": "zahlen",   "label": "Zahlen",   "fromCol": 2, "toCol": 3, "variant": "emphasis" },
+    { "id": "abschluss","label": "Abschliessen", "fromCol": 4, "toCol": 5 }
+  ],
+  "mainPath": ["seite", "formular", "schein", "zahlt", "zuordnen", "buchen"],
+  "nodes": [
+    { "id": "seite",     "lane": "system",  "col": 0, "type": "frontend",   "label": "Spendenseite",   "sublabel": "öffentlich, ohne Anmeldung", "width": 140 },
+    { "id": "formular",  "lane": "spender", "col": 1, "type": "external",   "label": "Angaben",        "sublabel": "Betrag, Name oder anonym", "width": 140 },
+    { "id": "schein",    "lane": "system",  "col": 2, "type": "backend",    "label": "Einzahlungsschein", "sublabel": "eigene Referenz je Spende", "width": 140 },
+    { "id": "zahlt",     "lane": "spender", "col": 3, "type": "external",   "label": "überweist",      "sublabel": "QR oder TWINT", "width": 140 },
+    { "id": "zuordnen",  "lane": "system",  "col": 4, "type": "backend",    "label": "Zuordnung",      "sublabel": "die Referenz findet die Spende", "width": 140 },
+    { "id": "buchen",    "lane": "buch",    "col": 5, "type": "database",   "label": "Ertrag gebucht", "sublabel": "1020 an 3200 Spenden", "width": 140 },
+    { "id": "beleg",     "lane": "verein",  "col": 5, "type": "messagebus", "label": "Bescheinigung",  "sublabel": "nur wenn nicht anonym", "width": 140 }
+  ],
+  "edges": [
+    { "id": "s1", "from": "seite",    "to": "formular", "label": "ausfüllen", "variant": "emphasis" },
+    { "id": "s2", "from": "formular", "to": "schein",   "label": "erzeugt",   "variant": "emphasis" },
+    { "id": "s3", "from": "schein",   "to": "zahlt",    "variant": "emphasis" },
+    { "id": "s4", "from": "zahlt",    "to": "zuordnen", "label": "Eingang",   "variant": "emphasis" },
+    { "id": "s5", "from": "zuordnen", "to": "buchen",   "label": "verbucht",  "variant": "emphasis" },
+    { "id": "s6", "from": "zuordnen", "to": "beleg",    "label": "wenn Name da", "variant": "dashed", "role": "branch" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Anonym bleibt anonym",
+      "items": ["Ohne Namen entsteht keine Bescheinigung", "Der Betrag wird trotzdem verbucht"] },
+    { "dot": "amber", "title": "Getrennt vom Beitrag",
+      "items": ["Spenden buchen auf 3200, Beiträge auf 3000", "So bleibt im Abschluss beides unterscheidbar"] }
+  ]
+}
