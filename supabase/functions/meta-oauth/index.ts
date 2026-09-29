@@ -16,6 +16,9 @@
 // Benoetigte Umgebungsvariablen:
 //   META_APP_ID, META_APP_SECRET
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY   (setzt Supabase selbst)
+//   SUPABASE_SECRET_KEY                        (neuer sb_secret_-Schluessel,
+//     selbst zu setzen; hat Vorrang, damit der Alt-Schluessel abgeschaltet
+//     werden kann, ohne dass diese Funktion stehenbleibt)
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.47.10";
 
@@ -42,7 +45,7 @@ Deno.serve(async (req) => {
   const appSecret = Deno.env.get("META_APP_SECRET") ?? "";
   const sb = createClient(
     Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    (Deno.env.get("SUPABASE_SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!,
     { auth: { persistSession: false } },
   );
 

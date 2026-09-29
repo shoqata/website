@@ -9,6 +9,9 @@
 // Benoetigte Umgebungsvariablen:
 //   SOCIAL_CRON_TOKEN   derselbe Wert wie platform_secrets.social_cron_token
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY   (setzt Supabase selbst)
+//   SUPABASE_SECRET_KEY                        (neuer sb_secret_-Schluessel,
+//     selbst zu setzen; hat Vorrang, damit der Alt-Schluessel abgeschaltet
+//     werden kann, ohne dass diese Funktion stehenbleibt)
 //   SOCIAL_BATCH        optional, Hoechstzahl je Lauf (Vorgabe 10)
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.47.10";
@@ -68,7 +71,7 @@ Deno.serve(async (req) => {
 
   const sb = createClient(
     Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    (Deno.env.get("SUPABASE_SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!,
     { auth: { persistSession: false } },
   );
 
