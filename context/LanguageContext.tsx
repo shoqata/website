@@ -632,6 +632,8 @@ const translations: Translations = {
   'tuer.hin': { de: 'Zu {domain}', en: 'Go to {domain}', sq: 'Te {domain}' },
   'spende.wofuer': { de: 'Wofür möchten Sie spenden?', en: 'What would you like to give to?', sq: 'Për çfarë dëshironi të dhuroni?' },
   'spende.wofuer_frei': { de: 'Sie können auch nichts auswählen — dann geht Ihre Spende an den Verein allgemein.', en: 'You may also select nothing — then your donation goes to the association in general.', sq: 'Mund të mos zgjidhni asgjë — atëherë donacioni shkon për shoqatën në përgjithësi.' },
+  'spenden.bescheinigung': { de: 'Bescheinigung', en: 'Receipt', sq: 'Vërtetim' },
+  'spenden.bescheinigung_erneut': { de: 'Bescheinigung noch einmal herunterladen', en: 'Download the receipt again', sq: 'Shkarko përsëri vërtetimin' },
   'spseite.titel': { de: 'Spendenseite', en: 'Donation page', sq: 'Faqja e donacioneve' },
   'spseite.immer': { de: 'Immer offen', en: 'Always open', sq: 'Gjithmonë e hapur' },
   'spseite.immer_text': { de: 'Die Seite steht immer bereit — auch ohne laufenden Aufruf. Spenden gehen dann an den Verein allgemein.', en: 'The page is always available — even without a running appeal. Donations then go to the association in general.', sq: 'Faqja është gjithmonë e disponueshme — edhe pa thirrje aktive.' },

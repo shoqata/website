@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import AdminSpendenaufrufe from './AdminSpendenaufrufe';
-import { Heart, Loader2, AlertTriangle, Check, FileText, Search } from 'lucide-react';
+import { Heart, Loader2, AlertTriangle, Check, FileText, Search, Download } from 'lucide-react';
 import { collection, onSnapshot, query, orderBy, supabase } from '../services/supabase-bridge';
 import { db } from '../services/supabase-bridge';
 import { useTranslation } from '../context/LanguageContext';
+import { spendenbescheinigungErzeugen } from '../lib/spendenbescheinigung';
+import { doc, getDoc } from '../services/supabase-bridge';
 
 // Spenden in der Vereinsverwaltung.
 //
@@ -27,6 +29,41 @@ const AdminSpenden: React.FC = () => {
   const [arbeitet, setArbeitet] = useState<string | null>(null);
   const [suche, setSuche] = useState('');
   const [filter, setFilter] = useState<'ALLE' | 'OFFEN' | 'BEZAHLT'>('OFFEN');
+  // Absenderangaben fuer die Bescheinigung. Sie stehen in denselben
+  // Einstellungen wie auf der Rechnung -- ein zweiter Ort dafuer liefe
+  // auseinander.
+  const [verein, setVerein] = useState<any>({});
+
+  useEffect(() => {
+    Promise.all([
+      getDoc(doc(db, 'settings', 'payment')).catch(() => null),
+      getDoc(doc(db, 'settings', 'company')).catch(() => null),
+    ]).then(([z, f]) => {
+      const zahlung: any = z?.exists() ? z.data() : {};
+      const firma: any = f?.exists() ? f.data() : {};
+      setVerein({
+        name: firma.name || zahlung.accountHolder || '',
+        strasse: zahlung.street || '', plz: zahlung.zip || '',
+        ort: zahlung.city || '', land: zahlung.country || '',
+        email: zahlung.contactEmail || '',
+      });
+    });
+  }, []);
+
+  // Die Bescheinigung ist ein Dokument, kein Haken. Bis zum 29.09.2026 setzte
+  // der Knopf nur ein Datum -- der Verein hatte danach nichts in der Hand,
+  // was er dem Spender geben konnte.
+  const bescheinigungLaden = async (s: Spende) => {
+    try {
+      await spendenbescheinigungErzeugen({
+        name: s.name, strasse: s.strasse, plz: s.plz, ort: s.ort, land: null,
+        betrag: Number(s.betrag), waehrung: s.waehrung,
+        referenz: s.referenz || '', eingegangen_am: s.eingegangen_am, zweck: s.zweck,
+      }, verein);
+    } catch (e: any) {
+      setFehler(e?.message || 'Bescheinigung konnte nicht erzeugt werden.');
+    }
+  };
 
   useEffect(() => {
     const unsub = onSnapshot(query(collection(db, 'donations'), orderBy('erfasst_am', 'desc')), (snap) => {
@@ -43,6 +80,7 @@ const AdminSpenden: React.FC = () => {
         ? await supabase.rpc('spende_bezahlt', { p_spende: s.id, p_weg: weg ?? 'QR' })
         : await supabase.rpc('spende_bescheinigt', { p_spende: s.id });
       if (error) throw error;
+      if (was === 'BESCHEINIGT') await bescheinigungLaden(s);
     } catch (e: any) { setFehler(e?.message ?? String(e)); }
     finally { setArbeitet(null); }
   };
@@ -159,6 +197,15 @@ const AdminSpenden: React.FC = () => {
                     <button onClick={() => handeln(s, 'BESCHEINIGT')} disabled={arbeitet === s.id}
                             className="px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest bg-stone-900 text-white hover:bg-black disabled:opacity-50 inline-flex items-center gap-1.5">
                       <FileText size={10} /> {t('spenden.bescheinigen')}
+                    </button>
+                  ) : s.bescheinigt_am && !s.anonym ? (
+                    // Eine einmal ausgestellte Bescheinigung muss sich noch
+                    // einmal holen lassen: Papier geht verloren, und der
+                    // Spender fragt Monate spaeter danach.
+                    <button onClick={() => bescheinigungLaden(s)}
+                            title={t('spenden.bescheinigung_erneut')}
+                            className="px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-stone-200 text-stone-500 hover:border-stone-300 inline-flex items-center gap-1.5">
+                      <Download size={10} /> {t('spenden.bescheinigung')}
                     </button>
                   ) : (
                     <Check size={16} className="text-emerald-500" />
