@@ -29,6 +29,11 @@ const Hero: React.FC = () => {
   // der Datenbank: steht der Schalter auf AUS, kommt hier nichts an -- auch
   // nicht fuer den, der die Schnittstelle von Hand aufruft.
   const [beitragsstand, setBeitragsstand] = useState<any>(null);
+  // Die Spendenaufrufe des Vereins. Was ankommt, entscheidet die Datenbank:
+  // veroeffentlicht, im Zeitraum, Modul gebucht. Bis zum 29.09.2026 standen
+  // sie nur im Spendenformular -- also dort, wo nur ankommt, wer schon
+  // spenden wollte.
+  const [aufrufe, setAufrufe] = useState<any[]>([]);
   const [branding, setBranding] = useState<any>({});
   
   // Payment Settings for TWINT
@@ -84,6 +89,9 @@ const Hero: React.FC = () => {
     });
 
     supabase.rpc('beitragsstand_oeffentlich').then(({ data }) => setBeitragsstand(data));
+    supabase.rpc('spendenaufrufe_oeffentlich').then(({ data, error }) => {
+      if (!error) setAufrufe((data as any[]) || []);
+    });
 
     return () => { unsubEvents(); unsubUsers(); };
   }, []);
@@ -266,6 +274,59 @@ const Hero: React.FC = () => {
                         ))}
                     </div>
                 )}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Wofuer der Verein gerade sammelt.
+            Ohne Aufruf entfaellt der Abschnitt -- eine leere Ueberschrift
+            "Unsere Projekte" waere schlimmer als keine. */}
+        {aufrufe.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} className="mb-32">
+            <div className="flex items-baseline justify-between mb-10 flex-wrap gap-3">
+              <div>
+                <p className="text-xs font-bold text-stone-400 uppercase tracking-[0.2em] mb-2">{t('aufruf.oeff_marke')}</p>
+                <h2 className="text-3xl md:text-4xl font-display font-bold italic text-stone-900">{t('aufruf.oeff_titel')}</h2>
+              </div>
+              <Link to="/spenden" className="text-xs font-bold text-primary hover:underline">
+                {t('aufruf.alle_zeigen')} →
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {aufrufe.slice(0, 4).map((a: any) => {
+                const ziel = Number(a.ziel_betrag || 0);
+                const teil = ziel > 0 ? Math.min(100, Math.round((Number(a.gesammelt || 0) / ziel) * 100)) : null;
+                return (
+                  <div key={a.id} className="bg-white rounded-[2rem] border border-stone-100 shadow-sm p-8 flex flex-col">
+                    <h3 className="text-lg font-bold text-stone-900 mb-2">{a.titel}</h3>
+                    {a.text && <p className="text-sm text-stone-500 leading-relaxed mb-6">{a.text}</p>}
+
+                    {teil !== null && (
+                      <div className="mt-auto">
+                        <div className="flex items-baseline justify-between mb-2">
+                          <p className="text-2xl font-bold text-stone-900 tabular-nums">
+                            {Number(a.gesammelt || 0).toLocaleString('de-CH')}
+                            <span className="text-sm font-normal text-stone-400"> / {ziel.toLocaleString('de-CH')} {a.waehrung}</span>
+                          </p>
+                          <p className="text-xs font-bold text-primary tabular-nums">{teil}%</p>
+                        </div>
+                        <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
+                          <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${teil}%` }} />
+                        </div>
+                        {a.anzahl > 0 && (
+                          <p className="text-[11px] text-stone-400 mt-2">{t('aufruf.spenden_anzahl', { anzahl: a.anzahl })}</p>
+                        )}
+                      </div>
+                    )}
+
+                    <Link to="/spenden"
+                      className="mt-6 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-primary text-white text-sm font-bold hover:opacity-90 transition-opacity">
+                      {t('aufruf.jetzt_geben')}
+                    </Link>
+                  </div>
+                );
+              })}
             </div>
           </motion.div>
         )}

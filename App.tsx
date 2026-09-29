@@ -7,11 +7,12 @@ const VideoSeite = React.lazy(() => import('./components/VideoSeite'));
 import { needsProfileSetup } from './lib/memberQuality';
 import { useIstPlattformDomain } from './lib/useIstPlattformDomain';
 import { useStartseiteVariante } from './lib/useStartseiteVariante';
+import { useOeffentlicheModule } from './lib/useOeffentlicheModule';
 import { useReiterKennzeichen } from './lib/useReiterKennzeichen';
 import { HashRouter as Router, Routes, Route, Link, useLocation, Navigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  LayoutDashboard, Settings, LogOut, Heart, Menu, X, Globe, Sparkles, LogIn, Zap, ChevronDown, 
+  LayoutDashboard, Settings, LogOut, Heart, Film, Menu, X, Globe, Sparkles, LogIn, Zap, ChevronDown, 
   Mail, MapPin, ShieldCheck, Calendar, Newspaper, Info, QrCode, ArrowRight, Smartphone, 
   Hammer, Maximize, UserPlus, Loader2, Building2
 } from 'lucide-react';
@@ -516,6 +517,11 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings }) => {
   // ist, bekommt den Verweis. Ihn jedem Vereins-SUPER_ADMIN anzubieten
   // fuehrte auf eine Seite, die ihm nichts zeigt.
   const werIch = useWerBinIch(!!user);
+  // Ohne gebuchtes Modul gehoert kein Verweis in die Leiste, mit gebuchtem
+  // gehoert er hinein. Bisher fehlte er in beiden Faellen -- die
+  // Spendenseite war nur ueber die eingetippte Adresse erreichbar.
+  const oeffentlicheModule = useOeffentlicheModule();
+  const hatModul = (k: string) => !!oeffentlicheModule?.has(k);
   const { t, loc, setLanguage, language } = useTranslation();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -554,6 +560,16 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings }) => {
             <Link to="/live" className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${isActive('/live') ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}>
                 <Zap size={16} className="text-amber-600"/><span className="font-bold text-sm">{t('nav.live')}</span>
             </Link>
+            {hatModul('VIDEOS') && (
+              <Link to="/videos" className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${isActive('/videos') ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}>
+                  <Film size={16} className="text-violet-600"/><span className="font-bold text-sm">{t('video.oeff_titel')}</span>
+              </Link>
+            )}
+            {hatModul('SPENDEN') && (
+              <Link to="/spenden" className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${isActive('/spenden') ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}>
+                  <Heart size={16} className="text-primary"/><span className="font-bold text-sm">{t('nav.spenden')}</span>
+              </Link>
+            )}
         </div>
 
         <div className="flex items-center gap-2 md:gap-4 z-50">
