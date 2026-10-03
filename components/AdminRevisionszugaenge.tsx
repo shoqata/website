@@ -29,10 +29,18 @@ const AdminRevisionszugaenge: React.FC = () => {
   const [liste, setListe] = useState<Zugang[] | null>(null);
   const [offen, setOffen] = useState(false);
   const [name, setName] = useState('');
-  const [bis, setBis] = useState(() => {
-    const d = new Date(); d.setMonth(d.getMonth() + 3);
+  // Vorgabe und Obergrenze: ein Monat. Dieselbe Grenze prueft die
+  // Datenbank noch einmal -- die Oberflaeche kann man umgehen, die
+  // Funktion nicht.
+  const inEinemMonat = (() => {
+    const d = new Date(); d.setMonth(d.getMonth() + 1);
     return d.toISOString().slice(0, 10);
-  });
+  })();
+  const morgen = (() => {
+    const d = new Date(); d.setDate(d.getDate() + 1);
+    return d.toISOString().slice(0, 10);
+  })();
+  const [bis, setBis] = useState(inEinemMonat);
   const [jahr, setJahr] = useState<number | ''>(jetzt);
   const [arbeitet, setArbeitet] = useState(false);
   const [frisch, setFrisch] = useState<{ token: string } | null>(null);
@@ -136,8 +144,10 @@ const AdminRevisionszugaenge: React.FC = () => {
           </label>
           <label className="block">
             <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400 block mb-1">{t('revz.gueltig_bis')}</span>
-            <input type="date" value={bis} onChange={e => setBis(e.target.value)}
+            <input type="date" value={bis} min={morgen} max={inEinemMonat}
+              onChange={e => setBis(e.target.value)}
               className="w-full p-2.5 bg-white border border-stone-200 rounded-xl text-sm outline-none" />
+            <span className="text-[10px] text-stone-400 block mt-1">{t('revz.hoechstens')}</span>
           </label>
           <label className="block">
             <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400 block mb-1">{t('revz.jahr')}</span>

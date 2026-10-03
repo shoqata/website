@@ -168,10 +168,12 @@ BEGIN
   IF p_gueltig_bis IS NULL OR p_gueltig_bis <= current_date THEN
     RAISE EXCEPTION 'Das Ablaufdatum muss in der Zukunft liegen.';
   END IF;
-  -- Ein Zugang ohne Ende ist kein befristeter Zugang. Ein Jahr ist die
-  -- Obergrenze: eine Revision dauert Wochen, nicht Jahre.
-  IF p_gueltig_bis > current_date + interval '1 year' THEN
-    RAISE EXCEPTION 'Hoechstens ein Jahr Gueltigkeit.';
+  -- Ein Zugang ohne Ende ist kein befristeter Zugang. Ein Monat ist die
+  -- Obergrenze: eine Revision dauert Tage bis Wochen. Braucht sie laenger,
+  -- soll der Verein bewusst neu ausstellen -- und dabei noch einmal
+  -- hinsehen, wem er Einblick in seine Finanzen gibt.
+  IF p_gueltig_bis > current_date + interval '1 month' THEN
+    RAISE EXCEPTION 'Hoechstens ein Monat Gueltigkeit (gewuenscht: %).', p_gueltig_bis;
   END IF;
   IF coalesce(btrim(p_bezeichnung),'') = '' THEN
     RAISE EXCEPTION 'Bitte benennen, fuer wen der Zugang ist.';

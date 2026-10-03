@@ -752,8 +752,9 @@ const translations: Translations = {
 
   'rev.export': { de: 'Revisionsbericht', en: 'Audit report', sq: 'Raporti i revizionit' },
 
+  'revz.hoechstens': { de: 'Höchstens ein Monat', en: 'One month at most', sq: 'Më së shumti një muaj' },
   'revz.titel': { de: 'Zugang für die Revisionsstelle', en: 'Auditor access', sq: 'Qasja e revizorit' },
-  'revz.untertitel': { de: 'Befristeter Lesezugang auf Buchhaltung und Ausgaben — ohne Konto, jederzeit widerrufbar.', en: 'Time-limited read access to the accounts and expenses — no account needed, revocable at any time.', sq: 'Qasje leximi me afat në kontabilitet dhe shpenzime — pa llogari, e revokueshme në çdo kohë.' },
+  'revz.untertitel': { de: 'Lesezugang auf Buchhaltung und Ausgaben, höchstens einen Monat — ohne Konto, jederzeit widerrufbar.', en: 'Read access to the accounts and expenses for at most one month — no account needed, revocable at any time.', sq: 'Qasje leximi në kontabilitet dhe shpenzime, më së shumti një muaj — pa llogari, e revokueshme në çdo kohë.' },
   'revz.ausstellen': { de: 'Zugang ausstellen', en: 'Issue access', sq: 'Lësho qasje' },
   'revz.fuer_wen': { de: 'Für wen', en: 'For whom', sq: 'Për kë' },
   'revz.fuer_wen_beispiel': { de: 'z. B. Revisionsstelle Muster AG', en: 'e.g. Muster AG auditors', sq: 'p.sh. Revizorët Muster AG' },
