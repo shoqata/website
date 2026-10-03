@@ -23,6 +23,7 @@ import {
   Trash2,
   ArrowRight,
   Blocks,
+  CalendarDays
 } from 'lucide-react';
 import { db, auth } from '../services/firebase';
 import { supabase } from '../services/supabase-bridge';
@@ -33,12 +34,13 @@ import SuperAdminLeadDialog from './SuperAdminLeadDialog';
 import { useFeedback } from '../context/FeedbackContext';
 import { signOut } from '@/services/supabase-bridge';
 import { useNavigate } from 'react-router-dom';
+import SuperAdminTreffen from './SuperAdminTreffen';
 
 const SuperAdminDashboard: React.FC<{ user?: any }> = ({ user }) => {
   const { t } = useTranslation();
   const { showAlert, showPrompt } = useFeedback();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'CRM' | 'FINANCES' | 'MODULE' | 'CONFIG'>('OVERVIEW');
+  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'CRM' | 'FINANCES' | 'MODULE' | 'TREFFEN' | 'CONFIG'>('OVERVIEW');
   const [tenants, setTenants] = useState<Tenant[]>([]);
   // Die Meta-App. Nur Nummer und Rueckruf-Adresse -- das App-Geheimnis
   // gehoert in die Umgebung der Funktion meta-oauth und nie hierher.
@@ -255,6 +257,7 @@ const SuperAdminDashboard: React.FC<{ user?: any }> = ({ user }) => {
   // Render Sub-Views
   const renderContent = () => {
       switch(activeTab) {
+          case 'TREFFEN': return <SuperAdminTreffen />;
         case 'MODULE': return <SuperAdminModule />;
           case 'CRM':
               return (
@@ -550,6 +553,9 @@ const SuperAdminDashboard: React.FC<{ user?: any }> = ({ user }) => {
                     </button>
                     <button onClick={() => setActiveTab('MODULE')} className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-3 transition-all ${activeTab === 'MODULE' ? 'bg-white/10 text-white' : 'text-stone-400 hover:text-white hover:bg-white/5'}`}>
                         <Blocks size={18} /> {t('samod.titel')}
+                    </button>
+                    <button onClick={() => setActiveTab('TREFFEN')} className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-3 transition-all ${activeTab === 'TREFFEN' ? 'bg-white/10 text-white' : 'text-stone-400 hover:text-white hover:bg-white/5'}`}>
+                        <CalendarDays size={18}/> Vereinstreffen
                     </button>
                     <button onClick={() => setActiveTab('CONFIG')} className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-3 transition-all ${activeTab === 'CONFIG' ? 'bg-white/10 text-white' : 'text-stone-400 hover:text-white hover:bg-white/5'}`}>
                         <Settings size={18} /> {t('sa.configuration')}

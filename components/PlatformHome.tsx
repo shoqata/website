@@ -9,6 +9,7 @@ import { UserProfile } from '../types';
 import Konstellation from './platform/Konstellation';
 import Kontaktformular from './platform/Kontaktformular';
 import Wortmarke, { Knotenpunkt } from './platform/Wortmarke';
+import Treffen from './platform/Treffen';
 
 interface Props { user: UserProfile | null; }
 
@@ -320,6 +321,8 @@ const PlatformHome: React.FC<Props> = ({ user }) => {
               eines Vereins haben auf einer oeffentlichen Seite nichts zu
               suchen. */}
           <Produktbilder />
+          {/* Die kommenden Vereinstreffen. Erscheint nur, wenn etwas ansteht. */}
+          <Treffen />
 
           <div id="trennung" className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-20 md:mt-[80px] scroll-mt-20">
             <div>
