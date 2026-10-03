@@ -30,7 +30,8 @@ import {
   Printer,
   PieChart as PieChartIcon,
   Calculator,
-  Info
+  Info,
+  LayoutTemplate
 } from 'lucide-react';
 import { db } from '../services/firebase';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, writeBatch, setDoc, getDoc } from '@/services/supabase-bridge';
@@ -47,6 +48,9 @@ import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import { sendEmail } from '../services/mailService';
 import { QRCodeSVG } from 'qrcode.react';
+import AdminRechnungsdesigner from './AdminRechnungsdesigner';
+import Rechnungsblatt from './Rechnungsblatt';
+import { layoutLesen, VORGABE, type Rechnungslayout } from '../lib/rechnungslayout';
 
 interface AdminFinanceProps {
     viewMode: 'LIST' | 'GRID' | 'KANBAN';
@@ -58,7 +62,10 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
     const { showAlert, showConfirm } = useFeedback();
     
     // Tabs
-    const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'INVOICES' | 'DUNNING' | 'BUDGET' | 'SETTINGS'>('OVERVIEW');
+    // Das Layout der Rechnung. Wird es im Designer geaendert, aendert sich
+    // die gedruckte Rechnung mit -- sonst waere der Designer Zierde.
+    const [rechnungslayout, setRechnungslayout] = useState<Rechnungslayout>(VORGABE);
+    const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'INVOICES' | 'DUNNING' | 'BUDGET' | 'DESIGN' | 'SETTINGS'>('OVERVIEW');
 
     // Data
     const [payments, setPayments] = useState<Payment[]>([]);
@@ -527,6 +534,13 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
     };
 
     // Fix: Formatted handleDownloadPdf for better readability
+    useEffect(() => {
+        const abL = onSnapshot(doc(db, 'settings', 'rechnungslayout'),
+            (d: any) => { if (d.exists()) setRechnungslayout(layoutLesen(d.data())); });
+        // branding wird weiter oben schon geladen -- kein zweiter Abruf.
+        return () => { abL(); };
+    }, []);
+
     const handleDownloadPdf = async () => { 
         const element = document.getElementById('invoice-preview-content'); 
         if (!element) return; 
@@ -550,6 +564,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
                 <button onClick={() => setActiveTab('INVOICES')} className={`px-8 py-5 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'INVOICES' ? 'border-primary text-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)]' : 'border-transparent text-stone-400 hover:text-stone-900 hover:bg-stone-50'}`}><FileText size={18}/> {t('admin.finance.invoices')}</button>
                 <button onClick={() => setActiveTab('DUNNING')} className={`px-8 py-5 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'DUNNING' ? 'border-primary text-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)]' : 'border-transparent text-stone-400 hover:text-stone-900 hover:bg-stone-50'}`}><BellRing size={18}/> {t('admin.finance.dunning')}{overduePayments.length > 0 && <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full ml-1">{overduePayments.length}</span>}</button>
                 <button onClick={() => setActiveTab('BUDGET')} className={`px-8 py-5 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'BUDGET' ? 'border-primary text-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)]' : 'border-transparent text-stone-400 hover:text-stone-900 hover:bg-stone-50'}`}><Calculator size={18}/> {t('admin.finance.budget')}</button>
+                <button onClick={() => setActiveTab('DESIGN')} className={`px-8 py-5 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'DESIGN' ? 'border-primary text-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)]' : 'border-transparent text-stone-400 hover:text-stone-900 hover:bg-stone-50'}`}><LayoutTemplate size={18}/> {t('admin.finance.design')}</button>
                 <button onClick={() => setActiveTab('SETTINGS')} className={`px-8 py-5 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'SETTINGS' ? 'border-primary text-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)]' : 'border-transparent text-stone-400 hover:text-stone-900 hover:bg-stone-50'}`}><Settings size={18}/> {t('admin.finance.settings')}</button>
             </div>
 
@@ -611,6 +626,16 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
                                 </div>
                             )}
                         </div>
+                    </div>
+                )}
+
+                {activeTab === 'DESIGN' && (
+                    <div className="p-8">
+                        <div className="mb-6">
+                            <h3 className="text-xl font-bold text-stone-900">{t('rdes.titel')}</h3>
+                            <p className="text-xs text-stone-400 mt-1">{t('rdes.untertitel')}</p>
+                        </div>
+                        <AdminRechnungsdesigner />
                     </div>
                 )}
 
@@ -877,11 +902,24 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
                             <div className="p-4 border-b border-stone-200 flex justify-between items-center bg-white"><h3 className="font-bold text-stone-800">{t('admin.finance.preview_invoice', { number: viewInvoice.invoiceNumber || '' })}</h3><div className="flex gap-2"><button onClick={handleDownloadPdf} className="px-4 py-2 bg-stone-900 text-white rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-black transition-colors"><Download size={14} /> {t('admin.finance.download_pdf')}</button><button onClick={() => setViewInvoice(null)} className="p-2 hover:bg-stone-100 rounded-lg text-stone-500"><X size={20}/></button></div></div>
                             <div className="flex-1 overflow-y-auto p-8 flex justify-center custom-scrollbar">
                                 <div id="invoice-preview-content" className="bg-white shadow-xl w-[210mm] min-h-[297mm] p-[20mm] text-stone-900 relative flex flex-col">
-                                     <div className="flex justify-between mb-12"><div><div className="flex items-center gap-2 mb-4"><div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold text-xs">{invoiceInitials}</div><span className="font-display font-bold italic text-xl">{invoiceAssociation}</span></div><h1 className="text-4xl font-bold text-stone-900 mb-2">{t('invoice.heading')}</h1><p className="text-sm text-stone-500 font-mono">#{viewInvoice.invoiceNumber}</p><p className="text-sm text-stone-500 mt-1">Date: {new Date(viewInvoice.timestamp?.toDate()).toLocaleDateString()}</p></div><div className="text-right text-sm leading-relaxed"><p className="font-bold text-lg mb-1">{paymentSettings.accountHolder}</p><p>{paymentSettings.street}</p><p>{paymentSettings.zip} {paymentSettings.city}</p><p>{paymentSettings.country}</p><p className="mt-2 text-stone-500">{paymentSettings.contactEmail || 'info@koretini.org'}</p></div></div>
-                                     <div className="mb-16 bg-stone-50 p-6 rounded-xl border border-stone-100"><p className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-3">{t('admin.finance.bill_to')}</p><p className="font-bold text-xl">{getQrData(viewInvoice)?.debtor.name}</p><p className="text-stone-600 text-lg whitespace-pre-line">{getQrData(viewInvoice)?.debtor.address}<br/>{getQrData(viewInvoice)?.debtor.zip} {getQrData(viewInvoice)?.debtor.city}</p></div>
-                                     <table className="w-full mb-12"><thead><tr className="border-b-2 border-stone-900 text-left text-xs font-bold uppercase tracking-widest"><th className="py-3">{t('field.description')}</th><th className="py-3 text-right">{t('field.amount')}</th></tr></thead><tbody><tr className="border-b border-stone-100"><td className="py-6 text-lg font-medium">{viewInvoice.description}</td><td className="py-6 text-right font-mono text-lg">{viewInvoice.amount.toFixed(2)} {viewInvoice.currency}</td></tr></tbody><tfoot><tr><td className="py-6 font-bold text-right text-lg">{t('admin.finance.total_due')}</td><td className="py-6 text-right font-bold text-3xl">{viewInvoice.amount.toFixed(2)} {viewInvoice.currency}</td></tr></tfoot></table>
+                                     <Rechnungsblatt nurKopf layout={rechnungslayout} daten={{
+                                         nummer: viewInvoice.invoiceNumber || '',
+                                         datum: new Date(viewInvoice.timestamp?.toDate?.() || Date.now()).toLocaleDateString('de-CH'),
+                                         beschreibung: viewInvoice.description || '',
+                                         betrag: viewInvoice.amount, waehrung: viewInvoice.currency,
+                                         verein: { name: paymentSettings.accountHolder, strasse: paymentSettings.street,
+                                                   plz: paymentSettings.zip,
+                                                   ort: paymentSettings.city, land: paymentSettings.country,
+                                                   email: paymentSettings.contactEmail },
+                                         logoUrl: branding?.logoUrl || '',
+                                         qr: getQrData(viewInvoice),
+                                         ueberschrift: t('invoice.heading'),
+                                         schlusswort: t('admin.finance.thanks'),
+                                         beschriftung: { nummer: '#', datum: t('field.date') + ':',
+                                                         an: t('admin.finance.bill_to'),
+                                                         was: t('field.description'), betrag: t('field.amount') },
+                                     }} />
                                      <div className="mt-auto">
-                                        <p className="text-sm text-stone-500 mb-8 italic text-center">{t('admin.finance.thanks')}</p>
                                         <div className="border-t-2 border-dashed border-stone-300 pt-8">
                                             {viewInvoice.method === 'QR_BILL' && (
                                                 <div className="space-y-8">

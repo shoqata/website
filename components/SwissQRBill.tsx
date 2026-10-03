@@ -118,6 +118,15 @@ const SwissQRBill: React.FC<{ data: QrBillData }> = ({ data }) => {
               <Value>{data.amount.toFixed(2)}</Value>
             </div>
           </div>
+
+          {/* "Annahmestelle" ist im Empfangsschein eine Pflichtangabe und
+              steht nach den Richtlinien rechtsbuendig unten. Sie war als
+              Beschriftung angelegt, wurde aber nie gezeichnet -- der Beleg
+              war damit unvollstaendig, ohne dass man es ihm ansah. Darunter
+              bleibt Raum: dort stempelt die Post. */}
+          <p className="text-[6pt] font-bold leading-[8pt] text-black text-right mt-[2mm]">
+            {L.acceptance}
+          </p>
         </div>
 
         {/* 2. ZAHLTEIL (Payment Part) - Right Side (148mm) */}
