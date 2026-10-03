@@ -15,6 +15,7 @@
 //   SOCIAL_BATCH        optional, Hoechstzahl je Lauf (Vorgabe 10)
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.47.10";
+import { geheimschluessel } from "../_shared/schluessel.ts";
 
 const GRAPH = "https://graph.facebook.com/v21.0";
 const ABLAGE = "uploads";
@@ -71,7 +72,7 @@ Deno.serve(async (req) => {
 
   const sb = createClient(
     Deno.env.get("SUPABASE_URL")!,
-    (Deno.env.get("SUPABASE_SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!,
+    geheimschluessel(),
     { auth: { persistSession: false } },
   );
 

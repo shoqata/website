@@ -22,6 +22,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.47.10";
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import { geheimschluessel } from "../_shared/schluessel.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -40,7 +41,7 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Nur POST." }, 405);
 
   const url = Deno.env.get("SUPABASE_URL")!;
-  const serviceKey = (Deno.env.get("SUPABASE_SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!;
+  const serviceKey = geheimschluessel();
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
   const host = Deno.env.get("SMTP_HOST");

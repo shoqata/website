@@ -21,6 +21,7 @@
 //     werden kann, ohne dass diese Funktion stehenbleibt)
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.47.10";
+import { geheimschluessel } from "../_shared/schluessel.ts";
 
 const GRAPH = "https://graph.facebook.com/v21.0";
 
@@ -45,7 +46,7 @@ Deno.serve(async (req) => {
   const appSecret = Deno.env.get("META_APP_SECRET") ?? "";
   const sb = createClient(
     Deno.env.get("SUPABASE_URL")!,
-    (Deno.env.get("SUPABASE_SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!,
+    geheimschluessel(),
     { auth: { persistSession: false } },
   );
 
