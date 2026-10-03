@@ -23,7 +23,7 @@ import {
   ArrowLeftRight
 } from 'lucide-react';
 import { db } from '../services/firebase';
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, getDocs, where, writeBatch, doc, Timestamp, getDoc, setDoc } from '@/services/supabase-bridge';
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, getDocs, where, writeBatch, doc, Timestamp, getDoc, setDoc, supabase } from '@/services/supabase-bridge';
 import { Account, JournalEntry, Payment } from '../types';
 import { useFeedback } from '../context/FeedbackContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -401,67 +401,42 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
           return;
       }
 
-      const nextYear = selectedYear + 1;
-
-      // Zweiter Riegel: wenn die Eroeffnungsbuchungen schon existieren, wurde der
-      // Abschluss bereits ausgefuehrt. Ein zweiter Lauf wuerde die Vortraege
-      // verdoppeln, und genau das war moeglich, solange die Sperre nicht griff.
-      try {
-          const existing = await getDocs(query(
-              collection(db, 'accounting_journal'),
-              where('date', '==', `${nextYear}-01-01`),
-              where('isSystemEntry', '==', true)
-          ));
-          if (!existing.empty) {
-              showAlert({ type: 'error', message: `Für ${nextYear} bestehen bereits Eröffnungsbuchungen. Abschluss abgebrochen.` });
-              return;
-          }
-      } catch (e) {
-          console.error('[AdminAccounting] Prüfung auf bestehende Eröffnungsbuchungen fehlgeschlagen:', e);
-          showAlert({ type: 'error', message: t('acc.precheck_failed') });
-          return;
-      }
-
+      // Der Abschluss laeuft in der Datenbank, nicht hier.
+      //
+      // Vorher stand er als writeBatch im Browser -- und writeBatch ist kein
+      // Stapel: die Schreibvorgaenge laufen nacheinander, ohne Transaktion.
+      // Dazu in dieser Reihenfolge: erst wurde das Jahr auf CLOSED gesetzt,
+      // dann die Vortraege gebucht. Brach etwas dazwischen ab, war das Jahr
+      // gesperrt und die Eroeffnung des Folgejahres halb -- der schlechteste
+      // denkbare Ausgang.
+      //
+      // jahresabschluss() macht alles in einer Transaktion und weist drei
+      // Dinge ab, die vorher durchgingen: ein zweiter Abschluss, bestehende
+      // Eroeffnungsbuchungen und eine Bilanz, die nicht aufgeht. Letzteres
+      // war bisher nur ein roter Hinweis in der Oberflaeche.
       setClosingStep(1);
-      const batch = writeBatch(db);
-      // set statt update: die fiscal_years-Zeile muss nicht existieren. Ein update
-      // auf eine fehlende Zeile trifft null Datensaetze und meldet trotzdem Erfolg
-      // -- der Abschluss waere dann nie vermerkt worden, waehrend die Vortraege
-      // bereits geschrieben sind.
-      batch.set(doc(db, 'fiscal_years', selectedYear.toString()),
-          { id: selectedYear.toString(), year: selectedYear, status: 'CLOSED', closedAt: new Date().toISOString(), netProfit: currentProfit },
-          { merge: true });
-      batch.set(doc(db, 'fiscal_years', nextYear.toString()), { id: nextYear.toString(), year: nextYear, status: 'OPEN' }, { merge: true });
-      const balanceSheetAccounts = accountBalances.filter(b => b.class === 'ASSET' || b.class === 'LIABILITY');
-      balanceSheetAccounts.forEach(acc => {
-          let openingAmount = acc.balance;
-          if (acc.code === '2900') openingAmount += currentProfit;
-          if (Math.abs(openingAmount) > 0.01) {
-              const jRef = doc(collection(db, 'accounting_journal'));
-              const isAsset = acc.class === 'ASSET';
-              batch.set(jRef, {
-                  date: `${nextYear}-01-01`,
-                  description: `Eröffnungsbilanz (Vortrag aus ${selectedYear})`,
-                  debitCode: isAsset ? acc.code : '9100', 
-                  creditCode: isAsset ? '9100' : acc.code,
-                  amount: openingAmount,
-                  createdAt: serverTimestamp(),
-                  isSystemEntry: true
-              });
-          }
-      });
-      setClosingStep(2);
       try {
-          await batch.commit();
+          setClosingStep(2);
+          const { data, error } = await supabase.rpc('jahresabschluss', { p_jahr: selectedYear });
+          if (error) throw error;
+          const e: any = data || {};
+          setYearClosedInDb(true);
+          setClosingStep(3);
+          setTimeout(() => {
+              setShowClosingWizard(false);
+              setClosingStep(0);
+              showAlert({ type: 'success',
+                  message: `Geschäftsjahr ${selectedYear} abgeschlossen. Ergebnis ${Number(e.ergebnis ?? 0).toLocaleString('de-CH')} CHF, ${e.vortraege ?? 0} Vorträge ins Jahr ${selectedYear + 1}.` });
+          }, 1500);
       } catch (e: any) {
           console.error('[AdminAccounting] Jahresabschluss fehlgeschlagen:', e);
           setClosingStep(0);
-          showAlert({ type: 'error', message: `Abschluss fehlgeschlagen: ${e?.message || e?.code || 'unbekannter Fehler'}` });
-          return;
+          // Die Meldung der Datenbank im Wortlaut: sie nennt bei einer
+          // Bilanzdifferenz den Betrag und die Summen. Eine eigene Fassung
+          // waere kuerzer und weniger brauchbar.
+          showAlert({ type: 'error',
+              message: `Abschluss nicht ausgeführt: ${e?.message || e?.hint || 'unbekannter Fehler'}` });
       }
-      setYearClosedInDb(true);
-      setClosingStep(3);
-      setTimeout(() => { setShowClosingWizard(false); setClosingStep(0); showAlert({ type: 'success', message: `Geschäftsjahr ${selectedYear} erfolgreich abgeschlossen.` }); }, 2000);
   };
 
   return (
