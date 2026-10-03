@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { QrBillData, formatIban, formatReference, generateQrCodeContent } from '../services/qrBillService';
+import { QrBillData, formatIban, formatReference, generateQrCodeContent, referenzBestimmen } from '../services/qrBillService';
 import { Scissors } from 'lucide-react';
 import { useTranslation } from '../context/LanguageContext';
 
@@ -49,11 +49,10 @@ const SwissQRBill: React.FC<{ data: QrBillData }> = ({ data }) => {
   const L = language === 'en' ? QR_LABELS.en : QR_LABELS.de;
   const qrContent = generateQrCodeContent(data);
   
-  // Recalculate reference type for display formatting based on content logic
-  const cleanIban = data.iban.replace(/\s/g, '');
-  const iid = parseInt(cleanIban.substring(4, 9), 10);
-  const isQrIban = iid >= 30000 && iid <= 31999;
-  const refType = isQrIban ? 'QRR' : (data.reference?.startsWith('RF') ? 'SCOR' : 'NON');
+  // Aufdruck und QR-Inhalt kommen aus DERSELBEN Entscheidung. Vorher rechnete
+  // diese Zeile die Referenz noch einmal selbst aus -- bei einer QR-IBAN stand
+  // dann auf dem Papier eine andere Referenz als im Code.
+  const { typ: refType, wert: refWert } = referenzBestimmen(data.iban, data.reference);
 
   return (
     <div className="bg-white text-black font-sans relative select-none mx-auto print:mx-0 overflow-hidden" 
@@ -99,7 +98,7 @@ const SwissQRBill: React.FC<{ data: QrBillData }> = ({ data }) => {
             {refType !== 'NON' && (
               <>
                 <Label>{L.reference}</Label>
-                <Value>{formatReference(data.reference, refType)}</Value>
+                <Value>{formatReference(refWert, refType)}</Value>
               </>
             )}
 
@@ -168,7 +167,7 @@ const SwissQRBill: React.FC<{ data: QrBillData }> = ({ data }) => {
                 {refType !== 'NON' && (
                     <>
                         <Label>{L.reference}</Label>
-                        <Value>{formatReference(data.reference, refType)}</Value>
+                        <Value>{formatReference(refWert, refType)}</Value>
                     </>
                 )}
 

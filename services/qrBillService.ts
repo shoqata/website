@@ -27,10 +27,50 @@ export interface QrBillData {
   additionalInfo?: string; 
 }
 
-// Helper: Sanitize string to Latin-1 subset allowed by SIX
-const sanitize = (str: string | undefined): string => {
+// Der nach SIX zugelassene Zeichenvorrat (IG v2.3, Anhang "Zeichensatz").
+// Alles ausserhalb davon muss ersetzt werden -- nicht durchgereicht: ein
+// kyrillischer oder emojihaltiger Name ging bisher ungeprueft in den Code,
+// und ein Beleg, den die Bank zurueckweist, faellt erst beim Zahlen auf.
+// Die Richtlinie sieht den Punkt als Ersatzzeichen vor.
+const ZUGELASSEN =
+  /[A-Za-z0-9.,;:'+\-\/()?*\[\]{}\\`´~ !"#%&<>÷=@_$£àáâäçèéêëìíîïñòóôöùúûüýßÀÁÂÄÇÈÉÊËÌÍÎÏÑÒÓÔÖÙÚÛÜÝ]/;
+
+// Was mit einem nicht zugelassenen Zeichen geschieht.
+//
+// Erst versuchen, es zu zerlegen: Unicode trennt "Ż" in "Z" + Haken, "ğ" in
+// "g" + Bogen. Bleibt danach ein zugelassenes Zeichen uebrig, wird es
+// genommen. Das erledigt saemtliche lateinischen Zeichen samt
+// Grossbuchstaben von selbst -- eine Liste von Hand kannte vorher "ż",
+// aber nicht "Ż", und machte daraus einen Punkt.
+//
+// Was sich so nicht retten laesst (kyrillisch, Emoji), wird zum Punkt; so
+// sieht es die Richtlinie vor.
+//
+// Wichtig: ë, ç, ä, ö, ü und ß sind ZUGELASSEN und werden nicht angetastet.
+// Ein frueher Versuch ersetzte sie trotzdem -- und machte aus "Shpëtim
+// Kërçeli" ein "Shpetim Kerceli", ausgerechnet bei den albanischen Namen,
+// fuer die diese Plattform gebaut ist.
+const SONDERFAELLE: Record<string, string> = {
+  'ł':'l','Ł':'L','đ':'d','Đ':'D','ı':'i','İ':'I','ø':'o','Ø':'O','æ':'ae','Æ':'AE',
+  'œ':'oe','Œ':'OE','þ':'th','Þ':'TH','ð':'d','Ð':'D',
+  '„':'"','“':'"','”':'"','‚':"'",'‘':"'",'’':"'",
+  '–':'-','—':'-','‐':'-','…':'...','\u00a0':' ','\u202f':' ','\u2009':' ',
+};
+
+const einZeichen = (z: string): string => {
+  if (ZUGELASSEN.test(z)) return z;
+  const bekannt = SONDERFAELLE[z];
+  if (bekannt !== undefined) return bekannt;
+  // Zerlegen und die Akzente wegnehmen.
+  const roh = z.normalize('NFD').replace(/\p{M}+/gu, '');
+  if (roh && Array.from(roh).every(x => ZUGELASSEN.test(x))) return roh;
+  return '.';
+};
+
+const sanitize = (str: string | undefined, laenge = 70): string => {
   if (!str) return '';
-  return str.replace(/[\r\n]+/g, ' ').trim().substring(0, 70);
+  const t = Array.from(str.replace(/[\r\n]+/g, ' ')).map(einZeichen).join('');
+  return t.trim().substring(0, laenge);
 };
 
 const normalizeCountry = (input: string | undefined): string => {
@@ -80,6 +120,44 @@ export const formatReference = (ref: string, type: 'QRR' | 'SCOR' | 'NON') => {
   return clean;
 };
 
+// Welche Referenz traegt dieser Beleg -- und welcher Art?
+//
+// Das stand bisher an ZWEI Stellen: hier im Dienst fuer den QR-Inhalt und
+// noch einmal in SwissQRBill.tsx fuer den Aufdruck. Sie kamen bei einer
+// QR-IBAN zu verschiedenen Ergebnissen: auf dem Papier stand RF18MB...,
+// im Code eine erfundene Nummer. Der Mensch las die eine Referenz, die
+// Bank die andere.
+//
+// Jetzt entscheidet das eine Funktion, und beide fragen sie.
+export const referenzBestimmen = (
+  iban: string, reference: string | undefined,
+): { typ: 'QRR' | 'SCOR' | 'NON'; wert: string; abgeleitet: boolean } => {
+  const sauber = (iban || '').replace(/\s/g, '');
+  const iid = parseInt(sauber.substring(4, 9), 10);
+  const istQrIban = iid >= 30000 && iid <= 31999;
+  const ref = (reference || '').replace(/\s/g, '').toUpperCase();
+
+  if (istQrIban) {
+    // Eine QR-IBAN verlangt zwingend eine QR-Referenz: 27 Stellen, nur
+    // Ziffern, letzte ist die Pruefziffer nach Modulo 10 rekursiv.
+    if (/^\d{27}$/.test(ref) && calculateMod10(ref.slice(0, 26)) === ref[26]) {
+      return { typ: 'QRR', wert: ref, abgeleitet: false };
+    }
+    // Keine brauchbare QRR vorhanden. Frueher kam hier fuer JEDE Rechnung
+    // dieselbe Platzhalternummer heraus -- damit liess sich keine Zahlung
+    // mehr einem Mitglied zuordnen. Stattdessen wird eine aus der
+    // vorhandenen Referenz abgeleitet: gleiche Rechnung, gleiche Nummer;
+    // verschiedene Rechnungen, verschiedene Nummern.
+    const ziffern = ref.replace(/\D/g, '');
+    return { typ: 'QRR', wert: generateQrReference(ziffern || '0'), abgeleitet: true };
+  }
+
+  // Normale IBAN: entweder eine Creditor Reference nach ISO 11649 oder gar
+  // keine. Eine QRR waere hier unzulaessig.
+  if (/^RF\d{2}[A-Z0-9]{1,21}$/.test(ref)) return { typ: 'SCOR', wert: ref, abgeleitet: false };
+  return { typ: 'NON', wert: '', abgeleitet: false };
+};
+
 /**
  * Generates the raw QR content string.
  * Logic based on IG v2.3 Chapter 4.
@@ -87,32 +165,9 @@ export const formatReference = (ref: string, type: 'QRR' | 'SCOR' | 'NON') => {
 export const generateQrCodeContent = (data: QrBillData): string => {
   const br = '\r\n'; 
 
-  // 1. IBAN Analysis
   const cleanIban = data.iban.replace(/\s/g, '');
-  // Extract IID (Position 5-9) to check for QR-IBAN (30000-31999)
-  const iid = parseInt(cleanIban.substring(4, 9), 10);
-  const isQrIban = iid >= 30000 && iid <= 31999;
-
-  // 2. Reference Logic Enforcement
-  let refType: 'QRR' | 'SCOR' | 'NON' = 'NON';
-  let reference = (data.reference || '').replace(/\s/g, '');
-
-  if (isQrIban) {
-    // A QR-IBAN MUST use a QR-Reference (QRR)
-    refType = 'QRR';
-    // If no valid 27-digit reference is present, we must generate a dummy one to avoid bank rejection
-    if (reference.length !== 27 || isNaN(Number(reference))) {
-        reference = generateQrReference('1'); 
-    }
-  } else {
-    // A Standard IBAN uses either Creditor Reference (SCOR / ISO 11649) or NO Reference (NON)
-    if (reference.startsWith('RF')) {
-        refType = 'SCOR';
-    } else {
-        refType = 'NON';
-        reference = ''; 
-    }
-  }
+  // Eine Stelle entscheidet, hier wie im Aufdruck -- siehe referenzBestimmen.
+  const { typ: refType, wert: reference } = referenzBestimmen(cleanIban, data.reference);
 
   // 3. Build SIX-compliant String
   let content = 'SPC' + br; // Header
@@ -127,7 +182,7 @@ export const generateQrCodeContent = (data: QrBillData): string => {
   // sie muessen als leere Felder dastehen. Ohne sie verschiebt sich alles
   // Nachfolgende und der Beleg ist nicht einlesbar.
   content += 'K' + br;
-  content += sanitize(data.creditor.name) + br;
+  content += sanitize(data.creditor.name, 70) + br;
   content += (sanitize(data.creditor.address) || 'Street 1') + br;
   content += (sanitize(data.creditor.zip) + ' ' + sanitize(data.creditor.city)).trim() + br;
   content += '' + br; // PstCd - bei Typ K leer
@@ -143,7 +198,7 @@ export const generateQrCodeContent = (data: QrBillData): string => {
 
   // Debtor (Address Type K) -- ebenfalls sieben Felder.
   content += 'K' + br;
-  content += sanitize(data.debtor.name) + br;
+  content += sanitize(data.debtor.name, 70) + br;
   content += (sanitize(data.debtor.address) || 'Unknown St.') + br;
   content += (sanitize(data.debtor.zip) + ' ' + sanitize(data.debtor.city)).trim() + br;
   content += '' + br; // PstCd - bei Typ K leer
@@ -155,7 +210,7 @@ export const generateQrCodeContent = (data: QrBillData): string => {
   content += reference + br;
 
   // Unstructured Message
-  content += sanitize(data.additionalInfo) + br;
+  content += sanitize(data.additionalInfo, 140) + br;  // Ustrd darf 140, nicht 70
 
   // Trailer. Die optionalen Felder danach (Rechnungsinformationen, alternative
   // Verfahren) entfallen, damit der Beleg mit genau den 31 Pflichtfeldern endet.
