@@ -216,6 +216,23 @@ export function serverTimestamp() {
 //
 // Fuer angemeldete Nutzer filtert zusaetzlich die Datenbank selbst; dieser
 // Filter deckt den Fall ab, in dem noch niemand angemeldet ist.
+// Tabellen, deren Primaerschluessel aus (tenantId, id) besteht.
+//
+// Bei ihnen schreibt die Anwendung eine SPRECHENDE Kennung -- den Kontocode,
+// die Jahreszahl -- und die ist je Verein gleich. Mit einem Schluessel aus
+// "id" allein gaebe es das Konto 3000 nur einmal auf der ganzen Plattform,
+// und der zweite Verein koennte seinen Kontenplan nicht anlegen.
+//
+// Das Ziel beim Einfuegen muss zu diesem Schluessel passen: mit
+// onConflict "id" findet PostgREST keine passende Eindeutigkeit mehr und
+// bricht ab.
+//
+// settings steht nicht in dieser Liste, weil es seinen eigenen Schreibweg
+// hat (writeSettingsDoc).
+const ZUSAMMENGESETZTER_SCHLUESSEL = new Set([
+  "accounting_accounts", "fiscal_years", "fiscal_budgets",
+]);
+
 const TENANT_SCOPED = new Set([
   "users", "payments", "expenses", "accounting_journal", "accounting_accounts",
   "fiscal_years", "fiscal_budgets", "board_meetings", "board_members", "tasks",
@@ -480,8 +497,9 @@ export async function setDoc(docRef: any, data: any, options?: any) {
     if (tenantId) row.tenantId = tenantId;
   }
 
+  const zielspalten = ZUSAMMENGESETZTER_SCHLUESSEL.has(path) ? "tenantId,id" : "id";
   await writeWithSchemaRetry(`setDoc for ${path}/${id}`, row, (payload) =>
-    supabase.from(path).upsert([payload], { onConflict: "id", ignoreDuplicates: false })
+    supabase.from(path).upsert([payload], { onConflict: zielspalten, ignoreDuplicates: false })
   );
   return {};
 }
@@ -514,9 +532,17 @@ export async function updateDoc(docRef: any, data: any) {
   // Datensatz nicht gibt oder eine Zugriffsregel ihn verbirgt --, liefert
   // PostgREST keinen Fehler. Der Aufrufer hielt das bisher fuer Erfolg und
   // meldete dem Nutzer eine Speicherung, die nie stattgefunden hat.
-  const affected = await writeWithSchemaRetry(`updateDoc for ${path}/${id}`, row, (payload) =>
-    supabase.from(path).update(payload, { count: "exact" }).eq("id", id)
-  );
+  // Auch hier den Verein mitgeben, nicht nur die id. Bei den Tabellen mit
+  // sprechenden Kennungen gibt es dieselbe id je Verein einmal -- ohne
+  // Filter zielt die Aenderung auf alle davon. Dass die Zeilenregeln das
+  // heute abfangen, macht es nicht richtig: eine Sperre ist keine Auswahl.
+  const vereinFuerSchreiben = ZUSAMMENGESETZTER_SCHLUESSEL.has(path)
+    ? await resolveTenantId() : null;
+  const affected = await writeWithSchemaRetry(`updateDoc for ${path}/${id}`, row, (payload) => {
+    let q = supabase.from(path).update(payload, { count: "exact" }).eq("id", id);
+    if (vereinFuerSchreiben) q = q.eq("tenantId", vereinFuerSchreiben);
+    return q;
+  });
 
   if (affected === 0) {
     const err = new Error(
@@ -532,7 +558,12 @@ export async function deleteDoc(docRef: any) {
   if (!supabase) throw new Error("Supabase is not configured.");
   const { path, id } = docRef;
 
-  const { error } = await supabase.from(path).delete().eq("id", id);
+  let loeschen = supabase.from(path).delete().eq("id", id);
+  if (ZUSAMMENGESETZTER_SCHLUESSEL.has(path)) {
+    const verein = await resolveTenantId();
+    if (verein) loeschen = loeschen.eq("tenantId", verein);
+  }
+  const { error } = await loeschen;
   if (error) {
     console.error(`Supabase deleteDoc error for ${path}/${id}:`, error);
     throw error;
