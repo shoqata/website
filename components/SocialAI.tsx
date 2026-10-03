@@ -57,6 +57,11 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
   // fuer angemeldete Clients gesperrt.
   const [verbindungen, setVerbindungen] = useState<any[]>([]);
   const [verbindeGerade, setVerbindeGerade] = useState(false);
+  // Kann der Verein ueberhaupt verbinden? Bisher gab es darauf nur eine
+  // Antwort: klicken und sehen. Fehlte die Meta-App des Betreibers, bekam
+  // der Verein eine Ausnahme ins Gesicht -- ehrlich, aber kein guter Weg.
+  // social_einrichtung() sagt es vorher, ohne einen Wert preiszugeben.
+  const [einrichtung, setEinrichtung] = useState<any>(null);
 
   const fbVerbindung = verbindungen.find(v => v.plattform === 'FACEBOOK');
   const igVerbindung = verbindungen.find(v => v.plattform === 'INSTAGRAM');
@@ -94,6 +99,14 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
     const { data, error } = await supabase.rpc('social_verbindungen');
     if (!error) setVerbindungen(data || []);
   };
+
+  useEffect(() => {
+    let lebt = true;
+    supabase.rpc('social_einrichtung').then(({ data, error }) => {
+      if (lebt && !error) setEinrichtung(data);
+    });
+    return () => { lebt = false; };
+  }, []);
 
   const verbindenStarten = async () => {
     setVerbindeGerade(true);
@@ -516,11 +529,25 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
                             <p className="text-sm text-stone-500 leading-relaxed max-w-2xl">{t('social.nicht_verbunden_text')}</p>
                         </div>
                     </div>
-                    <button onClick={verbindenStarten} disabled={verbindeGerade}
-                        className="bg-[#1877F2] text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-3 hover:bg-[#0f5fce] transition-colors disabled:opacity-50">
-                        {verbindeGerade ? <RefreshCw size={18} className="animate-spin"/> : <Facebook size={18}/>}
-                        {t('social.verbinden')}
-                    </button>
+                    {/* Der Knopf erscheint nur, wenn er auch zu etwas fuehrt.
+                        Ein Knopf, der zuverlaessig in einen Fehler laeuft, ist
+                        schlimmer als keiner: der Verein haelt die Anbindung
+                        fuer kaputt, dabei fehlt sie nur noch. */}
+                    {einrichtung && !einrichtung.plattform_bereit ? (
+                      <div className="flex gap-4 p-6 rounded-2xl bg-amber-50 border border-amber-100">
+                        <AlertTriangle size={20} className="text-amber-500 shrink-0 mt-0.5"/>
+                        <div className="space-y-1">
+                          <p className="font-bold text-sm text-amber-900">{t('social.noch_nicht_bereit')}</p>
+                          <p className="text-xs text-amber-800 leading-relaxed max-w-2xl">{t('social.noch_nicht_bereit_text')}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <button onClick={verbindenStarten} disabled={verbindeGerade || !einrichtung}
+                          className="bg-[#1877F2] text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-3 hover:bg-[#0f5fce] transition-colors disabled:opacity-50">
+                          {verbindeGerade ? <RefreshCw size={18} className="animate-spin"/> : <Facebook size={18}/>}
+                          {t('social.verbinden')}
+                      </button>
+                    )}
                 </div>
               )}
 
