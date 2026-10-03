@@ -30,6 +30,7 @@ import { useFeedback } from '../context/FeedbackContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from '../context/LanguageContext';
 import { revisionsberichtHtml } from '../lib/revisionsbericht';
+import AdminRevisionszugaenge from './AdminRevisionszugaenge';
 
 // Expanded Swiss KMU Chart of Accounts
 const DEFAULT_ACCOUNTS: Account[] = [
@@ -485,6 +486,7 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
             {isYearClosed ? ( <div className="flex items-center gap-2 text-stone-400 font-bold text-xs uppercase tracking-widest bg-stone-100 px-4 py-2 rounded-xl"><Lock size={14} /> {selectedYear} Closed</div> ) : ( <button onClick={() => setShowClosingWizard(true)} className="flex items-center gap-2 text-primary hover:bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)] px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest transition-colors border border-[color:color-mix(in_srgb,var(--primary)_20%,transparent)]"><CheckCircle2 size={14} /> {t('admin.accounting.closeYear')} {selectedYear}</button> )}
         </div>
 
+
         <div className="p-8 bg-[#faf9f6] flex-1 overflow-y-auto">
             {activeTab === 'BILANZ' && (
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
@@ -511,6 +513,11 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
                         </div>
                     </div>
                     {Math.abs(balanceSheetCheck) > 0.05 && ( <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl text-center font-bold flex items-center justify-center gap-2"><AlertTriangle size={20}/>Bilanzdifferenz: {balanceSheetCheck.toFixed(2)} CHF - Bitte Buchungen prüfen!</div> )}
+
+            {/* Zugaenge fuer die Revisionsstelle. Sie stehen hier und nicht in
+                den Einstellungen: wer einen ausstellt, denkt gerade ueber die
+                Buchhaltung nach. */}
+            <AdminRevisionszugaenge />
                 </motion.div>
             )}
 
