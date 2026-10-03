@@ -19,6 +19,7 @@ import {
   Wallet,
   Printer,
   Download,
+  Loader2,
   X,
   ArrowLeftRight
 } from 'lucide-react';
@@ -28,6 +29,7 @@ import { Account, JournalEntry, Payment } from '../types';
 import { useFeedback } from '../context/FeedbackContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from '../context/LanguageContext';
+import { revisionsberichtHtml } from '../lib/revisionsbericht';
 
 // Expanded Swiss KMU Chart of Accounts
 const DEFAULT_ACCOUNTS: Account[] = [
@@ -371,6 +373,34 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
   const currentProfit = totalRevenue - totalExpense;
   const balanceSheetCheck = totalAssets - (totalLiabilities + currentProfit); 
 
+  // Der Revisionsexport.
+  //
+  // Eine Revisionsstelle bekommt eine Datei, keinen Zugang: sie oeffnet sie
+  // in irgendeinem Browser, druckt sie bei Bedarf -- ohne Konto und ohne
+  // diese Anwendung. Der bisherige CSV-Auszug je Konto reichte dafuer
+  // nicht; eine Revision braucht das vollstaendige Journal, Bilanz,
+  // Erfolgsrechnung und vor allem jede nachtraegliche Aenderung.
+  const [revisionLaeuft, setRevisionLaeuft] = useState(false);
+  const handleRevisionsexport = async () => {
+      setRevisionLaeuft(true);
+      try {
+          const { data, error } = await supabase.rpc('revisionsbericht', { p_jahr: selectedYear });
+          if (error) throw error;
+          const html = revisionsberichtHtml(data);
+          const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `Revisionsbericht_${selectedYear}.html`;
+          a.click();
+          URL.revokeObjectURL(url);
+      } catch (e: any) {
+          console.error('[AdminAccounting] Revisionsexport fehlgeschlagen:', e);
+          showAlert({ type: 'error',
+              message: `Export nicht möglich: ${e?.message || 'unbekannter Fehler'}` });
+      } finally { setRevisionLaeuft(false); }
+  };
+
   const handleExportStatement = (account: Account) => {
       const transactions = journal.filter(j => String(j.debitCode) === String(account.code) || String(j.creditCode) === String(account.code))
                                   .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -442,6 +472,16 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
                 <button onClick={() => setActiveTab('JOURNAL')} className={`px-8 py-6 font-bold text-sm transition-all flex items-center gap-2 border-b-2 ${activeTab === 'JOURNAL' ? 'text-primary border-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)]' : 'text-stone-400 border-transparent hover:text-stone-900 hover:bg-stone-50'}`}><BookOpen size={18}/> {t('admin.accounting.journal')}</button>
                 <button onClick={() => setActiveTab('ACCOUNTS')} className={`px-8 py-6 font-bold text-sm transition-all flex items-center gap-2 border-b-2 ${activeTab === 'ACCOUNTS' ? 'text-primary border-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)]' : 'text-stone-400 border-transparent hover:text-stone-900 hover:bg-stone-50'}`}><Filter size={18}/> {t('admin.accounting.accounts')}</button>
             </div>
+            {/* Der Revisionsexport steht neben dem Abschluss, nicht
+                versteckt in einem Konto: er betrifft das ganze Jahr. Er
+                funktioniert auch im offenen Jahr -- eine Revisionsstelle
+                schaut sich oft an, was bis heute gebucht ist. */}
+            <button onClick={handleRevisionsexport} disabled={revisionLaeuft}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest
+                         border border-stone-200 text-stone-600 hover:border-stone-400 transition-colors disabled:opacity-50">
+              {revisionLaeuft ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+              {t('rev.export')}
+            </button>
             {isYearClosed ? ( <div className="flex items-center gap-2 text-stone-400 font-bold text-xs uppercase tracking-widest bg-stone-100 px-4 py-2 rounded-xl"><Lock size={14} /> {selectedYear} Closed</div> ) : ( <button onClick={() => setShowClosingWizard(true)} className="flex items-center gap-2 text-primary hover:bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)] px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest transition-colors border border-[color:color-mix(in_srgb,var(--primary)_20%,transparent)]"><CheckCircle2 size={14} /> {t('admin.accounting.closeYear')} {selectedYear}</button> )}
         </div>
 

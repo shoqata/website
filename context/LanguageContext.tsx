@@ -750,6 +750,8 @@ const translations: Translations = {
   'budget.geplant': { de: 'geplant:', en: 'planned:', sq: 'planifikuar:' },
   'budget.hinweis': { de: 'Die gebuchten Zahlen stammen aus der Buchhaltung, nicht aus den Zahlungseingängen: ein Ertrag entsteht beim Rechnungstellen, nicht beim Eingang des Geldes. Konten ohne Budget zeigen trotzdem, was gebucht wurde.', en: 'The booked figures come from the ledger, not from incoming payments: revenue arises when an invoice is issued, not when the money arrives. Accounts without a budget still show what was booked.', sq: 'Shifrat e regjistruara vijnë nga kontabiliteti, jo nga pagesat hyrëse: të ardhurat lindin kur lëshohet fatura, jo kur mbërrin paraja. Llogaritë pa buxhet tregojnë gjithsesi çfarë u regjistrua.' },
 
+  'rev.export': { de: 'Revisionsbericht', en: 'Audit report', sq: 'Raporti i revizionit' },
+
   'vorl.standard': { de: 'Standardvorlagen', en: 'Standard templates', sq: 'Shabllonet standarde' },
   'vorl.standard_text': { de: 'Im Grundpreis enthalten. Jederzeit wechselbar — Ihre Texte und Bilder bleiben dabei, wo sie sind.', en: 'Included in the base price. Switch any time — your texts and images stay where they are.', sq: 'Përfshirë në çmimin bazë. Ndërroni kurdo — tekstet dhe imazhet tuaja mbeten aty ku janë.' },
   'vorl.premium': { de: 'Premium-Designs', en: 'Premium designs', sq: 'Dizajne premium' },
