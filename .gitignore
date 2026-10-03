@@ -31,3 +31,9 @@ supabase/.temp
 .env
 .env.*
 !.env.example
+
+# Gespraechsaufzeichnung vom 16.02.2026 aus dem Werkzeug, mit dem die erste
+# Fassung gebaut wurde -- 42 MB, 1363 Nachrichten. Kein Code liest sie. Sie
+# liegt weiter im Ordner, wird aber nicht mehr mitverfolgt: jeder Klon des
+# Projekts hat sie sonst herunterzuladen.
+migrated_prompt_history/
