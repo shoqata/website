@@ -164,39 +164,42 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
         const snap = await getDocs(q);
         
         if (snap.empty) {
-            // First time seed
-            const batch = writeBatch(db);
-            DEFAULT_ACCOUNTS.forEach(acc => {
-                const ref = doc(db, 'accounting_accounts', acc.id);
-                batch.set(ref, acc);
-            });
-            await batch.commit();
-            setAccounts(DEFAULT_ACCOUNTS);
+            // Der Kontenplan wird in der Datenbank angelegt, in einer
+            // Transaktion. Vorher schrieb der Browser ihn Zeile fuer Zeile;
+            // brach es in der Mitte ab, hatte der Verein einen halben
+            // Kontenplan -- und weil die Aussaat nur bei LEERER Tabelle
+            // laeuft, waere sie nie wieder angesprungen.
+            try {
+                await supabase.rpc('kontenplan_anlegen');
+                const frisch = await getDocs(q);
+                setAccounts(frisch.docs.map(d => d.data() as Account));
+            } catch (e) {
+                console.error('[AdminAccounting] Kontenplan konnte nicht angelegt werden:', e);
+                setAccounts([]);
+            }
         } else {
-            const loadedAccounts = snap.docs.map(d => d.data() as Account);
-            
-            // Check for missing key accounts (specifically 1001 for Reps and 1021 for PayPal)
-            const missing1001 = !loadedAccounts.find(a => a.code === '1001');
-            if (missing1001) {
-                const acc1001 = DEFAULT_ACCOUNTS.find(a => a.code === '1001');
-                if (acc1001) {
-                    await setDoc(doc(db, 'accounting_accounts', acc1001.id), acc1001);
-                    loadedAccounts.push(acc1001);
+            // Einen BESTEHENDEN Kontenplan nicht ungefragt ergaenzen.
+            //
+            // Vorher trug der Code hier eine Liste von Hand ein ("fehlt
+            // 1001?", "fehlt 1021?") und schrieb sie ohne Rueckfrage dazu.
+            // Der Kontenplan gehoert aber dem Verein: Koretini fuehrt Spenden
+            // auf 3200, der Standardplan auf 3400 -- beide nebeneinander
+            // waeren keine Hilfe, sondern eine Verwechslungsgefahr.
+            //
+            // Eine Ausnahme: ohne 9100 kann der Jahresabschluss nicht
+            // vortragen. Das ist kein Geschmack, sondern eine Voraussetzung.
+            let loadedAccounts = snap.docs.map(d => d.data() as Account);
+            if (!loadedAccounts.some(a => a.code === '9100')) {
+                try {
+                    await supabase.rpc('kontenplan_anlegen');
+                    const frisch = await getDocs(q);
+                    loadedAccounts = frisch.docs.map(d => d.data() as Account);
+                } catch (e) {
+                    console.error('[AdminAccounting] Vortragskonto konnte nicht angelegt werden:', e);
                 }
             }
 
-            const missing1021 = !loadedAccounts.find(a => a.code === '1021');
-            if (missing1021) {
-                const acc1021 = DEFAULT_ACCOUNTS.find(a => a.code === '1021');
-                if (acc1021) {
-                    await setDoc(doc(db, 'accounting_accounts', acc1021.id), acc1021);
-                    loadedAccounts.push(acc1021);
-                }
-            }
-
-            // Re-sort
             loadedAccounts.sort((a, b) => a.code.localeCompare(b.code));
-            
             setAccounts(loadedAccounts);
         }
     };
@@ -314,40 +317,31 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
       });
       if (!confirmed) return;
 
-      const batch = writeBatch(db);
-      
-      unbookedPayments.forEach(p => {
-          // 1. Create Journal Entry
-          const journalRef = doc(collection(db, 'accounting_journal'));
-          
-          // Determine Debit Account (Bank, PayPal or Cash?)
-          // If method was CASH, use 1001 (EUR) or 1000 (CHF). Defaulting to 1020 for Bank Transfers.
-          let debitCode = '1020';
-          if (p.method === 'CASH') {
-              debitCode = p.currency === 'EUR' ? '1001' : '1000';
-          } else if (p.method === 'PAYPAL') {
-              debitCode = '1021';
-          }
-
-          batch.set(journalRef, {
-              date: p.paidAt || getDateString(p.timestamp),
-              description: `Zahlungseingang: ${p.description || 'Mitgliederbeitrag'} (${p.invoiceNumber})`,
-              debitCode: debitCode, 
-              // Soll-Prinzip: der Ertrag ist bereits bei Rechnungsstellung auf 3000
-              // gebucht, der Zahlungseingang gleicht nur die Forderung aus.
-              creditCode: '1100', // Forderungen (Mitglieder)
-              amount: p.amount,
-              referenceId: p.id,
-              createdAt: serverTimestamp()
-          });
-
-          // 2. Mark payment as booked so it doesn't appear again
-          const paymentRef = doc(db, 'payments', p.id);
-          batch.update(paymentRef, { bookedInJournal: true });
-      });
-
-      await batch.commit();
-      showAlert({ type: 'success', message: `${unbookedPayments.length} Zahlungen erfolgreich ins Journal übertragen.` });
+      // In EINER Transaktion in der Datenbank.
+      //
+      // Vorher lief das als writeBatch im Browser -- und je Zahlung wurden
+      // ZWEI Dinge geschrieben: die Buchung ins Journal und das Haekchen
+      // bookedInJournal an der Zahlung. Brach es dazwischen ab, stand die
+      // Buchung da, die Zahlung galt aber weiter als unverbucht -- und der
+      // naechste Lauf buchte sie ein zweites Mal. Nicht ein Ausfall, sondern
+      // eine Doppelbuchung.
+      //
+      // zahlungen_verbuchen() traegt solche Faelle still nach, statt sie zu
+      // wiederholen: liegt zu einer Zahlung schon eine Buchung vor, wird nur
+      // das Haekchen gesetzt.
+      try {
+          const { data, error } = await supabase.rpc('zahlungen_verbuchen', { p_jahr: selectedYear });
+          if (error) throw error;
+          const e: any = data || {};
+          const nachgetragen = Number(e.nachgetragen || 0);
+          showAlert({ type: 'success',
+              message: `${e.gebucht ?? 0} Zahlungen ins Journal übertragen.`
+                  + (nachgetragen ? ` ${nachgetragen} waren bereits gebucht und wurden nur nachgetragen.` : '') });
+      } catch (e: any) {
+          console.error('[AdminAccounting] Verbuchen fehlgeschlagen:', e);
+          showAlert({ type: 'error',
+              message: `Nicht verbucht: ${e?.message || e?.hint || 'unbekannter Fehler'}` });
+      }
   };
 
   const accountBalances = useMemo((): AccountWithBalance[] => {
