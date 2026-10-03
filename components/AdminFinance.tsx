@@ -78,7 +78,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
         iban: '', bankName: '', bic: '', accountHolder: '', street: '', zip: '', city: '', country: 'Switzerland', paypalEmail: '', currency: 'CHF', annualFeeAmount: 100
     });
     
-    const invoiceAssociation = loc(branding.associationName) || paymentSettings.accountHolder || 'Shoqata Koretini';
+    const invoiceAssociation = loc(branding.associationName) || paymentSettings.accountHolder || '';
     const invoiceInitials = invoiceAssociation.trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || 'V';
 
     // UI State

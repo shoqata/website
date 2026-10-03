@@ -1383,8 +1383,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                              <div className="flex justify-between mb-12">
                                 <div>
                                    <div className="flex items-center gap-2 mb-4">
-                                       <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold text-xs">{initialsOf(loc(branding.associationName) || 'Shoqata Koretini')}</div>
-                                       <span className="font-display font-bold italic text-xl">{loc(branding.associationName) || 'Shoqata Koretini'}</span>
+                                       <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold text-xs">{initialsOf(loc(branding.associationName) || paymentSettings.accountHolder || '')}</div>
+                                       <span className="font-display font-bold italic text-xl">{loc(branding.associationName) || paymentSettings.accountHolder || ''}</span>
                                    </div>
                                    <h1 className="text-4xl font-bold text-stone-900 mb-2">{t('invoice.heading')}</h1>
                                    <p className="text-sm text-stone-500 font-mono">#{viewInvoice.invoiceNumber}</p>
@@ -1395,7 +1395,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                    <p>{paymentSettings.street}</p>
                                    <p>{paymentSettings.zip} {paymentSettings.city}</p>
                                    <p>{paymentSettings.country}</p>
-                                   <p className="mt-2 text-stone-500">{paymentSettings.contactEmail || 'info@koretini.org'}</p>
+                                   <p className="mt-2 text-stone-500">{paymentSettings.contactEmail || ''}</p>
                                 </div>
                              </div>
 

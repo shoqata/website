@@ -26,7 +26,10 @@ type Vorlage = {
   gesperrt: boolean; gewaehlt: boolean;
 };
 
-const AdminVorlagen: React.FC = () => {
+// onGewaehlt: der Aufrufer zeigt daneben die echte Seite in einem Rahmen.
+// Nach einem Wechsel muss der neu laden, sonst steht dort weiter die alte
+// Vorlage und es sieht aus, als habe die Wahl nicht gewirkt.
+const AdminVorlagen: React.FC<{ onGewaehlt?: () => void }> = ({ onGewaehlt }) => {
   const { t, language } = useTranslation();
   const [vorlagen, setVorlagen] = useState<Vorlage[] | null>(null);
   const [arbeitet, setArbeitet] = useState<string | null>(null);
@@ -55,6 +58,7 @@ const AdminVorlagen: React.FC = () => {
       // Aenderung ist dieser Merkzettel veraltet.
       try { localStorage.removeItem('startseiten-vorlage'); } catch { /* egal */ }
       await laden();
+      onGewaehlt?.();
     } catch (e: any) {
       setFehler(e?.message || 'Konnte nicht gespeichert werden.');
     } finally { setArbeitet(null); }
@@ -110,7 +114,7 @@ const AdminVorlagen: React.FC = () => {
           <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500">{t('vorl.standard')}</h3>
         </div>
         <p className="text-[11px] text-stone-400 mb-4">{t('vorl.standard_text')}</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {gruppe(false).map(v => <Karte key={v.schluessel} v={v} />)}
         </div>
       </section>
@@ -121,7 +125,7 @@ const AdminVorlagen: React.FC = () => {
           <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500">{t('vorl.premium')}</h3>
         </div>
         <p className="text-[11px] text-stone-400 mb-4">{t('vorl.premium_text')}</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {gruppe(true).map(v => <Karte key={v.schluessel} v={v} />)}
         </div>
 

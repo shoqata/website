@@ -96,6 +96,9 @@ const AdminWebsite: React.FC = () => {
   const [isSaved, setIsSaved] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
+  // Der Rahmen laedt die echte Seite. Nach dem Wechsel der Vorlage muss er
+  // neu laden -- ein Schluessel, der sich aendert, erzwingt das.
+  const [vorschauSchluessel, setVorschauSchluessel] = useState(0);
   const [previewMode, setPreviewMode] = useState<'DESKTOP' | 'MOBILE'>('DESKTOP');
   const [expandedSection, setExpandedSection] = useState<string | null>('hero'); 
   
@@ -113,17 +116,28 @@ const AdminWebsite: React.FC = () => {
   const heroInputRef = useRef<HTMLInputElement>(null);
   const boardImageInputRef = useRef<HTMLInputElement>(null);
 
+  // Leere Vorgaben, keine Inhalte.
+  //
+  // Hier standen bis zum 29.09.2026 Koretinis eigene Texte: "Koretin,
+  // Kosovë", info@koretini.org, "Zemra e fshatit tonë." Das ist eine
+  // Plattform fuer mehrere Vereine -- der zweite Verein, der diesen Reiter
+  // einmal oeffnet und speichert, haette Koretinis Adresse und E-Mail auf
+  // SEINE Website geschrieben, ohne je etwas eingetippt zu haben.
+  // handleSaveBranding schreibt naemlich das ganze Objekt.
+  //
+  // Dass es bisher niemanden getroffen hat, liegt allein daran, dass es
+  // bis heute nur einen Verein gibt.
   const [branding, setBranding] = useState<BrandingSettings>({
     primary: '#f43f5e',
     secondary: '#1c1917',
     logoUrl: '',
     logoHeight: '2.5rem',
-    footerText: 'Bashkë për vendlindjen tonë.',
-    footerAddress: 'Koretin, Kosovë',
-    footerEmail: 'info@koretini.org',
-    heroTitle: 'Zemra e fshatit tonë.',
-    heroSubtitle: 'Lidhja e diasporës me vendlindjen.',
-    heroBadge: 'Për Koretinin',
+    footerText: '',
+    footerAddress: '',
+    footerEmail: '',
+    heroTitle: '',
+    heroSubtitle: '',
+    heroBadge: '',
     heroImages: [],
     roadmap: [],
     missions: [],
@@ -395,7 +409,7 @@ const AdminWebsite: React.FC = () => {
                 allem anderen, weil die Entscheidung alles darunter
                 einrahmt -- und weil sie vorher in den Einstellungen lag,
                 also dort, wo sie niemand suchte. */}
-            {activeTab === 'DESIGN' && <AdminVorlagen />}
+            {activeTab === 'DESIGN' && <AdminVorlagen onGewaehlt={() => setVorschauSchluessel(k => k + 1)} />}
 
             {activeTab === 'GLOBAL' && (
                 <>
@@ -770,6 +784,33 @@ const AdminWebsite: React.FC = () => {
 
       {/* Preview Panel */}
       <div className={`lg:col-span-7 transition-all duration-500 hidden lg:block ${showPreview ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
+        {/* Im Design-Reiter die ECHTE Seite, nicht die Nachbildung.
+            Die Nachbildung darunter kennt nur die klassische Vorlage -- wer
+            Magazin oder Buehne waehlte, sah rechts weiter Klassisch und
+            glaubte, die Wahl habe nicht gewirkt. Sie fuer sechs Vorlagen
+            nachzubauen hiesse, jede Vorlage zweimal zu pflegen; die zweite
+            laeuft dann irgendwann der ersten davon.
+            Nachteil, bewusst in Kauf genommen: der Rahmen zeigt den
+            gespeicherten Stand, keine ungesicherten Textaenderungen. Im
+            Design-Reiter aendert man aber keine Texte. */}
+        {activeTab === 'DESIGN' ? (
+          <div className="sticky top-12 h-full flex flex-col">
+            <div className="flex items-center justify-between mb-4 shrink-0 px-1">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400">
+                {t('web.echte_seite')}
+              </p>
+              <button type="button" onClick={() => setVorschauSchluessel(k => k + 1)}
+                className="text-[10px] font-bold uppercase tracking-widest text-stone-400 hover:text-stone-700">
+                {t('web.neu_laden')}
+              </button>
+            </div>
+            <div className="bg-stone-900 rounded-[2.5rem] p-3 shadow-2xl border-[10px] border-stone-800 flex-1 max-h-[800px]">
+              <iframe key={vorschauSchluessel} src="/" title={t('web.echte_seite')}
+                      className="w-full h-full rounded-[1.6rem] bg-white border-0" />
+            </div>
+            <p className="text-[11px] text-stone-400 mt-3 text-center">{t('web.vorschau_hinweis')}</p>
+          </div>
+        ) : (
         <div className="sticky top-12 h-full flex flex-col">
           <div className="flex justify-center mb-6 gap-4 shrink-0">
               <button onClick={() => setPreviewMode('DESKTOP')} className={`p-3 rounded-xl transition-all ${previewMode === 'DESKTOP' ? 'bg-primary text-white' : 'bg-white text-stone-400'}`}><Monitor size={18} /></button>
@@ -849,6 +890,7 @@ const AdminWebsite: React.FC = () => {
             </div>
           </div>
         </div>
+        )}
       </div>
     </div>
   );

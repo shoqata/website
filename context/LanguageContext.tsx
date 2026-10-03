@@ -741,6 +741,10 @@ const translations: Translations = {
   'rdes.speichern': { de: 'Speichern', en: 'Save', sq: 'Ruaj' },
   'rdes.gespeichert': { de: 'Gespeichert', en: 'Saved', sq: 'U ruajt' },
 
+  'web.echte_seite': { de: 'Ihre Website', en: 'Your website', sq: 'Faqja juaj' },
+  'web.neu_laden': { de: 'Neu laden', en: 'Reload', sq: 'Ringarko' },
+  'web.vorschau_hinweis': { de: 'Die veröffentlichte Seite — so, wie Besucher sie sehen. Ungespeicherte Textänderungen erscheinen hier erst nach dem Veröffentlichen.', en: 'The published page — exactly as visitors see it. Unsaved text changes appear here only after publishing.', sq: 'Faqja e publikuar — pikërisht siç e shohin vizitorët. Ndryshimet e paruajtura shfaqen këtu vetëm pas publikimit.' },
+
   'vorl.standard': { de: 'Standardvorlagen', en: 'Standard templates', sq: 'Shabllonet standarde' },
   'vorl.standard_text': { de: 'Im Grundpreis enthalten. Jederzeit wechselbar — Ihre Texte und Bilder bleiben dabei, wo sie sind.', en: 'Included in the base price. Switch any time — your texts and images stay where they are.', sq: 'Përfshirë në çmimin bazë. Ndërroni kurdo — tekstet dhe imazhet tuaja mbeten aty ku janë.' },
   'vorl.premium': { de: 'Premium-Designs', en: 'Premium designs', sq: 'Dizajne premium' },

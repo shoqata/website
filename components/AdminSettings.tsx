@@ -50,7 +50,10 @@ const AdminSettings: React.FC = () => {
       events: true,
       news: true
     },
-    systemEmail: 'admin@koretini.org',
+    // Leer, nicht Koretini: das Feld wird mit handleSave geschrieben, ein
+    // anderer Verein haette sonst Koretinis Absenderadresse uebernommen,
+    // ohne je etwas eingetippt zu haben.
+    systemEmail: '',
     beitraegeOeffentlich: 'AUS',
     startseiteVariante: 'STANDARD',
     spendenseite: 'IMMER'

@@ -732,7 +732,7 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                             <h2 className="text-xl font-bold">{selectedMeeting.title}</h2>
                                         </div>
                                         <div className="text-right text-sm">
-                                            <p className="font-bold">{loc(branding.associationName) || 'Shoqata Koretini'}</p>
+                                            <p className="font-bold">{loc(branding.associationName) || ''}</p>
                                             <p className="text-stone-500">{new Date(selectedMeeting.date).toLocaleDateString('sq-AL', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                                         </div>
                                     </div>
