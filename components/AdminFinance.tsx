@@ -35,7 +35,7 @@ import {
 } from 'lucide-react';
 import { db } from '../services/firebase';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, writeBatch, setDoc, getDoc } from '@/services/supabase-bridge';
-import { Payment, UserProfile, GlobalPaymentSettings, Account } from '../types';
+import { Payment, UserProfile, GlobalPaymentSettings, Account, JournalEntry } from '../types';
 import { useFeedback } from '../context/FeedbackContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { billingYearOf, isOverdue } from '../lib/memberQuality';
@@ -57,6 +57,67 @@ interface AdminFinanceProps {
     selectedYear: number;
 }
 
+// Eine Zeile im Budget: Konto, Planzahl, Ist -- und wie weit das eine das
+// andere erreicht.
+//
+// Das Ist stand vorher nirgends. Ein Verein mit Eingaengen sah ueberall 0
+// und hielt das Budget fuer kaputt; es zeigte nur nie, was wirklich
+// gebucht wurde.
+//
+// Der Balken bleibt weg, solange kein Plan steht: ein Balken ohne
+// Bezugsgroesse zeigt entweder nichts oder immer 100 Prozent, und beides
+// ist eine Luege.
+const BudgetZeile: React.FC<{
+  konto: Account;
+  plan?: number;
+  ist: number;
+  aendern: (wert: string) => void;
+}> = ({ konto, plan, ist, aendern }) => {
+  const ertrag = konto.class === 'REVENUE';
+  const hatPlan = Number(plan) > 0;
+  // Der Balken klemmt bei 100 Prozent -- er kann nicht laenger werden als
+  // seine Spur. Die ZAHL darf das nicht uebernehmen: 1200 von 1000 sind
+  // 120 Prozent, und genau diese Ueberschreitung ist das, was man sehen
+  // will. Ein Balken, der bei 100 steht, waehrend 120 gemeint sind, ist
+  // keine Vereinfachung, sondern eine falsche Angabe.
+  const anteil = hatPlan ? Math.round((ist / Number(plan)) * 100) : 0;
+  const balken = Math.max(0, Math.min(100, anteil));
+  // Bei Ertraegen ist mehr als geplant gut, bei Aufwaenden schlecht.
+  const guenstig = ertrag ? ist >= Number(plan) : ist <= Number(plan);
+
+  return (
+    <div className="py-2">
+      <div className="flex items-center justify-between gap-3">
+        <p className="font-bold text-sm text-stone-800 flex-1 min-w-0 truncate">
+          {konto.code} {konto.name}
+        </p>
+        <div className="text-right tabular-nums shrink-0 w-24">
+          <p className={`font-mono text-sm font-bold ${ist === 0 ? 'text-stone-300' : ertrag ? 'text-emerald-600' : 'text-rose-500'}`}>
+            {ist.toLocaleString('de-CH', { minimumFractionDigits: 2 })}
+          </p>
+        </div>
+        <div className="w-28 relative shrink-0">
+          <input type="number" value={plan ?? ''} onChange={e => aendern(e.target.value)}
+                 className="w-full p-2 pl-3 pr-8 bg-stone-50 border border-stone-200 rounded-lg outline-none font-mono text-right text-sm"
+                 placeholder="0" />
+          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-stone-400 font-bold">CHF</span>
+        </div>
+      </div>
+      {hatPlan && (
+        <div className="flex items-center gap-2 mt-1.5 pr-28">
+          <div className="h-1 flex-1 bg-stone-100 rounded-full overflow-hidden">
+            <div className={`h-full rounded-full ${guenstig ? 'bg-emerald-400' : 'bg-amber-400'}`}
+                 style={{ width: `${balken}%` }} />
+          </div>
+          <span className={`text-[10px] tabular-nums w-12 text-right ${anteil > 100 && !ertrag ? 'text-rose-500 font-bold' : 'text-stone-400'}`}>
+            {anteil}%
+          </span>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) => {
     const { t, loc } = useTranslation();
     const { showAlert, showConfirm } = useFeedback();
@@ -74,6 +135,12 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
     // Vereinsname fuer Betreff und Beleg; stand bisher fest als "Shoqata Koretini".
     const [branding, setBranding] = useState<any>({});
     const [budgetData, setBudgetData] = useState<Record<string, number>>({}); 
+    // Das Journal fuer die Ist-Spalte. Das Budget zeigte bis zum 29.09.2026
+    // ausschliesslich Planzahlen -- ein Verein mit CHF 9'144 Eingang sah
+    // ueberall 0 und hielt das fuer einen Fehler. Es war keiner: das Ist kam
+    // dort schlicht nicht vor. Ein Budget ohne Ist beantwortet die einzige
+    // Frage nicht, die man an ein Budget hat.
+    const [journal, setJournal] = useState<JournalEntry[]>([]);
     const [paymentSettings, setPaymentSettings] = useState<GlobalPaymentSettings>({
         iban: '', bankName: '', bic: '', accountHolder: '', street: '', zip: '', city: '', country: 'Switzerland', paypalEmail: '', currency: 'CHF', annualFeeAmount: 100
     });
@@ -125,6 +192,10 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
             setUsers(snap.docs.map(d => ({ id: d.id, ...d.data() } as UserProfile)));
         });
 
+        const unsubJournal = onSnapshot(collection(db, 'accounting_journal'), (snap) => {
+            setJournal(snap.docs.map(d => ({ id: d.id, ...d.data() } as JournalEntry)));
+        });
+
         const qAccounts = query(collection(db, 'accounting_accounts'), orderBy('code'));
         const unsubAccounts = onSnapshot(qAccounts, (snap) => {
             setAccounts(snap.docs.map(d => d.data() as Account));
@@ -138,7 +209,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
             if(snap.exists()) setBranding(snap.data());
         });
 
-        return () => { unsub(); unsubUsers(); unsubAccounts(); unsubSettings(); unsubBranding(); };
+        return () => { unsub(); unsubUsers(); unsubJournal(); unsubAccounts(); unsubSettings(); unsubBranding(); };
     }, []);
 
     useEffect(() => {
@@ -205,6 +276,37 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
         return payments.filter(p => isOverdue(p));
     }, [payments]);
 
+    // Was im gewaehlten Jahr tatsaechlich gebucht wurde, je Konto.
+    //
+    // Doppelte Buchfuehrung: ein Ertrag steht im Haben, ein Aufwand im Soll.
+    // Darum fuer Ertragskonten Haben minus Soll und fuer Aufwandskonten Soll
+    // minus Haben -- sonst kaeme der Aufwand negativ heraus und eine
+    // Stornobuchung wuerde falsch herum zaehlen.
+    //
+    // Gerechnet wird aus dem Journal, nicht aus den Zahlungen: der Ertrag
+    // entsteht beim Rechnungstellen (1100/3000), nicht beim Zahlungseingang.
+    // Fuer Koretini sind das 2026 CHF 38'044 gestellt gegenueber CHF 9'144
+    // eingegangen -- beides richtig, aber nur das Erste gehoert ins Budget.
+    const istWerte = useMemo(() => {
+        const nachKonto: Record<string, number> = {};
+        const klasse = (code?: string) => accounts.find(a => a.code === code)?.class;
+        journal.forEach(b => {
+            const betrag = Number(b.amount) || 0;
+            if (String(b.date || '').slice(0, 4) !== String(selectedYear)) return;
+            if (b.creditCode) {
+                const k = klasse(b.creditCode);
+                if (k === 'REVENUE') nachKonto[b.creditCode] = (nachKonto[b.creditCode] || 0) + betrag;
+                if (k === 'EXPENSE') nachKonto[b.creditCode] = (nachKonto[b.creditCode] || 0) - betrag;
+            }
+            if (b.debitCode) {
+                const k = klasse(b.debitCode);
+                if (k === 'EXPENSE') nachKonto[b.debitCode] = (nachKonto[b.debitCode] || 0) + betrag;
+                if (k === 'REVENUE') nachKonto[b.debitCode] = (nachKonto[b.debitCode] || 0) - betrag;
+            }
+        });
+        return nachKonto;
+    }, [journal, accounts, selectedYear]);
+
     const budgetStats = useMemo(() => {
         let totalRevenue = 0;
         let totalExpense = 0;
@@ -215,8 +317,17 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
                 if (acc.class === 'EXPENSE') totalExpense += Number(amount);
             }
         });
-        return { totalRevenue, totalExpense, result: totalRevenue - totalExpense };
-    }, [budgetData, accounts]);
+        let istRevenue = 0, istExpense = 0;
+        accounts.forEach(a => {
+            const w = istWerte[a.code] || 0;
+            if (a.class === 'REVENUE') istRevenue += w;
+            if (a.class === 'EXPENSE') istExpense += w;
+        });
+        return {
+            totalRevenue, totalExpense, result: totalRevenue - totalExpense,
+            istRevenue, istExpense, istResult: istRevenue - istExpense,
+        };
+    }, [budgetData, accounts, istWerte]);
 
     const dropdownUsers = useMemo(() => {
         if (!memberSearchTerm) return [];
@@ -643,7 +754,10 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
                     <div className="space-y-6">
                         <div className="bg-white p-8 rounded-[2.5rem] border border-stone-100 shadow-sm">
                             <div className="flex justify-between items-center mb-8">
-                                <h3 className="text-xl font-bold flex items-center gap-2"><Calculator size={20}/> Budget {selectedYear}</h3>
+                                <div>
+                                    <h3 className="text-xl font-bold flex items-center gap-2"><Calculator size={20}/> Budget {selectedYear}</h3>
+                                    <p className="text-[11px] text-stone-400 mt-1 max-w-xl leading-relaxed">{t('budget.hinweis')}</p>
+                                </div>
                                 <button onClick={handleSaveBudget} disabled={isSavingBudget} className="bg-stone-900 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-black transition-all shadow-lg disabled:opacity-50">
                                     {isSavingBudget ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} Speichern
                                 </button>
@@ -651,55 +765,74 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
 
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                                 <div>
-                                    <h4 className="font-bold text-lg mb-4 text-emerald-600 border-b border-stone-100 pb-2">{t('admin.finance.income')}</h4>
-                                    <div className="space-y-3">
+                                    <h4 className="font-bold text-lg mb-1 text-emerald-600 border-b border-stone-100 pb-2">{t('admin.finance.income')}</h4>
+                                    {/* Ohne Spaltenkoepfe weiss niemand, welche Zahl gebucht und
+                                        welche geplant ist. */}
+                                    <div className="flex items-center justify-between gap-3 pb-2 mb-1 border-b border-stone-50">
+                                      <span className="flex-1" />
+                                      <span className="w-24 text-right text-[10px] font-bold uppercase tracking-widest text-stone-400">{t('budget.ist')} {selectedYear}</span>
+                                      <span className="w-28 text-right text-[10px] font-bold uppercase tracking-widest text-stone-400 pr-2">{t('budget.plan')}</span>
+                                    </div>
+                                    <div className="space-y-1">
                                         {accounts.filter(a => a.class === 'REVENUE').map(acc => (
-                                            <div key={acc.id} className="flex items-center justify-between gap-4">
-                                                <div className="flex-1">
-                                                    <p className="font-bold text-sm text-stone-800">{acc.code} {acc.name}</p>
-                                                </div>
-                                                <div className="w-32 relative">
-                                                    <input type="number" value={budgetData[acc.code] || ''} onChange={e => handleBudgetChange(acc.code, e.target.value)} className="w-full p-2 pl-3 pr-8 bg-stone-50 border border-stone-200 rounded-lg outline-none font-mono text-right" placeholder="0" />
-                                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-stone-400 font-bold">CHF</span>
-                                                </div>
-                                            </div>
+                                            <BudgetZeile key={acc.id} konto={acc}
+                                                plan={budgetData[acc.code]}
+                                                ist={istWerte[acc.code] || 0}
+                                                aendern={(w) => handleBudgetChange(acc.code, w)} />
                                         ))}
                                     </div>
                                     <div className="mt-6 pt-4 border-t border-stone-200 flex justify-between items-center">
                                         <span className="font-bold text-stone-500 uppercase tracking-widest text-xs">{t('admin.finance.total_income')}</span>
-                                        <span className="font-display font-bold text-xl text-emerald-600">{budgetStats.totalRevenue.toFixed(0)} CHF</span>
+                                        <span className="flex items-baseline gap-4 tabular-nums">
+                                          <span className="font-display font-bold text-xl text-emerald-600">{budgetStats.istRevenue.toLocaleString('de-CH', {maximumFractionDigits:0})}</span>
+                                          <span className="font-mono text-sm text-stone-400">/ {budgetStats.totalRevenue.toLocaleString('de-CH', {maximumFractionDigits:0})} CHF</span>
+                                        </span>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <h4 className="font-bold text-lg mb-4 text-rose-500 border-b border-stone-100 pb-2">{t('admin.finance.expenses')}</h4>
-                                    <div className="space-y-3">
+                                    <h4 className="font-bold text-lg mb-1 text-rose-500 border-b border-stone-100 pb-2">{t('admin.finance.expenses')}</h4>
+                                    {/* Ohne Spaltenkoepfe weiss niemand, welche Zahl gebucht und
+                                        welche geplant ist. */}
+                                    <div className="flex items-center justify-between gap-3 pb-2 mb-1 border-b border-stone-50">
+                                      <span className="flex-1" />
+                                      <span className="w-24 text-right text-[10px] font-bold uppercase tracking-widest text-stone-400">{t('budget.ist')} {selectedYear}</span>
+                                      <span className="w-28 text-right text-[10px] font-bold uppercase tracking-widest text-stone-400 pr-2">{t('budget.plan')}</span>
+                                    </div>
+                                    <div className="space-y-1">
                                         {accounts.filter(a => a.class === 'EXPENSE').map(acc => (
-                                            <div key={acc.id} className="flex items-center justify-between gap-4">
-                                                <div className="flex-1">
-                                                    <p className="font-bold text-sm text-stone-800">{acc.code} {acc.name}</p>
-                                                </div>
-                                                <div className="w-32 relative">
-                                                    <input type="number" value={budgetData[acc.code] || ''} onChange={e => handleBudgetChange(acc.code, e.target.value)} className="w-full p-2 pl-3 pr-8 bg-stone-50 border border-stone-200 rounded-lg outline-none font-mono text-right" placeholder="0" />
-                                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-stone-400 font-bold">CHF</span>
-                                                </div>
-                                            </div>
+                                            <BudgetZeile key={acc.id} konto={acc}
+                                                plan={budgetData[acc.code]}
+                                                ist={istWerte[acc.code] || 0}
+                                                aendern={(w) => handleBudgetChange(acc.code, w)} />
                                         ))}
                                     </div>
                                     <div className="mt-6 pt-4 border-t border-stone-200 flex justify-between items-center">
                                         <span className="font-bold text-stone-500 uppercase tracking-widest text-xs">{t('admin.finance.total_expenses')}</span>
-                                        <span className="font-display font-bold text-xl text-rose-500">{budgetStats.totalExpense.toFixed(0)} CHF</span>
+                                        <span className="flex items-baseline gap-4 tabular-nums">
+                                          <span className="font-display font-bold text-xl text-rose-500">{budgetStats.istExpense.toLocaleString('de-CH', {maximumFractionDigits:0})}</span>
+                                          <span className="font-mono text-sm text-stone-400">/ {budgetStats.totalExpense.toLocaleString('de-CH', {maximumFractionDigits:0})} CHF</span>
+                                        </span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className={`mt-12 p-6 rounded-2xl border flex justify-between items-center ${budgetStats.result >= 0 ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`}>
+                            <div className={`mt-12 p-6 rounded-2xl border flex justify-between items-center ${budgetStats.istResult >= 0 ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`}>
                                 <div>
-                                    <p className="text-sm font-bold uppercase tracking-widest mb-1 text-stone-500">{t('admin.finance.budget_result')}</p>
-                                    <p className={`text-3xl font-display font-bold ${budgetStats.result >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{budgetStats.result >= 0 ? t('admin.finance.profit') : t('admin.finance.loss')}</p>
+                                    <p className="text-sm font-bold uppercase tracking-widest mb-1 text-stone-500">{t('admin.finance.budget_result')} {selectedYear}</p>
+                                    {/* Das Ist zuerst: danach wird gefragt. Der Plan daneben,
+                                        damit man sieht, wie weit man ist. */}
+                                    <p className={`text-3xl font-display font-bold ${budgetStats.istResult >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                        {budgetStats.istResult >= 0 ? t('admin.finance.profit') : t('admin.finance.loss')}
+                                    </p>
                                 </div>
                                 <div className="text-right">
-                                    <p className={`text-4xl font-display font-bold ${budgetStats.result >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{Math.abs(budgetStats.result).toFixed(0)} <span className="text-xl">CHF</span></p>
+                                    <p className={`text-4xl font-display font-bold tabular-nums ${budgetStats.istResult >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                        {Math.abs(budgetStats.istResult).toLocaleString('de-CH', {maximumFractionDigits:0})} <span className="text-xl">CHF</span>
+                                    </p>
+                                    <p className="text-xs text-stone-400 mt-1 tabular-nums">
+                                        {t('budget.geplant')} {budgetStats.result.toLocaleString('de-CH', {maximumFractionDigits:0})} CHF
+                                    </p>
                                 </div>
                             </div>
                         </div>
