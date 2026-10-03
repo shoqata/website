@@ -77,23 +77,32 @@ DO $$
 DECLARE
   v_zurueck text := current_user;
   v_verein  text;
-  v_person  uuid;
+  -- text, nicht uuid: public.users.id ist in dieser Datenbank Text (331 von
+  -- 340 Zeilen tragen alte Textkennungen wie 'admin-user-id').
+  v_person  text;
+  v_auth    text;
   v_zeilen  int;
   v_fremd   int;
 BEGIN
-  SELECT u."tenantId", u.id INTO v_verein, v_person
+  -- Entscheidend: "sub" im Token ist die AUTH-Kennung, nicht die
+  -- Zeilenkennung. current_user_row_id() sucht ueber auth.uid(), und
+  -- auth.uid() wandelt sub in uuid um -- mit einer Textkennung als sub
+  -- bricht schon das ab, bevor irgendeine Regel geprueft wird. Ein erster
+  -- Versuch setzte users.id ein und scheiterte genau daran.
+  SELECT u."tenantId", u.id, u."authUserId" INTO v_verein, v_person, v_auth
     FROM public.users u
    WHERE u.role IN ('ADMIN','SUPER_ADMIN','BOARD')
+     AND u."authUserId" ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
    ORDER BY u."tenantId" LIMIT 1;
 
-  IF v_person IS NULL THEN
-    RAISE WARNING 'PRUEFUNG UEBERSPRUNGEN: kein Vorstandsmitglied gefunden.';
+  IF v_auth IS NULL THEN
+    RAISE WARNING 'PRUEFUNG UEBERSPRUNGEN: kein Vorstandsmitglied mit gueltiger Auth-Kennung.';
     RETURN;
   END IF;
 
   PERFORM set_config('request.jwt.claims', json_build_object(
-    'sub', v_person::text,
-    'email', (SELECT email FROM public.users WHERE id = v_person),
+    'sub', v_auth,
+    'role', 'authenticated',
     'app_metadata', json_build_object('tenant', v_verein))::text, true);
   EXECUTE 'SET LOCAL ROLE authenticated';
 
