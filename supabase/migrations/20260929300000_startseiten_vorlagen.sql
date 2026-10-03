@@ -170,52 +170,68 @@ WHERE schluessel = 'LANDINGPAGE';
 
 -- Nachweis statt Zuversicht: ein Verein ohne das Modul traegt eine
 -- Premium-Vorlage ein. Bekommt er sie, ist die Sperre ein Schaufenster.
+--
+-- Der Test prueft sich zuerst selbst. Ein UPDATE, das null Zeilen trifft,
+-- wirft keinen Fehler -- faende der Verein keine settings-Zeile, liefe der
+-- Test durch, ohne etwas gemessen zu haben. Diese Falle hat uns in diesem
+-- Projekt schon einmal eine falsche Entwarnung gegeben.
 DO $$
 DECLARE
-  v_back text := current_user;
-  v_verein text;
-  v_vorher text;
+  v_verein  text;
+  v_vorher  text;
+  v_hatte   boolean;
+  v_zeilen  int;
   v_bekommt text;
-  v_frei boolean;
+  v_frei    boolean;
 BEGIN
-  -- Einen Verein nehmen, der NICHT alles frei hat; sonst misst der Test nichts.
-  SELECT t.id INTO v_verein FROM public.tenants t
+  -- Einen Verein nehmen, der NICHT alles frei hat, das Modul nicht gebucht
+  -- hat UND eine settings-Zeile besitzt -- sonst misst der Test nichts.
+  SELECT t.id INTO v_verein
+    FROM public.tenants t
+    JOIN public.settings s ON s."tenantId" = t.id AND s.id = 'system'
    WHERE NOT coalesce(t.alle_module_frei, false)
      AND NOT EXISTS (SELECT 1 FROM public.tenant_modules tm
                       WHERE tm."tenantId" = t.id AND tm.modul = 'LANDINGPAGE'
-                        AND tm.zustand IN ('AN','TESTPHASE'))
+                        AND tm.zustand IN ('AN','TESTPHASE')
+                        AND (tm.testet_bis IS NULL OR tm.testet_bis >= current_date))
    LIMIT 1;
 
   IF v_verein IS NULL THEN
-    RAISE NOTICE 'Kein Verein ohne LANDINGPAGE vorhanden -- Sperre nicht messbar.';
+    RAISE WARNING 'PRUEFUNG UEBERSPRUNGEN: kein Verein ohne LANDINGPAGE mit settings/system vorhanden. Die Sperre ist damit NICHT gemessen.';
   ELSE
-    SELECT s.system ->> 'startseitenVorlage' INTO v_vorher
+    SELECT s.system ? 'startseitenVorlage', s.system ->> 'startseitenVorlage'
+      INTO v_hatte, v_vorher
       FROM public.settings s WHERE s."tenantId" = v_verein AND s.id = 'system';
 
     UPDATE public.settings
-       SET system = coalesce(system,'{}'::jsonb) || '{"startseitenVorlage":"BUEHNE"}'::jsonb
+       SET system = coalesce(system, '{}'::jsonb) || '{"startseitenVorlage":"BUEHNE"}'::jsonb
      WHERE "tenantId" = v_verein AND id = 'system';
+    GET DIAGNOSTICS v_zeilen = ROW_COUNT;
+    IF v_zeilen <> 1 THEN
+      RAISE EXCEPTION 'Pruefung unbrauchbar: % Zeilen geaendert statt 1.', v_zeilen;
+    END IF;
 
     PERFORM set_config('request.jwt.claims',
-      json_build_object('app_metadata', json_build_object('tenant', v_verein))::text, false);
+      json_build_object('app_metadata', json_build_object('tenant', v_verein))::text, true);
     v_bekommt := public.startseiten_vorlage();
 
     RAISE NOTICE 'Verein % waehlt BUEHNE ohne Modul -> bekommt: %', v_verein, v_bekommt;
     IF v_bekommt <> 'KLASSISCH' THEN
-      RAISE EXCEPTION 'Sperre wirkt nicht: % statt KLASSISCH', v_bekommt;
+      RAISE EXCEPTION 'SPERRE WIRKT NICHT: % statt KLASSISCH. Nichts wurde angewandt.', v_bekommt;
     END IF;
 
-    -- Zuruecksetzen, der Test darf nichts hinterlassen.
+    -- Zuruecksetzen; der Test darf nichts hinterlassen.
     UPDATE public.settings
-       SET system = CASE WHEN v_vorher IS NULL THEN system - 'startseitenVorlage'
-                         ELSE system || jsonb_build_object('startseitenVorlage', v_vorher) END
+       SET system = CASE WHEN v_hatte
+                         THEN system || jsonb_build_object('startseitenVorlage', v_vorher)
+                         ELSE system - 'startseitenVorlage' END
      WHERE "tenantId" = v_verein AND id = 'system';
-    PERFORM set_config('request.jwt.claims', NULL, false);
+    PERFORM set_config('request.jwt.claims', NULL, true);
+    RAISE NOTICE 'Sperre nachgewiesen und Ausgangszustand wiederhergestellt.';
   END IF;
 
-  -- Und die Gegenprobe: Koretini hat alles frei, darf also jede Vorlage.
-  SELECT coalesce(alle_module_frei,false) INTO v_frei FROM public.tenants WHERE id='koretini';
+  -- Gegenprobe: Koretini hat alles frei, darf also jede Vorlage.
+  SELECT coalesce(alle_module_frei, false) INTO v_frei
+    FROM public.tenants WHERE id = 'koretini';
   RAISE NOTICE 'Koretini alle_module_frei=% -> Premium-Vorlagen stehen offen', v_frei;
-
-  EXECUTE format('SET ROLE %I', v_back);
 END $$;
