@@ -2,11 +2,18 @@
 import React, { useState, useEffect } from 'react';
 import { useWerBinIch, type WerBinIch } from './lib/useWerBinIch';
 const SpendenSeite = React.lazy(() => import('./components/SpendenSeite'));
+// Die sechs Startseiten-Vorlagen. Alle nachgeladen: ein Verein zeigt genau
+// eine, und die fuenf anderen gehoeren nicht in sein Bundle. Besonders die
+// erzaehlenden -- sie ziehen den scroll-craft-Kern nach sich.
 const StartseitePremium = React.lazy(() => import('./components/StartseitePremium'));
+const Magazin = React.lazy(() => import('./components/vorlagen/Magazin'));
+const Kompakt = React.lazy(() => import('./components/vorlagen/Kompakt'));
+const Buehne  = React.lazy(() => import('./components/vorlagen/Buehne'));
+const Journal = React.lazy(() => import('./components/vorlagen/Journal'));
 const VideoSeite = React.lazy(() => import('./components/VideoSeite'));
 import { needsProfileSetup } from './lib/memberQuality';
 import { useIstPlattformDomain } from './lib/useIstPlattformDomain';
-import { useStartseiteVariante } from './lib/useStartseiteVariante';
+import { useStartseitenVorlage } from './lib/useStartseitenVorlage';
 import { useOeffentlicheModule } from './lib/useOeffentlicheModule';
 import { useSpendenseiteSichtbar } from './lib/useSpendenseiteSichtbar';
 import { useReiterKennzeichen } from './lib/useReiterKennzeichen';
@@ -377,7 +384,7 @@ const AppContent: React.FC = () => {
   }, [tenant]);
 
   const istPlattformDomain = useIstPlattformDomain();
-  const startseite = useStartseiteVariante();
+  const vorlage = useStartseitenVorlage();
   const spendenSeiteSichtbar = useSpendenseiteSichtbar();
   // Wer auf unityhub.li angemeldet ist, muss der Betreiber sein. Die Frage
   // wird hier gestellt und nicht erst an der Tuer zu /super-admin: vorher
@@ -429,13 +436,17 @@ const AppContent: React.FC = () => {
                         Frueher fiel hier eine unbekannte Domain auf die
                         Vereinsseite durch -- auf der Betreiber-Domain erschien
                         dadurch zuerst Koretini. Dieselbe Falle gilt fuer die
-                        Startseitenvariante: wer sich zu frueh festlegt, zeigt
+                        Startseiten-Vorlage: wer sich zu frueh festlegt, zeigt
                         die Standardseite und springt dann weg. */}
                     <Route path="/" element={
                       istPlattformDomain === null ? <PageLoader />
                         : istPlattformDomain ? <PlatformHome user={user} />
-                        : startseite === null ? <PageLoader />
-                        : startseite === 'PREMIUM' ? <StartseitePremium />
+                        : vorlage === null ? <PageLoader />
+                        : vorlage === 'MAGAZIN' ? <Magazin />
+                        : vorlage === 'KOMPAKT' ? <Kompakt />
+                        : vorlage === 'ERZAEHLUNG' ? <StartseitePremium />
+                        : vorlage === 'BUEHNE' ? <Buehne />
+                        : vorlage === 'JOURNAL' ? <Journal />
                         : <Hero />} />
                     <Route path="/about" element={istPlattformDomain ? <Navigate to="/" replace /> : <AboutUsPage />} />
                     <Route path="/live" element={istPlattformDomain ? <Navigate to="/" replace /> : <VillageLive />} />

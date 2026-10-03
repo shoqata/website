@@ -41,6 +41,7 @@ import HyperTextParagraph from './ui/HyperText'; // Import for Preview
 import { useFeedback } from '../context/FeedbackContext';
 
 import { onImageError } from '../lib/imageFallback';
+import AdminVorlagen from './AdminVorlagen';
 // --- TYPES ---
 // Helper type for localized strings
 type LocalizedString = string | { [key: string]: string };
@@ -83,13 +84,13 @@ interface BrandingSettings {
   whyJoinHighlightWords: string[];
 }
 
-type Tab = 'GLOBAL' | 'HOME' | 'ABOUT' | 'LIVE' | 'LEGAL';
+type Tab = 'DESIGN' | 'GLOBAL' | 'HOME' | 'ABOUT' | 'LIVE' | 'LEGAL';
 type LangCode = 'de' | 'en' | 'sq';
 
 const AdminWebsite: React.FC = () => {
   const { t } = useTranslation();
   const { showAlert, showPrompt } = useFeedback();
-  const [activeTab, setActiveTab] = useState<Tab>('HOME');
+  const [activeTab, setActiveTab] = useState<Tab>('DESIGN');
   const [editLang, setEditLang] = useState<LangCode>('de'); // Editor Language State
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -363,7 +364,7 @@ const AdminWebsite: React.FC = () => {
           
           {/* Tabs */}
           <div className="flex border-b border-stone-100 overflow-x-auto bg-stone-50/50 p-2 gap-1 shrink-0">
-             {(['GLOBAL', 'HOME', 'ABOUT', 'LIVE', 'LEGAL'] as const).map(t => (
+             {(['DESIGN', 'GLOBAL', 'HOME', 'ABOUT', 'LIVE', 'LEGAL'] as const).map(t => (
                  <button key={t} onClick={() => { setActiveTab(t); setExpandedSection(null); }} className={`flex-1 px-4 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === t ? 'bg-white text-primary shadow-sm' : 'text-stone-400 hover:text-stone-900'}`}>
                      {t}
                  </button>
@@ -390,6 +391,12 @@ const AdminWebsite: React.FC = () => {
 
           <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
             
+            {/* Welche Vorlage die Website ueberhaupt benutzt. Steht vor
+                allem anderen, weil die Entscheidung alles darunter
+                einrahmt -- und weil sie vorher in den Einstellungen lag,
+                also dort, wo sie niemand suchte. */}
+            {activeTab === 'DESIGN' && <AdminVorlagen />}
+
             {activeTab === 'GLOBAL' && (
                 <>
                     <BuilderSection id="branding" title={t('web.identity')} icon={<Palette size={18}/>}>

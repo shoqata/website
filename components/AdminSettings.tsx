@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import AdminPostausgang from './AdminPostausgang';
+import { Link } from 'react-router-dom';
 import { useTranslation } from '../context/LanguageContext';
 import { motion } from 'framer-motion';
 import { 
@@ -19,7 +20,8 @@ import {
   Eye,
   Users,
   Sparkles,
-  Heart
+  Heart,
+  ArrowRight
 } from 'lucide-react';
 import { db } from '../services/firebase';
 import { doc, onSnapshot, setDoc, serverTimestamp, supabase } from '@/services/supabase-bridge';
@@ -217,42 +219,26 @@ const AdminSettings: React.FC = () => {
             </section>
             )}
 
-            {/* Welche Startseite Besucher bekommen.
-                Der Schalter steht hier und nicht im Marktplatz: die Buchung
-                entscheidet, ob Premium zur Wahl steht, der Verein entscheidet,
-                wann er umschaltet. Beides zusammen prueft
-                startseite_variante() in der Datenbank -- ein Verein ohne
-                Buchung bekaeme die Seite auch dann nicht, wenn er hier
-                umstellte. */}
+            {/* Die Auswahl der Startseite ist umgezogen.
+                Sie stand hier, solange es eine Umschaltung war (Standard
+                oder Premium). Mit sechs Vorlagen ist es eine Auswahl, und
+                die gehoert dorthin, wo ein Verein seine Website macht.
+
+                Hier bleibt ein Wegweiser statt nichts: wer den Schalter
+                einmal hier gefunden hat, sucht ihn beim naechsten Mal
+                wieder hier. Ein zweiter Auswahlknopf waere schlimmer --
+                er schriebe einen Schluessel, den niemand mehr liest. */}
             <section>
                 <div className="flex items-center gap-2 mb-4">
                     <Sparkles size={18} className="text-stone-400" />
                     <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500">{t('prem.titel')}</h3>
                 </div>
-                <div className="bg-stone-50 p-6 rounded-3xl border border-stone-100 space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {([
-                            { wert: 'STANDARD', titel: t('prem.standard'), text: t('prem.standard_text'), gesperrt: false },
-                            { wert: 'PREMIUM',  titel: t('prem.premium'),  text: t('prem.premium_text'),  gesperrt: !modulAktiv('LANDINGPAGE') },
-                        ]).map(o => {
-                            const gewaehlt = (settings.startseiteVariante || 'STANDARD') === o.wert;
-                            return (
-                                <button key={o.wert} type="button" disabled={o.gesperrt}
-                                    onClick={() => setSettings({ ...settings, startseiteVariante: o.wert as SystemSettings['startseiteVariante'] })}
-                                    className={`text-left p-5 rounded-2xl border transition-all ${o.gesperrt
-                                        ? 'bg-stone-100 border-stone-200 opacity-60 cursor-not-allowed'
-                                        : gewaehlt ? 'bg-white border-primary shadow-sm'
-                                        : 'bg-white/60 border-stone-200 hover:border-stone-300'}`}>
-                                    <p className={`font-bold text-sm mb-1 ${gewaehlt && !o.gesperrt ? 'text-primary' : 'text-stone-900'}`}>{o.titel}</p>
-                                    <p className="text-[11px] text-stone-500 leading-relaxed">{o.text}</p>
-                                </button>
-                            );
-                        })}
-                    </div>
-                    {!modulAktiv('LANDINGPAGE') && (
-                        <p className="text-[11px] text-amber-600 leading-relaxed">{t('prem.nicht_gebucht')}</p>
-                    )}
-                    <p className="text-[11px] text-stone-400 leading-relaxed">{t('prem.hinweis')}</p>
+                <div className="bg-stone-50 p-6 rounded-3xl border border-stone-100">
+                    <p className="text-sm text-stone-600 leading-relaxed mb-4">{t('prem.umgezogen')}</p>
+                    <Link to="/admin?tab=WEBSITE"
+                        className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-primary hover:underline">
+                        {t('prem.zur_website')} <ArrowRight size={13} />
+                    </Link>
                 </div>
             </section>
 
