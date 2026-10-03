@@ -779,6 +779,8 @@ const translations: Translations = {
   'social.noch_nicht_bereit': { de: 'Die Anbindung ist noch nicht freigeschaltet', en: 'The connection is not enabled yet', sq: 'Lidhja nuk është ende e aktivizuar' },
   'social.noch_nicht_bereit_text': { de: 'Der Betreiber der Plattform muss zuerst die Meta-App hinterlegen. Bis dahin lässt sich kein Kanal verbinden — an Ihrem Verein liegt es nicht. Melden Sie sich beim Betreiber, wenn Sie Facebook und Instagram nutzen möchten.', en: 'The platform operator must first register the Meta app. Until then no channel can be connected — this is not something your association can fix. Contact the operator if you would like to use Facebook and Instagram.', sq: 'Operatori i platformës duhet së pari të regjistrojë aplikacionin Meta. Deri atëherë asnjë kanal nuk mund të lidhet — kjo nuk varet nga shoqata juaj. Kontaktoni operatorin nëse dëshironi të përdorni Facebook dhe Instagram.' },
 
+  'admin.tab.treffen': { de: 'Vereinstreffen', en: 'Association meetings', sq: 'Takimet e shoqatave' },
+
   'vorl.standard': { de: 'Standardvorlagen', en: 'Standard templates', sq: 'Shabllonet standarde' },
   'vorl.standard_text': { de: 'Im Grundpreis enthalten. Jederzeit wechselbar — Ihre Texte und Bilder bleiben dabei, wo sie sind.', en: 'Included in the base price. Switch any time — your texts and images stay where they are.', sq: 'Përfshirë në çmimin bazë. Ndërroni kurdo — tekstet dhe imazhet tuaja mbeten aty ku janë.' },
   'vorl.premium': { de: 'Premium-Designs', en: 'Premium designs', sq: 'Dizajne premium' },

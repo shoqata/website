@@ -56,6 +56,47 @@ const SuperAdminTreffen: React.FC = () => {
   const [programm, setProgramm] = useState<Punkt[]>([]);
   const [arbeitet, setArbeitet] = useState(false);
   const [fehler, setFehler] = useState('');
+  // Die Teilnehmer eines Treffens -- erst auf Klick geladen. Die Liste der
+  // Treffen soll nicht auf zwanzig Unterabfragen warten.
+  const [detail, setDetail] = useState<string | null>(null);
+  const [teilnehmer, setTeilnehmer] = useState<any[]>([]);
+  const [kosten, setKosten] = useState<any>(null);
+  const [frischerLink, setFrischerLink] = useState<{ id: string; url: string } | null>(null);
+  const [kopiert, setKopiert] = useState(false);
+
+  const detailLaden = async (id: string) => {
+    if (detail === id) { setDetail(null); return; }
+    setDetail(id); setFrischerLink(null);
+    const { data } = await supabase.from('treffen_teilnehmer')
+      .select('*').eq('treffen_id', id).order('art');
+    setTeilnehmer(data || []);
+    const { data: k } = await supabase.rpc('treffen_kosten', { p_treffen: id });
+    setKosten(k);
+  };
+
+  const linkAusstellen = async (t: any) => {
+    setArbeitet(true); setFehler('');
+    try {
+      const { data, error } = await supabase.rpc('treffen_zugang_erstellen', { p_teilnehmer: t.id });
+      if (error) throw error;
+      setFrischerLink({ id: t.id, url: `${window.location.origin}/#/treffen/${(data as any).token}` });
+      await detailLaden(detail!); setDetail(detail);
+    } catch (e: any) { setFehler(e?.message || 'Konnte nicht ausgestellt werden.'); }
+    finally { setArbeitet(false); }
+  };
+
+  const linkWiderrufen = async (t: any) => {
+    setArbeitet(true); setFehler('');
+    try {
+      const { error } = await supabase.rpc('treffen_zugang_widerrufen', { p_teilnehmer: t.id });
+      if (error) throw error;
+      setFrischerLink(null);
+      const { data } = await supabase.from('treffen_teilnehmer')
+        .select('*').eq('treffen_id', detail!).order('art');
+      setTeilnehmer(data || []);
+    } catch (e: any) { setFehler(e?.message || 'Konnte nicht widerrufen werden.'); }
+    finally { setArbeitet(false); }
+  };
 
   const laden = async () => {
     const { data } = await supabase.from('treffen').select('*').order('datum', { ascending: false });
@@ -163,8 +204,9 @@ const SuperAdminTreffen: React.FC = () => {
       ) : (
         <div className="space-y-2">
           {liste.map(t => (
-            <div key={t.id} className="bg-white/5 border border-white/10 rounded-2xl p-5
-                                       flex items-center justify-between gap-4 flex-wrap">
+            <div key={t.id} className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+            <button onClick={() => detailLaden(t.id)}
+              className="w-full text-left p-5 flex items-center justify-between gap-4 flex-wrap hover:bg-white/5">
               <div className="min-w-0">
                 <p className="font-bold text-white truncate">{t.titel}</p>
                 <p className="text-[11px] text-stone-400 mt-0.5">
@@ -181,6 +223,76 @@ const SuperAdminTreffen: React.FC = () => {
                 : t.status === 'BEENDET' ? 'text-stone-500' : 'text-amber-400'}`}>
                 {t.status === 'OEFFENTLICH' ? 'öffentlich' : t.status === 'BEENDET' ? 'beendet' : 'Entwurf'}
               </span>
+            </button>
+
+            {detail === t.id && (
+              <div className="px-5 pb-5 space-y-3 border-t border-white/10 pt-4">
+                {kosten && kosten.art !== 'KEINE' && (
+                  <p className="text-[11px] text-stone-400">
+                    {kosten.vereine} zugesagte Vereine · {kosten.personen} Personen ·
+                    {' '}<span className="text-white font-bold">
+                      {Number(kosten.summe).toLocaleString('de-CH', { minimumFractionDigits: 2 })} {kosten.waehrung}
+                    </span>
+                  </p>
+                )}
+                {teilnehmer.length === 0 && (
+                  <p className="text-[11px] text-stone-500">Noch keine Teilnehmer eingetragen.</p>
+                )}
+                {teilnehmer.map(te => (
+                  <div key={te.id} className="flex items-center justify-between gap-3 flex-wrap
+                                              py-2 border-b border-white/5 last:border-0">
+                    <div className="min-w-0">
+                      <p className="text-sm text-white truncate">
+                        {te.name || te.tenantId}
+                        <span className="text-[10px] uppercase tracking-widest text-stone-500 ml-2">
+                          {te.art === 'VEREIN' ? 'Verein' : te.art === 'GASTVEREIN' ? 'Gastverein' : 'Gast'}
+                        </span>
+                      </p>
+                      <p className="text-[11px] text-stone-500">
+                        {te.zugesagt === true ? `zugesagt · ${te.personen} Personen`
+                          : te.zugesagt === false ? 'abgesagt' : 'noch keine Antwort'}
+                        {te.bemerkung ? ` · ${te.bemerkung}` : ''}
+                      </p>
+                    </div>
+                    {te.art === 'GASTVEREIN' && (
+                      <div className="flex items-center gap-3 shrink-0">
+                        {te.token_hash ? (
+                          <button onClick={() => linkWiderrufen(te)} disabled={arbeitet}
+                            className="text-[10px] font-bold uppercase tracking-widest text-stone-400 hover:text-red-400">
+                            Link widerrufen
+                          </button>
+                        ) : (
+                          <button onClick={() => linkAusstellen(te)} disabled={arbeitet}
+                            className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest
+                                       text-stone-300 hover:text-white">
+                            <Link2 size={12} /> Link ausstellen
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                {/* Der Link genau einmal. In der Datenbank liegt nur sein
+                    Hash -- wer ihn jetzt nicht kopiert, stellt einen neuen aus. */}
+                {frischerLink && (
+                  <div className="bg-black/40 rounded-xl p-4 space-y-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400">
+                      Dieser Link wird nur jetzt angezeigt
+                    </p>
+                    <p className="font-mono text-[11px] text-stone-200 break-all">{frischerLink.url}</p>
+                    <button onClick={() => {
+                        navigator.clipboard?.writeText(frischerLink.url);
+                        setKopiert(true); setTimeout(() => setKopiert(false), 2500);
+                      }}
+                      className="flex items-center gap-1.5 bg-white text-stone-900 px-3 py-1.5 rounded-lg
+                                 text-[10px] font-bold uppercase tracking-widest">
+                      {kopiert ? <Check size={12} /> : <Copy size={12} />} {kopiert ? 'Kopiert' : 'Kopieren'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
             </div>
           ))}
         </div>

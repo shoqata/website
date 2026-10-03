@@ -58,7 +58,8 @@ import { neighborhoodsLedBy } from '../lib/stewardship';
 import { billingYearOf } from '../lib/memberQuality';
 import { missingFieldKeys, qualityScore, feeStateFor, hasDeliveryConflict } from '../lib/memberQuality';
 import { isPlaceholderEmail, hasUsableEmail, emailMissingForDelivery, deliveryNeedsEmail } from '../lib/memberEmail';
-type AdminTabId = 'USERS' | 'NEIGHBORHOODS' | 'ANALYTICS' | 'STATISTICS' | 'WEBSITE' | 'SOCIAL_AI' | 'EVENTS' | 'NEWS' | 'FINANCE' | 'EXPENSES' | 'DATA' | 'ACCOUNTING' | 'SETTINGS' | 'BOARD' | 'COMMUNICATION' | 'DATA_QUALITY' | 'STAMMBAUM' | 'MARKTPLATZ' | 'SPENDEN' | 'VIDEOS' | 'PROZESSE';
+import AdminTreffen from './AdminTreffen';
+type AdminTabId = 'USERS' | 'NEIGHBORHOODS' | 'ANALYTICS' | 'STATISTICS' | 'WEBSITE' | 'SOCIAL_AI' | 'EVENTS' | 'NEWS' | 'FINANCE' | 'EXPENSES' | 'DATA' | 'ACCOUNTING' | 'SETTINGS' | 'BOARD' | 'COMMUNICATION' | 'DATA_QUALITY' | 'STAMMBAUM' | 'MARKTPLATZ' | 'SPENDEN' | 'VIDEOS' | 'PROZESSE' | 'TREFFEN';
 
 interface NavItem {
     id: AdminTabId;
@@ -196,6 +197,10 @@ const AdminPanel: React.FC = () => {
           title: t('admin.group.content'),
           items: [
               { id: 'EVENTS', label: t('admin.tab.events'), icon: <Calendar size={18} /> },
+              // Einladungen zu Vereinstreffen. Steht neben den eigenen
+              // Anlaessen, ist aber etwas anderes: hier laedt der Betreiber
+              // ein, dort veranstaltet der Verein selbst.
+              { id: 'TREFFEN', label: t('admin.tab.treffen'), icon: <CalendarDays size={18} /> },
               { id: 'VIDEOS', label: t('admin.tab.videos'), icon: <Film size={18} /> },
               { id: 'NEWS', label: t('admin.tab.news'), icon: <Newspaper size={18} /> },
               { id: 'WEBSITE', label: t('admin.tab.website'), icon: <Globe size={18} /> },
@@ -575,6 +580,8 @@ const AdminPanel: React.FC = () => {
                             </div>
                         )}
                         
+                        {activeTab === 'TREFFEN' && <AdminTreffen />}
+
                         {activeTab === 'EVENTS' && (
                             <div className="space-y-6">
                                 <div className="flex justify-between items-center bg-white p-6 rounded-3xl border border-stone-100 shadow-sm">
