@@ -197,7 +197,11 @@ const SuperAdminTreffen: React.FC = () => {
       {kind}
     </label>
   );
-  const eingabe = "w-full p-2.5 bg-white border border-stone-200 rounded-xl text-sm outline-none focus:border-stone-400";
+  // text-stone-900 ausdruecklich: der Betreiberbereich setzt text-white auf
+  // den ganzen Rahmen (bg-stone-950 text-white), und ein weisses Feld erbt
+  // das -- weisse Schrift auf weissem Grund. Eine Farbe, die nur dort
+  // stimmt, wo sie gesetzt wurde, ist keine.
+  const eingabe = "w-full p-2.5 bg-white border border-stone-200 rounded-xl text-sm text-stone-900 placeholder:text-stone-400 outline-none focus:border-stone-400";
 
   // ---------------------------------------------------------------- Liste
   if (!offen) return (
@@ -352,7 +356,7 @@ const SuperAdminTreffen: React.FC = () => {
         })}
       </div>
 
-      <div className="bg-white rounded-[2rem] p-7 space-y-5">
+      <div className="bg-white text-stone-900 rounded-[2rem] p-7 space-y-5">
         {schritt === 1 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {feld('Titel', <input className={eingabe} value={e.titel}
