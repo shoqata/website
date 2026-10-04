@@ -33,7 +33,7 @@ import {
   Info,
   LayoutTemplate
 } from 'lucide-react';
-import { db } from '../services/firebase';
+import { db } from '../services/datenzugriff';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, writeBatch, setDoc, getDoc } from '@/services/supabase-bridge';
 import { Payment, UserProfile, GlobalPaymentSettings, Account, JournalEntry } from '../types';
 import { useFeedback } from '../context/FeedbackContext';

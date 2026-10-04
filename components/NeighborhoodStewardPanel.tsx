@@ -4,7 +4,7 @@ import {
   Home, Users, Receipt, Search, Save, Loader2, CheckCircle2, Clock,
   AlertTriangle, Phone, Mail, MapPin, Send, X, ShieldAlert,
 } from 'lucide-react';
-import { db } from '../services/firebase';
+import { db } from '../services/datenzugriff';
 import {
   doc, updateDoc, collection, getDocs, query, where,
   myNeighborhoods, reportPaymentPaid,

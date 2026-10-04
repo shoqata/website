@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Briefcase, X, Save, Loader2, Trash2, Mail, Phone, ArrowRight } from 'lucide-react';
-import { db } from '../services/firebase';
+import { db } from '../services/datenzugriff';
 import { doc, updateDoc, deleteDoc } from '@/services/supabase-bridge';
 import { useTranslation } from '../context/LanguageContext';
 import { useFeedback } from '../context/FeedbackContext';

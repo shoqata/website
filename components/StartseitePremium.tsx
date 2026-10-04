@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { collection, doc, getDoc, getDocs, onSnapshot, query, supabase } from '@/services/supabase-bridge';
-import { db } from '../services/firebase';
+import { db } from '../services/datenzugriff';
 import { useTranslation } from '../context/LanguageContext';
 import { onImageError } from '../lib/imageFallback';
 

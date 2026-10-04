@@ -4,7 +4,7 @@ import {
   FileText, X, Save, Loader2, Plus, Trash2, History, ChevronDown, ChevronRight, Users,
   Eye, EyeOff, Download,
 } from 'lucide-react';
-import { db } from '../services/firebase';
+import { db } from '../services/datenzugriff';
 import { doc, updateDoc, setDoc, collection, getDocs, query } from '@/services/supabase-bridge';
 import { useTranslation } from '../context/LanguageContext';
 import { useFeedback } from '../context/FeedbackContext';

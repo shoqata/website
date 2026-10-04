@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, MapPin, Clock, ChevronRight, Heart, X, CheckCircle2, User, Mail, Phone, Loader2, Info, Trophy, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { auth, db } from '../services/firebase';
+import { auth, db } from '../services/datenzugriff';
 import { collection, query, orderBy, onSnapshot, addDoc, doc, getDoc, where } from '@/services/supabase-bridge';
 import { SolidarityEvent, UserProfile, EventRegistration } from '../types';
 import { useTranslation } from '../context/LanguageContext';

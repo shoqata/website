@@ -3,7 +3,7 @@ import Marktplatz from './Marktplatz';
 import { supabase, setTenantAdmin } from '../services/supabase-bridge';
 import { motion } from 'framer-motion';
 import { Building2, X, Save, Loader2, Receipt, Globe, Users, ShieldCheck, Blocks, KeyRound } from 'lucide-react';
-import { db } from '../services/firebase';
+import { db } from '../services/datenzugriff';
 import { doc, updateDoc, addDoc, collection } from '@/services/supabase-bridge';
 import { Tenant } from '../types';
 import { useTranslation } from '../context/LanguageContext';

@@ -16,7 +16,7 @@ import {
   signInWithEmailLink,
   signInWithEmailAndPassword,
   sendPasswordResetEmail
-} from '../services/firebase';
+} from '../services/datenzugriff';
 
 
 const LoginPage: React.FC = () => {

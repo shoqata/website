@@ -1,7 +1,7 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { signOut } from '@/services/supabase-bridge';
-import { auth } from '../services/firebase';
+import { auth } from '../services/datenzugriff';
 
 export const useAutoLogout = (user: any) => {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

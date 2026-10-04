@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Trophy, Heart, ArrowRight, ExternalLink, Handshake } from 'lucide-react';
-import { db } from '../services/firebase';
+import { db } from '../services/datenzugriff';
 import { doc, onSnapshot } from '@/services/supabase-bridge';
 import { useTranslation } from '../context/LanguageContext';
 

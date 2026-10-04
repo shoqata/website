@@ -1,39 +1,31 @@
 import React, { useEffect, useState } from 'react';
 import { AlertOctagon } from 'lucide-react';
 import { useTranslation } from '../context/LanguageContext';
-import { db } from '../services/firebase';
-import { collection, addDoc, serverTimestamp } from '@/services/supabase-bridge';
 
 export const AntiScrapeProtection: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { t } = useTranslation();
     const [isTriggered, setIsTriggered] = useState(false);
-    const [ipAddress, setIpAddress] = useState<string>('Detecting...');
     const [violation, setViolation] = useState<string>('');
 
     useEffect(() => {
-        const triggerWarning = async (reason: string) => {
+        // Frueher stand hier ein Eintrag in security_logs und ein Abruf
+        // der Besucher-IP bei api.ipify.org. Beides ist weg:
+        //
+        // Der Eintrag konnte nie gelingen. Die Sperre greift beim
+        // Seitenaufruf, also vor jeder Anmeldung, und anon darf in
+        // security_logs nichts schreiben -- die Regel gilt nur fuer
+        // authenticated. Jeder Aufruf endete mit 400. Ein Protokoll,
+        // das genau im gemeinten Fall versagt, ist keines; und ein
+        // anonymer Schreibweg nur dafuer waere ein Einfallstor fuer
+        // Flutung.
+        //
+        // Die IP kam von einem Fremddienst, nur um sie dem Besucher
+        // wieder anzuzeigen. Das gab seine Adresse an Dritte weiter
+        // und brachte uns nichts.
+        const triggerWarning = (reason: string) => {
             if (isTriggered) return;
             setViolation(reason);
             setIsTriggered(true);
-
-            try {
-                // Fetch IP address to display in the warning
-                const res = await fetch('https://api.ipify.org?format=json');
-                const data = await res.json();
-                setIpAddress(data.ip);
-
-                // Log the incident to Firestore
-                await addDoc(collection(db, 'security_logs'), {
-                    event: 'SCRAPING_ATTEMPT',
-                    reason,
-                    ip: data.ip,
-                    userAgent: navigator.userAgent,
-                    timestamp: serverTimestamp(),
-                    url: window.location.href
-                });
-            } catch (e) {
-                setIpAddress('UNKNOWN (Logged via ISP)');
-            }
         };
 
         // 1. Detect Headless Browsers (Bots)
@@ -97,9 +89,7 @@ export const AntiScrapeProtection: React.FC<{ children: React.ReactNode }> = ({ 
                     </p>
                     
                     <div className="bg-red-950/80 p-6 rounded-2xl border border-red-800/50 text-left font-mono text-sm md:text-base mb-8 shadow-inner">
-                        <p className="text-red-500 font-bold mb-4 border-b border-red-900/50 pb-2">{t('guard.logged')}</p>
                         <div className="space-y-3">
-                            <p><span className="text-stone-500 w-32 inline-block">{t('guard.ip')}</span> <span className="text-white font-bold bg-red-900/50 px-2 py-1 rounded">{ipAddress}</span></p>
                             <p><span className="text-stone-500 w-32 inline-block">{t('guard.agent')}</span> <span className="text-stone-300">{navigator.userAgent}</span></p>
                             <p><span className="text-stone-500 w-32 inline-block">{t('guard.time')}</span> <span className="text-stone-300">{new Date().toISOString()}</span></p>
                             <p><span className="text-stone-500 w-32 inline-block">{t('guard.action')}</span> <span className="text-red-400">{t('guard.blocked')}</span></p>

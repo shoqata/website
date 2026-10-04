@@ -7,8 +7,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from '../context/LanguageContext';
 import { bewertePasswort } from '../lib/passwortStaerke';
 
-// Firebase
-import { auth, db } from '../services/firebase';
+// Anmeldung und Datenzugriff -- laeuft ueber Supabase; die Namen
+// stammen noch aus der Firebase-Zeit und sind nur die Schnittstelle.
+import { auth, db } from '../services/datenzugriff';
 import { 
   createUserWithEmailAndPassword, 
   sendEmailVerification, 

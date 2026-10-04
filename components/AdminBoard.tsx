@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Calendar, Users, Plus, Save, Trash2, CheckCircle2, X, Bold, Italic, List, AlignLeft, User, Upload, Briefcase, UserPlus, CheckSquare, ArrowRight, Loader2, Link as LinkIcon, AlertCircle, Printer, Share2, Download, Eye, RefreshCw } from 'lucide-react';
-import { db, storage, auth } from '../services/firebase';
+import { db, storage, auth } from '../services/datenzugriff';
 import { collection, query, orderBy, onSnapshot, addDoc, doc, updateDoc, deleteDoc, serverTimestamp } from '@/services/supabase-bridge';
 import { ref, uploadBytes, getDownloadURL } from '@/services/supabase-bridge';
 import { BoardMeeting, UserProfile, BoardMember, ProtocolAttendee, ProtocolAgendaItem, Task } from '../types';

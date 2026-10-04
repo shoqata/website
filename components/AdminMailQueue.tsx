@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Send, Loader2, CheckCircle2, Clock, AlertTriangle, Cake, RefreshCw } from 'lucide-react';
-import { db } from '../services/firebase';
+import { db } from '../services/datenzugriff';
 import { collection, getDocs, query } from '@/services/supabase-bridge';
 import { flushMailQueue } from '../services/mailService';
 import { useTranslation } from '../context/LanguageContext';

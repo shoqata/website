@@ -25,7 +25,7 @@ import {
   Blocks,
   CalendarDays
 } from 'lucide-react';
-import { db, auth } from '../services/firebase';
+import { db, auth } from '../services/datenzugriff';
 import { supabase } from '../services/supabase-bridge';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, createTenant, setTenantAdmin, startTenantSupport, endTenantSupport } from '@/services/supabase-bridge';
 import { Tenant } from '../types';

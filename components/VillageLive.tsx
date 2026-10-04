@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from '../context/LanguageContext';
 import NeighborhoodMap3D from './NeighborhoodMap3D';
-import { db } from '../services/firebase';
+import { db } from '../services/datenzugriff';
 import { collection, query, orderBy, onSnapshot, doc } from '@/services/supabase-bridge';
 import { SolidarityEvent } from '../types';
 

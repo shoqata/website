@@ -33,7 +33,7 @@ import {
   Link as LinkIcon,
   Languages
 } from 'lucide-react';
-import { db, storage } from '../services/firebase';
+import { db, storage } from '../services/datenzugriff';
 import { doc, setDoc, onSnapshot, serverTimestamp, collection, deleteDoc, addDoc } from '@/services/supabase-bridge';
 import { ref, uploadBytes, getDownloadURL } from '@/services/supabase-bridge';
 import { UserProfile, BoardMember } from '../types';

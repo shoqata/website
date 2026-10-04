@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { MapPin, X, Save, Loader2, Trash2 } from 'lucide-react';
-import { db } from '../services/firebase';
+import { db } from '../services/datenzugriff';
 import { addDoc, collection, doc, updateDoc, deleteDoc } from '@/services/supabase-bridge';
 import { Neighborhood, UserProfile } from '../types';
 import { useTranslation } from '../context/LanguageContext';

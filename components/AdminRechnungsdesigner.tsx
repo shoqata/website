@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Loader2, RotateCcw, Save, Check, Lock, Eye, EyeOff, Move } from 'lucide-react';
 import { doc, onSnapshot, setDoc } from '@/services/supabase-bridge';
-import { db } from '../services/firebase';
+import { db } from '../services/datenzugriff';
 import { useTranslation } from '../context/LanguageContext';
 import {
   BLATT, ZAHLTEIL, VORGABE, FELDNAMEN,

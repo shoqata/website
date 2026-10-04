@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Handshake, Check, ArrowRight, ArrowLeft, Loader2, ShieldCheck } from 'lucide-react';
-import { submitSponsor } from '../services/firebase';
+import { submitSponsor } from '../services/datenzugriff';
 import { useTranslation } from '../context/LanguageContext';
 import { useFeedback } from '../context/FeedbackContext';
 import { SPONSOR_PACKAGES, packageByKey, SponsorPackageKey } from '../lib/sponsorPackages';

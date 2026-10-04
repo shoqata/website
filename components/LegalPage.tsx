@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { db } from '../services/firebase';
+import { db } from '../services/datenzugriff';
 import { doc, onSnapshot } from '@/services/supabase-bridge';
 import { ShieldCheck, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';

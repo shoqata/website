@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Heart, UserPlus, LogIn, ChevronRight, X, Smartphone } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from '../context/LanguageContext';
-import { db } from '../services/firebase';
+import { db } from '../services/datenzugriff';
 import { collection, query, where, onSnapshot, doc, getDoc, getDocs, supabase } from '@/services/supabase-bridge';
 import { SolidarityEvent, UserProfile, GlobalPaymentSettings } from '../types';
 import { Marquee } from './ui/Marquee';

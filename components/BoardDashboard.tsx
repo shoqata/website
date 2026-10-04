@@ -6,7 +6,7 @@ import BoardMinutesEditor from './BoardMinutesEditor';
 import CountrySelect from './ui/CountrySelect';
 import { missingFieldKeys } from '../lib/memberQuality';
 import { markPaymentPaid } from '@/services/supabase-bridge';
-import { db } from '../services/firebase';
+import { db } from '../services/datenzugriff';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc } from '@/services/supabase-bridge';
 import { 
   Briefcase, 

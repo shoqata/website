@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { db, collection, query, where, getDocs } from '../services/firebase';
+import { db, collection, query, where, getDocs } from '../services/datenzugriff';
 import { Tenant } from '../types';
 
 interface TenantContextType {

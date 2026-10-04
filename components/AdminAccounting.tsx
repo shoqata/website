@@ -23,7 +23,7 @@ import {
   X,
   ArrowLeftRight
 } from 'lucide-react';
-import { db } from '../services/firebase';
+import { db } from '../services/datenzugriff';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, getDocs, where, writeBatch, doc, Timestamp, getDoc, setDoc, supabase } from '@/services/supabase-bridge';
 import { Account, JournalEntry, Payment } from '../types';
 import { useFeedback } from '../context/FeedbackContext';

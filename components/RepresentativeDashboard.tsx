@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from '../context/LanguageContext';
 import { UserProfile, Payment, Task, GlobalPaymentSettings, Expense, Neighborhood } from '../types';
-import { db, storage, auth } from '../services/firebase';
+import { db, storage, auth } from '../services/datenzugriff';
 import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, addDoc, serverTimestamp, getDocs } from '@/services/supabase-bridge';
 import { ref, uploadBytes, getDownloadURL } from '@/services/supabase-bridge';
 import { 

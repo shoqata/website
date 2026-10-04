@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { UserProfile, UserRole, Neighborhood, SolidarityEvent, NewsArticle, Payment, FiscalYear, BillingGroup, GlobalPaymentSettings, EventRegistration, ContentStatus } from '../types';
-import { db, auth, storage } from '../services/firebase';
+import { db, auth, storage } from '../services/datenzugriff';
 import { collection, doc, serverTimestamp, query, orderBy, onSnapshot, updateDoc, deleteDoc, where, addDoc, setDoc, getDocs, writeBatch, getDoc, Timestamp } from '@/services/supabase-bridge';
 import { ref, uploadBytes, getDownloadURL } from '@/services/supabase-bridge';
 import { signOut } from '@/services/supabase-bridge';

@@ -1,5 +1,5 @@
 
-import { db } from './firebase';
+import { db } from './datenzugriff';
 import { collection, addDoc, serverTimestamp } from '@/services/supabase-bridge';
 
 interface EmailAttachment {

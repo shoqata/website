@@ -14,7 +14,7 @@ import {
   Tag,
   CreditCard
 } from 'lucide-react';
-import { db, storage } from '../services/firebase';
+import { db, storage } from '../services/datenzugriff';
 import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc } from '@/services/supabase-bridge';
 import { ref, uploadBytes, getDownloadURL } from '@/services/supabase-bridge';
 import { Expense, Account } from '../types';

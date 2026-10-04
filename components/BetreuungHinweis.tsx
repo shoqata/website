@@ -4,7 +4,7 @@ import {
   collection, onSnapshot, resolveTenantId,
   startTenantSupport, endTenantSupport,
 } from '@/services/supabase-bridge';
-import { db } from '../services/firebase';
+import { db } from '../services/datenzugriff';
 import { useWerBinIch } from '../lib/useWerBinIch';
 import { useIstPlattformDomain } from '../lib/useIstPlattformDomain';
 import { useFeedback } from '../context/FeedbackContext';

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Plus, BarChart2, Trash2, Send, HelpCircle, CheckCircle2, MessageSquare, X, Handshake, Globe, Phone } from 'lucide-react';
-import { db, auth } from '../services/firebase';
+import { db, auth } from '../services/datenzugriff';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc, updateDoc } from '@/services/supabase-bridge';
 import { Poll, Inquiry } from '../types';
 import { packageByKey } from '../lib/sponsorPackages';

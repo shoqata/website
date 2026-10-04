@@ -23,7 +23,7 @@ import {
   Heart,
   ArrowRight
 } from 'lucide-react';
-import { db } from '../services/firebase';
+import { db } from '../services/datenzugriff';
 import { doc, onSnapshot, setDoc, serverTimestamp, supabase } from '@/services/supabase-bridge';
 import { SystemSettings, GlobalPaymentSettings } from '../types';
 import { useFeedback } from '../context/FeedbackContext';

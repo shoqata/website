@@ -49,7 +49,7 @@ import {
   where, 
   getDocs, 
   deleteDoc
-} from './services/firebase';
+} from './services/datenzugriff';
 
 
 // Context & Hooks

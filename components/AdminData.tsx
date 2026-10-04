@@ -14,7 +14,7 @@ import {
   AlertTriangle,
   Rocket
 } from 'lucide-react';
-import { db, auth } from '../services/firebase';
+import { db, auth } from '../services/datenzugriff';
 import { collection, addDoc, getDocs, query, where, writeBatch, doc, Timestamp, serverTimestamp } from '@/services/supabase-bridge';
 import { useFeedback } from '../context/FeedbackContext';
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BellRing, Check, X, Loader2, User, Calendar, Banknote } from 'lucide-react';
-import { db } from '../services/firebase';
+import { db } from '../services/datenzugriff';
 import { collection, getDocs, query, decidePaymentReport } from '@/services/supabase-bridge';
 import { useTranslation } from '../context/LanguageContext';
 import { useFeedback } from '../context/FeedbackContext';

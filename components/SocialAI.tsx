@@ -25,7 +25,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { generateSocialMediaContent, analyzeImageAndSuggestPost } from '../services/geminiService';
-import { db } from '../services/firebase';
+import { db } from '../services/datenzugriff';
 import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, supabase } from '@/services/supabase-bridge';
 import { useFeedback } from '../context/FeedbackContext';
 import { useTranslation } from '../context/LanguageContext';
