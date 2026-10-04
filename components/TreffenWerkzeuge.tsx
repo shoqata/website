@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Loader2, Utensils, IdCard, Clock, Receipt, Link2, Copy, Check, Download, AlertTriangle, Bus,
+  Loader2, Utensils, IdCard, Clock, Receipt, Link2, Copy, Check, Download, AlertTriangle, Bus, Printer,
 } from 'lucide-react';
 import { supabase } from '@/services/supabase-bridge';
 
@@ -171,6 +171,25 @@ ${schilder.map(p => `<div class="s">
             className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest
                        text-stone-300 hover:text-white disabled:opacity-40">
             <Download size={12} /> Zum Drucken herunterladen
+          </button>
+        </div>
+
+        {/* ------------------------------------------- Flyer und Poster */}
+        <div className={kasten}>
+          <p className={titel}><Printer size={13} /> Flyer und Poster</p>
+          <p className="text-sm text-stone-300 mb-1">
+            {programm.filter(p => p.freigegeben).length} freigegebene Programmpunkte
+          </p>
+          <p className="text-[11px] text-stone-500 leading-relaxed mb-4">
+            Aus dem Treffen gesetzt, nicht abgetippt: Flyer A5 (Vorder- und Rückseite)
+            und Poster A4. Was nicht freigegeben ist, kommt nicht aufs Papier.
+          </p>
+          <button
+            onClick={() => window.open(`${window.location.origin}/#/drucksachen/${treffenId}`, '_blank')}
+            disabled={!programm.some(p => p.freigegeben)}
+            className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest
+                       text-stone-300 hover:text-white disabled:opacity-40">
+            <Printer size={12} /> Öffnen und drucken
           </button>
         </div>
       </div>

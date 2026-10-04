@@ -15,6 +15,7 @@ const RevisionsSeite = React.lazy(() => import('./components/RevisionsSeite'));
 const TreffenGastSeite = React.lazy(() => import('./components/TreffenGastSeite'));
 const VorstellungWizard = React.lazy(() => import('./components/VorstellungWizard'));
 const HeftSeite = React.lazy(() => import('./components/HeftSeite'));
+const TreffenDrucksachen = React.lazy(() => import('./components/TreffenDrucksachen'));
 import { needsProfileSetup } from './lib/memberQuality';
 import { useIstPlattformDomain } from './lib/useIstPlattformDomain';
 import { useStartseitenVorlage } from './lib/useStartseitenVorlage';
@@ -466,6 +467,11 @@ const AppContent: React.FC = () => {
                     {/* Das Heft nach dem Treffen -- derselbe Link wie bei der
                         Vorstellung, ab dem Tag des Treffens. */}
                     <Route path="/heft/:token" element={<HeftSeite />} />
+                    {/* Flyer und Poster zum Treffen. Eigene Seite, damit der
+                        Druckdialog nur das Blatt sieht und nicht die halbe
+                        Verwaltung drumherum. Wer das Treffen lesen darf,
+                        entscheidet die Datenbank. */}
+                    <Route path="/drucksachen/:id" element={<TreffenDrucksachen />} />
                     <Route path="/about" element={istPlattformDomain ? <Navigate to="/" replace /> : <AboutUsPage />} />
                     <Route path="/live" element={istPlattformDomain ? <Navigate to="/" replace /> : <VillageLive />} />
                     <Route path="/events" element={istPlattformDomain ? <Navigate to="/" replace /> : <EventsPage />} />
