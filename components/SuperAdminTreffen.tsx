@@ -4,6 +4,7 @@ import {
   Banknote, ListOrdered, Eye, Trash2, Link2, Copy,
 } from 'lucide-react';
 import { supabase } from '@/services/supabase-bridge';
+import TreffenWerkzeuge from './TreffenWerkzeuge';
 
 // Vereinstreffen anlegen -- als Assistent, nicht als Formular.
 //
@@ -272,6 +273,13 @@ const SuperAdminTreffen: React.FC = () => {
                     )}
                   </div>
                 ))}
+
+                {/* Was am Tag und danach gebraucht wird: Essenszahlen,
+                    Namensschilder, Verschieben, Abrechnen, Vorstellungs-Links. */}
+                <div className="pt-4 border-t border-white/10">
+                  <TreffenWerkzeuge treffenId={t.id} teilnehmer={teilnehmer}
+                    neuLaden={() => detailLaden(t.id)} />
+                </div>
 
                 {/* Der Link genau einmal. In der Datenbank liegt nur sein
                     Hash -- wer ihn jetzt nicht kopiert, stellt einen neuen aus. */}

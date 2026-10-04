@@ -13,6 +13,8 @@ const Journal = React.lazy(() => import('./components/vorlagen/Journal'));
 const VideoSeite = React.lazy(() => import('./components/VideoSeite'));
 const RevisionsSeite = React.lazy(() => import('./components/RevisionsSeite'));
 const TreffenGastSeite = React.lazy(() => import('./components/TreffenGastSeite'));
+const VorstellungWizard = React.lazy(() => import('./components/VorstellungWizard'));
+const HeftSeite = React.lazy(() => import('./components/HeftSeite'));
 import { needsProfileSetup } from './lib/memberQuality';
 import { useIstPlattformDomain } from './lib/useIstPlattformDomain';
 import { useStartseitenVorlage } from './lib/useStartseitenVorlage';
@@ -458,6 +460,12 @@ const AppContent: React.FC = () => {
                         und aendern darf, entscheidet das Token in der Adresse --
                         in der Datenbank, nicht hier. */}
                     <Route path="/treffen/:token" element={<TreffenGastSeite />} />
+                    {/* Die Selbstvorstellung. Jede Person bekommt ihren eigenen
+                        Link; was sie damit darf, entscheidet die Datenbank. */}
+                    <Route path="/vorstellen/:token" element={<VorstellungWizard />} />
+                    {/* Das Heft nach dem Treffen -- derselbe Link wie bei der
+                        Vorstellung, ab dem Tag des Treffens. */}
+                    <Route path="/heft/:token" element={<HeftSeite />} />
                     <Route path="/about" element={istPlattformDomain ? <Navigate to="/" replace /> : <AboutUsPage />} />
                     <Route path="/live" element={istPlattformDomain ? <Navigate to="/" replace /> : <VillageLive />} />
                     <Route path="/events" element={istPlattformDomain ? <Navigate to="/" replace /> : <EventsPage />} />
