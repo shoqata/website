@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Loader2, Utensils, IdCard, Clock, Receipt, Link2, Copy, Check, Download, AlertTriangle,
+  Loader2, Utensils, IdCard, Clock, Receipt, Link2, Copy, Check, Download, AlertTriangle, Bus,
 } from 'lucide-react';
 import { supabase } from '@/services/supabase-bridge';
 
@@ -30,16 +30,19 @@ const TreffenWerkzeuge: React.FC<{ treffenId: string; teilnehmer: any[]; neuLade
   const [fehler, setFehler] = useState('');
   const [meldung, setMeldung] = useState('');
   const [links, setLinks] = useState<any[] | null>(null);
+  const [ausfluege, setAusfluege] = useState<any[]>([]);
   const [kopiert, setKopiert] = useState('');
 
   const laden = async () => {
-    const [{ data: e }, { data: s }, { data: p }] = await Promise.all([
+    const [{ data: e }, { data: s }, { data: p }, { data: a }] = await Promise.all([
       supabase.rpc('treffen_essenszahlen', { p_treffen: treffenId }),
       supabase.rpc('treffen_namensschilder', { p_treffen: treffenId }),
       supabase.from('treffen_programm').select('*').eq('treffen_id', treffenId)
         .order('tag', { nullsFirst: true }).order('beginn'),
+      supabase.rpc('treffen_ausflugslisten', { p_treffen: treffenId }),
     ]);
     setEssen(e); setSchilder((s as any[]) || []); setProgramm((p as any[]) || []);
+    setAusfluege((a as any[]) || []);
   };
   useEffect(() => { laden(); /* eslint-disable-next-line */ }, [treffenId]);
 
@@ -171,6 +174,46 @@ ${schilder.map(p => `<div class="s">
           </button>
         </div>
       </div>
+
+      {/* ------------------------------------------------ Ausfluege */}
+      {ausfluege.length > 0 && (
+        <div className={kasten}>
+          <p className={titel}><Bus size={13} /> Ausflüge — wer fährt mit</p>
+          <div className="space-y-4">
+            {ausfluege.map((a: any) => (
+              <div key={a.id}>
+                <div className="flex items-baseline justify-between gap-3 flex-wrap mb-1.5">
+                  <p className="text-sm text-white">
+                    {a.titel}
+                    <span className="text-stone-500"> nach {a.ziel}</span>
+                  </p>
+                  <p className="text-[11px] text-stone-400 tabular-nums shrink-0">
+                    {a.angemeldet}{a.plaetze ? ` / ${a.plaetze}` : ''} angemeldet
+                    {a.plaetze != null && (a.frei === 0
+                      ? <span className="text-amber-400"> · ausgebucht</span>
+                      : <span> · {a.frei} frei</span>)}
+                  </p>
+                </div>
+                <p className="text-[11px] text-stone-500 mb-2">
+                  {String(a.beginn).slice(0,5)}{a.rueckkehr ? `–${String(a.rueckkehr).slice(0,5)}` : ''}
+                  {a.treffpunkt ? ` · ab ${a.treffpunkt}` : ''}
+                  {a.anreise ? ` · ${a.anreise}` : ''}
+                  {Number(a.kosten) > 0 ? ` · ${geld(a.kosten)} CHF` : ''}
+                </p>
+                {(a.leute || []).length === 0 ? (
+                  <p className="text-[11px] text-stone-600">Noch niemand angemeldet.</p>
+                ) : (
+                  <div className="text-[11px] text-stone-300 space-y-0.5">
+                    {a.leute.map((p: any, i: number) => (
+                      <p key={i}>{p.name} <span className="text-stone-500">· {p.verein}</span></p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ------------------------------------------------ Programm */}
       <div className={kasten}>

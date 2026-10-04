@@ -100,6 +100,9 @@ const Treffen: React.FC = () => {
                         </td>
                         <td className="py-2 pr-4" style={{ color: TINTE, verticalAlign: 'top' }}>
                           {p.titel}
+                          {p.art === 'AUSFLUG' && p.ziel && (
+                            <span style={{ color: SCHIEFER }}> — nach {p.ziel}</span>
+                          )}
                           {p.fuer === 'VERTRETER' && (
                             <em style={{ color: SCHIEFER }}> — nur Delegationsleitungen</em>
                           )}

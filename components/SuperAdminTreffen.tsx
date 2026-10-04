@@ -28,7 +28,15 @@ type Entwurf = {
 
 type Gast = { art: 'GASTVEREIN' | 'GAST'; name: string; kontakt_name: string; kontakt_email: string };
 type Punkt = { beginn: string; dauer_min: string; titel: string; ort: string;
-               verantwortlich: string; spur: string; fuer: 'ALLE' | 'VERTRETER' };
+               verantwortlich: string; spur: string; fuer: 'ALLE' | 'VERTRETER';
+               // Ein Ausflug ist kein gewoehnlicher Punkt: er hat ein Ziel,
+               // einen Treffpunkt und begrenzte Plaetze.
+               art: 'PUNKT' | 'AUSFLUG'; ziel: string; treffpunkt: string;
+               anreise: string; rueckkehr: string; plaetze: string; kosten: string };
+
+const LEERER_PUNKT: Punkt = { beginn:'', dauer_min:'', titel:'', ort:'', verantwortlich:'',
+  spur:'Alle', fuer:'ALLE', art:'PUNKT', ziel:'', treffpunkt:'', anreise:'',
+  rueckkehr:'', plaetze:'', kosten:'' };
 
 const LEER: Entwurf = {
   titel: '', beschreibung: '', datum: '', ende: '', beginn: '09:00',
@@ -150,11 +158,23 @@ const SuperAdminTreffen: React.FC = () => {
         const { error: f1 } = await supabase.from('treffen_teilnehmer').insert(teilnehmer);
         if (f1) throw f1;
       }
-      const punkte = programm.filter(p => p.titel.trim() && p.beginn).map((p, i) => ({
+      const punkte = programm
+        // Ein Ausflug ohne Ziel wird von der Datenbank abgewiesen. Ihn hier
+        // schon wegzulassen ist freundlicher als eine Fehlermeldung nach
+        // fuenf Schritten.
+        .filter(p => p.titel.trim() && p.beginn && (p.art !== 'AUSFLUG' || p.ziel.trim()))
+        .map((p, i) => ({
         treffen_id: id, beginn: p.beginn, dauer_min: p.dauer_min ? Number(p.dauer_min) : null,
         titel: p.titel.trim(), ort: p.ort.trim() || null,
         verantwortlich: p.verantwortlich.trim() || null,
         spur: p.spur.trim() || 'Alle', fuer: p.fuer,
+        art: p.art,
+        ziel: p.art === 'AUSFLUG' ? (p.ziel.trim() || null) : null,
+        treffpunkt: p.treffpunkt.trim() || null,
+        anreise: p.anreise.trim() || null,
+        rueckkehr: p.rueckkehr || null,
+        plaetze: p.plaetze ? Number(p.plaetze) : null,
+        kosten: p.kosten ? Number(p.kosten) : 0,
         // Beim Anlegen noch nicht freigegeben: erst planen, dann zeigen.
         freigegeben: false, reihenfolge: i + 1,
       }));
@@ -464,9 +484,14 @@ const SuperAdminTreffen: React.FC = () => {
                 Veröffentlicht wird das Programm erst, wenn Sie es später freigeben.
               </p>
               <button type="button" onClick={() => setProgramm(a => [...a,
-                { beginn: '', dauer_min: '', titel: '', ort: '', verantwortlich: '', spur: 'Alle', fuer: 'ALLE' }])}
+                LEERER_PUNKT])}
                 className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-stone-500 hover:text-stone-900">
                 + Punkt
+              </button>
+              <button type="button" onClick={() => setProgramm(a => [...a,
+                { ...LEERER_PUNKT, art: 'AUSFLUG', spur: 'Ausflug', anreise: 'Bus' }])}
+                className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-stone-500 hover:text-stone-900">
+                + Ausflug
               </button>
             </div>
             {programm.length === 0 ? (
@@ -491,6 +516,26 @@ const SuperAdminTreffen: React.FC = () => {
                     </select>
                     <button type="button" onClick={() => setProgramm(a => a.filter((_, j) => j !== i))}
                       className="text-stone-300 hover:text-red-500"><Trash2 size={15} /></button>
+
+                    {/* Nur bei Ausfluegen: Ziel, Treffpunkt, Anreise, Rueckkehr,
+                        Plaetze, Kosten. Ein gewoehnlicher Punkt braucht davon
+                        nichts, und leere Felder sind kein Angebot. */}
+                    {p.art === 'AUSFLUG' && (
+                      <div className="col-span-2 md:col-span-7 grid grid-cols-2 md:grid-cols-6 gap-2 -mt-1 mb-1">
+                        <input className={eingabe} placeholder="Ziel" value={p.ziel}
+                          onChange={x => setProgramm(a => a.map((y, j) => j === i ? { ...y, ziel: x.target.value } : y))} />
+                        <input className={eingabe} placeholder="Treffpunkt" value={p.treffpunkt}
+                          onChange={x => setProgramm(a => a.map((y, j) => j === i ? { ...y, treffpunkt: x.target.value } : y))} />
+                        <input className={eingabe} placeholder="Anreise" value={p.anreise}
+                          onChange={x => setProgramm(a => a.map((y, j) => j === i ? { ...y, anreise: x.target.value } : y))} />
+                        <input type="time" className={eingabe} value={p.rueckkehr}
+                          onChange={x => setProgramm(a => a.map((y, j) => j === i ? { ...y, rueckkehr: x.target.value } : y))} />
+                        <input type="number" className={eingabe} placeholder="Plätze" value={p.plaetze}
+                          onChange={x => setProgramm(a => a.map((y, j) => j === i ? { ...y, plaetze: x.target.value } : y))} />
+                        <input type="number" step="0.05" className={eingabe} placeholder="CHF" value={p.kosten}
+                          onChange={x => setProgramm(a => a.map((y, j) => j === i ? { ...y, kosten: x.target.value } : y))} />
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

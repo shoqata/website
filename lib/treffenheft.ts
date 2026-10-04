@@ -139,9 +139,11 @@ ${programm.length ? `<section>
   <h2>Der Tag</h2>
   <table class="programm"><tbody>
     ${programm.map(p => `<tr>
-      <td class="t">${schuetzen(zeit(p.beginn))}</td>
+      <td class="t">${schuetzen(zeit(p.beginn))}${p.rueckkehr ? `<br><span style="color:var(--weich)">${schuetzen(zeit(p.rueckkehr))}</span>` : ''}</td>
       <td class="s">${schuetzen(p.spur || '')}</td>
-      <td>${schuetzen(p.titel)}</td>
+      <td>${schuetzen(p.titel)}${
+        p.art === 'AUSFLUG' && p.ziel
+          ? `<br><span style="color:var(--weich);font-size:.86em">nach ${schuetzen(p.ziel)}</span>` : ''}</td>
       <td class="o">${schuetzen(p.ort || '')}</td>
     </tr>`).join('')}
   </tbody></table>

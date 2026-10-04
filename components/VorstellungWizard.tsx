@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import {
-  Loader2, AlertTriangle, ArrowRight, ArrowLeft, Check, Utensils, BookOpen, Sparkles,
+  Loader2, AlertTriangle, ArrowRight, ArrowLeft, Check, Sparkles, Bus, MapPin,
 } from 'lucide-react';
 import { supabase } from '@/services/supabase-bridge';
 
@@ -47,6 +47,12 @@ const VorstellungWizard: React.FC = () => {
   const [essen, setEssen] = useState('KEINE_ANGABE');
   const [hinweis, setHinweis] = useState('');
   const [imHeft, setImHeft] = useState<boolean | null>(null);
+  // Ausfluege gibt es nicht bei jedem Treffen. Ein leerer Schritt "keine
+  // Ausfluege vorhanden" waere eine Station, die nichts tut -- darum
+  // erscheint er nur, wenn welche da sind.
+  const [ausfluege, setAusfluege] = useState<any[]>([]);
+  const [ausflugLaeuft, setAusflugLaeuft] = useState('');
+  const [ausflugFehler, setAusflugFehler] = useState('');
 
   useEffect(() => {
     let lebt = true;
@@ -60,9 +66,30 @@ const VorstellungWizard: React.FC = () => {
       setEssen(b.essen || 'KEINE_ANGABE'); setHinweis(b.essen_hinweis || '');
       setImHeft(b.im_heft);
       setLaedt(false);
+      supabase.rpc('ausfluege_fuer', { p_token: token }).then(({ data: a, error: f }) => {
+        if (lebt && !f) setAusfluege((a as any[]) || []);
+      });
     });
     return () => { lebt = false; };
   }, [token]);
+
+  // Die Anmeldung gilt sofort, nicht erst beim Abschluss des Assistenten.
+  // Plaetze sind begrenzt; wer sich eintraegt und dann noch drei Schritte
+  // weiterklickt, koennte den Platz in der Zwischenzeit verlieren.
+  const anmelden = async (a: any, dabei: boolean) => {
+    setAusflugLaeuft(a.id); setAusflugFehler('');
+    try {
+      const { error } = await supabase.rpc('ausflug_anmelden', {
+        p_token: token, p_programm: a.id, p_dabei: dabei });
+      if (error) throw error;
+      const { data } = await supabase.rpc('ausfluege_fuer', { p_token: token });
+      setAusfluege((data as any[]) || []);
+    } catch (e: any) {
+      setAusflugFehler(e?.message || 'Konnte nicht gespeichert werden.');
+      const { data } = await supabase.rpc('ausfluege_fuer', { p_token: token });
+      setAusfluege((data as any[]) || []);
+    } finally { setAusflugLaeuft(''); }
+  };
 
   const speichern = async () => {
     setArbeitet(true); setFehler('');
@@ -162,6 +189,53 @@ const VorstellungWizard: React.FC = () => {
       ),
       weiter: true,
     },
+    ...(ausfluege.length ? [{
+      frage: ausfluege.length === 1 ? 'Kommen Sie mit auf den Ausflug?' : 'Welche Ausflüge möchten Sie mitmachen?',
+      unter: 'Die Plätze sind begrenzt — wer sich zuerst einträgt, ist dabei. Sie können sich bis zum Treffen wieder abmelden.',
+      inhalt: (
+        <div className="space-y-3">
+          {ausfluege.map(a => {
+            const voll = a.frei === 0 && !a.dabei;
+            return (
+              <button key={a.id} type="button" disabled={voll || ausflugLaeuft === a.id}
+                onClick={() => anmelden(a, !a.dabei)}
+                className={`w-full text-left p-5 rounded-2xl border transition-all ${
+                  a.dabei ? 'border-stone-900 bg-white shadow-sm'
+                    : voll ? 'border-stone-200 bg-stone-50 opacity-60 cursor-not-allowed'
+                    : 'border-stone-200 bg-white/60 hover:border-stone-400'}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-bold text-sm mb-1 flex items-center gap-2">
+                      {a.dabei && <Check size={15} />}{a.titel}
+                    </p>
+                    <p className="text-[12px] text-stone-500 leading-relaxed flex items-start gap-1.5">
+                      <MapPin size={12} className="shrink-0 mt-0.5" />{a.ziel}
+                    </p>
+                    <p className="text-[12px] text-stone-500 leading-relaxed mt-1">
+                      {String(a.beginn).slice(0,5)}{a.rueckkehr ? `–${String(a.rueckkehr).slice(0,5)}` : ''}
+                      {a.treffpunkt ? ` · ab ${a.treffpunkt}` : ''}
+                      {a.anreise ? ` · ${a.anreise}` : ''}
+                      {Number(a.kosten) > 0 ? ` · ${Number(a.kosten).toFixed(2)} CHF` : ''}
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-widest shrink-0 text-stone-400">
+                    {ausflugLaeuft === a.id ? '…'
+                      : a.plaetze == null ? 'offen'
+                      : voll ? 'ausgebucht'
+                      : `${a.frei} frei`}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+          {ausflugFehler && <p className="text-xs text-amber-700">{ausflugFehler}</p>}
+          <p className="text-[11px] text-stone-400 leading-relaxed">
+            Ihre Anmeldung gilt sofort — Sie müssen dafür nicht bis zum Schluss klicken.
+          </p>
+        </div>
+      ),
+      weiter: true,
+    }] : []),
     {
       frage: 'Dürfen wir Sie ins Heft aufnehmen?',
       unter: `Nach dem Treffen bekommen alle Teilnehmenden ein kleines Heft: wer dabei war, von welchem Verein, und was die Leute geschrieben haben. Sie entscheiden, ob Sie darin stehen.`,
