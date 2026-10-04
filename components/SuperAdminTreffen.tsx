@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   Loader2, Plus, ChevronRight, ChevronLeft, Check, Users, CalendarDays,
-  Banknote, ListOrdered, Eye, Trash2, Link2, Copy,
+  Banknote, ListOrdered, Eye, Trash2, Link2, Copy, Printer,
 } from 'lucide-react';
 import { supabase } from '@/services/supabase-bridge';
 import TreffenWerkzeuge from './TreffenWerkzeuge';
@@ -81,6 +81,31 @@ const SuperAdminTreffen: React.FC = () => {
     setTeilnehmer(data || []);
     const { data: k } = await supabase.rpc('treffen_kosten', { p_treffen: id });
     setKosten(k);
+  };
+
+  // Den Status aendern. Bis hierher liess er sich nur beim Anlegen
+  // setzen und danach nur noch ablesen -- ein Treffen blieb fuer immer
+  // Entwurf.
+  //
+  // .select('id') ist nicht Zierde: ein UPDATE, das keine Zeile trifft,
+  // wirft keinen Fehler. Ohne die Rueckgabe zu pruefen, meldete die
+  // Oberflaeche Erfolg, waehrend sich nichts geaendert haette.
+  const statusSetzen = async (t: any, neu: 'ENTWURF' | 'OEFFENTLICH' | 'BEENDET') => {
+    if (neu === t.status) return;
+    setArbeitet(true); setFehler('');
+    try {
+      const { data, error } = await supabase.from('treffen')
+        .update({ status: neu }).eq('id', t.id).select('id');
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error('Nicht geaendert — fehlende Berechtigung?');
+      }
+      await laden();
+    } catch (err: any) {
+      setFehler(err?.message || 'Status liess sich nicht aendern.');
+    } finally {
+      setArbeitet(false);
+    }
   };
 
   const linkAusstellen = async (t: any) => {
@@ -252,6 +277,50 @@ const SuperAdminTreffen: React.FC = () => {
 
             {detail === t.id && (
               <div className="px-5 pb-5 space-y-3 border-t border-white/10 pt-4">
+
+                {/* Status und Drucksachen zuoberst: beides wird gesucht,
+                    bevor man sich durch die Teilnehmerliste scrollt. */}
+                <div className="flex items-start justify-between gap-4 flex-wrap
+                                bg-white/5 border border-white/10 rounded-2xl p-4">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-2">
+                      Status
+                    </p>
+                    <div className="flex gap-1.5 flex-wrap">
+                      {([
+                        ['ENTWURF', 'Entwurf'],
+                        ['OEFFENTLICH', 'Öffentlich'],
+                        ['BEENDET', 'Beendet'],
+                      ] as const).map(([wert, beschriftung]) => (
+                        <button key={wert} onClick={() => statusSetzen(t, wert)} disabled={arbeitet}
+                          className={`px-3 py-1.5 rounded-xl text-[11px] font-bold uppercase
+                                      tracking-widest transition-colors disabled:opacity-40 ${
+                            t.status === wert
+                              ? 'bg-white text-stone-900'
+                              : 'bg-white/5 text-stone-300 hover:bg-white/10 hover:text-white'}`}>
+                          {beschriftung}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-stone-500 mt-2 max-w-sm leading-relaxed">
+                      {t.status === 'OEFFENTLICH'
+                        ? 'Steht auf unityhub.li — mit Programm, Ort und Kosten.'
+                        : t.status === 'BEENDET'
+                        ? 'Nicht mehr öffentlich. Das Heft bleibt für die Teilnehmer erreichbar.'
+                        : 'Nur hier sichtbar. Auf unityhub.li steht nichts davon.'}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => window.open(
+                      `${window.location.origin}/#/drucksachen/${t.id}`, '_blank')}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5
+                               border border-white/10 text-[11px] font-bold uppercase
+                               tracking-widest text-stone-200 hover:bg-white/10 hover:text-white">
+                    <Printer size={13} /> Flyer &amp; Poster
+                  </button>
+                </div>
+
                 {kosten && kosten.art !== 'KEINE' && (
                   <p className="text-[11px] text-stone-400">
                     {kosten.vereine} zugesagte Vereine · {kosten.personen} Personen ·

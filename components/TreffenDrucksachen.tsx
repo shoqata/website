@@ -253,6 +253,11 @@ export const Drucksachen: React.FC<{ treffen: any; programm: any[] }> = ({ treff
 // ist das einzige, was es betrifft, und @page gehoert zum Blatt.
 const CSS = `
 .druck {
+  /* Das Blatt haengt per Portal an body, also HINTER #root. Ohne
+     feste Lage saesse es unterhalb der App -- die Seite sah leer aus,
+     und man haette erst daran vorbeiscrollen muessen. Im Druck
+     wieder normal, sonst ergaebe fixed genau eine Seite. */
+  position:fixed; inset:0; overflow:auto; z-index:9000;
   --papier:#ffffff; --tinte:#111111; --weich:#6f6b66;
   --linie:#ddd8d1; --akzent:#0428cb; --warm:#f7f5f1;
   --grotesk:'Helvetica Neue', Helvetica, Arial, 'Liberation Sans', sans-serif;
@@ -383,6 +388,7 @@ h1 {
      aufs Papier, und so muss ich dessen Aufbau nicht kennen. */
   body > *:not([data-druck]) { display:none !important }
   html, body { background:#fff !important; margin:0 !important }
+  .druck { position:static; overflow:visible; z-index:auto }
   .leiste { display:none }
   .druck { background:#fff; padding:0 }
   .blatt { margin:0; box-shadow:none; break-after:page; page-break-after:always }
