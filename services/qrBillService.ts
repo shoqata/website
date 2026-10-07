@@ -73,16 +73,52 @@ const sanitize = (str: string | undefined, laenge = 70): string => {
   return t.trim().substring(0, laenge);
 };
 
-const normalizeCountry = (input: string | undefined): string => {
-    if (!input) return 'CH';
+// Welches Land ist gemeint? Eine Stelle entscheidet das, denn davon
+// haengt nicht nur die QR-Rechnung ab, sondern auch, ob ein Mitglied
+// ueberhaupt eine bekommt oder stattdessen PayPal und Bankangaben.
+//
+// Leer bleibt CH: das Feld ist bei den allermeisten Mitgliedern nicht
+// gefuellt, der Verein ist schweizerisch und seine IBAN auch. Ein
+// unbekannter NAME faellt dagegen NICHT mehr auf CH -- "Holland" wurde
+// so zu einem Schweizer, und der haette eine QR-Rechnung bekommen, die
+// seine Bank nicht lesen kann.
+export const normalizeCountry = (input: string | undefined): string => {
+    if (!input || !input.trim()) return 'CH';
     const c = input.toLowerCase().trim();
     if (c === 'schweiz' || c === 'switzerland' || c === 'suisse' || c === 'svizzera' || c === 'zvicer' || c === 'zvicër') return 'CH';
-    if (c === 'deutschland' || c === 'germany' || c === 'gjermania' || c === 'gjermani') return 'DE';
-    if (c === 'austria' || c === 'österreich' || c === 'austri') return 'AT';
-    if (c === 'kosovo' || c === 'kosova' || c === 'xk') return 'XK'; 
+    if (c === 'deutschland' || c === 'germany' || c === 'allemagne' || c === 'gjermania' || c === 'gjermani') return 'DE';
+    if (c === 'austria' || c === 'österreich' || c === 'oesterreich' || c === 'autriche' || c === 'austri') return 'AT';
+    if (c === 'kosovo' || c === 'kosova' || c === 'xk') return 'XK';
     if (c === 'liechtenstein') return 'LI';
-    if (input.length === 2) return input.toUpperCase(); 
-    return 'CH'; 
+    if (c === 'holland' || c === 'niederlande' || c === 'netherlands' || c === 'hollandë') return 'NL';
+    if (c === 'frankreich' || c === 'france' || c === 'franca' || c === 'francë') return 'FR';
+    if (c === 'italien' || c === 'italy' || c === 'italia' || c === 'itali') return 'IT';
+    if (c === 'albanien' || c === 'albania' || c === 'shqiperi' || c === 'shqipëri') return 'AL';
+    if (c === 'nordmazedonien' || c === 'mazedonien' || c === 'macedonia' || c === 'maqedoni') return 'MK';
+    if (c === 'serbien' || c === 'serbia' || c === 'serbi') return 'RS';
+    if (c === 'belgien' || c === 'belgium' || c === 'belgique') return 'BE';
+    if (c === 'schweden' || c === 'sweden') return 'SE';
+    if (c === 'norwegen' || c === 'norway') return 'NO';
+    if (c === 'england' || c === 'grossbritannien' || c === 'united kingdom' || c === 'uk') return 'GB';
+    if (c === 'usa' || c === 'vereinigte staaten' || c === 'united states') return 'US';
+    if (input.trim().length === 2) return input.trim().toUpperCase();
+    // Unbekannt und nicht leer: NICHT raten. 'XX' heisst "steht da,
+    // aber ich kenne es nicht" -- und das ist jedenfalls nicht die Schweiz.
+    return 'XX';
+};
+
+// Bekommt diese Person eine Schweizer QR-Rechnung, oder Bankangaben
+// und PayPal? Genau eine Frage, genau eine Antwort.
+export const istSchweiz = (land: string | undefined): boolean =>
+    normalizeCountry(land) === 'CH';
+
+// Fuer die QR-Nutzlast: dort ist ein Laenderfeld Pflicht und 'XX' kein
+// Land. Eine unlesbare Rechnung waere schlimmer als eine mit
+// ungenauem Land -- die Entscheidung, OB es eine QR-Rechnung gibt,
+// faellt ohnehin vorher ueber istSchweiz().
+const laendercodeFuerNutzlast = (land: string | undefined): string => {
+    const c = normalizeCountry(land);
+    return c === 'XX' ? 'CH' : c;
 };
 
 export const calculateMod10 = (input: string): string => {
@@ -187,7 +223,7 @@ export const generateQrCodeContent = (data: QrBillData): string => {
   content += (sanitize(data.creditor.zip) + ' ' + sanitize(data.creditor.city)).trim() + br;
   content += '' + br; // PstCd - bei Typ K leer
   content += '' + br; // TwnNm - bei Typ K leer
-  content += normalizeCountry(data.creditor.country) + br; 
+  content += laendercodeFuerNutzlast(data.creditor.country) + br; 
 
   // Ultimate Creditor (Empty)
   content += '' + br + '' + br + '' + br + '' + br + '' + br + '' + br + '' + br;
@@ -203,7 +239,7 @@ export const generateQrCodeContent = (data: QrBillData): string => {
   content += (sanitize(data.debtor.zip) + ' ' + sanitize(data.debtor.city)).trim() + br;
   content += '' + br; // PstCd - bei Typ K leer
   content += '' + br; // TwnNm - bei Typ K leer
-  content += normalizeCountry(data.debtor.country) + br;
+  content += laendercodeFuerNutzlast(data.debtor.country) + br;
 
   // Reference
   content += refType + br;

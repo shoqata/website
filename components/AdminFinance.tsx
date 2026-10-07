@@ -47,6 +47,8 @@ import { QrBillData } from '../services/qrBillService';
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import { sendEmail } from '../services/mailService';
+import { erzeugeRechnungPdf } from '../lib/rechnungpdf';
+import { istSchweiz } from '../services/qrBillService';
 import { QRCodeSVG } from 'qrcode.react';
 import AdminRechnungsdesigner from './AdminRechnungsdesigner';
 import Rechnungsblatt from './Rechnungsblatt';
@@ -384,13 +386,18 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
     const handleSendInvoiceEmail = async (payment: Payment) => {
         let email = '';
         let recipientName = '';
+        let anschrift: { adresse?: string; plz?: string; ort?: string; land?: string } = {};
         if (payment.userId === 'EXTERNAL' || !payment.userId) {
             email = payment.customRecipient?.email || '';
             recipientName = payment.customRecipient?.name || 'Guest';
+            const c: any = payment.customRecipient || {};
+            anschrift = { adresse: c.address, plz: c.zip, ort: c.city, land: c.country };
         } else {
             const u = users.find(user => user.id === payment.userId);
             email = u?.email || '';
             recipientName = u?.displayName || 'Member';
+            anschrift = { adresse: (u as any)?.address, plz: (u as any)?.zip,
+                          ort: (u as any)?.city, land: (u as any)?.country };
         }
         if (!hasUsableEmail({ email } as any)) {
             showAlert({ type: 'error', message: t('mail.no_address') });
@@ -406,8 +413,14 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
                 `<strong>${t('field.iban')}:</strong> ${iban}<br/>` +
                 `${payment.reference ? `<strong>${t('field.reference')}:</strong> ${payment.reference}<br/>` : ''}</p>`;
 
+            // Nicht mehr nach payment.method verzweigen, sondern nach dem
+            // Wohnsitz: eine Schweizer QR-Rechnung kann eine auslaendische
+            // Bank nicht lesen, und umgekehrt braucht in der Schweiz
+            // niemand PayPal, wenn der QR danebensteht.
+            const wohntInCh = istSchweiz(anschrift.land);
+
             let paymentInfoHtml = '';
-            if (payment.method === 'QR_BILL') {
+            if (wohntInCh) {
                 paymentInfoHtml = `
                     <h3>${t('mail.pay.bank_qr')}</h3>
                     ${bankRows(paymentSettings.qrIban || paymentSettings.iban)}
@@ -418,7 +431,9 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
                         ${paymentSettings.twintUrl ? `<p><a href="${paymentSettings.twintUrl}" style="display: inline-block; padding: 10px 20px; background-color: #000; color: #fff; text-decoration: none; border-radius: 5px; font-weight: bold;">${t('mail.pay.twint_button')}</a></p>` : ''}
                     </div>` : ''}
                 `;
-            } else if (payment.method === 'GIRO_CODE') {
+            } else {
+                // Ausserhalb der Schweiz: Bankverbindung und PayPal. Eine
+                // QR-Rechnung nuetzt dort niemandem.
                 paymentInfoHtml = `
                     <h3>${t('mail.pay.sepa')}</h3>
                     <p><strong>${t('field.bank')}:</strong> ${paymentSettings.bankName}<br/>
@@ -426,17 +441,12 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
                     <strong>${t('field.iban')}:</strong> ${paymentSettings.iban}<br/>
                     <strong>${t('field.bic')}:</strong> ${paymentSettings.bic || t('field.not_specified')}<br/>
                     <strong>${t('field.purpose')}:</strong> ${payment.invoiceNumber}</p>
-                `;
-            } else if (payment.method === 'PAYPAL') {
-                paymentInfoHtml = `
-                    <h3>${t('mail.pay.paypal')}</h3>
-                    <p>${t('mail.pay.paypal_intro')} <strong>${paymentSettings.paypalEmail || t('field.not_configured')}</strong></p>
-                    <p>${t('mail.pay.paypal_reference')} <strong>${payment.invoiceNumber}</strong></p>
-                `;
-            } else {
-                paymentInfoHtml = `
-                    <h3>${t('mail.pay.generic')}</h3>
-                    ${bankRows(paymentSettings.iban)}
+                    ${paymentSettings.paypalEmail ? `
+                    <div style="margin-top: 20px; padding: 15px; background-color: #f0f0f0; border-radius: 8px;">
+                        <h4 style="margin-top: 0;">${t('mail.pay.paypal')}</h4>
+                        <p>${t('mail.pay.paypal_intro')} <strong>${paymentSettings.paypalEmail}</strong></p>
+                        <p>${t('mail.pay.paypal_reference')} <strong>${payment.invoiceNumber}</strong></p>
+                    </div>` : ''}
                 `;
             }
 
@@ -458,7 +468,43 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
                     <p style="font-size: 0.9em; color: #666;">${t('mail.invoice.thanks')}</p>
                 </div>
             `;
-            await sendEmail({ to: email, subject, html });
+            // Die Rechnung als Datei, nicht nur als Mailtext: zum Ablegen,
+            // zum Weitergeben, zum Ausdrucken. Scheitert das PDF, geht die
+            // Mail trotzdem hinaus -- eine Rechnung ohne Anhang ist
+            // aergerlich, eine nicht verschickte ist schlimmer.
+            let anhaenge: { filename: string; content: string }[] = [];
+            try {
+                const pdf = await erzeugeRechnungPdf({
+                    nummer: payment.invoiceNumber || '',
+                    datum: (payment as any).issuedAt || new Date().toISOString(),
+                    faellig: payment.dueDate || null,
+                    betrag: Number(payment.amount || 0),
+                    waehrung: (payment.currency as 'CHF' | 'EUR') || 'CHF',
+                    zweck: payment.description || '',
+                    // Ohne Referenz leitet referenzBestimmen() aus den
+                    // Ziffern ab -- bei leerer Referenz also fuer JEDE
+                    // Rechnung dieselbe Nummer, und keine Zahlung liesse
+                    // sich mehr zuordnen. Die Rechnungsnummer ist je
+                    // Rechnung verschieden und damit der richtige Rueckfall.
+                    referenz: payment.reference || payment.invoiceNumber || undefined,
+                    verein: {
+                        name: paymentSettings.accountHolder || association,
+                        adresse: paymentSettings.street, plz: paymentSettings.zip,
+                        ort: paymentSettings.city, land: paymentSettings.country,
+                        iban: paymentSettings.iban, qrIban: paymentSettings.qrIban,
+                        bic: paymentSettings.bic, bank: paymentSettings.bankName,
+                        paypal: paymentSettings.paypalEmail, twint: paymentSettings.twintNumber,
+                    },
+                    empfaenger: {
+                        name: recipientName, adresse: anschrift.adresse,
+                        plz: anschrift.plz, ort: anschrift.ort, land: anschrift.land,
+                    },
+                });
+                anhaenge = [{ filename: pdf.dateiname, content: pdf.base64 }];
+            } catch (e) {
+                console.warn('[Rechnung] PDF nicht erzeugt, Mail geht ohne Anhang:', e);
+            }
+            await sendEmail({ to: email, subject, html, attachments: anhaenge });
             showAlert({ type: 'success', message: t('mail.sent_to', { email }) });
         } catch (error) { showAlert({ type: 'error', message: t('mail.send_failed') }); }
     };
