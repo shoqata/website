@@ -142,6 +142,12 @@ const SuperAdminTreffen: React.FC<{ gastgeber?: string }> = ({ gastgeber }) => {
     // waere ihm die halbe Plattform verborgen. Ein Verein sieht seine.
     const { data } = await (gastgeber ? abfrage.eq('gastgeber', gastgeber) : abfrage);
     setListe(data || []);
+    // Die Liste aller Vereine gehoert dem Betreiber. Richtet ein Verein
+    // aus, wird sie gar nicht erst geholt: er laedt ueber Gastvereins-
+    // Links ein. Genau diese Trennung haben wir anderswo muehsam
+    // hergestellt -- sie hier aufzuweichen waere ein schlechter Tausch
+    // gegen ein bisschen Bequemlichkeit.
+    if (gastgeber) { setVereine([]); return; }
     const { data: v } = await supabase.from('tenants').select('id,name').order('name');
     setVereine(v || []);
   };
@@ -497,7 +503,13 @@ const SuperAdminTreffen: React.FC<{ gastgeber?: string }> = ({ gastgeber }) => {
               <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-2">
                 Vereine der Plattform
               </p>
-              {vereine.length === 0 ? (
+              {gastgeber ? (
+                <p className="text-sm text-stone-500 leading-relaxed">
+                  Andere Vereine lädst du über einen Gastvereins-Link ein — unten bei
+                  „Gäste". Wer sonst auf der Plattform ist, geht dich nichts an, und
+                  umgekehrt genauso.
+                </p>
+              ) : vereine.length === 0 ? (
                 <p className="text-sm text-stone-400">Keine Vereine vorhanden.</p>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

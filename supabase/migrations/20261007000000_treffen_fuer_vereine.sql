@@ -46,8 +46,14 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
                     AND public.is_staff()
                     AND public.modul_aktiv('TREFFEN'));
 $$;
-REVOKE ALL ON FUNCTION public.treffen_gastgeber(uuid) FROM public, anon;
-GRANT EXECUTE ON FUNCTION public.treffen_gastgeber(uuid) TO authenticated;
+-- Auch anon braucht EXECUTE, so ungewohnt das aussieht: die Leseregel
+-- treffen_programm_lesen gilt TO anon, und RLS wertet ihre Praedikate
+-- mit den Rechten des FRAGENDEN Kontos aus. Ohne dieses Recht stirbt
+-- die oeffentliche Programmanzeige an "permission denied for function".
+-- Verraten wird nichts: die Funktion sagt nur, ob der Fragende selbst
+-- Gastgeber ist, und fuer anon ist das immer false.
+REVOKE ALL ON FUNCTION public.treffen_gastgeber(uuid) FROM public;
+GRANT EXECUTE ON FUNCTION public.treffen_gastgeber(uuid) TO anon, authenticated;
 
 -- Dieselbe Frage, bevor es das Treffen gibt: darf ich ueberhaupt eines
 -- anlegen, und auf wessen Namen?
@@ -314,32 +320,6 @@ REVOKE ALL ON FUNCTION public.treffen_oeffentlich() FROM public;
 GRANT EXECUTE ON FUNCTION public.treffen_oeffentlich() TO anon, authenticated;
 
 
--- ------------------------------------------------- Die eigenen Treffen
--- Was ein Verein in seiner Verwaltung sieht: was er ausrichtet.
--- Getrennt von treffen_meine(), das zeigt, wozu er EINGELADEN ist --
--- zwei verschiedene Fragen, und sie in eine Liste zu werfen hiesse,
--- Gastgeber und Gast zu verwechseln.
-CREATE OR REPLACE FUNCTION public.treffen_die_ich_ausrichte()
-RETURNS jsonb
-LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
-  SELECT coalesce(jsonb_agg(jsonb_build_object(
-    'id', t.id, 'titel', t.titel, 'datum', t.datum, 'ende', t.ende,
-    'ort', t.ort, 'status', t.status,
-    'preis_art', t.preis_art, 'preis_betrag', t.preis_betrag, 'waehrung', t.waehrung,
-    'teilnehmer', (SELECT count(*) FROM public.treffen_teilnehmer te
-                    WHERE te.treffen_id = t.id),
-    'zugesagt',   (SELECT count(*) FROM public.treffen_teilnehmer te
-                    WHERE te.treffen_id = t.id AND coalesce(te.zugesagt,false))
-  ) ORDER BY t.datum DESC), '[]'::jsonb)
-  FROM public.treffen t
- WHERE t.gastgeber = public.current_tenant()
-   AND public.is_staff()
-   AND public.modul_aktiv('TREFFEN');
-$$;
-REVOKE ALL ON FUNCTION public.treffen_die_ich_ausrichte() FROM public, anon;
-GRANT EXECUTE ON FUNCTION public.treffen_die_ich_ausrichte() TO authenticated;
-
-
 -- ------------------------------------------------------- Im Marktplatz
 INSERT INTO public.modules (schluessel, name_de, name_sq, name_en,
                             beschreibung_de, beschreibung_sq, beschreibung_en,
@@ -389,6 +369,28 @@ BEGIN
                 AND p.prosrc !~ 'treffen_gastgeber') THEN
     RAISE EXCEPTION 'Mindestens eine Funktion traegt die neue Wache nicht.';
   END IF;
+
+  -- Jede Funktion, die in einer Regel FUER anon steht, muss von anon
+  -- auch ausfuehrbar sein. Diese Fehlerklasse faellt sonst erst auf,
+  -- wenn ein Besucher eine weisse Seite sieht -- und zwar nur er, denn
+  -- angemeldet funktioniert alles.
+  DECLARE v_fehlt text;
+  BEGIN
+    SELECT string_agg(DISTINCT f.name, ', ') INTO v_fehlt
+      FROM pg_policies pol
+      CROSS JOIN LATERAL regexp_matches(
+             coalesce(pol.qual,'')||' '||coalesce(pol.with_check,''),
+             'public\.([a-z_]+)\(', 'g') AS m(name)
+      CROSS JOIN LATERAL (SELECT m.name[1] AS name) f
+      JOIN pg_proc p ON p.proname = f.name
+      JOIN pg_namespace ns ON ns.oid = p.pronamespace AND ns.nspname='public'
+     WHERE pol.schemaname='public'
+       AND 'anon' = ANY(pol.roles)
+       AND NOT has_function_privilege('anon', p.oid, 'EXECUTE');
+    IF v_fehlt IS NOT NULL THEN
+      RAISE EXCEPTION 'In Regeln fuer anon stehen Funktionen, die anon nicht ausfuehren darf: %', v_fehlt;
+    END IF;
+  END;
 
   RAISE NOTICE 'Treffen-Modul steht im Marktplatz. Bestehende Treffen bleiben bei der Plattform.';
 END $$;
