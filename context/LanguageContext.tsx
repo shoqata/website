@@ -896,6 +896,7 @@ const translations: Translations = {
   'common.cancel': { en: 'Cancel', de: 'Abbrechen', sq: 'Anulo' },
   'common.delete': { en: 'Delete', de: 'Löschen', sq: 'Fshij' },
   'common.edit': { en: 'Edit', de: 'Bearbeiten', sq: 'Ndrysho' },
+  'common.save': { en: 'Save', de: 'Speichern', sq: 'Ruaj' },
   'common.save_changes': { en: 'Save Changes', de: 'Änderungen speichern', sq: 'Ruaj ndryshimet' },
 
   // --- NAVIGATION ---
