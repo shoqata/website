@@ -21,8 +21,14 @@ const ESSEN_NAME: Record<string, string> = {
 
 const geld = (w: any) => Number(w || 0).toLocaleString('de-CH', { minimumFractionDigits: 2 });
 
-const TreffenWerkzeuge: React.FC<{ treffenId: string; teilnehmer: any[]; neuLaden: () => void }> =
-  ({ treffenId, teilnehmer, neuLaden }) => {
+const TreffenWerkzeuge: React.FC<{
+  treffenId: string; teilnehmer: any[]; neuLaden: () => void;
+  // Richtet ein Verein aus, gibt es hier kein Verrechnen: platform_invoices
+  // ist die Rechnung der PLATTFORM an einen Verein, nicht die eines
+  // Vereins an seine Gaeste. Die Datenbank weist es ohnehin ab -- einen
+  // Knopf anzubieten, der zuverlaessig scheitert, waere eine Zumutung.
+  vereinRichtetAus?: boolean;
+}> = ({ treffenId, teilnehmer, neuLaden, vereinRichtetAus = false }) => {
   const [essen, setEssen] = useState<any>(null);
   const [schilder, setSchilder] = useState<any[] | null>(null);
   const [programm, setProgramm] = useState<any[]>([]);
@@ -331,6 +337,16 @@ ${schilder.map(p => `<div class="s">
       </div>
 
       {/* ------------------------------------------------ Abrechnen */}
+      {vereinRichtetAus ? (
+        <div className={kasten}>
+          <p className={titel}><Receipt size={13} /> Teilnahmebeiträge</p>
+          <p className="text-[11px] text-stone-500 leading-relaxed">
+            Dieses Treffen richtet ein Verein aus. Die Beiträge seiner Gäste sind seine
+            Sache — die Plattform stellt dafür keine Rechnung. Die Summe steht oben bei
+            den Kosten; verrechnet wird im eigenen Finanzbereich.
+          </p>
+        </div>
+      ) : (
       <div className={kasten}>
         <p className={titel}><Receipt size={13} /> Teilnahmebeiträge</p>
         <p className="text-[11px] text-stone-500 leading-relaxed mb-4">
@@ -345,6 +361,7 @@ ${schilder.map(p => `<div class="s">
           Beiträge verrechnen
         </button>
       </div>
+      )}
     </div>
   );
 };

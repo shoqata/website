@@ -4,6 +4,7 @@ import AdminSpenden from './AdminSpenden';
 import AdminVideos from './AdminVideos';
 import AdminProzesse from './AdminProzesse';
 import { useModule } from '../lib/useModule';
+import { useTenant } from '../context/TenantContext';
 import Marktplatz from './Marktplatz';
 import AdminStammbaum from './AdminStammbaum';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -59,6 +60,7 @@ import { billingYearOf } from '../lib/memberQuality';
 import { missingFieldKeys, qualityScore, feeStateFor, hasDeliveryConflict } from '../lib/memberQuality';
 import { isPlaceholderEmail, hasUsableEmail, emailMissingForDelivery, deliveryNeedsEmail } from '../lib/memberEmail';
 import AdminTreffen from './AdminTreffen';
+import SuperAdminTreffen from './SuperAdminTreffen';
 type AdminTabId = 'USERS' | 'NEIGHBORHOODS' | 'ANALYTICS' | 'STATISTICS' | 'WEBSITE' | 'SOCIAL_AI' | 'EVENTS' | 'NEWS' | 'FINANCE' | 'EXPENSES' | 'DATA' | 'ACCOUNTING' | 'SETTINGS' | 'BOARD' | 'COMMUNICATION' | 'DATA_QUALITY' | 'STAMMBAUM' | 'MARKTPLATZ' | 'SPENDEN' | 'VIDEOS' | 'PROZESSE' | 'TREFFEN';
 
 interface NavItem {
@@ -79,6 +81,7 @@ const AdminPanel: React.FC = () => {
   
   const [activeTab, setActiveTab] = useState<AdminTabId>('ANALYTICS');
   const { aktiv: modulAktiv } = useModule();
+  const { tenant } = useTenant();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -580,7 +583,25 @@ const AdminPanel: React.FC = () => {
                             </div>
                         )}
                         
-                        {activeTab === 'TREFFEN' && <AdminTreffen />}
+                        {activeTab === 'TREFFEN' && (
+                            <div className="space-y-8">
+                                {/* Eingeladen werden kann jeder Verein -- das haengt
+                                    an keinem Modul. Selbst ausrichten ist die
+                                    gebuchte Leistung. */}
+                                <AdminTreffen />
+                                {modulAktiv('TREFFEN') && tenant?.id && (
+                                    <div className="bg-stone-950 text-white rounded-[2rem] p-6">
+                                        <h3 className="font-bold text-lg mb-1">Selbst ausrichten</h3>
+                                        <p className="text-[11px] text-stone-400 mb-5 max-w-xl leading-relaxed">
+                                            Eigene Treffen mit Tagesprogramm, Ausflügen, Einladungslinks,
+                                            Selbstvorstellung, Essenszahlen, Namensschildern, Flyer und
+                                            Poster sowie dem Heft danach.
+                                        </p>
+                                        <SuperAdminTreffen gastgeber={tenant.id} />
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {activeTab === 'EVENTS' && (
                             <div className="space-y-6">

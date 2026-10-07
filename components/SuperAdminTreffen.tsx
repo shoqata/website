@@ -54,7 +54,11 @@ const SCHRITTE = [
 
 const geld = (w: any) => Number(w || 0).toLocaleString('de-CH', { minimumFractionDigits: 2 });
 
-const SuperAdminTreffen: React.FC = () => {
+// Dieselbe Maske fuer beide Seiten: den Betreiber, der die Treffen der
+// Plattform ausrichtet, und einen Verein, der mit gebuchtem Modul seine
+// eigenen ausrichtet. Der Unterschied ist eine Eigenschaft -- eine
+// zweite, fast gleiche Maske liefe frueher oder spaeter auseinander.
+const SuperAdminTreffen: React.FC<{ gastgeber?: string }> = ({ gastgeber }) => {
   const [liste, setListe] = useState<any[] | null>(null);
   const [vereine, setVereine] = useState<any[]>([]);
   const [offen, setOffen] = useState(false);
@@ -133,7 +137,10 @@ const SuperAdminTreffen: React.FC = () => {
   };
 
   const laden = async () => {
-    const { data } = await supabase.from('treffen').select('*').order('datum', { ascending: false });
+    const abfrage = supabase.from('treffen').select('*').order('datum', { ascending: false });
+    // Der Betreiber sieht alles -- auch was Vereine ausrichten; sonst
+    // waere ihm die halbe Plattform verborgen. Ein Verein sieht seine.
+    const { data } = await (gastgeber ? abfrage.eq('gastgeber', gastgeber) : abfrage);
     setListe(data || []);
     const { data: v } = await supabase.from('tenants').select('id,name').order('name');
     setVereine(v || []);
@@ -167,6 +174,9 @@ const SuperAdminTreffen: React.FC = () => {
         preis_art: e.preis_art,
         preis_betrag: e.preis_art === 'KEINE' ? 0 : Number(e.preis_betrag),
         waehrung: e.waehrung, status,
+        // null heisst: die Plattform richtet aus. Die Zeilenregel prueft
+        // das noch einmal -- die Maske ist hier nicht die Instanz.
+        gastgeber: gastgeber ?? null,
       }]).select('id').single();
       if (error) throw error;
       const id = (t as any).id;
@@ -371,6 +381,7 @@ const SuperAdminTreffen: React.FC = () => {
                     Namensschilder, Verschieben, Abrechnen, Vorstellungs-Links. */}
                 <div className="pt-4 border-t border-white/10">
                   <TreffenWerkzeuge treffenId={t.id} teilnehmer={teilnehmer}
+                    vereinRichtetAus={!!t.gastgeber}
                     neuLaden={() => detailLaden(t.id)} />
                 </div>
 
