@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import AdminPostausgang from './AdminPostausgang';
+import AdminTexte from './AdminTexte';
 import { Link } from 'react-router-dom';
 import { useTranslation } from '../context/LanguageContext';
 import { motion } from 'framer-motion';
@@ -435,6 +436,14 @@ const AdminSettings: React.FC = () => {
                     der seit der Umstellung auf Supabase nicht mehr zutraf und
                     hinter dem sich nichts einstellen liess. */}
                 <AdminPostausgang />
+            </section>
+
+            {/* Textbausteine und Glossar. Sie gehoeren zur Kommunikation,
+                nicht zu den Stammdaten: was an Mitglieder geht und wie die
+                Vereinsbegriffe darin heissen. */}
+            <section className="space-y-5">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500">Texte und Begriffe</h3>
+                <AdminTexte />
             </section>
 
         </div>
