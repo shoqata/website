@@ -231,8 +231,8 @@ const AdminWebsite: React.FC = () => {
   // Verein falsch.
   const previewName = (() => {
       const v: any = (branding as any).associationName;
-      if (!v) return 'Koretini';
-      return typeof v === 'string' ? v : (v[editLang] || v.de || v.sq || v.en || 'Koretini');
+      if (!v) return '';
+      return typeof v === 'string' ? v : (v[editLang] || v.de || v.sq || v.en || '');
   })();
 
   const getLoc = (val: LocalizedString | undefined): string => {

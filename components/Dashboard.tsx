@@ -499,7 +499,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 </button>
             </div>
             <p className="text-stone-500 text-lg max-w-lg">
-                {t('dash.intro')} {neighborhood?.name || 'Koretini'}.
+                {t('dash.intro')} {neighborhood?.name || loc((branding as any)?.associationName) || ''}.
             </p>
         </div>
         <div className="flex items-center gap-3 bg-white p-2 rounded-2xl shadow-sm border border-stone-100">

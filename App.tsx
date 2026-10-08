@@ -624,7 +624,7 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings }) => {
           ) : (
             <div className="bg-primary p-2 rounded-xl text-white shadow-lg"><Heart size={24} fill="white" /></div>
           )}
-          <span className="font-display font-bold text-xl italic hidden xl:block text-stone-800">{loc(branding.associationName) || 'Koretini'}</span>
+          <span className="font-display font-bold text-xl italic hidden xl:block text-stone-800">{loc((branding as any).associationName) || ''}</span>
         </Link>
 
         <div className="hidden md:flex items-center gap-1 lg:gap-2">
@@ -737,7 +737,7 @@ const ConditionalFooter = ({ branding, user }: any) => {
       <div className="max-w-7xl mx-auto relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12 border-b border-white/10 pb-12">
           <div className="lg:col-span-2 space-y-8">
-            {branding.logoUrl ? <img src={branding.logoUrl} style={{ height: branding.logoHeight || '3rem' }} className="w-auto mb-6 object-contain" alt="Logo"  onError={onImageError}/> : <h3 className="font-display text-3xl font-bold italic mb-6">Koretini</h3>}
+            {branding.logoUrl ? <img src={branding.logoUrl} style={{ height: branding.logoHeight || '3rem' }} className="w-auto mb-6 object-contain" alt="Logo"  onError={onImageError}/> : <h3 className="font-display text-3xl font-bold italic mb-6">{loc((branding as any).associationName) || ''}</h3>}
             <p className="text-white/50 text-lg leading-relaxed max-w-md italic">{loc(branding.footerText) || t('footer.tagline')}</p>
           </div>
           <div className="space-y-4">

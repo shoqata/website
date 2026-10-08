@@ -823,7 +823,7 @@ const AdminPanel: React.FC = () => {
           {managingEventRegistrations && (
               <div className="fixed inset-0 z-[400] flex justify-end">
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setManagingEventRegistrations(null)} className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" />
-                  <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 200 }} className="relative w-full max-w-2xl bg-white shadow-2xl h-screen flex flex-col overflow-hidden">
+                  <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 200 }} className="relative w-full max-w-4xl xl:max-w-6xl 2xl:max-w-[88rem] bg-white shadow-2xl h-screen flex flex-col overflow-hidden">
                       <div className="p-8 bg-stone-900 text-white shrink-0">
                           <button onClick={() => setManagingEventRegistrations(null)} className="absolute top-6 right-6 p-2 text-white/50 hover:text-white transition-colors"><X size={24}/></button>
                           <div className="mb-4">
@@ -969,7 +969,7 @@ const AdminPanel: React.FC = () => {
           {isUserDrawerOpen && selectedUser && (
               <div className="fixed inset-0 z-[200] flex justify-end">
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsUserDrawerOpen(false)} className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" />
-                  <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 200 }} className="relative w-full max-w-2xl bg-white shadow-2xl h-screen flex flex-col overflow-hidden">
+                  <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 200 }} className="relative w-full max-w-4xl xl:max-w-6xl 2xl:max-w-[88rem] bg-white shadow-2xl h-screen flex flex-col overflow-hidden">
                       
                       {/* Drawer Header */}
                       <div className="relative pt-12 pb-6 px-10 bg-stone-900 text-white shrink-0">
@@ -1013,13 +1013,61 @@ const AdminPanel: React.FC = () => {
 
                       {/* Drawer Body */}
                       <div className="flex-1 overflow-y-auto p-10 space-y-8 bg-[#faf9f6] custom-scrollbar">
+
+                          {/* Uebersicht. Sie steht ueber allen Reitern, weil die
+                              Grundangaben sonst auf fuenf Reiter verteilt sind --
+                              wer ein Mitglied anklickt, will zuerst wissen, wer
+                              das ist und ob der Beitrag bezahlt ist, nicht
+                              viermal klicken. */}
+                          {(() => {
+                            const jahresZahlungen = payments.filter(z =>
+                              z.userId === selectedUser.id && (z as any).billingYear === selectedYear);
+                            const bezahlt = jahresZahlungen.filter(z => z.status === 'PAID')
+                              .reduce((a, z) => a + Number(z.amount || 0), 0);
+                            const offen = jahresZahlungen.filter(z => z.status !== 'PAID')
+                              .reduce((a, z) => a + Number(z.amount || 0), 0);
+                            const lagje = neighborhoods.find(n => n.id === selectedUser.neighborhoodId);
+                            const feld = (k: string, v: any, besonders?: string) => (
+                              <div key={k}>
+                                <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-1">{k}</p>
+                                <p className={`text-sm font-bold tabular-nums ${besonders || 'text-stone-800'}`}>
+                                  {v === undefined || v === null || v === '' ? <span className="text-stone-300">—</span> : v}
+                                </p>
+                              </div>
+                            );
+                            return (
+                              <div className="bg-white rounded-3xl border border-stone-100 shadow-sm p-7">
+                                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-5">
+                                  {feld(t('field.status'), selectedUser.membershipStatus,
+                                        selectedUser.membershipStatus === 'ACTIVE' ? 'text-emerald-600' : 'text-amber-600')}
+                                  {feld(t('field.role'), selectedUser.role)}
+                                  {feld(t('field.category'), (selectedUser as any).membershipCategory)}
+                                  {feld(t('field.member_since'), (selectedUser as any).joinedAt
+                                        ? new Date((selectedUser as any).joinedAt).toLocaleDateString('de-CH') : '')}
+                                  {feld(t('field.email'), selectedUser.email)}
+                                  {feld(t('field.phone'), selectedUser.phone)}
+                                  {feld(t('admin.tab.neighborhoods'), lagje?.name)}
+                                  {feld(t('field.address'), [selectedUser.street,
+                                        [selectedUser.zip, selectedUser.city].filter(Boolean).join(' ')]
+                                        .filter(Boolean).join(', '))}
+                                  {feld(`${t('board.paid')} ${selectedYear}`,
+                                        `CHF ${bezahlt.toFixed(2)}`, 'text-emerald-600')}
+                                  {feld(`${t('status.pending')} ${selectedYear}`,
+                                        `CHF ${offen.toFixed(2)}`, offen > 0 ? 'text-amber-600' : 'text-stone-400')}
+                                  {feld(t('field.invoice_delivery'), (selectedUser as any).invoiceDeliveryMethod)}
+                                  {feld('ID', <span className="font-mono text-xs text-stone-500">{selectedUser.id}</span>)}
+                                </div>
+                              </div>
+                            );
+                          })()}
+
                           {userDrawerTab === 'GENERAL' && (
                               <div className="space-y-6">
-                                  <div className="grid grid-cols-2 gap-6">
+                                  <div className="grid grid-cols-2 xl:grid-cols-3 gap-6">
                                       <div><label className="text-[10px] font-bold text-stone-400 uppercase block mb-1">{t('field.salutation')}</label><select value={selectedUser.salutation || ''} onChange={e => setSelectedUser({...selectedUser, salutation: e.target.value})} className="w-full p-4 bg-white border border-stone-200 rounded-xl outline-none"><option value="">{t('common.select')}</option><option value="Z.">{t('salutation.mr')}</option><option value="Znj.">{t('salutation.ms')}</option></select></div>
                                       <div><label className="text-[10px] font-bold text-stone-400 uppercase block mb-1">{t('field.birthdate')}</label><input type="date" value={selectedUser.birthdate || ''} onChange={e => setSelectedUser({...selectedUser, birthdate: e.target.value})} className="w-full p-4 bg-white border border-stone-200 rounded-xl outline-none" /></div>
                                   </div>
-                                  <div className="grid grid-cols-2 gap-6">
+                                  <div className="grid grid-cols-2 xl:grid-cols-3 gap-6">
                                       <div><label className="text-[10px] font-bold text-stone-400 uppercase block mb-1">{t('field.firstName')}</label><input value={selectedUser.firstName || ''} onChange={e => setSelectedUser({...selectedUser, firstName: e.target.value})} className="w-full p-4 bg-white border border-stone-200 rounded-xl outline-none" /></div>
                                       <div><label className="text-[10px] font-bold text-stone-400 uppercase block mb-1">{t('field.lastName')}</label><input value={selectedUser.lastName || ''} onChange={e => setSelectedUser({...selectedUser, lastName: e.target.value})} className="w-full p-4 bg-white border border-stone-200 rounded-xl outline-none" /></div>
                                   </div>
@@ -1040,7 +1088,7 @@ const AdminPanel: React.FC = () => {
                                       )}
                                       <input value={selectedUser.email} onChange={e => setSelectedUser({...selectedUser, email: e.target.value})} className={`w-full p-4 bg-white border rounded-xl outline-none ${selectedUser.email?.endsWith('@koretini.legacy') ? 'border-red-300 focus:border-red-500' : 'border-stone-200'}`} />
                                   </div>
-                                  <div className="grid grid-cols-2 gap-6">
+                                  <div className="grid grid-cols-2 xl:grid-cols-3 gap-6">
                                       <div><label className="text-[10px] font-bold text-stone-400 uppercase block mb-1">{t('admin.members.phone_primary')}</label><input value={selectedUser.phone || ''} onChange={e => setSelectedUser({...selectedUser, phone: e.target.value})} className="w-full p-4 bg-white border border-stone-200 rounded-xl outline-none" /></div>
                                       <div><label className="text-[10px] font-bold text-stone-400 uppercase block mb-1">{t('admin.members.phone_secondary')}</label><input value={selectedUser.phoneSecondary || ''} onChange={e => setSelectedUser({...selectedUser, phoneSecondary: e.target.value})} className="w-full p-4 bg-white border border-stone-200 rounded-xl outline-none" /></div>
                                   </div>

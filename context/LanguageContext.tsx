@@ -1215,6 +1215,8 @@ const translations: Translations = {
   'field.country': { en: 'Country', de: 'Land', sq: 'Shteti' },
   'field.birthdate': { en: 'Birthdate', de: 'Geburtsdatum', sq: 'Datëlindja' },
   'field.category': { en: 'Category', de: 'Kategorie', sq: 'Kategoria' },
+  'field.member_since': { en: 'Member since', de: 'Mitglied seit', sq: 'Anëtar që nga' },
+  'field.invoice_delivery': { en: 'Invoice via', de: 'Rechnung per', sq: 'Fatura përmes' },
   'field.status': { en: 'Status', de: 'Status', sq: 'Statusi' },
 
   'status.active': { en: 'Active', de: 'Aktiv', sq: 'Aktiv' },
