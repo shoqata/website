@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Eye, X, ChevronUp } from 'lucide-react';
 import { DEMO_ROLLEN, type DemoRolle } from '../lib/useDemoRolle';
 
@@ -18,6 +19,12 @@ const DemoRollenschalter: React.FC<{
   setRolle: (r: DemoRolle | null) => void;
 }> = ({ rolle, setRolle }) => {
   const [offen, setOffen] = useState(true);
+  const navigate = useNavigate();
+
+  // Umschalten heisst auch hingehen: ohne den Sprung bliebe man auf der
+  // Seite der vorigen Rolle und saehe eine leere Maske -- in einer
+  // Vorfuehrung der denkbar schlechteste Moment dafuer.
+  const waehle = (wert: DemoRolle, ziel: string) => { setRolle(wert); navigate(ziel); };
 
   if (!offen) return (
     <button
@@ -44,7 +51,7 @@ const DemoRollenschalter: React.FC<{
 
         <div className="flex gap-1.5 flex-wrap">
           {DEMO_ROLLEN.map(r => (
-            <button key={r.wert} onClick={() => setRolle(r.wert)}
+            <button key={r.wert} onClick={() => waehle(r.wert, r.ziel)}
               title={r.was}
               className={`px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
                 rolle === r.wert
@@ -54,7 +61,7 @@ const DemoRollenschalter: React.FC<{
             </button>
           ))}
           {rolle && (
-            <button onClick={() => setRolle(null)}
+            <button onClick={() => { setRolle(null); navigate('/admin'); }}
               className="px-3 py-2 rounded-xl text-xs font-bold text-stone-400
                          hover:text-white flex items-center gap-1.5">
               <ChevronUp size={13} /> Zurück zum Betreiber

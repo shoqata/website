@@ -407,8 +407,8 @@ const AppContent: React.FC = () => {
   // Die App entscheidet ueberall anhand von user.role, welche Oberflaeche
   // jemand bekommt. Genau dort setzt der Schalter an: eine ueberschriebene
   // Rolle, sonst der echte Nutzer unveraendert.
-  const sichtUser = (demo.rolle && user)
-    ? ({ ...user, role: demo.rolle } as typeof user)
+  const sichtUser = (demo.rolleFuerApp && user)
+    ? ({ ...user, role: demo.rolleFuerApp } as typeof user)
     : user;
   // Reitertitel und Symbol -- fuer jede Seite der Betreiber-Domain,
   // nicht nur fuer deren Startseite.

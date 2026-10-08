@@ -22,12 +22,31 @@ import { useCallback, useEffect, useState } from 'react';
 
 export const DEMO_VEREIN = 'demo';
 
-export type DemoRolle = 'SUPER_ADMIN' | 'BOARD' | 'MEMBER';
+export type DemoRolle = 'SUPER_ADMIN' | 'BOARD' | 'MEMBER' | 'VERTRETER';
 
-export const DEMO_ROLLEN: { wert: DemoRolle; name: string; was: string }[] = [
-  { wert: 'SUPER_ADMIN', name: 'Vereinsadministration', was: 'Sieht alles: Mitglieder, Finanzen, Buchhaltung, Website.' },
-  { wert: 'BOARD',       name: 'Vorstand',              was: 'Sitzungen, Protokolle, Anlässe — keine Beitragsverwaltung.' },
-  { wert: 'MEMBER',      name: 'Mitglied',              was: 'Eigenes Profil, eigene Beiträge, Anlässe, Neuigkeiten.' },
+// `ziel` ist die Seite, auf der diese Rolle etwas zu sehen bekommt --
+// ohne sie landet man beim Umschalten auf der Seite der vorigen Rolle
+// und sieht eine leere Maske.
+//
+// VERTRETER ist bewusst anders: das ist KEINE Rolle in users, sondern
+// haengt daran, ob jemand bei einer Nachbarschaft eingetragen ist
+// (my_neighborhoods). Die Ansicht wird deshalb nicht ueber user.role
+// erreicht, sondern ueber die Seite /nachbarschaft.
+export const DEMO_ROLLEN: {
+  wert: DemoRolle; name: string; was: string; ziel: string; ueberschreibtRolle: boolean;
+}[] = [
+  { wert: 'SUPER_ADMIN', name: 'Vereinsadministration',
+    was: 'Sieht alles: Mitglieder, Finanzen, Buchhaltung, Website.',
+    ziel: '/admin', ueberschreibtRolle: true },
+  { wert: 'BOARD', name: 'Vorstand',
+    was: 'Sitzungen, Protokolle, Anlässe — keine Beitragsverwaltung.',
+    ziel: '/dashboard', ueberschreibtRolle: true },
+  { wert: 'MEMBER', name: 'Mitglied',
+    was: 'Eigenes Profil, eigene Beiträge, Anlässe, Neuigkeiten.',
+    ziel: '/dashboard', ueberschreibtRolle: true },
+  { wert: 'VERTRETER', name: 'Vertreter vor Ort',
+    was: 'Seine Nachbarschaft in Koretin: wer offen ist, Barzahlung melden. Die Verwaltung entscheidet darüber.',
+    ziel: '/nachbarschaft', ueberschreibtRolle: false },
 ];
 
 const SPEICHER = 'demo-rollenansicht';
@@ -56,5 +75,11 @@ export function useDemoRolle(istBetreiber: boolean, verein: string | null) {
     } catch { /* ignorieren */ }
   }, [erlaubt]);
 
-  return { erlaubt, rolle: erlaubt ? rolle : null, setRolle };
+  // VERTRETER ist keine users-Rolle -- sie darf user.role nicht
+  // ueberschreiben, sonst waere der Betreiber ploetzlich REPRESENTATIVE
+  // und saehe weder Admin noch Nachbarschaft.
+  const rolleFuerApp = (rolle && DEMO_ROLLEN.find(r => r.wert === rolle)?.ueberschreibtRolle)
+    ? (rolle as Exclude<DemoRolle, 'VERTRETER'>) : null;
+
+  return { erlaubt, rolle: erlaubt ? rolle : null, rolleFuerApp: erlaubt ? rolleFuerApp : null, setRolle };
 }
