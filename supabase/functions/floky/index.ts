@@ -271,6 +271,30 @@ const KARTEN: Werkzeug[] = [
     rollen: ["SUPER_ADMIN", "ADMIN"],
     lauf: async (_sb, a) => a,
   },
+  {
+    name: "mahnung_vorschlagen",
+    beschreibung: "Bereitet eine Mahnung fuer eine offene Rechnung vor. Die Stufe ergibt "
+      + "sich aus der bisherigen; Text und Sprache kommen aus den Textbausteinen des "
+      + "Vereins. Schreibe den Brief NICHT selbst -- er steht schon da.",
+    schema: { type: "object", properties: {
+      rechnung_id: { type: "string", description: "id aus offene_posten" },
+      mitglied: { type: "string" }, betrag: { type: "number" },
+      stufe: { type: "integer", description: "Nur zur Anzeige; die Stufe zaehlt der Server" },
+    }, required: ["rechnung_id"] },
+    rollen: ["SUPER_ADMIN", "ADMIN"],
+    lauf: async (_sb, a) => a,
+  },
+  {
+    name: "text_entwerfen",
+    beschreibung: "Legt einen Entwurf fuer eine Neuigkeit auf der Vereinswebsite an. "
+      + "Er wird NICHT veroeffentlicht -- er landet als Entwurf und der Verein "
+      + "gibt ihn frei. Schreibe Titel und Text vollstaendig aus.",
+    schema: { type: "object", properties: {
+      titel: { type: "string" }, text: { type: "string" },
+    }, required: ["titel", "text"] },
+    rollen: ["SUPER_ADMIN", "ADMIN", "BOARD"],
+    lauf: async (_sb, a) => a,
+  },
 ];
 
 const KARTE_BAUEN = (name: string, a: any): Karte | null => {
@@ -301,6 +325,23 @@ const KARTE_BAUEN = (name: string, a: any): Karte | null => {
                ["Betrag", geld(a.betrag)], ["Text", z(a.text)]],
       werte: { datum: a.datum, soll: a.soll, haben: a.haben,
                betrag: a.betrag, text: a.text } };
+  }
+  if (name === "mahnung_vorschlagen") {
+    if (!a?.rechnung_id) return null;
+    return { art: "mahnung_vorschlagen", titel: "Mahnung verschicken",
+      felder: [["Mitglied", z(a.mitglied)], ["Offener Betrag", geld(a.betrag)],
+               ["Stufe", a.stufe ? `${a.stufe}. Mahnung` : "naechste Stufe"],
+               ["Text", "aus den Textbausteinen, in der Sprache des Mitglieds"]],
+      werte: { rechnung_id: a.rechnung_id } };
+  }
+  if (name === "text_entwerfen") {
+    if (!a?.titel || !a?.text) return null;
+    const gekuerzt = String(a.text).length > 400
+      ? String(a.text).slice(0, 400) + " …" : String(a.text);
+    return { art: "text_entwerfen", titel: "Neuigkeit als Entwurf ablegen",
+      felder: [["Titel", z(a.titel)], ["Text", gekuerzt],
+               ["Veröffentlichung", "nein — nur Entwurf"]],
+      werte: { titel: a.titel, text: a.text } };
   }
   return null;
 };

@@ -1,4 +1,5 @@
 import { supabase } from '@/services/supabase-bridge';
+import { mahnungSenden } from './mahnung';
 
 // Eine bestaetigte Karte ausfuehren.
 //
@@ -61,12 +62,54 @@ export async function karteAusfuehren(k: Karte): Promise<string> {
     // greift hier ebenso -- sie im Browser noch einmal zu pruefen, hiesse
     // zwei Pruefungen zu fuehren, die auseinanderlaufen koennen.
     const { data, error } = await supabase.from('accounting_journal').insert({
+      // Auch hier hat id keinen Vorgabewert. Die Buchhaltungsmaske geht
+      // ueber addDoc, das die Kennung erzeugt -- hier muss sie mit.
+      id: crypto.randomUUID(),
       date: alsDatum(w.datum), description: String(w.text || ''),
       debitCode: String(w.soll), creditCode: String(w.haben), amount: betrag,
     }).select('id');
     if (error) throw new Error(error.message);
     if (!data || data.length === 0) throw new Error('Nicht gebucht — fehlende Berechtigung?');
     return 'Gebucht.';
+  }
+
+  if (k.art === 'mahnung_vorschlagen') {
+    if (!w.rechnung_id) throw new Error('Der Karte fehlt die Rechnung.');
+    // Die Werte werden hier NEU gelesen, nicht von der Karte uebernommen.
+    // Was auf der Karte stand, war zur Anzeige da; was verschickt wird,
+    // richtet sich nach dem, was jetzt in der Datenbank steht.
+    const { data: z, error: e1 } = await supabase.from('payments')
+      .select('*').eq('id', String(w.rechnung_id)).maybeSingle();
+    if (e1) throw new Error(e1.message);
+    if (!z) throw new Error('Diese Rechnung gibt es nicht mehr.');
+    if (z.status === 'PAID') throw new Error('Diese Rechnung ist inzwischen bezahlt.');
+
+    const { data: m } = await supabase.from('users')
+      .select('id,displayName,email,sprache').eq('id', z.userId).maybeSingle();
+    const { data: marke } = await supabase.from('settings')
+      .select('data').eq('id', 'branding').maybeSingle();
+    const verein = (marke?.data as any)?.associationName || '';
+
+    const r = await mahnungSenden(z, m, typeof verein === 'string' ? verein
+      : (verein?.de || verein?.sq || verein?.en || ''));
+    return `Mahnung ${r.stufe} an ${r.empfaenger} verschickt (${r.sprachen.join('/')}).`;
+  }
+
+  if (k.art === 'text_entwerfen') {
+    if (!w.titel || !w.text) throw new Error('Der Karte fehlt Titel oder Text.');
+    // Ausdruecklich DRAFT. Floky veroeffentlicht nichts -- auch nicht,
+    // wenn jemand die Karte bestaetigt: bestaetigt wurde ein Entwurf.
+    // news.id hat keinen Vorgabewert -- ohne Kennung schlaegt das Einfuegen
+    // fehl. Die Bruecke erzeugt sie in addDoc genauso.
+    const { data, error } = await supabase.from('news').insert({
+      id: crypto.randomUUID(),
+      title: String(w.titel), content: String(w.text),
+      status: 'DRAFT', timestamp: new Date().toISOString(),
+      author: 'Floky (Entwurf)',
+    }).select('id');
+    if (error) throw new Error(error.message);
+    if (!data || data.length === 0) throw new Error('Nicht abgelegt — fehlende Berechtigung?');
+    return 'Als Entwurf abgelegt. Unter Webseite → Neuigkeiten freigeben.';
   }
 
   throw new Error(`Unbekannte Karte: ${k.art}`);

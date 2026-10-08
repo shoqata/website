@@ -42,6 +42,7 @@ import { billingYearOf, isOverdue } from '../lib/memberQuality';
 import { useTranslation } from '../context/LanguageContext';
 import MemberPicker from './ui/MemberPicker';
 import { hasUsableEmail } from '../lib/memberEmail';
+import { mahnungSenden } from '../lib/mahnung';
 import SwissQRBill from './SwissQRBill';
 import { QrBillData } from '../services/qrBillService';
 import { jsPDF } from "jspdf";
@@ -639,48 +640,15 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
     // meldete "Reminder Level X sent." -- eine Erfolgsmeldung fuer etwas,
     // das nie passiert ist. Jetzt geht ein Brief hinaus, aus dem
     // Textbaustein des Vereins, in der Sprache des Mitglieds.
+    // Der Vorgang selbst liegt in lib/mahnung.ts -- dieselbe Stelle, die
+    // auch die Floky-Karte ruft. Zwei Fassungen desselben Briefes liefen
+    // frueher oder spaeter auseinander.
     const handleSendReminder = async (payment: Payment) => {
-        const newLevel = (payment.dunningLevel || 0) + 1;
         try {
             const u = users.find(x => x.id === payment.userId);
-            const email = u?.email || payment.customRecipient?.email || '';
-            const name = u?.displayName || payment.customRecipient?.name || '';
-
-            // Erst schreiben, dann merken: eine Mahnstufe zu erhoehen,
-            // ohne dass der Brief hinausging, waere derselbe Fehler wie
-            // bisher -- nur stiller.
-            if (!hasUsableEmail({ email } as any)) {
-                showAlert({ type: 'error', message: t('mail.no_address') });
-                return;
-            }
-
-            const werk: Textwerk = await textwerkLaden();
-            const schluessel = newLevel >= 2 ? 'MAHNUNG_2' : 'MAHNUNG_1';
-            const frist = new Date(Date.now() + 14 * 864e5).toLocaleDateString('de-CH');
-            const gebaut = textFuer(werk, schluessel, sprachenFuer(u as any), {
-                anrede: name,
-                verein: invoiceAssociation,
-                jahr: payment.billingYear ?? new Date().getFullYear(),
-                betrag: `${payment.currency || 'CHF'} ${Number(payment.amount || 0).toFixed(2)}`,
-                frist,
-            });
-
-            if (!gebaut) {
-                // Lieber nichts verschicken als einen leeren Brief. Der
-                // Verein sieht, woran es liegt, und kann es beheben.
-                showAlert({ type: 'error',
-                    message: `Kein Textbaustein „${schluessel}" hinterlegt — unter Einstellungen → Texte und Begriffe anlegen.` });
-                return;
-            }
-
-            await sendEmail({ to: email, subject: gebaut.betreff, html: alsHtml(gebaut.text) });
-
-            await updateDoc(doc(db, 'payments', payment.id), {
-                status: 'OVERDUE', dunningLevel: newLevel,
-                lastDunningDate: new Date().toISOString(),
-            });
+            const r = await mahnungSenden(payment, u, invoiceAssociation);
             showAlert({ type: 'success',
-                message: `Mahnung ${newLevel} an ${email} verschickt (${gebaut.sprachen.join('/')}).` });
+                message: `Mahnung ${r.stufe} an ${r.empfaenger} verschickt (${r.sprachen.join('/')}).` });
         } catch (e: any) {
             showAlert({ type: 'error', message: e?.message || t('admin.finance.reminder_failed') });
         }

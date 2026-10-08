@@ -162,12 +162,24 @@ const Floky: React.FC = () => {
                     {k.titel}
                   </p>
                   <div className="space-y-1.5 mb-3">
-                    {k.felder.map(([bez, wert]) => (
-                      <div key={bez} className="flex justify-between gap-4 text-xs">
-                        <span className="text-stone-400">{bez}</span>
-                        <span className="font-bold text-stone-800 tabular-nums text-right">{wert}</span>
-                      </div>
-                    ))}
+                    {k.felder.map(([bez, wert]) => {
+                      // Ein Absatz gehoert nicht in eine rechtsbuendige
+                      // Wertspalte: fett und rechts ausgerichtet liest ihn
+                      // niemand. Lange Werte stehen deshalb unter ihrer
+                      // Beschriftung und in normaler Schrift.
+                      const lang = String(wert).length > 60;
+                      return lang ? (
+                        <div key={bez}>
+                          <p className="text-[10px] text-stone-400 uppercase tracking-widest mb-1">{bez}</p>
+                          <p className="text-xs text-stone-700 leading-relaxed whitespace-pre-wrap">{wert}</p>
+                        </div>
+                      ) : (
+                        <div key={bez} className="flex justify-between gap-4 text-xs">
+                          <span className="text-stone-400">{bez}</span>
+                          <span className="font-bold text-stone-800 tabular-nums text-right">{wert}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                   {st.fertig ? (
                     <p className="text-xs font-bold text-emerald-600 flex items-center gap-1.5">
