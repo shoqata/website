@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Marktplatz from './Marktplatz';
 import { supabase, setTenantAdmin } from '../services/supabase-bridge';
 import { motion } from 'framer-motion';
-import { Building2, X, Save, Loader2, Receipt, Globe, Users, ShieldCheck, Blocks, KeyRound } from 'lucide-react';
+import { Building2, X, Save, Loader2, Receipt, Globe, Users, ShieldCheck, Blocks, KeyRound, Sparkles } from 'lucide-react';
 import { db } from '../services/datenzugriff';
 import { doc, updateDoc, addDoc, collection } from '@/services/supabase-bridge';
 import { Tenant } from '../types';
@@ -40,6 +40,13 @@ const SuperAdminTenantDialog: React.FC<Props> = ({ tenant, domains, memberCount,
   // eine zweite Rechenstelle im Browser liefe frueher oder spaeter
   // auseinander.
   const [rechnung, setRechnung] = useState<any>(null);
+  // Das KI-Kontingent dieses Vereins. Es steht hier und nicht in der
+  // Vereinsverwaltung: wer sein eigenes Kontingent heraufsetzen kann, hat
+  // keines. Die Datenbank weist den Verein ohnehin ab -- die Maske soll ihm
+  // gar nicht erst ein Feld hinstellen.
+  const [kontingent, setKontingent] = useState<string>('');
+  const [kontingentLaeuft, setKontingentLaeuft] = useState(false);
+  const [kontingentOk, setKontingentOk] = useState(false);
 
   useEffect(() => {
     if (tenant) setForm({ currency: 'CHF', ...tenant });
@@ -47,6 +54,9 @@ const SuperAdminTenantDialog: React.FC<Props> = ({ tenant, domains, memberCount,
     if (tenant) {
       supabase.rpc('jahresrechnung_betrag', { p_verein: tenant.id })
         .then(({ data, error }) => { if (!error) setRechnung(data); });
+      supabase.from('floky_einstellungen').select('kontingent_monat')
+        .eq('tenantId', tenant.id).maybeSingle()
+        .then(({ data }) => setKontingent(data ? String(data.kontingent_monat) : ''));
     }
     // Sonst haengt das Passwort des vorigen Vereins im naechsten Dialog.
     setAdminZugang(null); setAdminMail('');
@@ -257,6 +267,41 @@ const SuperAdminTenantDialog: React.FC<Props> = ({ tenant, domains, memberCount,
                 if (error) throw error;
               }}
             />
+          </div>
+
+          {/* KI-Kontingent fuer Floky. Nur hier aenderbar. */}
+          <div className="border-t border-stone-100 pt-6">
+            <h4 className="font-bold text-stone-900 mb-4 flex items-center gap-2">
+              <Sparkles size={16} className="text-primary" /> Floky — KI-Kontingent
+            </h4>
+            <div className="flex flex-wrap items-end gap-3">
+              <div>
+                <label className={label}>Anfragen je Monat</label>
+                <input type="number" min={0} step="10" value={kontingent}
+                  onChange={e => { setKontingent(e.target.value); setKontingentOk(false); }}
+                  className={field} placeholder="300" />
+              </div>
+              <button
+                onClick={async () => {
+                  const n = parseInt(kontingent, 10);
+                  if (!Number.isFinite(n) || n < 0) { showAlert({ type: 'error', message: 'Bitte eine Zahl ab 0 angeben.' }); return; }
+                  setKontingentLaeuft(true);
+                  const { error } = await supabase.rpc('floky_kontingent_setzen',
+                    { p_verein: tenant.id, p_anfragen: n });
+                  setKontingentLaeuft(false);
+                  if (error) { showAlert({ type: 'error', message: error.message }); return; }
+                  setKontingentOk(true); setTimeout(() => setKontingentOk(false), 2000);
+                }}
+                disabled={kontingentLaeuft}
+                className="px-4 py-3 rounded-xl bg-stone-900 text-white text-[10px] font-bold
+                           uppercase tracking-widest disabled:opacity-40">
+                {kontingentLaeuft ? 'Speichert …' : kontingentOk ? 'Gespeichert' : 'Setzen'}
+              </button>
+              <p className="text-[11px] text-stone-400 leading-relaxed basis-full max-w-xl">
+                Leer heisst 300 je Monat. Der Zähler läuft in der Datenbank und wird am
+                Monatsersten neu gezählt; der Verein sieht ihn, ändern kann er ihn nicht.
+              </p>
+            </div>
           </div>
 
           <div className="border-t border-stone-100 pt-6">
