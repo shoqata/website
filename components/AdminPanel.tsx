@@ -979,7 +979,7 @@ const AdminPanel: React.FC = () => {
                                   {selectedUser.photoFileName ? <img src={selectedUser.photoFileName} className="w-full h-full object-cover" onError={onImageError}/> : selectedUser.displayName?.charAt(0)}
                               </div>
                               <div className="flex-1 min-w-0">
-                                  <h2 className="text-3xl font-display font-bold italic truncate mb-2">{selectedUser.displayName || 'Anëtar i ri'}</h2>
+                                  <h2 className="text-3xl font-display font-bold italic truncate mb-2">{selectedUser.displayName || t('admin.members.new_member')}</h2>
                                   <div className="flex flex-wrap gap-2">
                                       <span className="bg-white/10 px-3 py-1 rounded-lg text-[10px] font-bold uppercase border border-white/10">{selectedUser.role}</span>
                                       <span className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase ${selectedUser.membershipStatus === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'}`}>{selectedUser.membershipStatus}</span>
@@ -1151,7 +1151,7 @@ const AdminPanel: React.FC = () => {
                                   <div className="bg-stone-900 text-white p-6 rounded-2xl shadow-xl flex items-center justify-between">
                                       <div className="flex items-center gap-4">
                                           <div className="p-3 bg-white/10 rounded-xl"><Hash size={20}/></div>
-                                          <div><p className="text-[10px] text-stone-400 uppercase font-bold tracking-widest">{t('admin.members.family_id')}</p><p className="font-mono font-bold text-lg">{selectedUser.familyId || 'Pa ID'}</p></div>
+                                          <div><p className="text-[10px] text-stone-400 uppercase font-bold tracking-widest">{t('admin.members.family_id')}</p><p className="font-mono font-bold text-lg">{selectedUser.familyId || t('admin.members.no_family_id')}</p></div>
                                       </div>
                                       <button onClick={async () => { const id = await showPrompt({ title: t('admin.members.family_id'), message: t('admin.members.family_id_prompt') }); if(id) setSelectedUser({...selectedUser, familyId: id}); }} className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-[10px] font-bold uppercase transition-colors">{t('common.edit')}</button>
                                   </div>
@@ -1226,7 +1226,7 @@ const AdminPanel: React.FC = () => {
                                       <div key={p.id} className="bg-white p-4 rounded-xl border border-stone-100 flex justify-between items-center group hover:shadow-md transition-all">
                                           <div className="flex items-center gap-3">
                                               <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${p.status === 'PAID' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}><FileText size={18}/></div>
-                                              <div><p className="font-bold text-sm text-stone-800">{p.description}</p><p className="text-[10px] text-stone-400 uppercase font-mono">{new Date(p.timestamp?.toDate()).toLocaleDateString()}</p></div>
+                                              <div><p className="font-bold text-sm text-stone-800">{p.description}</p><p className="text-[10px] text-stone-400 uppercase font-mono">{/* Ohne Datum stand hier "Invalid Date". Gemessen hat zwar jede der 346 Zahlungen einen Zeitstempel -- aber ein fehlender darf keine Fehlermeldung in die Zeile schreiben. */}{p.timestamp?.toDate ? p.timestamp.toDate().toLocaleDateString('de-CH') : <span className="text-stone-300">—</span>}</p></div>
                                           </div>
                                           <div className="text-right">
                                               <p className="font-mono font-bold text-sm">{p.amount.toFixed(2)} {p.currency}</p>
@@ -1404,7 +1404,7 @@ const AdminDataQuality = ({ users, neighborhoods, onEditUser }: any) => {
                                 <tr key={u.id} className="hover:bg-stone-50/50 transition-colors">
                                     <td className="px-8 py-4">
                                         <div className="font-bold text-stone-900">{u.displayName}</div>
-                                        <div className="text-[10px] text-stone-400">{neighborhoods.find((n:any) => n.id === u.neighborhoodId)?.name || 'Pa lagje'}</div>
+                                        <div className="text-[10px] text-stone-400">{neighborhoods.find((n:any) => n.id === u.neighborhoodId)?.name || t('admin.members.no_neighborhood')}</div>
                                     </td>
                                     <td className="px-8 py-4">
                                         <div className="flex flex-wrap gap-1">

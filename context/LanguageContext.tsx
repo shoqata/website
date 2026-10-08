@@ -1408,6 +1408,9 @@ const translations: Translations = {
   'admin.members.billing.reduced': { en: 'Reduced (special)', de: 'Ermässigt (Sonderfall)', sq: 'REDUCED (Special)' },
   'admin.members.custom_fee': { en: 'Individual fee (override)', de: 'Individueller Beitrag (Übersteuerung)', sq: 'Anëtarësia e personalizuar (Override)' },
   'admin.members.family_id': { en: 'Family ID', de: 'Familien-ID', sq: 'Familje ID' },
+  'admin.members.no_family_id': { en: 'No ID', de: 'Keine ID', sq: 'Pa ID' },
+  'admin.members.no_neighborhood': { en: 'No neighborhood', de: 'Keine Nachbarschaft', sq: 'Pa lagje' },
+  'admin.members.new_member': { en: 'New member', de: 'Neues Mitglied', sq: 'Anëtar i ri' },
   'admin.members.family_id_prompt': { en: 'Enter the family ID:', de: 'Familien-ID eingeben:', sq: 'Shëno ID-në e familjes:' },
   'admin.members.role': { en: 'Role', de: 'Rolle', sq: 'Roli i përdoruesit' },
   'admin.members.notes_board': { en: 'Internal notes (board only)', de: 'Interne Notizen (nur Vorstand)', sq: 'Shënime Interne (Board Only)' },
@@ -1965,7 +1968,11 @@ const translations: Translations = {
   'guard.time': { en: 'Time:', de: 'Zeitpunkt:', sq: 'Koha:' },
   'guard.action': { en: 'Action:', de: 'Massnahme:', sq: 'Veprimi:' },
   'guard.blocked': { en: 'Access blocked', de: 'Zugriff blockiert', sq: 'Qasja u bllokua' },
-  'guard.warning': { en: 'Your IP address and session data have been recorded.', de: 'Ihre IP-Adresse und Sitzungsdaten wurden protokolliert.', sq: 'Adresa juaj IP dhe të dhënat e sesionit u regjistruan.' },
+  // Hier stand frueher, IP-Adresse und Sitzungsdaten seien protokolliert
+  // worden. Seit der Eintrag in security_logs entfernt ist, wird nichts
+  // aufgezeichnet -- eine Drohung auszusprechen, die man nicht einloest,
+  // ist keine Sicherheitsmassnahme, sondern eine Unwahrheit auf der Seite.
+  'guard.warning': { en: 'No data about you has been stored.', de: 'Es wurden keine Daten über Sie gespeichert.', sq: 'Asnjë e dhënë për ju nuk është ruajtur.' },
   'guard.warning_more': { en: 'If this was a mistake, please contact the association.', de: 'Sollte das ein Versehen sein, wenden Sie sich bitte an den Verein.', sq: 'Nëse ky ishte një gabim, ju lutem kontaktoni shoqatën.' },
 
   // --- TURNIER ---
