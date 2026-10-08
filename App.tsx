@@ -1,6 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useWerBinIch, type WerBinIch } from './lib/useWerBinIch';
+import { useDemoRolle } from './lib/useDemoRolle';
+const DemoRollenschalter = React.lazy(() => import('./components/DemoRollenschalter'));
 const SpendenSeite = React.lazy(() => import('./components/SpendenSeite'));
 // Die sechs Startseiten-Vorlagen. Alle nachgeladen: ein Verein zeigt genau
 // eine, und die fuenf anderen gehoeren nicht in sein Bundle. Besonders die
@@ -396,6 +398,18 @@ const AppContent: React.FC = () => {
   // konnte sich jeder anmelden, bekam eine Sitzung und danach nur die Seite
   // "Hier sind Sie falsch" -- angemeldet blieb er trotzdem.
   const werAufPlattform = useWerBinIch(!!user && istPlattformDomain === true);
+
+  // Der Rollenschalter der Vorfuehrung. Greift nur, wenn der Betreiber
+  // im Demo-Verein ist -- die Pruefung steht in useDemoRolle, nicht hier.
+  // Eigene Abfrage: das vorhandene `wer` lebt in ProtectedRoute, nicht hier.
+  const werHier = useWerBinIch(!!user);
+  const demo = useDemoRolle(!!werHier?.ist_betreiber, werHier?.verein ?? null);
+  // Die App entscheidet ueberall anhand von user.role, welche Oberflaeche
+  // jemand bekommt. Genau dort setzt der Schalter an: eine ueberschriebene
+  // Rolle, sonst der echte Nutzer unveraendert.
+  const sichtUser = (demo.rolle && user)
+    ? ({ ...user, role: demo.rolle } as typeof user)
+    : user;
   // Reitertitel und Symbol -- fuer jede Seite der Betreiber-Domain,
   // nicht nur fuer deren Startseite.
   useReiterKennzeichen(istPlattformDomain);
@@ -523,8 +537,8 @@ const AppContent: React.FC = () => {
                         // hingehoert, und weist Vereinsleute an ihre eigene
                         // Adresse weiter.
                         istPlattformDomain ? <Navigate to="/super-admin" replace /> :
-                        <ProtectedRoute user={user}>
-                            {user?.role === UserRole.BOARD ? <BoardDashboard user={user} /> : <Dashboard user={user!} />}
+                        <ProtectedRoute user={sichtUser}>
+                            {sichtUser?.role === UserRole.BOARD ? <BoardDashboard user={sichtUser} /> : <Dashboard user={sichtUser!} />}
                             {/* Die Kassen-Ansicht der Vertreter haengt an
                                 is_member_manager(), das REPRESENTATIVE nicht
                                 mehr einschliesst -- sie koennte nichts mehr
@@ -535,7 +549,7 @@ const AppContent: React.FC = () => {
                         </ProtectedRoute>
                     } />
                     
-                    <Route path="/admin" element={<ProtectedRoute user={user} adminOnly><AdminPanel /></ProtectedRoute>} />
+                    <Route path="/admin" element={<ProtectedRoute user={sichtUser} adminOnly><AdminPanel /></ProtectedRoute>} />
                     <Route path="/super-admin" element={<ProtectedRoute user={user} superAdminOnly><SuperAdminDashboard user={user} /></ProtectedRoute>} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
@@ -549,6 +563,15 @@ const AppContent: React.FC = () => {
                 und nur, wenn er selbst zu keinem Verein gehoert. Sonst sieht
                 er vollstaendige Menues und ueberall 0 Zeilen. */}
             <BetreuungHinweis user={user} />
+            {/* Der Rollenschalter der Vorfuehrung. useDemoRolle gibt
+                erlaubt nur im Demo-Verein und nur dem Betreiber zurueck --
+                in einer echten Vereinsoberflaeche kann die Leiste damit
+                nicht auftauchen. */}
+            {demo.erlaubt && (
+              <React.Suspense fallback={null}>
+                <DemoRollenschalter rolle={demo.rolle} setRolle={demo.setRolle} />
+              </React.Suspense>
+            )}
             <BackToTop />
         </div>
       </MaintenanceGuard>
