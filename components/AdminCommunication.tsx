@@ -8,6 +8,8 @@ import { Poll, Inquiry } from '../types';
 import { packageByKey } from '../lib/sponsorPackages';
 import { useFeedback } from '../context/FeedbackContext';
 import { sendEmail } from '../services/mailService';
+import { textwerkLaden, sprachenFuer, textFuer, alsHtml, type Textwerk } from '../lib/textbaustein';
+import { supabase } from '@/services/supabase-bridge';
 import { useTranslation } from '../context/LanguageContext';
 
 const AdminCommunication: React.FC = () => {
@@ -25,6 +27,27 @@ const AdminCommunication: React.FC = () => {
     // Email State
     const [emailSubject, setEmailSubject] = useState('');
     const [emailBody, setEmailBody] = useState('');
+    const [werk, setWerk] = useState<Textwerk | null>(null);
+    const [baustein, setBaustein] = useState('');
+    const [empfaenger, setEmpfaenger] = useState<any[]>([]);
+
+    // Textbausteine und Empfaenger einmal laden. Vorher stand im
+    // Rundbrief nur ein leeres Textfeld -- die gepflegten Bausteine
+    // waren von hier aus nicht erreichbar.
+    useEffect(() => {
+        let lebt = true;
+        (async () => {
+            const [w, { data: m }] = await Promise.all([
+                textwerkLaden(),
+                supabase.from('users').select('id,email,displayName,sprache,membershipStatus'),
+            ]);
+            if (!lebt) return;
+            setWerk(w);
+            setEmpfaenger((m as any[] ?? []).filter(u =>
+                u.email && u.email.includes('@') && u.membershipStatus !== 'INACTIVE'));
+        })();
+        return () => { lebt = false; };
+    }, []);
 
     useEffect(() => {
         const qSponsors = query(collection(db, 'sponsors'), orderBy('createdAt', 'desc'));
@@ -78,14 +101,34 @@ const AdminCommunication: React.FC = () => {
         if (!confirmed) return;
 
         try {
-            await sendEmail({
-                to: auth.currentUser?.email || '',
-                subject: emailSubject,
-                html: emailBody
-            });
-            showAlert({ type: 'success', message: t('comm.newsletter_queued') });
-        } catch (e) {
-            showAlert({ type: 'error', message: t('comm.failed') });
+            // Hier stand `to: auth.currentUser?.email` -- der Rundbrief ging
+            // an den Absender selbst und meldete trotzdem Erfolg. Jetzt an
+            // die Mitglieder, und zwar je Person in deren Sprache.
+            if (empfaenger.length === 0) {
+                showAlert({ type: 'error', message: 'Keine Mitglieder mit brauchbarer E-Mail-Adresse.' });
+                return;
+            }
+
+            let verschickt = 0;
+            for (const m of empfaenger) {
+                let betreff = emailSubject;
+                let html = alsHtml(emailBody);
+
+                // Mit Baustein: je Mitglied in dessen Sprache. Ohne
+                // Baustein geht der getippte Text an alle gleich.
+                if (baustein && werk) {
+                    const g = textFuer(werk, baustein, sprachenFuer(m), {
+                        anrede: m.displayName || '',
+                        verein: '',
+                    });
+                    if (g) { betreff = g.betreff; html = alsHtml(g.text); }
+                }
+                await sendEmail({ to: m.email, subject: betreff, html });
+                verschickt++;
+            }
+            showAlert({ type: 'success', message: `${verschickt} Nachrichten in die Warteschlange gelegt.` });
+        } catch (e: any) {
+            showAlert({ type: 'error', message: e?.message || t('comm.failed') });
         }
     };
 
@@ -310,6 +353,28 @@ const AdminCommunication: React.FC = () => {
                             <label className="text-xs font-bold text-stone-400 uppercase tracking-widest">{t('comm.message_html')}</label>
                             <textarea value={emailBody} onChange={e => setEmailBody(e.target.value)} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl mt-1 h-64 font-mono text-sm outline-none" />
                         </div>
+                        {werk && werk.bausteine.length > 0 && (
+                          <div className="mb-4">
+                            <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-2">
+                              Textbaustein (statt freiem Text)
+                            </label>
+                            <select value={baustein} onChange={e => setBaustein(e.target.value)}
+                              className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none">
+                              <option value="">— freier Text oben —</option>
+                              {[...new Set(werk.bausteine.map(b => b.schluessel))].map(k => (
+                                <option key={k} value={k}>{k}</option>
+                              ))}
+                            </select>
+                            <p className="text-[11px] text-stone-500 mt-2 leading-relaxed">
+                              Mit Baustein geht jede Nachricht in der Sprache des Mitglieds hinaus;
+                              fehlt dort eine Sprache, zweisprachig.
+                            </p>
+                          </div>
+                        )}
+                        <p className="text-[11px] text-stone-500 mb-3">
+                          Geht an <strong className="text-stone-700">{empfaenger.length}</strong> Mitglieder
+                          mit brauchbarer E-Mail-Adresse.
+                        </p>
                         <button onClick={handleSendNewsletter} className="w-full bg-primary text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-rose-600 transition-colors shadow-lg">
                             <Send size={18} /> {t('comm.send_all')}
                         </button>

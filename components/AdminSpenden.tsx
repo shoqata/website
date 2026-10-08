@@ -5,6 +5,8 @@ import { collection, onSnapshot, query, orderBy, supabase } from '../services/su
 import { db } from '../services/supabase-bridge';
 import { useTranslation } from '../context/LanguageContext';
 import { spendenbescheinigungErzeugen } from '../lib/spendenbescheinigung';
+import { sendEmail } from '../services/mailService';
+import { textwerkLaden, textFuer, alsHtml, type Textwerk } from '../lib/textbaustein';
 import { doc, getDoc } from '../services/supabase-bridge';
 
 // Spenden in der Vereinsverwaltung.
@@ -72,6 +74,30 @@ const AdminSpenden: React.FC = () => {
     });
     return () => unsub();
   }, []);
+
+  // Danken. Der Text kommt aus dem Baustein DANK_SPENDE; eine Spende
+  // traegt keine Sprachangabe, deshalb geht er zweisprachig hinaus --
+  // dieselbe Regel wie bei Mitgliedern ohne hinterlegte Sprache.
+  const danken = async (s: Spende) => {
+    if (!s.email) { setFehler('Diese Spende hat keine E-Mail-Adresse.'); return; }
+    setArbeitet(s.id); setFehler(null);
+    try {
+      const werk: Textwerk = await textwerkLaden();
+      const g = textFuer(werk, 'DANK_SPENDE', ['sq', 'de'], {
+        anrede: s.anonym ? '' : (s.name || ''),
+        betrag: `${s.waehrung || 'CHF'} ${Number(s.betrag || 0).toFixed(2)}`,
+        zweck: s.zweck || '',
+        verein: '',
+      });
+      if (!g) {
+        setFehler('Kein Textbaustein „DANK_SPENDE" hinterlegt — unter Einstellungen → Texte und Begriffe anlegen.');
+        return;
+      }
+      await sendEmail({ to: s.email, subject: g.betreff, html: alsHtml(g.text) });
+      setFehler(null);
+    } catch (e: any) { setFehler(e?.message ?? String(e)); }
+    finally { setArbeitet(null); }
+  };
 
   const handeln = async (s: Spende, was: 'BEZAHLT' | 'BESCHEINIGT', weg?: string) => {
     setArbeitet(s.id); setFehler(null);
@@ -171,6 +197,13 @@ const AdminSpenden: React.FC = () => {
                   <p className="text-xs text-stone-400">
                     {s.zweck ? `${s.zweck} · ` : ''}{s.email || ''}
                   </p>
+                  {s.email && (
+                    <button onClick={() => danken(s)} disabled={arbeitet === s.id}
+                      className="mt-2 text-[10px] font-bold uppercase tracking-widest
+                                 text-stone-400 hover:text-stone-900 disabled:opacity-40">
+                      Danken
+                    </button>
+                  )}
                   {s.referenz && (
                     <p className="font-mono text-[10px] text-stone-300 mt-1 break-all">{s.referenz}</p>
                   )}
