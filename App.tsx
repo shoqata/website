@@ -272,7 +272,7 @@ const MaintenanceGuard = ({ children, maintenanceMode, user, branding }: { child
 };
 
 const AppContent: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, loc } = useTranslation();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [branding, setBranding] = useState<Branding>({});
@@ -402,6 +402,16 @@ const AppContent: React.FC = () => {
   // Der Rollenschalter der Vorfuehrung. Greift nur, wenn der Betreiber
   // im Demo-Verein ist -- die Pruefung steht in useDemoRolle, nicht hier.
   // Eigene Abfrage: das vorhandene `wer` lebt in ProtectedRoute, nicht hier.
+  // Der Reitertitel stand fest in index.html als "Koretini" -- jeder
+  // Verein trug ihn damit, nicht nur Koretini. Jetzt aus der Marke, mit
+  // dem bisherigen Wert als Rueckfall: wer kein associationName hinterlegt
+  // hat (Koretini selbst), behaelt genau das, was vorher dort stand.
+  useEffect(() => {
+    if (istPlattformDomain !== false) return;   // Betreiberseite setzt ihn selbst
+    const name = loc((branding as any).associationName);
+    if (name && document.title !== name) document.title = name;
+  }, [branding, istPlattformDomain]);
+
   const werHier = useWerBinIch(!!user);
   const demo = useDemoRolle(!!werHier?.ist_betreiber, werHier?.verein ?? null);
   // Die App entscheidet ueberall anhand von user.role, welche Oberflaeche
