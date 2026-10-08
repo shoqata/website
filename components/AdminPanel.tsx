@@ -22,7 +22,7 @@ import {
   ToggleLeft, Printer, Files, UserCog, MoreVertical, ExternalLink, Info, MapPinned, Target, UserCheck,
   ShieldAlert, Activity as ActivityIcon, ArrowRight, Wallet, BarChart2, Hash, History, StickyNote, Image as LucideImage,
   UserPlus2, UserMinus, UserCheck2, FileEdit, AlertTriangle, Users2, Blocks, Heart, Film
-} from 'lucide-react';
+, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { UserProfile, UserRole, Neighborhood, SolidarityEvent, NewsArticle, Payment, FiscalYear, BillingGroup, GlobalPaymentSettings, EventRegistration, ContentStatus } from '../types';
 import { db, auth, storage } from '../services/datenzugriff';
@@ -83,6 +83,20 @@ const AdminPanel: React.FC = () => {
   const { aktiv: modulAktiv } = useModule();
   const { tenant } = useTenant();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  // Am Rechner einklappbar. Vorher waren die 288 px fest -- auf einem
+  // 13-Zoll-Bildschirm ein Viertel der Breite, genau dort, wo Tabellen
+  // Platz braeuchten.
+  const [leisteSchmal, setLeisteSchmal] = useState<boolean>(() => {
+    try { return localStorage.getItem('admin-leiste') === 'schmal'; } catch { return false; }
+  });
+  // Dichte. 'bequem' ist die Vorgabe und entspricht dem heutigen Stand --
+  // wer nichts umstellt, merkt von dieser Aenderung nichts.
+  const [dichte, setDichte] = useState<'bequem' | 'kompakt'>(() => {
+    try { return (localStorage.getItem('admin-dichte') as any) === 'kompakt' ? 'kompakt' : 'bequem'; }
+    catch { return 'bequem'; }
+  });
+  useEffect(() => { try { localStorage.setItem('admin-leiste', leisteSchmal ? 'schmal' : 'breit'); } catch {} }, [leisteSchmal]);
+  useEffect(() => { try { localStorage.setItem('admin-dichte', dichte); } catch {} }, [dichte]);
   const [isLoading, setIsLoading] = useState(true);
   
   // Navigation View State
@@ -392,20 +406,29 @@ const AdminPanel: React.FC = () => {
   if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-[#faf9f6]"><Loader2 className="animate-spin text-primary" size={40} /></div>;
 
   return (
-    <div className="flex min-h-screen bg-[#faf9f6]">
+    <div className="flex min-h-screen bg-[#faf9f6]" data-dichte={dichte}>
+      <style>{`
+        /* Kompakte Dichte: nur Zeilenhoehen, keine Farben, keine Radien.
+           Eine Liste mit 340 Mitgliedern und ein Protokoll brauchen nicht
+           dasselbe Zeilenmass -- das Aussehen bleibt dasselbe. */
+        [data-dichte="kompakt"] table td { padding-top:.5rem; padding-bottom:.5rem }
+        [data-dichte="kompakt"] table th { padding-top:.6rem; padding-bottom:.6rem }
+        /* Zahlen fluchten ueberall, nicht nur dort, wo jemand daran dachte. */
+        table td, table th { font-variant-numeric: tabular-nums }
+      `}</style>
       {/* Sidebar */}
-      <aside className={`fixed lg:sticky top-0 left-0 h-screen w-72 bg-white border-r border-stone-200 z-50 transition-transform duration-300 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} flex flex-col`}>
-          <div className="p-6 border-b border-stone-100 flex items-center justify-between">
+      <aside className={`fixed lg:sticky top-0 left-0 h-screen bg-white border-r border-stone-200 z-50 transition-all duration-300 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} ${leisteSchmal ? 'w-20' : 'w-72'} flex flex-col`}>
+          <div className={`border-b border-stone-100 flex items-center justify-between ${leisteSchmal ? 'p-4 justify-center' : 'p-6'}`}>
               <Link to="/dashboard" className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-rose-200"><Shield size={20} /></div>
-                  <div><h1 className="font-display font-bold text-xl italic text-stone-900 leading-none">{t('admin.hub.title')}</h1><p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest">{t('admin.brand.label')}</p></div>
+                  {!leisteSchmal && <div><h1 className="font-display font-bold text-xl italic text-stone-900 leading-none">{t('admin.hub.title')}</h1><p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest">{t('admin.brand.label')}</p></div>}
               </Link>
               <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 text-stone-400"><X size={20}/></button>
           </div>
           <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
               {navGroups.map((group, idx) => (
                   <div key={idx}>
-                      <h3 className="px-4 text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-2">{group.title}</h3>
+                      {!leisteSchmal && <h3 className="px-4 text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-2">{group.title}</h3>}
                       <div className="space-y-1">
                           {group.items
                             .filter(item => {
@@ -413,9 +436,19 @@ const AdminPanel: React.FC = () => {
                               return !m || modulAktiv(m);
                             })
                             .map(item => (
-                              <button key={item.id} onClick={() => { setActiveTab(item.id); setSelectedNeighborhoodId(null); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === item.id ? 'bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)] text-primary border-r-4 border-primary shadow-sm' : 'text-stone-500 hover:bg-stone-50 hover:text-stone-900'}`}>
-                                  {item.icon}<span className="flex-1 text-left">{item.label}</span>
-                                  {item.badge !== undefined && <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${item.id === 'DATA_QUALITY' ? 'bg-amber-500 text-white' : 'bg-red-500 text-white'}`}>{item.badge}</span>}
+                              <button key={item.id} onClick={() => { setActiveTab(item.id); setSelectedNeighborhoodId(null); setIsSidebarOpen(false); }}
+                                title={leisteSchmal ? String(item.label) : undefined}
+                                className={`w-full flex items-center rounded-xl text-sm font-bold transition-all ${leisteSchmal ? 'justify-center px-0 py-3' : 'gap-3 px-4 py-3'} ${activeTab === item.id ? 'bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)] text-primary border-r-4 border-primary shadow-sm' : 'text-stone-500 hover:bg-stone-50 hover:text-stone-900'}`}>
+                                  <span className="relative flex items-center">
+                                    {item.icon}
+                                    {/* Bei schmaler Leiste bleibt die Zahl sichtbar -- sie ist
+                                        der Grund, ueberhaupt hinzuschauen. */}
+                                    {leisteSchmal && item.badge !== undefined && (
+                                      <span className={`absolute -top-1.5 -right-2 text-[9px] px-1 rounded-full ${item.id === 'DATA_QUALITY' ? 'bg-amber-500 text-white' : 'bg-red-500 text-white'}`}>{item.badge}</span>
+                                    )}
+                                  </span>
+                                  {!leisteSchmal && <span className="flex-1 text-left">{item.label}</span>}
+                                  {!leisteSchmal && item.badge !== undefined && <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${item.id === 'DATA_QUALITY' ? 'bg-amber-500 text-white' : 'bg-red-500 text-white'}`}>{item.badge}</span>}
                               </button>
                           ))}
                       </div>
@@ -435,6 +468,17 @@ const AdminPanel: React.FC = () => {
               </div>
               <div className="flex items-center gap-3">
                   <div className="bg-stone-100 px-3 py-1.5 rounded-xl flex items-center gap-2"><CalendarDays size={14} className="text-stone-400"/><select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value))} className="bg-transparent text-xs font-bold text-stone-600 outline-none">{Array.from({length: 5}, (_, i) => new Date().getFullYear() - i).map(y => <option key={y} value={y}>{y}</option>)}</select></div>
+                  <button onClick={() => setLeisteSchmal(v => !v)}
+                    title={leisteSchmal ? 'Menü ausklappen' : 'Menü einklappen'}
+                    className="hidden lg:flex bg-stone-100 p-2 rounded-xl text-stone-500 hover:text-stone-900">
+                    {leisteSchmal ? <PanelLeftOpen size={16}/> : <PanelLeftClose size={16}/>}
+                  </button>
+                  <div className="hidden sm:flex gap-1 bg-stone-100 p-1 rounded-xl">
+                    {([['bequem','Bequem'],['kompakt','Kompakt']] as const).map(([w, n]) => (
+                      <button key={w} onClick={() => setDichte(w)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${dichte === w ? 'bg-white shadow-sm text-primary' : 'text-stone-400'}`}>{n}</button>
+                    ))}
+                  </div>
                   <div className="flex gap-1 bg-stone-100 p-1 rounded-xl">{['sq', 'de', 'en'].map(l => (<button key={l} onClick={() => setLanguage(l as any)} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${language === l ? 'bg-white shadow-sm text-primary' : 'text-stone-400'}`}>{l}</button>))}</div>
               </div>
           </header>
