@@ -1,0 +1,377 @@
+// Floky -- der Vereinsassistent.
+//
+// Die eine Entscheidung, die diese Datei traegt: der Prompt ist keine
+// Sicherheitsgrenze. Rolle, Verein und Rechte kommen aus der Datenbank,
+// und jede Abfrage laeuft mit dem Konto des Fragenden -- nicht mit dem
+// Dienstschluessel. Wer nicht sehen darf, bekommt nicht zu sehen; das
+// entscheiden die Zeilenregeln, nicht die Anweisung im Systemtext.
+//
+// Daraus folgt der Zuschnitt:
+//   - LESEN macht Floky selbst. Was er dabei sieht, sieht der Fragende
+//     ohnehin. Ein Vertreter bekommt seine Nachbarschaft und sonst nichts,
+//     weil die Datenbank ihm nur das gibt.
+//   - SCHREIBEN macht Floky nie. Er fuellt eine Karte; der Mensch klickt.
+//     Deshalb gibt es hier keine schreibenden Werkzeuge, auch nicht
+//     versehentlich: die Liste unten enthaelt nur SELECTs.
+//   - Das Kontingent zaehlt die Datenbank. Ein Zaehler, den der Aufrufer
+//     fuehrt, waere keiner.
+//
+// Umgebungsvariablen:
+//   ANTHROPIC_API_KEY   Pflicht. Ohne ihn antwortet die Funktion mit einem
+//                       benannten Hinweis statt mit einem Fehler aus der Tiefe.
+//   FLOKY_MODELL        optional, Vorgabe claude-sonnet-5
+
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.47.10";
+
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
+
+const MODELL = Deno.env.get("FLOKY_MODELL") ?? "claude-sonnet-5";
+
+// --------------------------------------------------------------- Werkzeuge
+//
+// Nur lesende. Jedes bekommt den Client des Fragenden; was zurueckkommt,
+// hat die Datenbank bereits gefiltert.
+type Werkzeug = {
+  name: string; beschreibung: string; schema: Record<string, unknown>;
+  rollen: string[];
+  lauf: (sb: any, a: any) => Promise<unknown>;
+};
+
+const WERKZEUGE: Werkzeug[] = [
+  {
+    name: "offene_posten",
+    beschreibung: "Offene Beitraege und Rechnungen. Ohne Angabe fuer den ganzen Verein, "
+      + "mit mitglied_name fuer eine Person. Ein Vertreter bekommt nur seine Nachbarschaft, "
+      + "ein Mitglied nur sich selbst -- das regelt die Datenbank.",
+    schema: { type: "object", properties: {
+      jahr: { type: "integer", description: "Beitragsjahr, z.B. 2026" },
+      mitglied_name: { type: "string", description: "Name oder Teil davon" },
+    } },
+    rollen: ["SUPER_ADMIN", "ADMIN", "BOARD", "MEMBER", "REPRESENTATIVE"],
+    lauf: async (sb, a) => {
+      let q = sb.from("payments")
+        .select('id,userId,amount,currency,status,billingYear,dueDate,invoiceNumber,description,dunningLevel')
+        .neq("status", "PAID").neq("status", "CANCELLED").neq("status", "WRITTEN_OFF")
+        .limit(200);
+      if (a?.jahr) q = q.eq("billingYear", a.jahr);
+      const { data: zahlungen, error } = await q;
+      if (error) throw new Error(error.message);
+
+      const ids = [...new Set((zahlungen ?? []).map((z: any) => z.userId))];
+      const { data: leute } = ids.length
+        ? await sb.from("users").select("id,displayName,email,sprache,neighborhoodId").in("id", ids)
+        : { data: [] };
+      const name = (id: string) => (leute ?? []).find((u: any) => u.id === id)?.displayName ?? id;
+
+      let zeilen = (zahlungen ?? []).map((z: any) => ({
+        mitglied: name(z.userId), betrag: z.amount, waehrung: z.currency,
+        jahr: z.billingYear, faellig: z.dueDate, rechnung: z.invoiceNumber,
+        zweck: z.description, mahnstufe: z.dunningLevel ?? 0, status: z.status,
+      }));
+      if (a?.mitglied_name) {
+        const s = String(a.mitglied_name).toLowerCase();
+        zeilen = zeilen.filter((z: any) => z.mitglied.toLowerCase().includes(s));
+      }
+      return { anzahl: zeilen.length,
+               summe: zeilen.reduce((n: number, z: any) => n + Number(z.betrag || 0), 0),
+               posten: zeilen.slice(0, 60) };
+    },
+  },
+  {
+    name: "mitglied_suchen",
+    beschreibung: "Mitglieder nach Name, Ort oder Nachbarschaft finden. Liefert Stammdaten, "
+      + "keine Notizen des Vorstands.",
+    schema: { type: "object", properties: {
+      suche: { type: "string", description: "Name, Ort oder Teil davon" },
+      nur_aktive: { type: "boolean" },
+    }, required: ["suche"] },
+    rollen: ["SUPER_ADMIN", "ADMIN", "BOARD", "REPRESENTATIVE"],
+    lauf: async (sb, a) => {
+      // Der Suchtext kommt aus dem Modell und damit mittelbar aus dem, was
+      // jemand geschrieben hat. Er geht in einen PostgREST-Ausdruck, in dem
+      // Komma und Klammer Trennzeichen sind -- ungefiltert liesse sich der
+      // Ausdruck umbauen. An den Zeilenregeln aendert das nichts, aber eine
+      // Abfrage soll das suchen, wonach gefragt wurde.
+      const s = String(a?.suche ?? "").replace(/[,()*%\\]/g, " ").trim().slice(0, 60);
+      if (!s) return { treffer: [] };
+      let q = sb.from("users")
+        .select("id,displayName,email,phone,city,zip,membershipStatus,membershipCategory,"
+              + "billingGroup,neighborhoodId,joinedAt,sprache,role")
+        .or(`displayName.ilike.%${s}%,city.ilike.%${s}%,email.ilike.%${s}%`)
+        .limit(25);
+      if (a?.nur_aktive) q = q.eq("membershipStatus", "ACTIVE");
+      const { data, error } = await q;
+      if (error) throw new Error(error.message);
+      return { treffer: data ?? [] };
+    },
+  },
+  {
+    name: "kasse_auskunft",
+    beschreibung: "Saldo je Konto aus der Buchhaltung, fuer ein Geschaeftsjahr.",
+    schema: { type: "object", properties: { jahr: { type: "integer" } } },
+    rollen: ["SUPER_ADMIN", "ADMIN", "BOARD"],
+    lauf: async (sb, a) => {
+      const jahr = a?.jahr ?? new Date().getFullYear();
+      const { data, error } = await sb.from("accounting_journal")
+        .select("debitCode,creditCode,amount,date,description,belegnr")
+        .gte("date", `${jahr}-01-01`).lte("date", `${jahr}-12-31`).limit(2000);
+      if (error) throw new Error(error.message);
+      const salden: Record<string, number> = {};
+      for (const b of data ?? []) {
+        if (b.debitCode)  salden[b.debitCode]  = (salden[b.debitCode]  ?? 0) + Number(b.amount || 0);
+        if (b.creditCode) salden[b.creditCode] = (salden[b.creditCode] ?? 0) - Number(b.amount || 0);
+      }
+      return { jahr, buchungen: (data ?? []).length, salden };
+    },
+  },
+  {
+    name: "anmeldungen_zaehlen",
+    beschreibung: "Teilnehmende zu einem Anlass oder einem Vereinstreffen. Eine Essenswahl "
+      + "wird derzeit nicht erfasst -- nenne sie nicht.",
+    schema: { type: "object", properties: { titel: { type: "string" } } },
+    rollen: ["SUPER_ADMIN", "ADMIN", "BOARD", "MEMBER", "REPRESENTATIVE"],
+    lauf: async (sb, a) => {
+      let qa = sb.from("events").select("id,title,date,time,location,status").limit(15);
+      if (a?.titel) qa = qa.ilike("title", `%${a.titel}%`);
+      const { data: anlaesse, error } = await qa;
+      if (error) throw new Error(error.message);
+
+      const out = [];
+      for (const e of anlaesse ?? []) {
+        const { data: an } = await sb.from("event_registrations")
+          .select("id,tickets,status,type").eq("eventId", e.id).limit(1000);
+        const gueltig = (an ?? []).filter((r: any) => r.status !== "CANCELLED");
+        out.push({
+          anlass: e.title, datum: e.date, zeit: e.time, ort: e.location, zustand: e.status,
+          anmeldungen: gueltig.length,
+          personen: gueltig.reduce((n: number, r: any) => n + Number(r.tickets || 1), 0),
+        });
+      }
+
+      // Vereinstreffen fuehren ihre Zusagen in einer eigenen Tabelle.
+      let qt = sb.from("treffen").select("id,titel,datum,ort,status").limit(10);
+      if (a?.titel) qt = qt.ilike("titel", `%${a.titel}%`);
+      const { data: treffen } = await qt;
+      const treffenOut = [];
+      for (const t of treffen ?? []) {
+        const { data: tn } = await sb.from("treffen_teilnehmer")
+          .select("art,zugesagt,personen,name").eq("treffen_id", t.id).limit(500);
+        const zu = (tn ?? []).filter((r: any) => r.zugesagt === true);
+        treffenOut.push({
+          treffen: t.titel, datum: t.datum, ort: t.ort, zustand: t.status,
+          eingeladen: (tn ?? []).length, zugesagt: zu.length,
+          personen: zu.reduce((n: number, r: any) => n + Number(r.personen || 1), 0),
+        });
+      }
+      return { anlaesse: out, treffen: treffenOut };
+    },
+  },
+  {
+    name: "textbaustein_lesen",
+    beschreibung: "Einen Textbaustein des Vereins abrufen, um ihn als Grundlage zu nehmen. "
+      + "Schluessel z.B. MAHNUNG_1, DANK_SPENDE, EINLADUNG_GV.",
+    schema: { type: "object", properties: {
+      schluessel: { type: "string" }, sprache: { type: "string", enum: ["de", "sq", "en"] },
+    } },
+    rollen: ["SUPER_ADMIN", "ADMIN", "BOARD"],
+    lauf: async (sb, a) => {
+      let q = sb.from("textbausteine").select("schluessel,sprache,betreff,text").limit(40);
+      if (a?.schluessel) q = q.eq("schluessel", a.schluessel);
+      if (a?.sprache) q = q.eq("sprache", a.sprache);
+      const { data, error } = await q;
+      if (error) throw new Error(error.message);
+      return { bausteine: data ?? [] };
+    },
+  },
+];
+
+// ------------------------------------------------------------ Systemtext
+function systemtext(k: {
+  name: string; verein: string; person: string; rolle: string;
+  nachbarschaft: string | null; module: string[]; glossar: string;
+  du: boolean; werkzeuge: string[];
+}) {
+  const heute = new Date().toLocaleDateString("de-CH", { timeZone: "Europe/Zurich" });
+  return `Du bist ${k.name}, der Helfer des Vereins ${k.verein} in unityhub.
+Du sprichst mit ${k.person}, Rolle ${k.rolle}${k.nachbarschaft ? `, Vertreter für ${k.nachbarschaft}` : ""}.
+Heute ist ${heute} (Europe/Zurich). Gebuchte Module: ${k.module.join(", ") || "keine"}.
+
+Der Verein arbeitet ehrenamtlich. Sei kurz, freundlich und konkret: zuerst das Ergebnis, dann was fehlt.
+
+Sprache:
+- Antworte in der Sprache der letzten Nachricht (Deutsch, Albanisch oder Englisch). Bei gemischten Nachrichten in der Sprache, die überwiegt.
+- Texte an Mitglieder in deren hinterlegter Sprache; fehlt sie: Albanisch, darunter Deutsch.
+- Vereinsbegriffe nach dem Glossar: ${k.glossar || "keines hinterlegt"}.
+- Namen von Personen und Orten nie verändern (ë, ç beibehalten).
+- Beträge als CHF 1'250.00, Daten als TT.MM.JJJJ, auch im albanischen Text.
+- Gegenüber Mitgliedern ${k.du ? "«du»" : "«Sie»"}.
+
+Regeln:
+1. Was etwas schreibt, versendet oder veröffentlicht, kannst du nicht tun. Du bereitest es vor und sagst, was der Mensch bestätigen muss. Behaupte nie, etwas sei gebucht, verschickt oder veröffentlicht.
+2. Du arbeitest nur für diesen Verein und nur mit den Daten, die diese Rolle sehen darf.
+3. Buchungen sind Vorschläge. Ein gesperrtes Jahr wird nicht verändert; sag das und schlage eine Korrekturbuchung im offenen Jahr vor.
+4. Barzahlungen von Vertretern sind Meldungen. Ob sie gelten, entscheidet die Vereinsverwaltung.
+5. Bist du unsicher (welches Mitglied, welches Konto, welcher Betrag), frag nach. Rate nie.
+6. Herkunft, Religion, Gesundheit und Familienverhältnisse erwähnst du nur, wenn danach gefragt wird.
+7. Keine Rechts- oder Steuerberatung; allgemein erklären und an Fachleute verweisen.
+8. Ein nicht gebuchtes Modul erwähnst du höchstens einmal als Hinweis.
+
+Kürzel: @ Mitglied/Familie/Anlass, // Datum, # Nachbarschaft/Kategorie/Konto, ! Priorität, > Textbaustein.
+
+Verfügbare Werkzeuge für diese Rolle: ${k.werkzeuge.join(", ") || "keine"}.`;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  if (req.method !== "POST") return json({ fehler: "Nur POST." }, 405);
+
+  const auth = req.headers.get("Authorization") ?? "";
+  if (!auth.startsWith("Bearer ")) return json({ fehler: "Nicht angemeldet." }, 401);
+
+  // Der Client des Fragenden. Ausdruecklich NICHT der Dienstschluessel:
+  // sonst saehe Floky alles, und die Rollen stuenden nur im Prompt.
+  const sb = createClient(
+    Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!,
+    { global: { headers: { Authorization: auth, Origin: req.headers.get("Origin") ?? "" } } },
+  );
+
+  let koerper: any;
+  try { koerper = await req.json(); } catch { return json({ fehler: "Kein gueltiger Auftrag." }, 400); }
+  const verlauf = Array.isArray(koerper?.verlauf) ? koerper.verlauf : [];
+  if (!verlauf.length) return json({ fehler: "Keine Nachricht." }, 400);
+
+  // --------------------------------------------------- Wer, ob, wie oft
+  const { data: wer, error: werFehler } = await sb.rpc("wer_bin_ich");
+  if (werFehler) return json({ fehler: werFehler.message }, 403);
+  const ich = Array.isArray(wer) ? wer[0] : wer;
+  // wer_bin_ich faellt ohne Anmeldung auf rolle MEMBER zurueck, laesst aber
+  // verein leer. Ohne Verein ist niemand da, der fragen koennte -- und die
+  // Abweisung soll sagen, was zutrifft, statt "nicht gebucht".
+  if (!ich || !ich.verein) return json({ fehler: "Nicht angemeldet." }, 401);
+
+  const { data: darf } = await sb.rpc("floky_darf");
+  if (!darf) {
+    return json({ fehler: "Floky ist fuer diesen Verein nicht gebucht." , gebucht: false }, 403);
+  }
+
+  // Erst jetzt, nachdem Konto, Verein und Buchung des Moduls feststehen:
+  // ob die Plattform eingerichtet ist, geht einen Fremden nichts an.
+  const schluessel = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!schluessel) {
+    return json({ fehler: "Floky ist noch nicht eingerichtet: der Plattformbetreiber "
+      + "muss das Geheimnis ANTHROPIC_API_KEY hinterlegen." }, 503);
+  }
+
+  const { data: kont } = await sb.rpc("floky_kontingent");
+  const kontingent = Array.isArray(kont) ? kont[0] : kont;
+
+  // Zaehlen, bevor gefragt wird. Scheitert das, gibt es keine Antwort.
+  const { data: uebrig, error: zaehlFehler } = await sb.rpc("floky_anfrage_zaehlen");
+  if (zaehlFehler) return json({ fehler: zaehlFehler.message, kontingent }, 429);
+
+  // ------------------------------------------------------------ Kontext
+  const { data: meineId } = await sb.rpc("current_user_row_id");
+  const [{ data: ichZeile }, { data: begriffe }, { data: einst }, { data: module },
+         { data: meineLagje }] = await Promise.all([
+      meineId
+        ? sb.from("users").select("displayName,email,neighborhoodId").eq("id", meineId).maybeSingle()
+        : Promise.resolve({ data: null }),
+      sb.from("glossar").select("begriff,de,sq,en").limit(50),
+      sb.from("floky_einstellungen").select("assistent_name,anrede_du").maybeSingle(),
+      sb.from("tenant_modules").select("modul,zustand"),
+      sb.rpc("my_neighborhoods"),
+    ]);
+
+  // Betreute Nachbarschaften -- bei einem Vertreter steht sie im Systemtext,
+  // damit er nicht nach etwas fragt, das er ohnehin nicht bekommt.
+  const lagjeIds = (meineLagje ?? []).map((n: any) => n.id ?? n).filter(Boolean);
+  const { data: lagjeNamen } = lagjeIds.length
+    ? await sb.from("neighborhoods").select("name").in("id", lagjeIds)
+    : { data: [] };
+
+  const rolle = String(ich.rolle ?? "MEMBER");
+  const erlaubt = WERKZEUGE.filter((w) => w.rollen.includes(rolle));
+
+  const system = systemtext({
+    name: einst?.assistent_name ?? "Floky",
+    verein: String(ich.vereinsname ?? ich.verein ?? ""),
+    person: String(ichZeile?.displayName ?? ichZeile?.email ?? ""),
+    rolle,
+    nachbarschaft: (lagjeNamen ?? []).map((n: any) => n.name).join(", ") || null,
+    module: (module ?? []).filter((m: any) => m.zustand === "AN" || m.zustand === "TESTPHASE")
+                          .map((m: any) => m.modul),
+    glossar: (begriffe ?? []).map((g: any) =>
+      `${g.begriff}=${g.de ?? g.sq ?? g.en ?? g.begriff}`).join("; "),
+    du: !!einst?.anrede_du,
+    werkzeuge: erlaubt.map((w) => w.name),
+  });
+
+  // ----------------------------------------------------- Das Gespraech
+  const nachrichten = verlauf.map((n: any) => ({
+    role: n.rolle === "floky" ? "assistant" : "user",
+    content: String(n.text ?? ""),
+  })).filter((n: any) => n.content);
+
+  const werkzeugliste = erlaubt.map((w) => ({
+    name: w.name, description: w.beschreibung, input_schema: w.schema,
+  }));
+
+  const anthropic = async (msgs: any[]) => {
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-api-key": schluessel,
+                 "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({ model: MODELL, max_tokens: 2000, system,
+                             tools: werkzeugliste, messages: msgs }),
+    });
+    if (!r.ok) throw new Error(`Antwortdienst: ${r.status} ${await r.text()}`);
+    return await r.json();
+  };
+
+  try {
+    let msgs = nachrichten;
+    let antwort = await anthropic(msgs);
+    const benutzt: string[] = [];
+
+    // Hoechstens drei Werkzeugrunden. Ohne Deckel koennte eine Antwort
+    // beliebig lange laufen -- und das Kontingent zaehlt nur die Frage.
+    for (let runde = 0; runde < 3 && antwort.stop_reason === "tool_use"; runde++) {
+      const ergebnisse = [];
+      for (const teil of antwort.content ?? []) {
+        if (teil.type !== "tool_use") continue;
+        const w = erlaubt.find((x) => x.name === teil.name);
+        let inhalt: string;
+        if (!w) {
+          inhalt = "Dieses Werkzeug steht dieser Rolle nicht zur Verfuegung.";
+        } else {
+          benutzt.push(w.name);
+          try { inhalt = JSON.stringify(await w.lauf(sb, teil.input ?? {})); }
+          catch (e) { inhalt = `Fehlgeschlagen: ${e instanceof Error ? e.message : String(e)}`; }
+        }
+        ergebnisse.push({ type: "tool_result", tool_use_id: teil.id, content: inhalt });
+      }
+      msgs = [...msgs, { role: "assistant", content: antwort.content },
+                       { role: "user", content: ergebnisse }];
+      antwort = await anthropic(msgs);
+    }
+
+    const text = (antwort.content ?? [])
+      .filter((t: any) => t.type === "text").map((t: any) => t.text).join("\n").trim();
+
+    await sb.rpc("floky_protokollieren", {
+      p_art: "ANFRAGE", p_werkzeug: benutzt.join(",") || null,
+      p_zusammenfassung: String(verlauf[verlauf.length - 1]?.text ?? "").slice(0, 200),
+    });
+
+    return json({ text, werkzeuge: benutzt, uebrig,
+                  kontingent: kontingent?.kontingent, name: einst?.assistent_name ?? "Floky" });
+  } catch (e) {
+    return json({ fehler: e instanceof Error ? e.message : String(e) }, 502);
+  }
+});

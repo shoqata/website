@@ -70,6 +70,7 @@ import Hero from './components/Hero';
 // kommt erst, wenn die Route tatsaechlich aufgerufen wird.
 const Dashboard = React.lazy(() => import('./components/Dashboard'));
 const AdminPanel = React.lazy(() => import('./components/AdminPanel'));
+const Floky = React.lazy(() => import('./components/Floky'));
 const BoardDashboard = React.lazy(() => import('./components/BoardDashboard'));
 // Die Kassen-Ansicht der Vertreter ist derzeit nicht verlinkt, siehe die
 // Begruendung an der Dashboard-Weiche weiter unten. Die Datei bleibt liegen,
@@ -580,6 +581,16 @@ const AppContent: React.FC = () => {
             {demo.erlaubt && (
               <React.Suspense fallback={null}>
                 <DemoRollenschalter rolle={demo.rolle} setRolle={demo.setRolle} />
+              </React.Suspense>
+            )}
+            {/* Floky. Die Maske prueft selbst ueber floky_darf(), ob das
+                Modul gebucht ist und die Rolle einen Assistenten bekommt --
+                und gibt sonst null zurueck. Deshalb steht sie hier und
+                nicht hinter einer zweiten Pruefung: zwei Pruefungen laufen
+                frueher oder spaeter auseinander. */}
+            {user && (
+              <React.Suspense fallback={null}>
+                <Floky />
               </React.Suspense>
             )}
             <BackToTop />
