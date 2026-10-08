@@ -120,13 +120,36 @@ Deno.serve(async (req) => {
     host, port, benutzer, kennwort, absender, absendername: null as string | null,
     tls: tlsArt, aktiv: true,
   };
-  const postausgang = new Map<string, typeof ausSecrets>();
-  for (const e of eintraege ?? []) {
-    postausgang.set(e.tenantId, {
-      host: e.host, port: e.port ?? 587, benutzer: e.benutzer,
-      kennwort: e.kennwort, absender: e.absender, absendername: e.absendername,
-      tls: (e.tls ?? "starttls").toLowerCase(), aktiv: e.aktiv !== false,
-    });
+
+  // EIN Postausgang fuer alle. Vorher trug jeder Verein seinen eigenen ein;
+  // das bedeutete, dass jeder Verein einen Anbieter finden, einrichten und
+  // pflegen musste -- und bei Koretini scheiterte genau das: der Anbieter
+  // nimmt keine Verbindungen aus Rechenzentren an (Connection timed out,
+  // waehrend derselbe Server von einem gewoehnlichen Anschluss in 0,1 s
+  // antwortet).
+  //
+  // Gesucht wird die Zeile fuer 'plattform'; die Secrets bleiben der
+  // Rueckfall. Vereinszeilen werden NICHT mehr gelesen.
+  const zentral = (eintraege ?? []).find((e: any) => e.tenantId === "plattform");
+  const postausgangZentral = zentral
+    ? {
+        host: zentral.host, port: zentral.port ?? 587, benutzer: zentral.benutzer,
+        kennwort: zentral.kennwort, absender: zentral.absender,
+        absendername: zentral.absendername,
+        tls: (zentral.tls ?? "starttls").toLowerCase(), aktiv: zentral.aktiv !== false,
+      }
+    : ausSecrets;
+
+  // Name und Antwortadresse je Verein. Der technische Absender bleibt
+  // unityhub -- nur dessen Domain ist bei SPF und DKIM hinterlegt. Wuerde
+  // hier info@koretini.me als From stehen, scheiterte die Absenderpruefung
+  // beim Empfaenger und die Nachricht landete im Spam. Der Empfaenger sieht
+  // trotzdem den Vereinsnamen, und seine Antwort geht an den Verein.
+  const vereinsInfo = new Map<string, { name: string; antwortAn: string | null }>();
+  const { data: vereine } = await admin0
+    .from("tenants").select('id, name, "contactEmail"');
+  for (const v of vereine ?? []) {
+    vereinsInfo.set(v.id, { name: v.name ?? v.id, antwortAn: v.contactEmail ?? null });
   }
 
   const vollstaendig = (p: typeof ausSecrets | undefined) =>
@@ -146,7 +169,8 @@ Deno.serve(async (req) => {
   const ohnePostausgang: string[] = [];
 
   for (const [verein, nachrichten] of nachVerein) {
-    const p = postausgang.get(verein) ?? ausSecrets;
+    const p = postausgangZentral;
+    const info = vereinsInfo.get(verein);
 
     // Ohne Postausgang wird nichts versendet -- und nichts angetastet. Die
     // Nachrichten bleiben stehen, statt als gescheitert zu gelten.
@@ -168,7 +192,10 @@ Deno.serve(async (req) => {
     for (const m of nachrichten) {
       try {
         await client.send({
-          from: p.absendername ? `${p.absendername} <${p.absender}>` : p.absender!,
+          // Anzeigename: der Verein, dem die Nachricht gehoert. Ohne
+          // Vereinsbezug (Betreiber-Nachrichten) der Name des Postausgangs.
+          from: `${info?.name ?? p.absendername ?? "unityhub"} <${p.absender}>`,
+          replyTo: info?.antwortAn ?? undefined,
           to: m.recipient,
           subject: m.subject,
           html: m.html,

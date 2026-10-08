@@ -3,6 +3,7 @@ import { Mail, Eye, EyeOff, Check, AlertTriangle, Loader2, Send } from 'lucide-r
 import { supabase } from '../services/supabase-bridge';
 import { flushMailQueue } from '../services/mailService';
 import { useTranslation } from '../context/LanguageContext';
+import { useWerBinIch } from '../lib/useWerBinIch';
 
 // Der Postausgang des Vereins.
 //
@@ -29,6 +30,7 @@ const LEER: Stand = {
 
 const AdminPostausgang: React.FC = () => {
   const { t } = useTranslation();
+  const wer = useWerBinIch(true);
   const [stand, setStand] = useState<Stand>(LEER);
   const [kennwort, setKennwort] = useState('');
   const [zeigeKennwort, setZeigeKennwort] = useState(false);
@@ -129,6 +131,28 @@ const AdminPostausgang: React.FC = () => {
   }
 
   const unvollstaendig = !stand.host || !stand.benutzer || !stand.absender || !stand.kennwort_gesetzt;
+
+  // Der Versand laeuft seit dem Umbau zentral ueber unityhub. Einem Verein
+  // hier Felder hinzustellen, die nichts mehr bewirken, waere eine
+  // Attrappe -- und die Datenbank weist das Speichern ohnehin ab.
+  if (wer && !wer.ist_betreiber) {
+    return (
+      <div className="bg-stone-50 p-6 rounded-3xl border border-stone-100 space-y-3">
+        <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">
+          {t('post.titel')}
+        </p>
+        <p className="text-sm text-stone-700 leading-relaxed">
+          Der Versand läuft zentral über unityhub. Ihr Verein muss keinen eigenen
+          Postausgang einrichten und keine Zugangsdaten hinterlegen.
+        </p>
+        <p className="text-[11px] text-stone-500 leading-relaxed">
+          Empfänger sehen Ihren Vereinsnamen als Absender, und Antworten gehen an
+          Ihre Vereinsadresse. Technischer Absender ist unityhub — nur so besteht
+          die Absenderprüfung beim Empfänger, sonst landen die Nachrichten im Spam.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-stone-50 p-6 rounded-3xl border border-stone-100 space-y-5">
