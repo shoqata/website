@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Sparkles, Send, Loader2, X, AlertTriangle, MessageSquare } from 'lucide-react';
+import { Sparkles, Send, Loader2, X, AlertTriangle, MessageSquare, Check } from 'lucide-react';
 import { supabase } from '@/services/supabase-bridge';
+import { karteAusfuehren, type Karte } from '../lib/flokykarte';
 
 // Floky -- das Gespraechsfenster.
 //
@@ -13,7 +14,10 @@ import { supabase } from '@/services/supabase-bridge';
 // Sie zeigt nur, was ohnehin wahr ist: ist das Modul nicht gebucht,
 // erscheint der Knopf gar nicht.
 
-type Zeile = { rolle: 'mensch' | 'floky'; text: string; werkzeuge?: string[] };
+type Zeile = { rolle: 'mensch' | 'floky'; text: string; werkzeuge?: string[]; karten?: Karte[] };
+
+// Zustand je Karte: offen, laeuft, erledigt (mit Satz) oder gescheitert.
+type Kartenstand = { lauf?: boolean; fertig?: string; fehler?: string };
 
 const Floky: React.FC = () => {
   const [offen, setOffen] = useState(false);
@@ -24,6 +28,7 @@ const Floky: React.FC = () => {
   const [eingabe, setEingabe] = useState('');
   const [laeuft, setLaeuft] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
+  const [kartenstand, setKartenstand] = useState<Record<string, Kartenstand>>({});
   const ende = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -63,13 +68,35 @@ const Floky: React.FC = () => {
       }
       if (data?.fehler) throw new Error(data.fehler);
       setVerlauf([...neu, { rolle: 'floky', text: data?.text || '(keine Antwort)',
-                            werkzeuge: data?.werkzeuge }]);
+                            werkzeuge: data?.werkzeuge, karten: data?.karten ?? [] }]);
       if (typeof data?.uebrig === 'number') setUebrig(data.uebrig);
       if (data?.name) setName(data.name);
     } catch (e: any) {
       setFehler(e?.message ?? String(e));
       setVerlauf(neu);
     } finally { setLaeuft(false); }
+  };
+
+  const ausfuehren = async (schluessel: string, k: Karte) => {
+    setKartenstand(z => ({ ...z, [schluessel]: { lauf: true } }));
+    try {
+      const satz = await karteAusfuehren(k);
+      setKartenstand(z => ({ ...z, [schluessel]: { fertig: satz } }));
+      await supabase.rpc('floky_protokollieren', {
+        p_art: 'BESTAETIGT', p_werkzeug: k.art,
+        p_zusammenfassung: k.felder.map(([a, b]) => `${a}: ${b}`).join(', '),
+      });
+    } catch (e: any) {
+      setKartenstand(z => ({ ...z, [schluessel]: { fehler: e?.message ?? String(e) } }));
+    }
+  };
+
+  const verwerfen = async (schluessel: string, k: Karte) => {
+    setKartenstand(z => ({ ...z, [schluessel]: { fehler: 'Verworfen.' } }));
+    await supabase.rpc('floky_protokollieren', {
+      p_art: 'ABGELEHNT', p_werkzeug: k.art,
+      p_zusammenfassung: k.felder.map(([a, b]) => `${a}: ${b}`).join(', '),
+    });
   };
 
   if (darf !== true) return null;
@@ -124,6 +151,51 @@ const Floky: React.FC = () => {
                 </p>
               ) : null}
             </div>
+            {/* Karten. Sie stehen ausserhalb der Sprechblase, weil sie
+                keine Aussage sind, sondern etwas zu Entscheidendes. */}
+            {z.karten?.map((k, j) => {
+              const sl = `${i}-${j}`;
+              const st = kartenstand[sl] ?? {};
+              return (
+                <div key={sl} className="mt-2 bg-white border border-stone-200 rounded-2xl p-4 shadow-sm">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-3">
+                    {k.titel}
+                  </p>
+                  <div className="space-y-1.5 mb-3">
+                    {k.felder.map(([bez, wert]) => (
+                      <div key={bez} className="flex justify-between gap-4 text-xs">
+                        <span className="text-stone-400">{bez}</span>
+                        <span className="font-bold text-stone-800 tabular-nums text-right">{wert}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {st.fertig ? (
+                    <p className="text-xs font-bold text-emerald-600 flex items-center gap-1.5">
+                      <Check size={13} /> {st.fertig}
+                    </p>
+                  ) : st.fehler ? (
+                    <p className="text-xs text-red-600 flex items-start gap-1.5">
+                      <AlertTriangle size={13} className="shrink-0 mt-0.5" /> {st.fehler}
+                    </p>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button onClick={() => ausfuehren(sl, k)} disabled={st.lauf}
+                        className="flex-1 bg-stone-900 text-white py-2 rounded-xl text-[10px]
+                                   font-bold uppercase tracking-widest disabled:opacity-40
+                                   flex items-center justify-center gap-1.5">
+                        {st.lauf ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                        Ausführen
+                      </button>
+                      <button onClick={() => verwerfen(sl, k)} disabled={st.lauf}
+                        className="px-3 py-2 rounded-xl text-[10px] font-bold uppercase
+                                   tracking-widest text-stone-400 hover:text-stone-700">
+                        Verwerfen
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         ))}
         {laeuft && (

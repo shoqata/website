@@ -16,10 +16,17 @@
 //   - Das Kontingent zaehlt die Datenbank. Ein Zaehler, den der Aufrufer
 //     fuehrt, waere keiner.
 //
+// Der Antwortdienst ist Infomaniak AI Tools -- Schweizer Rechenzentrum.
+// Das ist hier keine Geschmacksfrage: Mitgliederdaten eines Schweizer
+// Vereins verlassen damit das Land nicht, und das DSG-Kapitel des Konzepts
+// verlangt genau das. Die Schnittstelle ist OpenAI-kompatibel.
+//
 // Umgebungsvariablen:
-//   ANTHROPIC_API_KEY   Pflicht. Ohne ihn antwortet die Funktion mit einem
-//                       benannten Hinweis statt mit einem Fehler aus der Tiefe.
-//   FLOKY_MODELL        optional, Vorgabe claude-sonnet-5
+//   INFOMANIAK_TOKEN       Pflicht. API-Token aus dem Infomaniak-Manager.
+//   INFOMANIAK_PRODUCT_ID  optional. Fehlt er, wird er ueber GET /1/ai
+//                          ermittelt und fuer die Laufzeit gemerkt.
+//   FLOKY_MODELL           optional, Vorgabe qwen3
+//                          (verfuegbar: llama3, mistral3, qwen3, gemma3n)
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.47.10";
 
@@ -31,7 +38,25 @@ const CORS = {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 
-const MODELL = Deno.env.get("FLOKY_MODELL") ?? "claude-sonnet-5";
+const MODELL = Deno.env.get("FLOKY_MODELL") ?? "qwen3";
+
+// Die Produkt-Nummer aendert sich nicht; sie einmal je Kaltstart zu holen
+// reicht. Ein Fehlschlag wird NICHT gemerkt -- sonst bliebe eine Funktion
+// nach einer Stoerung dauerhaft stumm.
+let produktId: string | null = Deno.env.get("INFOMANIAK_PRODUCT_ID") ?? null;
+async function produktErmitteln(token: string): Promise<string> {
+  if (produktId) return produktId;
+  const r = await fetch("https://api.infomaniak.com/1/ai", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!r.ok) throw new Error(`Infomaniak meldet ${r.status} beim Abruf der Produkte. `
+    + `Stimmt der Token, und hat er das Recht "ai"?`);
+  const j = await r.json();
+  const erstes = (j?.data ?? [])[0];
+  if (!erstes?.id) throw new Error("Keine AI-Tools-Produkte in diesem Infomaniak-Konto gefunden.");
+  produktId = String(erstes.id);
+  return produktId;
+}
 
 // --------------------------------------------------------------- Werkzeuge
 //
@@ -70,6 +95,10 @@ const WERKZEUGE: Werkzeug[] = [
       const name = (id: string) => (leute ?? []).find((u: any) => u.id === id)?.displayName ?? id;
 
       let zeilen = (zahlungen ?? []).map((z: any) => ({
+        // Die Kennung braucht eine Karte, um sich auf genau diese Rechnung
+        // zu beziehen. Angezeigt wird sie nicht -- der Mensch prueft Name,
+        // Betrag und Rechnungsnummer.
+        id: z.id,
         mitglied: name(z.userId), betrag: z.amount, waehrung: z.currency,
         jahr: z.billingYear, faellig: z.dueDate, rechnung: z.invoiceNumber,
         zweck: z.description, mahnstufe: z.dunningLevel ?? 0, status: z.status,
@@ -191,6 +220,91 @@ const WERKZEUGE: Werkzeug[] = [
   },
 ];
 
+// ------------------------------------------------------------- Karten
+//
+// Ein Kartenwerkzeug SCHREIBT NICHT. Es fuellt eine Karte, die zurueck an
+// die Oberflaeche geht; erst der Klick eines Menschen loest etwas aus, und
+// zwar ueber dieselbe Funktion, die auch die Handarbeit benutzt.
+//
+// Dem Modell wird als Werkzeugergebnis ausdruecklich gesagt, dass nichts
+// geschehen ist. Ohne das schreibt es hinterher "ist gebucht" -- und die
+// Oberflaeche zeigte eine unbestaetigte Karte neben einem Satz, der das
+// Gegenteil behauptet.
+
+type Karte = { art: string; titel: string; felder: [string, string][]; werte: Record<string, unknown> };
+
+const KARTEN: Werkzeug[] = [
+  {
+    name: "zahlung_erfassen",
+    beschreibung: "Bereitet vor, eine offene Rechnung als bezahlt zu kennzeichnen. "
+      + "Die Kennung bekommst du aus offene_posten. Es wird nichts gebucht -- "
+      + "die Vereinsverwaltung bestaetigt die Karte.",
+    schema: { type: "object", properties: {
+      rechnung_id: { type: "string", description: "id aus offene_posten" },
+      mitglied: { type: "string", description: "Name, nur zur Anzeige auf der Karte" },
+      betrag: { type: "number" },
+      weg: { type: "string", enum: ["CASH", "TWINT", "BANK_TRANSFER", "QR_BILL", "PAYPAL"] },
+      datum: { type: "string", description: "TT.MM.JJJJ oder JJJJ-MM-TT" },
+    }, required: ["rechnung_id", "weg"] },
+    rollen: ["SUPER_ADMIN", "ADMIN"],
+    lauf: async (_sb, a) => a,
+  },
+  {
+    name: "barzahlung_melden",
+    beschreibung: "Bereitet die Meldung einer Barzahlung vor, die der Vertreter "
+      + "entgegengenommen hat. Die Verwaltung entscheidet, ob sie gilt.",
+    schema: { type: "object", properties: {
+      rechnung_id: { type: "string" }, mitglied: { type: "string" },
+      betrag: { type: "number" }, datum: { type: "string" }, bemerkung: { type: "string" },
+    }, required: ["rechnung_id"] },
+    rollen: ["REPRESENTATIVE", "SUPER_ADMIN", "ADMIN"],
+    lauf: async (_sb, a) => a,
+  },
+  {
+    name: "buchung_vorschlagen",
+    beschreibung: "Bereitet eine Buchung vor: Datum, Soll- und Habenkonto, Betrag, Text. "
+      + "Ein gesperrtes Jahr weist die Buchhaltung ab -- sag das, statt es zu versuchen.",
+    schema: { type: "object", properties: {
+      datum: { type: "string" }, soll: { type: "string", description: "Kontonummer, z.B. 1020" },
+      haben: { type: "string" }, betrag: { type: "number" }, text: { type: "string" },
+    }, required: ["soll", "haben", "betrag", "text"] },
+    rollen: ["SUPER_ADMIN", "ADMIN"],
+    lauf: async (_sb, a) => a,
+  },
+];
+
+const KARTE_BAUEN = (name: string, a: any): Karte | null => {
+  const z = (v: unknown) => (v === undefined || v === null || v === "" ? "—" : String(v));
+  const geld = (v: unknown) => (v === undefined || v === null ? "—"
+    : `CHF ${Number(v).toLocaleString("de-CH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+  const WEGE: Record<string, string> = { CASH: "Bar", TWINT: "TWINT",
+    BANK_TRANSFER: "Banküberweisung", QR_BILL: "QR-Rechnung", PAYPAL: "PayPal" };
+
+  if (name === "zahlung_erfassen") {
+    if (!a?.rechnung_id) return null;
+    return { art: "zahlung_erfassen", titel: "Zahlung erfassen",
+      felder: [["Mitglied", z(a.mitglied)], ["Betrag", geld(a.betrag)],
+               ["Zahlungsweg", WEGE[a.weg] ?? z(a.weg)], ["Datum", z(a.datum)]],
+      werte: { rechnung_id: a.rechnung_id, weg: a.weg, datum: a.datum } };
+  }
+  if (name === "barzahlung_melden") {
+    if (!a?.rechnung_id) return null;
+    return { art: "barzahlung_melden", titel: "Barzahlung melden",
+      felder: [["Mitglied", z(a.mitglied)], ["Betrag", geld(a.betrag)],
+               ["Datum", z(a.datum)], ["Bemerkung", z(a.bemerkung)]],
+      werte: { rechnung_id: a.rechnung_id, datum: a.datum, bemerkung: a.bemerkung } };
+  }
+  if (name === "buchung_vorschlagen") {
+    if (!a?.soll || !a?.haben) return null;
+    return { art: "buchung_vorschlagen", titel: "Buchung vorschlagen",
+      felder: [["Datum", z(a.datum)], ["Soll", z(a.soll)], ["Haben", z(a.haben)],
+               ["Betrag", geld(a.betrag)], ["Text", z(a.text)]],
+      werte: { datum: a.datum, soll: a.soll, haben: a.haben,
+               betrag: a.betrag, text: a.text } };
+  }
+  return null;
+};
+
 // ------------------------------------------------------------ Systemtext
 function systemtext(k: {
   name: string; verein: string; person: string; rolle: string;
@@ -244,7 +358,10 @@ Deno.serve(async (req) => {
   let koerper: any;
   try { koerper = await req.json(); } catch { return json({ fehler: "Kein gueltiger Auftrag." }, 400); }
   const verlauf = Array.isArray(koerper?.verlauf) ? koerper.verlauf : [];
-  if (!verlauf.length) return json({ fehler: "Keine Nachricht." }, 400);
+  // Der Selbsttest braucht keinen Gespraechsverlauf.
+  if (!verlauf.length && koerper?.pruefen !== true) {
+    return json({ fehler: "Keine Nachricht." }, 400);
+  }
 
   // --------------------------------------------------- Wer, ob, wie oft
   const { data: wer, error: werFehler } = await sb.rpc("wer_bin_ich");
@@ -262,10 +379,35 @@ Deno.serve(async (req) => {
 
   // Erst jetzt, nachdem Konto, Verein und Buchung des Moduls feststehen:
   // ob die Plattform eingerichtet ist, geht einen Fremden nichts an.
-  const schluessel = Deno.env.get("ANTHROPIC_API_KEY");
+  const schluessel = Deno.env.get("INFOMANIAK_TOKEN");
   if (!schluessel) {
     return json({ fehler: "Floky ist noch nicht eingerichtet: der Plattformbetreiber "
-      + "muss das Geheimnis ANTHROPIC_API_KEY hinterlegen." }, 503);
+      + "muss das Geheimnis INFOMANIAK_TOKEN hinterlegen." }, 503);
+  }
+
+  // ------------------------------------------------------- Selbsttest
+  //
+  // Der Betreiber soll die Einrichtung pruefen koennen, ohne jemandem den
+  // Token zu zeigen. Antwortet: welche Produktnummer gefunden wurde, welche
+  // Modelle das Konto hat, und ob das eingestellte darunter ist.
+  if (koerper?.pruefen === true) {
+    if (!ich.ist_betreiber) return json({ fehler: "Nur der Plattformbetreiber." }, 403);
+    try {
+      const pid = await produktErmitteln(schluessel);
+      const r = await fetch(`https://api.infomaniak.com/2/ai/${pid}/openai/v1/models`,
+        { headers: { Authorization: `Bearer ${schluessel}` } });
+      const leib = await r.text();
+      if (!r.ok) return json({ ok: false, produkt: pid,
+        fehler: `Modellabruf meldet ${r.status}: ${leib.slice(0, 300)}` }, 502);
+      let modelle: string[] = [];
+      try { modelle = (JSON.parse(leib)?.data ?? []).map((m: any) => m.id).filter(Boolean); }
+      catch { /* dann eben ohne Liste */ }
+      return json({ ok: true, produkt: pid, modell: MODELL,
+                    modell_vorhanden: modelle.length ? modelle.includes(MODELL) : null,
+                    modelle });
+    } catch (e) {
+      return json({ ok: false, fehler: e instanceof Error ? e.message : String(e) }, 502);
+    }
   }
 
   const { data: kont } = await sb.rpc("floky_kontingent");
@@ -296,7 +438,10 @@ Deno.serve(async (req) => {
     : { data: [] };
 
   const rolle = String(ich.rolle ?? "MEMBER");
-  const erlaubt = WERKZEUGE.filter((w) => w.rollen.includes(rolle));
+  // Lesende Werkzeuge und Kartenwerkzeuge zusammen -- beide nach Rolle
+  // gefiltert. Die Karten schreiben nichts; was sie ausloesen, loest erst
+  // ein Klick aus.
+  const erlaubt = [...WERKZEUGE, ...KARTEN].filter((w) => w.rollen.includes(rolle));
 
   const system = systemtext({
     name: einst?.assistent_name ?? "Floky",
@@ -313,63 +458,99 @@ Deno.serve(async (req) => {
   });
 
   // ----------------------------------------------------- Das Gespraech
-  const nachrichten = verlauf.map((n: any) => ({
-    role: n.rolle === "floky" ? "assistant" : "user",
-    content: String(n.text ?? ""),
-  })).filter((n: any) => n.content);
+  const nachrichten: any[] = [
+    { role: "system", content: system },
+    ...verlauf.map((n: any) => ({
+      role: n.rolle === "floky" ? "assistant" : "user",
+      content: String(n.text ?? ""),
+    })).filter((n: any) => n.content),
+  ];
 
   const werkzeugliste = erlaubt.map((w) => ({
-    name: w.name, description: w.beschreibung, input_schema: w.schema,
+    type: "function",
+    function: { name: w.name, description: w.beschreibung, parameters: w.schema },
   }));
 
-  const anthropic = async (msgs: any[]) => {
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
+  const fragen = async (msgs: any[]) => {
+    const pid = await produktErmitteln(schluessel);
+    const r = await fetch(
+      `https://api.infomaniak.com/2/ai/${pid}/openai/v1/chat/completions`, {
       method: "POST",
-      headers: { "content-type": "application/json", "x-api-key": schluessel,
-                 "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: MODELL, max_tokens: 2000, system,
-                             tools: werkzeugliste, messages: msgs }),
+      headers: { "content-type": "application/json", Authorization: `Bearer ${schluessel}` },
+      body: JSON.stringify({
+        model: MODELL, max_tokens: 2000, messages: msgs,
+        ...(werkzeugliste.length ? { tools: werkzeugliste, tool_choice: "auto" } : {}),
+      }),
     });
-    if (!r.ok) throw new Error(`Antwortdienst: ${r.status} ${await r.text()}`);
+    if (!r.ok) {
+      const leib = await r.text();
+      // Den Text mitgeben: "502" allein sagt dem Betreiber nicht, ob der
+      // Token falsch ist, das Modell unbekannt oder das Kontingent leer.
+      throw new Error(`Infomaniak meldet ${r.status}: ${leib.slice(0, 300)}`);
+    }
     return await r.json();
   };
 
   try {
     let msgs = nachrichten;
-    let antwort = await anthropic(msgs);
+    let antwort = await fragen(msgs);
     const benutzt: string[] = [];
+    const karten: Karte[] = [];
 
     // Hoechstens drei Werkzeugrunden. Ohne Deckel koennte eine Antwort
     // beliebig lange laufen -- und das Kontingent zaehlt nur die Frage.
-    for (let runde = 0; runde < 3 && antwort.stop_reason === "tool_use"; runde++) {
-      const ergebnisse = [];
-      for (const teil of antwort.content ?? []) {
-        if (teil.type !== "tool_use") continue;
-        const w = erlaubt.find((x) => x.name === teil.name);
+    for (let runde = 0; runde < 3; runde++) {
+      const m = antwort?.choices?.[0]?.message;
+      const rufe = m?.tool_calls ?? [];
+      if (!rufe.length) break;
+
+      msgs = [...msgs, m];
+      for (const ruf of rufe) {
+        const name = ruf?.function?.name;
+        const w = erlaubt.find((x) => x.name === name);
         let inhalt: string;
         if (!w) {
+          // Nennt das Modell ein Werkzeug, das dieser Rolle nicht zusteht,
+          // wird es nicht ausgefuehrt -- auch nicht "nur lesend".
           inhalt = "Dieses Werkzeug steht dieser Rolle nicht zur Verfuegung.";
         } else {
           benutzt.push(w.name);
-          try { inhalt = JSON.stringify(await w.lauf(sb, teil.input ?? {})); }
-          catch (e) { inhalt = `Fehlgeschlagen: ${e instanceof Error ? e.message : String(e)}`; }
+          let eingabe: any = {};
+          try { eingabe = JSON.parse(ruf.function.arguments || "{}"); } catch { eingabe = {}; }
+          const karte = KARTEN.some((k) => k.name === w.name) ? KARTE_BAUEN(w.name, eingabe) : null;
+          if (KARTEN.some((k) => k.name === w.name)) {
+            // Ausdruecklich in Worten, nicht nur durch Weglassen: sonst
+            // schreibt das Modell hinterher "ist gebucht".
+            if (karte) { karten.push(karte);
+              inhalt = "Karte vorbereitet und dem Menschen vorgelegt. Es ist NICHTS gebucht, "
+                     + "verschickt oder veroeffentlicht. Sage, was zu bestaetigen ist.";
+            } else {
+              inhalt = "Karte unvollstaendig -- es fehlen Pflichtangaben. Frag nach, statt zu raten.";
+            }
+          } else {
+            try { inhalt = JSON.stringify(await w.lauf(sb, eingabe)); }
+            catch (e) { inhalt = `Fehlgeschlagen: ${e instanceof Error ? e.message : String(e)}`; }
+          }
         }
-        ergebnisse.push({ type: "tool_result", tool_use_id: teil.id, content: inhalt });
+        msgs = [...msgs, { role: "tool", tool_call_id: ruf.id, content: inhalt }];
       }
-      msgs = [...msgs, { role: "assistant", content: antwort.content },
-                       { role: "user", content: ergebnisse }];
-      antwort = await anthropic(msgs);
+      antwort = await fragen(msgs);
     }
 
-    const text = (antwort.content ?? [])
-      .filter((t: any) => t.type === "text").map((t: any) => t.text).join("\n").trim();
+    const text = String(antwort?.choices?.[0]?.message?.content ?? "").trim();
 
+    for (const k of karten) {
+      await sb.rpc("floky_protokollieren", {
+        p_art: "KARTE", p_werkzeug: k.art,
+        p_zusammenfassung: k.felder.map(([a, b]) => `${a}: ${b}`).join(", "),
+      });
+    }
     await sb.rpc("floky_protokollieren", {
       p_art: "ANFRAGE", p_werkzeug: benutzt.join(",") || null,
       p_zusammenfassung: String(verlauf[verlauf.length - 1]?.text ?? "").slice(0, 200),
     });
 
-    return json({ text, werkzeuge: benutzt, uebrig,
+    return json({ text, werkzeuge: benutzt, karten, uebrig,
                   kontingent: kontingent?.kontingent, name: einst?.assistent_name ?? "Floky" });
   } catch (e) {
     return json({ fehler: e instanceof Error ? e.message : String(e) }, 502);
