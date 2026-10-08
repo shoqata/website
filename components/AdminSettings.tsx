@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminPostausgang from './AdminPostausgang';
 import AdminTexte from './AdminTexte';
+import AdminVorstandsrechte from './AdminVorstandsrechte';
 import { Link } from 'react-router-dom';
 import { useTranslation } from '../context/LanguageContext';
 import { motion } from 'framer-motion';
@@ -444,6 +445,14 @@ const AdminSettings: React.FC = () => {
             <section className="space-y-5">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500">Texte und Begriffe</h3>
                 <AdminTexte />
+            </section>
+
+            {/* Wer im Verein aendern darf. Steht bewusst bei den
+                Einstellungen und nicht bei den Mitgliedern: es ist eine
+                Entscheidung ueber den Verein, nicht ueber eine Person. */}
+            <section className="space-y-5">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500">Rechte im Verein</h3>
+                <AdminVorstandsrechte />
             </section>
 
         </div>
