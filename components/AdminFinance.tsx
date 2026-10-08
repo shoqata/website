@@ -49,6 +49,7 @@ import html2canvas from "html2canvas";
 import { sendEmail } from '../services/mailService';
 import { erzeugeRechnungPdf } from '../lib/rechnungpdf';
 import { istSchweiz } from '../services/qrBillService';
+import { textwerkLaden, sprachenFuer, textFuer, alsHtml, type Textwerk } from '../lib/textbaustein';
 import { QRCodeSVG } from 'qrcode.react';
 import AdminRechnungsdesigner from './AdminRechnungsdesigner';
 import Rechnungsblatt from './Rechnungsblatt';
@@ -634,7 +635,56 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
     const handleDelete = async (id: string) => { if (await showConfirm({ title: t('admin.finance.delete_invoice'), message: t('admin.confirm_delete'), type: 'danger' })) await deleteDoc(doc(db, 'payments', id)); };
     const handleMarkPaid = async (payment: Payment) => { await updateDoc(doc(db, 'payments', payment.id), { status: 'PAID', paidAt: new Date().toISOString() }); showAlert({ type: 'success', message: t('admin.finance.marked_paid') }); };
     const handleSaveSettings = async () => { try { await setDoc(doc(db, 'settings', 'payment'), paymentSettings); showAlert({ type: 'success', message: t('admin.finance.settings_saved') }); } catch (e) { showAlert({ type: 'error', message: t('admin.finance.settings_failed') }); } };
-    const handleSendReminder = async (payment: Payment) => { try { const newLevel = (payment.dunningLevel || 0) + 1; await updateDoc(doc(db, 'payments', payment.id), { status: 'OVERDUE', dunningLevel: newLevel, lastDunningDate: new Date().toISOString() }); showAlert({ type: 'success', message: `Reminder Level ${newLevel} sent.` }); } catch (e) { showAlert({ type: 'error', message: t('admin.finance.reminder_failed') }); } };
+    // Die Mahnung verschickte bisher NICHTS. Sie setzte die Mahnstufe und
+    // meldete "Reminder Level X sent." -- eine Erfolgsmeldung fuer etwas,
+    // das nie passiert ist. Jetzt geht ein Brief hinaus, aus dem
+    // Textbaustein des Vereins, in der Sprache des Mitglieds.
+    const handleSendReminder = async (payment: Payment) => {
+        const newLevel = (payment.dunningLevel || 0) + 1;
+        try {
+            const u = users.find(x => x.id === payment.userId);
+            const email = u?.email || payment.customRecipient?.email || '';
+            const name = u?.displayName || payment.customRecipient?.name || '';
+
+            // Erst schreiben, dann merken: eine Mahnstufe zu erhoehen,
+            // ohne dass der Brief hinausging, waere derselbe Fehler wie
+            // bisher -- nur stiller.
+            if (!hasUsableEmail({ email } as any)) {
+                showAlert({ type: 'error', message: t('mail.no_address') });
+                return;
+            }
+
+            const werk: Textwerk = await textwerkLaden();
+            const schluessel = newLevel >= 2 ? 'MAHNUNG_2' : 'MAHNUNG_1';
+            const frist = new Date(Date.now() + 14 * 864e5).toLocaleDateString('de-CH');
+            const gebaut = textFuer(werk, schluessel, sprachenFuer(u as any), {
+                anrede: name,
+                verein: invoiceAssociation,
+                jahr: payment.billingYear ?? new Date().getFullYear(),
+                betrag: `${payment.currency || 'CHF'} ${Number(payment.amount || 0).toFixed(2)}`,
+                frist,
+            });
+
+            if (!gebaut) {
+                // Lieber nichts verschicken als einen leeren Brief. Der
+                // Verein sieht, woran es liegt, und kann es beheben.
+                showAlert({ type: 'error',
+                    message: `Kein Textbaustein „${schluessel}" hinterlegt — unter Einstellungen → Texte und Begriffe anlegen.` });
+                return;
+            }
+
+            await sendEmail({ to: email, subject: gebaut.betreff, html: alsHtml(gebaut.text) });
+
+            await updateDoc(doc(db, 'payments', payment.id), {
+                status: 'OVERDUE', dunningLevel: newLevel,
+                lastDunningDate: new Date().toISOString(),
+            });
+            showAlert({ type: 'success',
+                message: `Mahnung ${newLevel} an ${email} verschickt (${gebaut.sprachen.join('/')}).` });
+        } catch (e: any) {
+            showAlert({ type: 'error', message: e?.message || t('admin.finance.reminder_failed') });
+        }
+    };
 
     // Fix: Refactored getQrData to correctly resolve debtor and handle member lookup
     const getQrData = (payment: Payment): QrBillData | null => {
