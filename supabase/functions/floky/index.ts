@@ -300,6 +300,60 @@ const KARTEN: Werkzeug[] = [
     rollen: ["SUPER_ADMIN", "ADMIN", "BOARD"],
     lauf: async (_sb, a) => a,
   },
+  {
+    name: "mitglied_erfassen",
+    beschreibung: "Bereitet die Aufnahme eines neuen Mitglieds vor. Frage nach, was fehlt — "
+      + "ein Mitglied ohne Adresse bekommt keine Rechnung. Erfinde nichts.",
+    schema: { type: "object", properties: {
+      vorname: { type: "string" }, nachname: { type: "string" },
+      email: { type: "string" }, telefon: { type: "string" },
+      strasse: { type: "string" }, plz: { type: "string" }, ort: { type: "string" },
+      kategorie: { type: "string", enum: ["AKTIV", "PASSIV", "INDIVIDUAL"] },
+      beitragsgruppe: { type: "string", enum: ["STANDARD", "KOSOVO"] },
+      nachbarschaft: { type: "string", description: "Name der Lagje" },
+      sprache: { type: "string", enum: ["de", "sq", "en"] },
+    }, required: ["vorname", "nachname"] },
+    rollen: ["SUPER_ADMIN", "ADMIN"],
+    lauf: async (_sb, a) => a,
+  },
+  {
+    name: "anlass_anlegen",
+    beschreibung: "Bereitet einen Anlass vor. Er wird als Entwurf angelegt, nicht "
+      + "veroeffentlicht — der Verein gibt ihn frei.",
+    schema: { type: "object", properties: {
+      titel: { type: "string" }, datum: { type: "string" }, zeit: { type: "string" },
+      ort: { type: "string" }, beschreibung: { type: "string" },
+      anmeldung: { type: "boolean", description: "Koennen sich Mitglieder anmelden?" },
+    }, required: ["titel", "datum"] },
+    rollen: ["SUPER_ADMIN", "ADMIN", "BOARD"],
+    lauf: async (_sb, a) => a,
+  },
+  {
+    name: "spendenaufruf_entwerfen",
+    beschreibung: "Bereitet einen Spendenaufruf vor. Schreibe Titel und Text vollstaendig aus. "
+      + "Er wird als Entwurf abgelegt, nicht veroeffentlicht.",
+    schema: { type: "object", properties: {
+      titel: { type: "string" }, text: { type: "string" },
+      zielbetrag: { type: "number" }, endet_am: { type: "string" },
+    }, required: ["titel", "text"] },
+    rollen: ["SUPER_ADMIN", "ADMIN", "BOARD"],
+    lauf: async (_sb, a) => a,
+  },
+  {
+    name: "protokoll_entwerfen",
+    beschreibung: "Bereitet aus Stichworten einen Sitzungsentwurf vor: Traktanden und "
+      + "Beschluesse. Erfinde keine Beschluesse, die nicht in den Stichworten stehen.",
+    schema: { type: "object", properties: {
+      titel: { type: "string" }, datum: { type: "string" }, ort: { type: "string" },
+      traktanden: { type: "array", items: { type: "object", properties: {
+        titel: { type: "string" }, inhalt: { type: "string" } }, required: ["titel"] } },
+      beschluesse: { type: "array", items: { type: "object", properties: {
+        titel: { type: "string" }, inhalt: { type: "string" },
+        zustaendig: { type: "string" }, frist: { type: "string" } }, required: ["titel"] } },
+    }, required: ["titel"] },
+    rollen: ["SUPER_ADMIN", "ADMIN", "BOARD"],
+    lauf: async (_sb, a) => a,
+  },
 ];
 
 const KARTE_BAUEN = (name: string, a: any): Karte | null => {
@@ -347,6 +401,53 @@ const KARTE_BAUEN = (name: string, a: any): Karte | null => {
       felder: [["Titel", z(a.titel)], ["Text", gekuerzt],
                ["Veröffentlichung", "nein — nur Entwurf"]],
       werte: { titel: a.titel, text: a.text } };
+  }
+  if (name === "mitglied_erfassen") {
+    if (!a?.vorname || !a?.nachname) return null;
+    const anschrift = [a.strasse, [a.plz, a.ort].filter(Boolean).join(" ")]
+      .filter(Boolean).join(", ");
+    return { art: "mitglied_erfassen", titel: "Mitglied aufnehmen",
+      felder: [["Name", `${a.vorname} ${a.nachname}`], ["E-Mail", z(a.email)],
+               ["Telefon", z(a.telefon)], ["Adresse", z(anschrift)],
+               ["Kategorie", z(a.kategorie)], ["Beitragsgruppe", z(a.beitragsgruppe)],
+               ["Nachbarschaft", z(a.nachbarschaft)], ["Sprache", z(a.sprache)]],
+      werte: { vorname: a.vorname, nachname: a.nachname, email: a.email, telefon: a.telefon,
+               strasse: a.strasse, plz: a.plz, ort: a.ort, kategorie: a.kategorie,
+               beitragsgruppe: a.beitragsgruppe, nachbarschaft: a.nachbarschaft,
+               sprache: a.sprache } };
+  }
+  if (name === "anlass_anlegen") {
+    if (!a?.titel || !a?.datum) return null;
+    return { art: "anlass_anlegen", titel: "Anlass anlegen",
+      felder: [["Titel", z(a.titel)], ["Datum", z(a.datum)], ["Zeit", z(a.zeit)],
+               ["Ort", z(a.ort)], ["Anmeldung", a.anmeldung ? "ja" : "nein"],
+               ["Veröffentlichung", "nein — nur Entwurf"]],
+      werte: { titel: a.titel, datum: a.datum, zeit: a.zeit, ort: a.ort,
+               beschreibung: a.beschreibung, anmeldung: !!a.anmeldung } };
+  }
+  if (name === "spendenaufruf_entwerfen") {
+    if (!a?.titel || !a?.text) return null;
+    const gekuerzt = String(a.text).length > 400
+      ? String(a.text).slice(0, 400) + " …" : String(a.text);
+    return { art: "spendenaufruf_entwerfen", titel: "Spendenaufruf als Entwurf ablegen",
+      felder: [["Titel", z(a.titel)], ["Text", gekuerzt],
+               ["Zielbetrag", a.zielbetrag ? geld(a.zielbetrag) : "—"],
+               ["Läuft bis", z(a.endet_am)], ["Veröffentlichung", "nein — nur Entwurf"]],
+      werte: { titel: a.titel, text: a.text, zielbetrag: a.zielbetrag, endet_am: a.endet_am } };
+  }
+  if (name === "protokoll_entwerfen") {
+    if (!a?.titel) return null;
+    const tr = Array.isArray(a.traktanden) ? a.traktanden : [];
+    const be = Array.isArray(a.beschluesse) ? a.beschluesse : [];
+    return { art: "protokoll_entwerfen", titel: "Sitzung als Entwurf ablegen",
+      felder: [["Titel", z(a.titel)], ["Datum", z(a.datum)], ["Ort", z(a.ort)],
+               ["Traktanden", tr.length ? tr.map((t: any) => `· ${t.titel}`).join("\n") : "—"],
+               ["Beschlüsse", be.length
+                 ? be.map((b: any) => `· ${b.titel}`
+                     + (b.zustaendig ? ` (${b.zustaendig}${b.frist ? `, bis ${b.frist}` : ""})` : ""))
+                     .join("\n")
+                 : "—"]],
+      werte: { titel: a.titel, datum: a.datum, ort: a.ort, traktanden: tr, beschluesse: be } };
   }
   return null;
 };

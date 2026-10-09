@@ -112,5 +112,101 @@ export async function karteAusfuehren(k: Karte): Promise<string> {
     return 'Als Entwurf abgelegt. Unter Webseite → Neuigkeiten freigeben.';
   }
 
+  if (k.art === 'mitglied_erfassen') {
+    if (!w.vorname || !w.nachname) throw new Error('Der Karte fehlt der Name.');
+    const email = String(w.email || '').trim().toLowerCase();
+
+    // users.email ist eindeutig (users_email_key). Ohne diese Pruefung
+    // scheiterte das Einfuegen mit einem Datenbankfehler, den niemand
+    // liest -- und der Verein wuesste nicht, dass die Person schon da ist.
+    if (email) {
+      const { data: schon } = await supabase.from('users')
+        .select('id,displayName').eq('email', email).maybeSingle();
+      if (schon) {
+        throw new Error(`Diese E-Mail gehört bereits zu „${schon.displayName}". `
+          + 'Bitte dort ändern statt ein zweites Mitglied anzulegen.');
+      }
+    }
+
+    let lagje: string | null = null;
+    if (w.nachbarschaft) {
+      const { data: n } = await supabase.from('neighborhoods')
+        .select('id').ilike('name', String(w.nachbarschaft)).maybeSingle();
+      lagje = n?.id ?? null;
+    }
+
+    const { data, error } = await supabase.from('users').insert({
+      id: crypto.randomUUID(),
+      firstName: String(w.vorname), lastName: String(w.nachname),
+      displayName: `${w.vorname} ${w.nachname}`.trim(),
+      email: email || null, phone: w.telefon || null,
+      street: w.strasse || null, zip: w.plz || null, city: w.ort || null,
+      membershipCategory: w.kategorie || null, billingGroup: w.beitragsgruppe || 'STANDARD',
+      neighborhoodId: lagje, sprache: w.sprache || null,
+      // Ausdruecklich gesetzt, nicht dem Zufall ueberlassen: ein neues
+      // Mitglied ist ein Mitglied, kein Vorstand, und es bekommt KEIN
+      // Konto -- das vergibt die Verwaltung eigens.
+      role: 'MEMBER', membershipStatus: 'ACTIVE',
+      joinedAt: new Date().toISOString().slice(0, 10),
+    }).select('id');
+    if (error) throw new Error(error.message);
+    if (!data?.length) throw new Error('Nicht angelegt — fehlende Berechtigung?');
+    return `${w.vorname} ${w.nachname} ist aufgenommen. Ein Zugang wurde nicht erstellt.`;
+  }
+
+  if (k.art === 'anlass_anlegen') {
+    if (!w.titel || !w.datum) throw new Error('Der Karte fehlt Titel oder Datum.');
+    const { data, error } = await supabase.from('events').insert({
+      id: crypto.randomUUID(),
+      title: String(w.titel), date: alsDatum(w.datum), time: w.zeit || null,
+      location: w.ort || null, description: w.beschreibung || null,
+      isRegistrable: !!w.anmeldung, status: 'DRAFT',
+      createdAt: new Date().toISOString(),
+    }).select('id');
+    if (error) throw new Error(error.message);
+    if (!data?.length) throw new Error('Nicht angelegt — fehlende Berechtigung?');
+    return 'Als Entwurf angelegt. Unter Anlässe freigeben.';
+  }
+
+  if (k.art === 'spendenaufruf_entwerfen') {
+    if (!w.titel || !w.text) throw new Error('Der Karte fehlt Titel oder Text.');
+    const { data, error } = await supabase.from('spendenaufrufe').insert({
+      titel: String(w.titel), text: String(w.text),
+      ziel_betrag: w.zielbetrag ? Number(w.zielbetrag) : null,
+      endet_am: w.endet_am ? alsDatum(w.endet_am) : null,
+      status: 'ENTWURF',
+    }).select('id');
+    if (error) throw new Error(error.message);
+    if (!data?.length) throw new Error('Nicht abgelegt — fehlende Berechtigung?');
+    return 'Als Entwurf abgelegt. Unter Spenden freigeben.';
+  }
+
+  if (k.art === 'protokoll_entwerfen') {
+    if (!w.titel) throw new Error('Der Karte fehlt der Titel.');
+    // Die Form von agendaItems und decisions ist vorgegeben; gemessen an
+    // bestehenden Sitzungen: {id, title, content, dueDate, responsible,
+    // linkedTaskIds}. Eine eigene Form haette die Maske nicht gelesen.
+    const posten = (liste: any[], mitFrist: boolean) =>
+      (Array.isArray(liste) ? liste : []).map((x: any) => ({
+        id: crypto.randomUUID().slice(0, 9),
+        title: String(x.titel ?? ''), content: String(x.inhalt ?? ''),
+        dueDate: mitFrist ? String(x.frist ?? '') : '',
+        responsible: mitFrist ? String(x.zustaendig ?? '') : '',
+        linkedTaskIds: [],
+      })).filter((x: any) => x.title);
+
+    const { data, error } = await supabase.from('board_meetings').insert({
+      id: crypto.randomUUID(),
+      title: String(w.titel),
+      date: alsDatum(w.datum), location: w.ort || null,
+      agendaItems: posten(w.traktanden, false),
+      decisions: posten(w.beschluesse, true),
+      status: 'PLANNED', createdAt: new Date().toISOString(),
+    }).select('id');
+    if (error) throw new Error(error.message);
+    if (!data?.length) throw new Error('Nicht abgelegt — fehlende Berechtigung?');
+    return 'Sitzung als Entwurf abgelegt. Unter Vorstand öffnen und ergänzen.';
+  }
+
   throw new Error(`Unbekannte Karte: ${k.art}`);
 }

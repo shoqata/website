@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Loader2, Sparkles, Save, Check, AlertTriangle } from 'lucide-react';
+import { Loader2, Sparkles, Save, Check, AlertTriangle, Mail } from 'lucide-react';
 import { supabase } from '@/services/supabase-bridge';
 
 // Was der Verein an Floky einstellen darf.
@@ -20,6 +20,13 @@ const AdminFloky: React.FC = () => {
   const [speichert, setSpeichert] = useState(false);
   const [gespeichert, setGespeichert] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
+  // Wer den Wochenstart bekommt. Namentlich, nicht als Rollenregel: eine
+  // Regel ("alle BOARD") aendert sich still mit, sobald jemand aufgenommen
+  // wird -- und dann bekommt Post, wen niemand dafuer vorgesehen hat.
+  const [waehlbar, setWaehlbar] = useState<any[] | null>(null);
+  const [gewaehlt, setGewaehlt] = useState<Set<string>>(new Set());
+  const [wsSpeichert, setWsSpeichert] = useState(false);
+  const [wsOk, setWsOk] = useState(false);
 
   useEffect(() => {
     let lebt = true;
@@ -38,6 +45,11 @@ const AdminFloky: React.FC = () => {
         setName(kk.assistent_name || 'Floky');
       }
       if (e) { setName(e.assistent_name || 'Floky'); setDu(!!e.anrede_du); }
+      const { data: w } = await supabase.rpc('floky_wochenstart_waehlbar');
+      if (lebt && Array.isArray(w)) {
+        setWaehlbar(w);
+        setGewaehlt(new Set(w.filter((x: any) => x.ausgewaehlt).map((x: any) => x.id)));
+      }
     })();
     return () => { lebt = false; };
   }, []);
@@ -122,6 +134,78 @@ const AdminFloky: React.FC = () => {
           </p>
         </div>
       )}
+
+      {/* ---------------------------------------------- Wochenstart */}
+      <div className="bg-white rounded-2xl border border-stone-100 p-5 space-y-4">
+        <div>
+          <p className={`${marke} flex items-center gap-2`}><Mail size={13} /> Wochenstart am Montagabend</p>
+          <p className="text-[11px] text-stone-500 leading-relaxed mt-2 max-w-xl">
+            Offene Beiträge, gemeldete Barzahlungen und die Anlässe der nächsten
+            14 Tage — in der Sprache der jeweiligen Person. Verschickt wird nur,
+            wenn es etwas zu melden gibt; eine Übersicht aus lauter Nullen wird
+            nach drei Wochen ungelesen gelöscht.
+          </p>
+        </div>
+
+        {waehlbar === null ? (
+          <p className="text-xs text-stone-400 flex items-center gap-2">
+            <Loader2 size={13} className="animate-spin" /> Lädt …
+          </p>
+        ) : waehlbar.length === 0 ? (
+          <p className="text-xs text-stone-400">
+            Niemand im Vorstand hat eine E-Mail-Adresse hinterlegt.
+          </p>
+        ) : (
+          <div className="space-y-1">
+            {waehlbar.map((p: any) => (
+              <label key={p.id}
+                className="flex items-center gap-3 py-2 px-3 rounded-xl hover:bg-stone-50 cursor-pointer">
+                <input type="checkbox" checked={gewaehlt.has(p.id)}
+                  onChange={e => {
+                    const n = new Set(gewaehlt);
+                    e.target.checked ? n.add(p.id) : n.delete(p.id);
+                    setGewaehlt(n); setWsOk(false);
+                  }}
+                  className="w-4 h-4 accent-stone-900 shrink-0" />
+                <span className="text-sm text-stone-800 font-bold">{p.name}</span>
+                <span className="text-[11px] text-stone-400 truncate">{p.email}</span>
+                <span className="text-[9px] font-bold uppercase tracking-widest text-stone-300 ml-auto shrink-0">
+                  {p.rolle}
+                </span>
+              </label>
+            ))}
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                onClick={async () => {
+                  setWsSpeichert(true); setFehler(null);
+                  const { data, error } = await supabase.rpc('floky_wochenstart_setzen',
+                    { p_ids: [...gewaehlt] });
+                  setWsSpeichert(false);
+                  if (error) { setFehler(error.message); return; }
+                  // Die Datenbank verwirft Empfaenger, die nicht in Frage
+                  // kommen. Weicht die Zahl ab, soll das hier stehen und
+                  // nicht stillschweigend untergehen.
+                  if (typeof data === 'number' && data !== gewaehlt.size) {
+                    setFehler(`${data} von ${gewaehlt.size} übernommen — die übrigen `
+                      + 'gehören nicht zum Verein oder haben keine Adresse.');
+                  }
+                  setWsOk(true); setTimeout(() => setWsOk(false), 2000);
+                }}
+                disabled={wsSpeichert}
+                className="flex items-center gap-2 bg-stone-900 text-white px-4 py-2 rounded-xl
+                           text-[10px] font-bold uppercase tracking-widest disabled:opacity-40">
+                {wsSpeichert ? <Loader2 size={12} className="animate-spin" />
+                  : wsOk ? <Check size={12} /> : <Save size={12} />}
+                {wsOk ? 'Gespeichert' : 'Empfänger speichern'}
+              </button>
+              <span className="text-[11px] text-stone-400">
+                {gewaehlt.size === 0 ? 'niemand — es wird nichts verschickt'
+                  : `${gewaehlt.size} Person${gewaehlt.size === 1 ? '' : 'en'}`}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
 
       <button onClick={sichern} disabled={speichert}
         className="flex items-center gap-2 bg-stone-900 text-white px-4 py-2 rounded-xl
