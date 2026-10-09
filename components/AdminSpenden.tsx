@@ -86,7 +86,13 @@ const AdminSpenden: React.FC = () => {
       const g = textFuer(werk, 'DANK_SPENDE', ['sq', 'de'], {
         anrede: s.anonym ? '' : (s.name || ''),
         betrag: `${s.waehrung || 'CHF'} ${Number(s.betrag || 0).toFixed(2)}`,
-        zweck: s.zweck || '',
+        // Leer waere schlimmer als allgemein: der Baustein schreibt
+        // "Ai shkon për {{zweck}}." -- mit leerem Wert steht dort
+        // "Ai shkon për ." Eine Spende ohne Zweckbindung geht in die
+        // Vereinsarbeit, und genau das soll dann dastehen -- je in der
+        // Sprache des Absatzes, nicht als Schraegstrich-Paar.
+        zweck: s.zweck || { de: 'die Vereinsarbeit', sq: 'punën e shoqatës',
+                            en: 'the association’s work' },
         verein: '',
       });
       if (!g) {

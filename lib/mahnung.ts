@@ -2,6 +2,7 @@ import { supabase } from '@/services/supabase-bridge';
 import { sendEmail } from '../services/mailService';
 import { hasUsableEmail } from './memberEmail';
 import { textwerkLaden, textFuer, alsHtml, sprachenFuer, type Textwerk } from './textbaustein';
+import { erzeugeRechnungPdf } from './rechnungpdf';
 
 // Eine Mahnung verschicken -- an genau einer Stelle.
 //
@@ -49,7 +50,52 @@ export async function mahnungSenden(
       + 'unter Einstellungen → Texte und Begriffe anlegen.');
   }
 
-  await sendEmail({ to: email, subject: gebaut.betreff, html: alsHtml(gebaut.text) });
+  // Die Rechnung gehoert an die Mahnung.
+  //
+  // Der Text sagt in allen Sprachen "Die Rechnung liegt bei" / "Fatura
+  // është bashkëngjitur" -- und angehaengt wurde nichts. Ein Brief, der
+  // auf einen Anhang verweist, den es nicht gibt, laesst das Mitglied
+  // suchen und den Verein unglaubwuerdig dastehen.
+  //
+  // Scheitert das PDF, wird NICHT verschickt. Bei einer Rechnung waere
+  // das anders zu entscheiden -- lieber ohne Anhang als gar nicht. Eine
+  // Mahnung aber verweist ausdruecklich auf die Beilage; ohne sie
+  // verschickt sie eine Unwahrheit.
+  const { data: zahlwerk } = await supabase.from('settings')
+    .select('data').eq('id', 'payment').maybeSingle();
+  const z: any = (zahlwerk?.data as any) ?? {};
+
+  const pdf = await erzeugeRechnungPdf({
+    nummer: zahlung.invoiceNumber || '',
+    datum: (zahlung as any).issuedAt || zahlung.timestamp?.toDate?.()?.toISOString()
+           || new Date().toISOString(),
+    faellig: zahlung.dueDate || null,
+    betrag: Number(zahlung.amount || 0),
+    waehrung: (zahlung.currency as 'CHF' | 'EUR') || 'CHF',
+    zweck: zahlung.description || '',
+    // Ohne Referenz waere sie fuer jede Rechnung dieselbe, und keine
+    // Zahlung liesse sich zuordnen -- dieselbe Ueberlegung wie beim
+    // Rechnungsversand.
+    referenz: zahlung.reference || zahlung.invoiceNumber || undefined,
+    verein: {
+      name: z.accountHolder || verein,
+      adresse: z.street, plz: z.zip, ort: z.city, land: z.country,
+      iban: z.iban, qrIban: z.qrIban, bic: z.bic, bank: z.bankName,
+      paypal: z.paypalEmail, twint: z.twintNumber,
+    },
+    empfaenger: {
+      name, adresse: mitglied?.street || zahlung.customRecipient?.street,
+      plz: mitglied?.zip || zahlung.customRecipient?.zip,
+      ort: mitglied?.city || zahlung.customRecipient?.city,
+      land: mitglied?.country || zahlung.customRecipient?.country,
+    },
+  }).catch((e: any) => {
+    throw new Error('Die Rechnung liess sich nicht erzeugen, deshalb wurde die Mahnung '
+      + `nicht verschickt — sie verweist auf die Beilage. (${e?.message ?? e})`);
+  });
+
+  await sendEmail({ to: email, subject: gebaut.betreff, html: alsHtml(gebaut.text),
+                    attachments: [{ filename: pdf.dateiname, content: pdf.base64 }] });
 
   const { data, error } = await supabase.from('payments').update({
     status: 'OVERDUE', dunningLevel: stufe, lastDunningDate: new Date().toISOString(),

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Loader2, Save, Check, AlertTriangle, Languages, BookMarked } from 'lucide-react';
+import { Loader2, Save, Check, AlertTriangle, Languages, BookMarked, Eye } from 'lucide-react';
 import { supabase } from '@/services/supabase-bridge';
 
 // Textbausteine und Glossar.
@@ -18,6 +18,9 @@ import { supabase } from '@/services/supabase-bridge';
 type Baustein = {
   id: string; schluessel: string; sprache: string;
   betreff: string | null; text: string; aktiv: boolean;
+  // Wer hat diesen Wortlaut gegengelesen? geprueft_text haelt fest, WELCHE
+  // Fassung -- weicht sie vom heutigen Text ab, ist der Vermerk ueberholt.
+  geprueft_am: string | null; geprueft_von: string | null; geprueft_text: string | null;
 };
 type Begriff = { begriff: string; de: string | null; sq: string | null; en: string | null; hinweis: string | null };
 
@@ -58,6 +61,20 @@ const AdminTexte: React.FC = () => {
     setBegriffe((g as Begriff[]) || []);
   };
   useEffect(() => { laden(); }, []);
+
+  // Ein Vermerk gilt nur fuer den Wortlaut, der gegengelesen wurde.
+  const istGeprueft = (b: Baustein) =>
+    !!b.geprueft_am && b.geprueft_text === b.text;
+  const istUeberholt = (b: Baustein) =>
+    !!b.geprueft_am && b.geprueft_text !== b.text;
+
+  const gegenlesen = async (b: Baustein, an: boolean) => {
+    setSpeichert(b.id); setFehler(null);
+    const { error } = await supabase.rpc('baustein_gegengelesen', { p_id: b.id, p_an: an });
+    setSpeichert(null);
+    if (error) { setFehler(error.message); return; }
+    await laden();
+  };
 
   const bausteinSichern = async (b: Baustein) => {
     setSpeichert(b.id); setFehler(null);
@@ -116,6 +133,14 @@ const AdminTexte: React.FC = () => {
             ))}
           </div>
         </div>
+        {sprache === 'sq' && bausteine.some(b => b.sprache === 'sq' && !b.geprueft_am) && (
+          <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-xl p-3
+                        leading-relaxed">
+            Die albanischen Vorlagen sind ein erster Entwurf und noch von niemandem
+            gegengelesen. Sie gehen an Mitglieder hinaus — bitte lassen Sie sie von
+            jemandem durchsehen, der die Sprache spricht, und vermerken Sie es hier.
+          </p>
+        )}
         <p className="text-[11px] text-stone-500 leading-relaxed">
           Diese Texte gehen an Mitglieder. Platzhalter werden beim Versand ersetzt:{' '}
           {PLATZHALTER.map(p => (
@@ -131,7 +156,24 @@ const AdminTexte: React.FC = () => {
               <div key={k} className="bg-white rounded-2xl border border-stone-100 overflow-hidden">
                 <button onClick={() => setOffen(istOffen ? null : `${k}-${sprache}`)}
                   className="w-full flex items-center justify-between gap-3 p-4 text-left hover:bg-stone-50">
-                  <span className="text-sm font-bold text-stone-800">{NAMEN[k] || k}</span>
+                  <span className="text-sm font-bold text-stone-800 flex items-center gap-2">
+                    {NAMEN[k] || k}
+                    {b && istGeprueft(b) && (
+                      <span className="text-[9px] font-bold uppercase tracking-widest
+                                       text-emerald-700 bg-emerald-50 border border-emerald-100
+                                       rounded px-1.5 py-0.5">gegengelesen</span>
+                    )}
+                    {b && istUeberholt(b) && (
+                      <span className="text-[9px] font-bold uppercase tracking-widest
+                                       text-amber-700 bg-amber-50 border border-amber-100
+                                       rounded px-1.5 py-0.5">seither geändert</span>
+                    )}
+                    {b && !b.geprueft_am && (
+                      <span className="text-[9px] font-bold uppercase tracking-widest
+                                       text-stone-400 bg-stone-50 border border-stone-200
+                                       rounded px-1.5 py-0.5">ungeprüft</span>
+                    )}
+                  </span>
                   <span className="text-[10px] text-stone-400 uppercase tracking-widest">
                     {b ? (istOffen ? 'schliessen' : 'bearbeiten')
                        : <span className="text-amber-600">in dieser Sprache nicht hinterlegt</span>}
@@ -153,13 +195,32 @@ const AdminTexte: React.FC = () => {
                         onChange={e => setBausteine(bausteine.map(x =>
                           x.id === b.id ? { ...x, text: e.target.value } : x))} />
                     </div>
-                    <button onClick={() => bausteinSichern(b)} disabled={speichert === b.id}
-                      className="flex items-center gap-2 bg-stone-900 text-white px-4 py-2 rounded-xl
-                                 text-[10px] font-bold uppercase tracking-widest disabled:opacity-40">
-                      {speichert === b.id ? <Loader2 size={12} className="animate-spin" />
-                        : gespeichert === b.id ? <Check size={12} /> : <Save size={12} />}
-                      {gespeichert === b.id ? 'Gespeichert' : 'Speichern'}
-                    </button>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <button onClick={() => bausteinSichern(b)} disabled={speichert === b.id}
+                        className="flex items-center gap-2 bg-stone-900 text-white px-4 py-2 rounded-xl
+                                   text-[10px] font-bold uppercase tracking-widest disabled:opacity-40">
+                        {speichert === b.id ? <Loader2 size={12} className="animate-spin" />
+                          : gespeichert === b.id ? <Check size={12} /> : <Save size={12} />}
+                        {gespeichert === b.id ? 'Gespeichert' : 'Speichern'}
+                      </button>
+
+                      <button onClick={() => gegenlesen(b, !istGeprueft(b))} disabled={speichert === b.id}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px]
+                                    font-bold uppercase tracking-widest border disabled:opacity-40 ${
+                          istGeprueft(b) ? 'border-emerald-200 text-emerald-700 bg-emerald-50'
+                                         : 'border-stone-200 text-stone-500 hover:text-stone-900'}`}>
+                        <Eye size={12} />
+                        {istGeprueft(b) ? 'Gegengelesen — zurücknehmen' : 'Als gegengelesen vermerken'}
+                      </button>
+
+                      {b.geprueft_am && (
+                        <span className={`text-[10px] ${istUeberholt(b) ? 'text-amber-600' : 'text-stone-400'}`}>
+                          {istUeberholt(b)
+                            ? `${b.geprueft_von} hat eine frühere Fassung gelesen — bitte erneut prüfen`
+                            : `${b.geprueft_von}, ${new Date(b.geprueft_am).toLocaleDateString('de-CH')}`}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

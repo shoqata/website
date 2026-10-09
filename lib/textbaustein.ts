@@ -46,8 +46,28 @@ export function sprachenFuer(mitglied: { sprache?: string | null } | null | unde
   return ['sq', 'de'];   // Reihenfolge aus dem Konzept: Albanisch oben.
 }
 
+// Ein Wert darf je Sprache verschieden sein.
+//
+// Gebraucht fuer Rueckfallwerte: eine Spende ohne Zweckbindung soll im
+// deutschen Text "die Vereinsarbeit" heissen und im albanischen "punën e
+// shoqatës". Ein einziger Wert fuer beide Fassungen ergaebe entweder einen
+// deutschen Satz mit albanischem Wort oder umgekehrt -- oder, wie zuerst
+// versucht, einen Schraegstrich mitten im Brief.
+export type Wert = string | number | null | undefined | Partial<Record<Sprache, string>>;
+
+// Der Rueckgabetyp bleibt offen: das Projekt laeuft ohne strictNullChecks,
+// und dort fallen null und undefined aus einer Union heraus -- die
+// Verengung oben wuerde dann als Fehler gelesen.
+const fuerSprache = (v: Wert, sprache: Sprache): any => {
+  if (v && typeof v === 'object') {
+    const je = v as Partial<Record<Sprache, string>>;
+    return je[sprache] ?? je.de ?? je.sq ?? je.en ?? '';
+  }
+  return v;
+};
+
 const einsetzen = (
-  roh: string, werte: Record<string, string | number | null | undefined>,
+  roh: string, werte: Record<string, Wert>,
   begriffe: Begriff[], sprache: Sprache,
 ): string => {
   let text = roh;
@@ -59,7 +79,8 @@ const einsetzen = (
     text = text.split(`{{begriff.${g.begriff}}}`).join(wert);
   }
 
-  for (const [k, v] of Object.entries(werte)) {
+  for (const [k, roh2] of Object.entries(werte)) {
+    const v = fuerSprache(roh2, sprache);
     if (v === null || v === undefined) continue;
     text = text.split(`{{${k}}}`).join(String(v));
   }
@@ -76,7 +97,7 @@ export function textFuer(
   werk: Textwerk,
   schluessel: string,
   sprachen: Sprache[],
-  werte: Record<string, string | number | null | undefined>,
+  werte: Record<string, Wert>,
 ): { betreff: string; text: string; sprachen: Sprache[] } | null {
   const treffer = sprachen
     .map(sp => ({ sp, b: werk.bausteine.find(x => x.schluessel === schluessel && x.sprache === sp && x.aktiv !== false) }))

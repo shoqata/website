@@ -4,6 +4,7 @@ import AdminPostausgang from './AdminPostausgang';
 import AdminTexte from './AdminTexte';
 import AdminVorstandsrechte from './AdminVorstandsrechte';
 import AdminFloky from './AdminFloky';
+import AdminVereinsjahr from './AdminVereinsjahr';
 import { Link } from 'react-router-dom';
 import { useTranslation } from '../context/LanguageContext';
 import { motion } from 'framer-motion';
@@ -443,7 +444,7 @@ const AdminSettings: React.FC = () => {
             {/* Textbausteine und Glossar. Sie gehoeren zur Kommunikation,
                 nicht zu den Stammdaten: was an Mitglieder geht und wie die
                 Vereinsbegriffe darin heissen. */}
-            <section className="space-y-5">
+            <section className="space-y-5 md:col-span-2">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500">Texte und Begriffe</h3>
                 <AdminTexte />
             </section>
@@ -454,6 +455,15 @@ const AdminSettings: React.FC = () => {
             <section className="space-y-5">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500">Vereinsassistent</h3>
                 <AdminFloky />
+            </section>
+
+            {/* Das Vereinsjahr. Steht neben dem Assistenten, weil er die
+                Erinnerungen verschickt -- aber es ist eine Angabe ueber den
+                Verein, nicht ueber Floky: wann seine GV ist, weiss er auch
+                ohne Assistent. */}
+            <section className="space-y-5 md:col-span-2">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500">Vereinsjahr</h3>
+                <AdminVereinsjahr />
             </section>
 
             {/* Wer im Verein aendern darf. Steht bewusst bei den
