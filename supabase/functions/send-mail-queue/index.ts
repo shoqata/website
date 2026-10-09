@@ -141,30 +141,73 @@ Deno.serve(async (req) => {
 
     // Der Weg ueber HTTPS wird zuerst geprueft, weil er Vorrang hat.
     if (ueberPostal) {
+      // Eine andere Absenderadresse laesst sich zum Pruefen mitgeben.
+      // Postal gibt Mail nur fuer Domains frei, die auf dem Server
+      // eingerichtet sind -- welche das ist, weiss nur der Betreiber,
+      // und Durchprobieren per Neusetzen der Geheimnisse waere muehsam.
+      const vonProbe = typeof koerper?.von === "string" && koerper.von.includes("@")
+        ? String(koerper.von).slice(0, 120) : (absender ?? "");
+
       const a: Record<string, unknown> = {
         weg: "HTTPS (Postal)", url: postalUrl,
         schluessel: `gesetzt, ${postalKey.length} Zeichen`,
-        absender: absender ?? "(nicht gesetzt)",
+        absender: vonProbe || "(nicht gesetzt)",
+        eingestellter_absender: absender ?? "(nicht gesetzt)",
       };
       try {
         const r = await fetch(`${postalUrl}/api/v1/send/message`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "X-Server-API-Key": postalKey },
           body: JSON.stringify({
-            to: [absender ?? ""], from: absender ?? "",
+            to: [vonProbe], from: vonProbe,
             subject: "unityhub — Prüfung des Postausgangs",
             plain_body: "Diese Nachricht bestätigt, dass der Versand über Postal funktioniert.",
           }),
         });
         const leib = await r.json().catch(() => ({}));
         if (leib?.status === "success") {
-          a.ergebnis = `In Ordnung. Eine Prüfnachricht ging an ${absender}.`;
+          a.ergebnis = `In Ordnung. Eine Prüfnachricht ging an ${vonProbe}.`;
+          if (vonProbe !== absender) {
+            a.achtung = `Geprüft wurde ${vonProbe}, gesetzt ist aber ${absender}. `
+              + "Setzen Sie SMTP_FROM auf die Adresse, die funktioniert.";
+          }
           await admin.rpc("postausgang_melden",
             { p_bereit: true, p_quelle: "postal", p_fehler: null }).then(() => {}, () => {});
         } else {
           a.ergebnis = `Abgelehnt — ${leib?.data?.message ?? leib?.data?.code ?? r.status}`;
-          a.hinweis = "Die Verbindung steht. Pruefen Sie den Server-API-Schluessel und "
-            + "ob die Absenderadresse zu einer Domain dieses Postal-Servers gehoert.";
+          a.hinweis = "Die Verbindung steht und der Schlüssel gilt. Es fehlt an der Domain.";
+
+          // Nachsehen, welcher DNS-Eintrag fehlt.
+          //
+          // Postal gibt eine Domain erst frei, wenn SPF, Return-Pfad UND
+          // DKIM stehen. "The From address is not authorised" nennt aber
+          // nicht, welcher der drei fehlt -- und danach sucht man lange.
+          const domain = vonProbe.split("@")[1] ?? "";
+          if (domain) {
+            const dns: Record<string, string> = {};
+            const frag = async (name: string, art: "TXT" | "CNAME") => {
+              try {
+                const r2 = await Deno.resolveDns(name, art);
+                return Array.isArray(r2) && r2.length
+                  ? (art === "TXT" ? (r2 as string[][]).map((x) => x.join("")).join(" ")
+                                   : String(r2[0]))
+                  : "";
+              } catch { return ""; }
+            };
+            const spf = await frag(domain, "TXT");
+            dns.spf = /v=spf1/i.test(spf) ? "vorhanden" : "FEHLT";
+            dns.rueckpfad = (await frag(`psrp.${domain}`, "CNAME")) ? "vorhanden" : "FEHLT";
+            const dkim = await frag(`postal._domainkey.${domain}`, "TXT");
+            dns.dkim = /v=DKIM1/i.test(dkim)
+              ? "vorhanden"
+              : `FEHLT — TXT auf postal._domainkey.${domain}`;
+            a.dns = dns;
+            if (dns.dkim.startsWith("FEHLT")) {
+              a.naechster_schritt = `Im Postal unter ${postalUrl} die Domain ${domain} oeffnen; `
+                + "dort steht der DKIM-Eintrag im Wortlaut. Diesen TXT-Eintrag im DNS "
+                + `von ${domain} anlegen, dann in Postal auf "Verify" klicken.`;
+            }
+          }
         }
       } catch (e) {
         a.ergebnis = `Nicht erreichbar — ${e instanceof Error ? e.message : e}`;
