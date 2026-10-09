@@ -66,6 +66,20 @@ function markeAmZeiger(text: string, zeiger: number) {
   return { ...letzte, fragment };
 }
 
+// Eine Marke ist erledigt, sobald etwas uebernommen wurde -- bis eine
+// neue getippt wird.
+//
+// Ohne das suchte die Liste weiter: "sende //morgen an @Burim Dervishi
+// eine testnachricht" liess das Fragment immer weiter wachsen, und die
+// Liste meldete zu jedem Wort "nichts gefunden". Genau das meinte
+// "er kennt nicht, wann ein neuer Befehl kommt".
+function istErledigt(text: string, marke: { von: number; fragment: string } | null,
+                     gewaehlt: { von: number; wert: string } | null) {
+  if (!marke || !gewaehlt) return false;
+  if (marke.von !== gewaehlt.von) return false;
+  return marke.fragment.startsWith(gewaehlt.wert);
+}
+
 // Datumsvorschlaege rechnen im Browser -- derselbe Wortschatz wie im
 // Server, und der Vorschlag zeigt gleich, welcher Tag gemeint ist.
 function datumsVorschlaege(fragment: string): Vorschlag[] {
@@ -127,6 +141,7 @@ const Floky: React.FC = () => {
   const [marke, setMarke] = useState<{ zeichen: string; von: number; fragment: string } | null>(null);
   const [markiert, setMarkiert] = useState(0);
   const [sucht, setSucht] = useState(false);
+  const [gewaehlt, setGewaehlt] = useState<{ von: number; wert: string } | null>(null);
 
   const [groesse, setGroesse] = useState<Groesse>(() => {
     const g = localStorage.getItem('floky-groesse');
@@ -245,7 +260,10 @@ const Floky: React.FC = () => {
     }
     const m = markeAmZeiger(wert, zeiger);
     setMarke(m);
-    if (!m) { setVorschlaege([]); return; }
+    if (!m) { setVorschlaege([]); setGewaehlt(null); return; }
+    // Wurde an dieser Stelle schon etwas uebernommen, schweigt die Liste,
+    // bis eine neue Marke kommt.
+    if (istErledigt(wert, m, gewaehlt)) { setVorschlaege([]); setSucht(false); return; }
     vorschlaegeHolen(m.zeichen, m.fragment);
   };
 
@@ -256,6 +274,7 @@ const Floky: React.FC = () => {
     setEingabe(vorne + hinten);
     // Programmatisch gesetzt -- onChange feuert nicht, die Liste bleibt zu.
     setMarke(null); setVorschlaege([]);
+    setGewaehlt({ von: marke.von, wert: v.einfuegen });
     setTimeout(() => {
       feld.current?.focus();
       feld.current?.setSelectionRange(vorne.length, vorne.length);
@@ -618,7 +637,9 @@ const Floky: React.FC = () => {
           {/* Nichts gefunden: das muss dastehen. Ohne diesen Satz wirkt
               die Marke, als taete sie gar nichts -- und genau so hat es
               sich angefuehlt. */}
-          {marke && !sucht && vorschlaege.length === 0 && marke.fragment.trim().length >= 2 && (
+          {marke && !sucht && vorschlaege.length === 0
+            && !istErledigt(eingabe, marke, gewaehlt)
+            && marke.fragment.trim().length >= 2 && marke.fragment.trim().split(/\s+/).length <= 4 && (
             <p className="absolute bottom-full left-3 right-3 mb-2 bg-white border border-stone-200
                           rounded-2xl shadow-xl px-4 py-3 text-xs text-stone-400">
               Nichts gefunden zu <span className="font-mono text-stone-600">{marke.zeichen}{marke.fragment}</span>.

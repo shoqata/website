@@ -354,9 +354,60 @@ const KARTEN: Werkzeug[] = [
     rollen: ["SUPER_ADMIN", "ADMIN", "BOARD"],
     lauf: async (_sb, a) => a,
   },
+  {
+    name: "nachricht_senden",
+    beschreibung: "Bereitet eine E-Mail an EIN Mitglied vor. Fuer genau das, was jemand "
+      + "mit \"schreib an\", \"sende an\", \"benachrichtige\" meint. Betreff und Text "
+      + "schreibst du vollstaendig aus, in der Sprache des Mitglieds. Verschickt wird "
+      + "erst nach Bestaetigung.",
+    schema: { type: "object", properties: {
+      mitglied: { type: "string", description: "Name, genau wie aufgeloest" },
+      betreff: { type: "string" },
+      text: { type: "string" },
+    }, required: ["mitglied", "betreff", "text"] },
+    rollen: ["SUPER_ADMIN", "ADMIN", "BOARD"],
+    lauf: async (_sb, a) => a,
+  },
 ];
 
+// Kuerzel und Maschinenwoerter aus Feldwerten entfernen.
+//
+// Gemessen an einer echten Sitzung: das Modell schrieb "Traktandenliste
+// //11.10.2026" in den Titel und "Bei //Protokoll_entwerfen steht nichts
+// dazu" in den Ort. Der Systemtext sagt inzwischen, dass es das lassen
+// soll -- aber ein Systemtext ist keine Schranke. Diese hier ist eine.
+const MASCHINENWORT =
+  /(_entwerfen|_erfassen|_anlegen|_melden|_vorschlagen|_senden|aufgel[öo]st|kürzel|kuerzel)/i;
+
+function saeubern(v: unknown): string {
+  if (v === undefined || v === null) return "";
+  let t = String(v);
+  // Eine Bemerkung ueber das eigene Werkzeug ist kein Feldwert.
+  if (MASCHINENWORT.test(t)) return "";
+  // "//11.10.2026" -> "11.10.2026", "@Burim Dervishi" -> "Burim Dervishi"
+  t = t.replace(/(^|\s)(\/\/|@|#|!|>)(?=[^\s@#!>])/g, "$1");
+  return t.trim();
+}
+
 const KARTE_BAUEN = (name: string, a: any): Karte | null => {
+  // Jeder Textwert geht durch die Saeuberung, bevor er auf die Karte
+  // kommt -- und zwar auf dem Weg zur ANZEIGE wie zum WERT, sonst stuende
+  // auf der Karte etwas anderes, als ausgefuehrt wird.
+  for (const k of Object.keys(a ?? {})) {
+    if (typeof a[k] === "string") a[k] = saeubern(a[k]);
+  }
+  if (Array.isArray(a?.traktanden)) {
+    a.traktanden = a.traktanden.map((t: any) =>
+      ({ ...t, titel: saeubern(t?.titel), inhalt: saeubern(t?.inhalt) }))
+      .filter((t: any) => t.titel);
+  }
+  if (Array.isArray(a?.beschluesse)) {
+    a.beschluesse = a.beschluesse.map((b: any) =>
+      ({ ...b, titel: saeubern(b?.titel), inhalt: saeubern(b?.inhalt),
+         zustaendig: saeubern(b?.zustaendig), frist: saeubern(b?.frist) }))
+      .filter((b: any) => b.titel);
+  }
+
   const z = (v: unknown) => (v === undefined || v === null || v === "" ? "—" : String(v));
   const geld = (v: unknown) => (v === undefined || v === null ? "—"
     : `CHF ${Number(v).toLocaleString("de-CH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
@@ -448,6 +499,12 @@ const KARTE_BAUEN = (name: string, a: any): Karte | null => {
                      .join("\n")
                  : "—"]],
       werte: { titel: a.titel, datum: a.datum, ort: a.ort, traktanden: tr, beschluesse: be } };
+  }
+  if (name === "nachricht_senden") {
+    if (!a?.mitglied || !a?.betreff || !a?.text) return null;
+    return { art: "nachricht_senden", titel: "Nachricht senden",
+      felder: [["Empfänger", z(a.mitglied)], ["Betreff", z(a.betreff)], ["Text", z(a.text)]],
+      werte: { mitglied: a.mitglied, betreff: a.betreff, text: a.text } };
   }
   return null;
 };
@@ -890,6 +947,8 @@ Regeln:
 3. Buchungen sind Vorschläge. Ein gesperrtes Jahr wird nicht verändert; sag das und schlage eine Korrekturbuchung im offenen Jahr vor.
 4. Barzahlungen von Vertretern sind Meldungen. Ob sie gelten, entscheidet die Vereinsverwaltung.
 5. Bist du unsicher (welches Mitglied, welches Konto, welcher Betrag), frag nach. Rate nie.
+5a. GIBT ES FÜR DEN AUFTRAG KEIN WERKZEUG, sage das in einem Satz und biete den nächsten sinnvollen Schritt an. Nimm NIEMALS ein anderes Werkzeug, weil es gerade da ist. Einen Auftrag „sende eine Nachricht" mit einem Neuigkeiten-Entwurf zu beantworten ist schlimmer als gar nichts zu tun: es sieht nach Erfolg aus und ist keiner.
+5b. Was du NICHT kannst, und wo es stattdessen geht: Rundbrief an viele (Kommunikation), Mitglied löschen, Rechnungen erzeugen (Finanzen), Jahresabschluss (Buchhaltung), Module buchen (Marktplatz), Kennwörter setzen (Mitglieder).
 6. Herkunft, Religion, Gesundheit und Familienverhältnisse erwähnst du nur, wenn danach gefragt wird.
 7. Keine Rechts- oder Steuerberatung; allgemein erklären und an Fachleute verweisen.
 8. Ein nicht gebuchtes Modul erwähnst du höchstens einmal als Hinweis.
@@ -897,6 +956,7 @@ Regeln:
 Kürzel: @ Mitglied/Familie/Anlass/Rechnung, // Datum, # Nachbarschaft/Kategorie/Konto, ! Priorität, > Textbaustein.
 Was die Person mit einem Kürzel schreibt, ist bereits aufgelöst und steht am Ende ihrer Nachricht unter "[Aufgelöste Kürzel". Das sind Tatsachen aus der Datenbank: übernimm sie wörtlich, erfinde nichts dazu und ändere keine Namen, Beträge oder Texte. Steht dort "mehrdeutig" oder "nichts gefunden", frag nach — rate nicht.
 Steht dort der Text eines Textbausteins, ist das der Text des Vereins. Schreibe keinen eigenen.
+Der aufgelöste Block ist HINTERGRUNDWISSEN, kein Inhalt. Schreibe nie seinen Wortlaut, nie ein Kürzel (@, //, #, !, >) und nie eine Bemerkung darüber in ein Feld einer Karte. Verwende überall den aufgelösten Wert: aus "//11.10.2026" wird 11.10.2026, aus "@Burim Dervishi" wird Burim Dervishi. Weisst du für ein Feld nichts, lass es leer und frag nach — schreibe dort nicht, dass du nichts weisst.
 
 Verfügbare Werkzeuge für diese Rolle: ${k.werkzeuge.join(", ") || "keine"}.`;
 }

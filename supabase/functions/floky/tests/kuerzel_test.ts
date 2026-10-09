@@ -6,7 +6,7 @@
 // vorbereiten.ts). Eine Kopie des Aufloesers waere ein Test, der bald
 // etwas anderes prueft als das, was ausgeliefert ist.
 
-import { kuerzelAufloesen, datumLesen, kandidaten, bausteinSchluessel } from "./ausschnitt.ts";
+import { kuerzelAufloesen, datumLesen, kandidaten, bausteinSchluessel, saeubern } from "./ausschnitt.ts";
 
 Deno.test("Inline-Kuerzel", async () => {
 await pruefungen();
@@ -77,6 +77,19 @@ pruefe("Satzzeichen fallen weg", kandidaten("Arben.").includes("Arben"));
 console.log("\n--- Bausteinschluessel ---");
 pruefe('"Mahnung 1" -> MAHNUNG_1', bausteinSchluessel("Mahnung 1") === "MAHNUNG_1");
 pruefe('"Dank Spende" -> DANK_SPENDE', bausteinSchluessel("Dank Spende") === "DANK_SPENDE");
+
+console.log("\n--- Kartenwerte saeubern ---");
+// Genau die Werte, die wirklich auf einer Karte standen.
+pruefe('"Traktandenliste //11.10.2026" -> ohne Kuerzel',
+  saeubern("Traktandenliste //11.10.2026") === "Traktandenliste 11.10.2026",
+  saeubern("Traktandenliste //11.10.2026"));
+pruefe('Bemerkung ueber das eigene Werkzeug faellt weg',
+  saeubern("Bei //Protokoll_entwerfen steht nichts dazu") === "",
+  JSON.stringify(saeubern("Bei //Protokoll_entwerfen steht nichts dazu")));
+pruefe('"@Burim Dervishi" -> Name', saeubern("@Burim Dervishi") === "Burim Dervishi");
+pruefe('"Sommerfest 2026" bleibt', saeubern("Sommerfest 2026") === "Sommerfest 2026");
+pruefe('E-Mail bleibt heil', saeubern("schreib an a@x.ch") === "schreib an a@x.ch");
+pruefe('leer bleibt leer', saeubern(null) === "" && saeubern(undefined) === "");
 
 console.log("\n--- Aufloesung ---");
 const f = async (t: string) => (await kuerzelAufloesen(sb, t, "de"))?.text ?? "";

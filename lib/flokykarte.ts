@@ -1,5 +1,8 @@
 import { supabase } from '@/services/supabase-bridge';
 import { mahnungSenden } from './mahnung';
+import { sendEmail } from '../services/mailService';
+import { alsHtml } from './textbaustein';
+import { hasUsableEmail } from './memberEmail';
 
 // Eine bestaetigte Karte ausfuehren.
 //
@@ -206,6 +209,27 @@ export async function karteAusfuehren(k: Karte): Promise<string> {
     if (error) throw new Error(error.message);
     if (!data?.length) throw new Error('Nicht abgelegt — fehlende Berechtigung?');
     return 'Sitzung als Entwurf abgelegt. Unter Vorstand öffnen und ergänzen.';
+  }
+
+  if (k.art === 'nachricht_senden') {
+    if (!w.mitglied || !w.betreff || !w.text) throw new Error('Der Karte fehlen Angaben.');
+    // Der Empfaenger wird HIER nachgeschlagen, nicht von der Karte
+    // uebernommen: auf der Karte stand ein Name zur Anzeige, und ein Name
+    // ist keine Adresse. Gibt es zwei dieses Namens, wird nicht geraten.
+    const { data: leute, error } = await supabase.from('users')
+      .select('id,displayName,email').ilike('displayName', String(w.mitglied)).limit(5);
+    if (error) throw new Error(error.message);
+    if (!leute?.length) throw new Error(`„${w.mitglied}" gibt es nicht (mehr).`);
+    if (leute.length > 1) {
+      throw new Error(`„${w.mitglied}" ist mehrdeutig: `
+        + leute.map((u: any) => u.displayName).join(', ') + '. Bitte genauer angeben.');
+    }
+    const e = leute[0];
+    if (!hasUsableEmail(e as any)) {
+      throw new Error(`Für ${e.displayName} ist keine brauchbare E-Mail-Adresse hinterlegt.`);
+    }
+    await sendEmail({ to: e.email, subject: String(w.betreff), html: alsHtml(String(w.text)) });
+    return `Verschickt an ${e.displayName} (${e.email}).`;
   }
 
   throw new Error(`Unbekannte Karte: ${k.art}`);
