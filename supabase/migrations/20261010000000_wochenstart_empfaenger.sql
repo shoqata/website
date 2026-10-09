@@ -91,12 +91,17 @@ BEGIN
     RAISE EXCEPTION 'Spalte wochenstart_an fehlt.';
   END IF;
 
-  -- Vorgabe muss LEER sein. Stuende dort etwas, bekaeme am naechsten Montag
-  -- jemand Post, der nie zugestimmt hat.
-  SELECT count(*) INTO v_n FROM public.floky_einstellungen
-   WHERE coalesce(array_length(wochenstart_an,1),0) > 0;
-  IF v_n > 0 THEN
-    RAISE EXCEPTION '% Verein(e) haetten sofort Empfaenger -- ungefragt.', v_n;
+  -- Die VORGABE der Spalte muss leer sein. Geprueft wird der Standardwert,
+  -- nicht der Inhalt: ein Verein, der inzwischen Empfaenger gewaehlt hat,
+  -- ist der Normalfall und darf keinen Neuaufbau stoppen. Gemeint war
+  -- immer, dass DIESE MIGRATION niemandem ungefragt Post einrichtet.
+  SELECT count(*) INTO v_n FROM information_schema.columns
+   WHERE table_schema='public' AND table_name='floky_einstellungen'
+     AND column_name='wochenstart_an'
+     AND column_default LIKE '%{}%';
+  IF v_n <> 1 THEN
+    RAISE EXCEPTION 'Die Vorgabe von wochenstart_an ist nicht leer -- '
+                    'ein neuer Verein bekaeme ungefragt Post.';
   END IF;
 
   -- Die Wache muss da sein, und BOARD darf sie nicht umgehen.

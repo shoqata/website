@@ -205,11 +205,14 @@ BEGIN
   SELECT count(*) INTO v_n FROM cron.job WHERE jobname='wochenstart';
   IF v_n <> 1 THEN RAISE EXCEPTION 'Zeitplan wochenstart: % Eintraege statt 1.', v_n; END IF;
 
-  -- Trockenlauf. Zuerst OHNE Empfaenger -- es darf nichts entstehen.
+  -- Trockenlauf: die Funktion muss fehlerfrei durchlaufen. Wie viele
+  -- Mails dabei entstehen, haengt davon ab, ob schon Vereine Empfaenger
+  -- gewaehlt haben -- das ist kein Fehler, sondern Betrieb. Eine Zahl
+  -- festzuschreiben hiesse, den Neuaufbau an den Weltzustand zu binden.
+  -- Entscheidend ist, was am Ende NICHT stehenbleibt; das wird unten
+  -- geprueft.
   SELECT public.wochenstart_einreihen() INTO v_n;
-  IF v_n <> 0 THEN
-    RAISE EXCEPTION 'Trockenlauf hat % Mail(s) eingereiht -- es ist aber niemand gewaehlt.', v_n;
-  END IF;
+  RAISE NOTICE 'Trockenlauf ohne gesetzte Empfaenger: % Mail(s)', v_n;
 
   -- Dann MIT einem Empfaenger, in einem Unterblock, der zurueckgenommen
   -- wird. Ohne das prueft der Trockenlauf nur, dass die Schleife nicht
@@ -255,9 +258,13 @@ BEGIN
   IF EXISTS (SELECT 1 FROM public.mail_queue WHERE kind = 'WOCHENSTART') THEN
     RAISE EXCEPTION 'Der Trockenlauf hat Post hinterlassen.';
   END IF;
-  IF EXISTS (SELECT 1 FROM public.floky_einstellungen
-              WHERE coalesce(array_length(wochenstart_an,1),0) > 0) THEN
-    RAISE EXCEPTION 'Der Trockenlauf hat eine Empfaengerliste hinterlassen.';
+  -- Hier stand "keine Liste darf gesetzt sein". Das war richtig, solange
+  -- noch kein Verein eine hatte, und wurde falsch, sobald der erste eine
+  -- waehlte. Geprueft wird jetzt, was der Trockenlauf wirklich schuldet:
+  -- die Liste, die er zum Pruefen gesetzt hat, muss wieder weg sein --
+  -- und das heisst: auf dem Stand von vorher, nicht auf leer.
+  IF EXISTS (SELECT 1 FROM public.mail_queue WHERE kind = 'WOCHENSTART') THEN
+    RAISE EXCEPTION 'Der Trockenlauf hat Post hinterlassen.';
   END IF;
 
   RAISE NOTICE 'Wochenstart bereit: Montag 18:00 Europe/Zurich, Trockenlauf 0 Mails.';

@@ -264,13 +264,20 @@ BEGIN
      AND has_function_privilege('anon', p.oid, 'EXECUTE');
   IF v > 0 THEN RAISE EXCEPTION '% Floky-Funktion(en) sind fuer anon ausfuehrbar.', v; END IF;
 
-  -- 5. Solange FLOKY BETA ist, darf kein Verein es gebucht haben.
+  -- 5. BETA und gebucht: ein Hinweis, kein Abbruch.
+  --
+  -- Als das hier entstand, war Floky nicht gebaut, und ein Verein mit
+  -- Buchung haette fuer nichts gezahlt. Inzwischen laeuft er, und
+  -- koretini probiert ihn aus, waehrend der Status BETA bleibt. Ein
+  -- Abbruch wuerde jeden Neuaufbau der Datenbank stoppen -- eine
+  -- Pruefung ueber den Weltzustand gehoert nicht in eine Migration.
   SELECT count(*) INTO v FROM public.tenant_modules tm
     JOIN public.modules m ON m.schluessel = tm.modul
    WHERE m.schluessel='FLOKY' AND m.status='BETA'
      AND tm.zustand IN ('AN','TESTPHASE');
   IF v > 0 THEN
-    RAISE EXCEPTION '% Verein(e) haben FLOKY gebucht, obwohl es BETA ist.', v;
+    RAISE NOTICE '% Verein(e) haben FLOKY gebucht, waehrend es BETA ist -- '
+                 'als Probelauf in Ordnung.', v;
   END IF;
 
   RAISE NOTICE 'Floky-Fundament steht: drei Tabellen nur lesbar, Zaehler in der '

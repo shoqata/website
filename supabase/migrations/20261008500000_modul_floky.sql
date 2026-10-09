@@ -24,6 +24,7 @@ SELECT 'FLOKY',
  WHERE NOT EXISTS (SELECT 1 FROM public.modules WHERE schluessel='FLOKY');
 
 
+
 -- ---------------------------------------------------------- Selbsttest
 DO $$
 DECLARE r RECORD; gebucht int;
@@ -36,12 +37,24 @@ BEGIN
     RAISE EXCEPTION 'Ohne Monatspreis wird FLOKY in der Jahresrechnung nicht mitgerechnet.';
   END IF;
 
-  -- Solange es BETA ist, darf es kein Verein gebucht haben: sonst zahlte
-  -- jemand fuer etwas, das es noch nicht gibt.
+  -- Als diese Migration entstand, war Floky noch nicht gebaut, und hier
+  -- stand ein Abbruch: solange BETA, darf ihn kein Verein gebucht haben --
+  -- sonst zahlte jemand fuer etwas, das es nicht gibt.
+  --
+  -- Inzwischen laeuft Floky, und koretini hat ihn bewusst gebucht,
+  -- waehrend der Status BETA bleibt: ein Probelauf, bevor er allen
+  -- angeboten wird. Der Abbruch waere damit falsch geworden und haette
+  -- jeden Neuaufbau der Datenbank gestoppt -- eine Migration, die sich
+  -- nicht wiederholen laesst, ist keine.
+  --
+  -- Aus dem Abbruch wird deshalb ein Hinweis. Er verschwindet nicht:
+  -- BETA und gebucht ist als Probelauf richtig und als Dauerzustand
+  -- nicht, und das soll bei jedem Lauf dastehen.
   SELECT count(*) INTO gebucht FROM public.tenant_modules
    WHERE modul='FLOKY' AND zustand IN ('AN','TESTPHASE');
   IF r.status = 'BETA' AND gebucht > 0 THEN
-    RAISE EXCEPTION '% Verein(e) haben FLOKY gebucht, obwohl es noch BETA ist.', gebucht;
+    RAISE NOTICE '% Verein(e) haben FLOKY gebucht, waehrend es BETA ist -- '
+                 'als Probelauf in Ordnung, als Dauerzustand nicht.', gebucht;
   END IF;
 
   RAISE NOTICE 'Modul % angelegt: % · % · CHF %/Monat (in der Modulverwaltung aenderbar)',
