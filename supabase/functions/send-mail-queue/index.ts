@@ -95,6 +95,84 @@ Deno.serve(async (req) => {
 
   const admin = admin0;
 
+  // ------------------------------------------------------- Pruefen
+  //
+  // Der Betreiber setzt die Zugangsdaten als Geheimnis der Funktion --
+  // das war die Bedingung, und sie ist richtig. Die Folge: niemand sonst
+  // sieht, WAS dort steht, auch nicht, wer beim Einrichten einen Zahlen-
+  // dreher gemacht hat. "Connection refused" allein hilft dabei nicht
+  // weiter.
+  //
+  // Diese Pruefung zeigt dem Betreiber seine eigenen Werte zurueck --
+  // Adresse, Port, Verschluesselung, Absender, Benutzername verkuerzt --
+  // und versucht eine Verbindung. Das Kennwort erscheint nie.
+  let koerper: any = {};
+  try { koerper = await req.json(); } catch { /* leerer Leib ist in Ordnung */ }
+
+  if (koerper?.pruefen === true) {
+    const verkuerzt = (v: string | undefined) =>
+      !v ? "(nicht gesetzt)" : v.length <= 4 ? "****" : v.slice(0, 2) + "***" + v.slice(-2);
+
+    // Ein anderer Port am GLEICHEN Rechner darf geprueft werden -- so
+    // laesst sich vor dem Umstellen sehen, ob 587 geht, wenn 465 nicht
+    // antwortet. Eine andere Adresse ist nicht erlaubt: das waere ein
+    // Portscanner, und dafuer ist diese Funktion nicht da.
+    const probePort = Number.isInteger(koerper?.port) && koerper.port > 0 && koerper.port < 65536
+      ? koerper.port as number : port;
+
+    const antwort: Record<string, unknown> = {
+      host: host ?? "(nicht gesetzt)",
+      port: probePort, eingestellter_port: port, tls: tlsArt,
+      benutzer: verkuerzt(benutzer),
+      kennwort: kennwort ? `gesetzt, ${kennwort.length} Zeichen` : "(nicht gesetzt)",
+      absender: absender ?? "(nicht gesetzt)",
+    };
+
+    if (!host || !kennwort) {
+      antwort.ergebnis = "Unvollstaendig — ohne Adresse oder Kennwort wird nichts versucht.";
+      return json(antwort, 200);
+    }
+
+    // Erst die blosse Verbindung: scheitert sie, liegt es an Adresse oder
+    // Port, nicht an Benutzername oder Kennwort. Diese beiden Faelle
+    // auseinanderzuhalten erspart das Suchen an der falschen Stelle.
+    try {
+      const verb = await Deno.connect({ hostname: host, port: probePort });
+      verb.close();
+      antwort.verbindung = `offen auf ${host}:${probePort}`;
+    } catch (e) {
+      antwort.verbindung = `FEHLGESCHLAGEN auf ${host}:${probePort} — ${e instanceof Error ? e.message : e}`;
+      antwort.hinweis = "Nichts hoert auf diesem Port. Ueblich sind 587 (starttls) "
+        + "und 465 (tls). Pruefen Sie Adresse und Port beim Anbieter.";
+      return json(antwort, 200);
+    }
+
+    if (probePort !== port) {
+      antwort.ergebnis = `Port ${probePort} ist erreichbar. Eingestellt ist derzeit ${port}.`;
+      return json(antwort, 200);
+    }
+
+    // Dann die Anmeldung.
+    try {
+      const probe = new SMTPClient({
+        connection: { hostname: host, port, tls: tlsArt === "tls",
+                      auth: benutzer ? { username: benutzer, password: kennwort } : undefined },
+      });
+      await probe.send({ from: absender ?? benutzer ?? "", to: absender ?? benutzer ?? "",
+                         subject: "unityhub — Prüfung des Postausgangs",
+                         content: "Diese Nachricht bestätigt, dass der Postausgang funktioniert." });
+      await probe.close();
+      antwort.ergebnis = `In Ordnung. Eine Prüfnachricht ging an ${absender ?? benutzer}.`;
+      await admin.rpc("postausgang_melden",
+        { p_bereit: true, p_quelle: "geheimnis", p_fehler: null }).then(() => {}, () => {});
+    } catch (e) {
+      antwort.ergebnis = `Anmeldung fehlgeschlagen — ${e instanceof Error ? e.message : e}`;
+      antwort.hinweis = "Die Verbindung stand, aber der Dienst hat abgelehnt. "
+        + "Pruefen Sie Benutzername, Kennwort und ob TLS 'starttls' oder 'tls' sein muss.";
+    }
+    return json(antwort, 200);
+  }
+
   // Offene Nachrichten holen -- vereinsuebergreifend, danach nach Verein
   // getrennt versendet. Jeder Verein hat seinen eigenen Postausgang; ueber
   // den eines anderen zu versenden waere ein Mandantenbruch.
@@ -130,15 +208,42 @@ Deno.serve(async (req) => {
   //
   // Gesucht wird die Zeile fuer 'plattform'; die Secrets bleiben der
   // Rueckfall. Vereinszeilen werden NICHT mehr gelesen.
+  // Die Zeile gilt nur, wenn sie BRAUCHBAR ist.
+  //
+  // Vorher genuegte ihr blosses Dasein: eine angelegte, aber leere und
+  // inaktive Zeile verdraengte die Secrets vollstaendig. Genau das ist
+  // am 09.10. passiert -- der Betreiber setzte SMTP_HOST und Co., und es
+  // ging trotzdem nichts hinaus, weil eine leere Zeile aus einer
+  // frueheren Migration davorstand. Eine Einstellung, die nichts
+  // enthaelt, darf nichts verdraengen.
   const zentral = (eintraege ?? []).find((e: any) => e.tenantId === "plattform");
-  const postausgangZentral = zentral
+  const zeileBrauchbar = !!zentral && zentral.aktiv !== false
+    && !!String(zentral.host ?? "").trim() && !!String(zentral.kennwort ?? "").trim();
+
+  const postausgangZentral = zeileBrauchbar
     ? {
         host: zentral.host, port: zentral.port ?? 587, benutzer: zentral.benutzer,
         kennwort: zentral.kennwort, absender: zentral.absender,
         absendername: zentral.absendername,
-        tls: (zentral.tls ?? "starttls").toLowerCase(), aktiv: zentral.aktiv !== false,
+        tls: (zentral.tls ?? "starttls").toLowerCase(), aktiv: true,
       }
     : ausSecrets;
+
+  const quelle = zeileBrauchbar ? "tabelle" : "geheimnis";
+
+  // Der Oberflaeche sagen, ob ueberhaupt etwas hinausgehen kann. Sie
+  // konnte das bisher nur in mail_settings nachsehen -- der falschen
+  // Stelle, wenn die Zugangsdaten als Geheimnis liegen.
+  const kannUeberhaupt = !!postausgangZentral.host && !!postausgangZentral.kennwort;
+  await admin.rpc("postausgang_melden", {
+    p_bereit: kannUeberhaupt, p_quelle: quelle,
+    p_fehler: kannUeberhaupt ? null : "Weder eine brauchbare Zeile noch SMTP-Geheimnisse.",
+  }).then(() => {}, () => {});
+
+  if (!kannUeberhaupt) {
+    return json({ ok: false, configured: false,
+      error: "Kein Postausgang: weder eine aktive Zeile mit Kennwort noch SMTP-Geheimnisse." }, 200);
+  }
 
   // Name und Antwortadresse je Verein. Der technische Absender bleibt
   // unityhub -- nur dessen Domain ist bei SPF und DKIM hinterlegt. Wuerde
