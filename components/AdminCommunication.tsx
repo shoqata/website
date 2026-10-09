@@ -7,7 +7,7 @@ import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, delete
 import { Poll, Inquiry } from '../types';
 import { packageByKey } from '../lib/sponsorPackages';
 import { useFeedback } from '../context/FeedbackContext';
-import { sendEmail } from '../services/mailService';
+import { sendEmail, postausgangBereit } from '../services/mailService';
 import { textwerkLaden, sprachenFuer, textFuer, alsHtml, type Textwerk } from '../lib/textbaustein';
 import { supabase } from '@/services/supabase-bridge';
 import { useTranslation } from '../context/LanguageContext';
@@ -126,7 +126,14 @@ const AdminCommunication: React.FC = () => {
                 await sendEmail({ to: m.email, subject: betreff, html });
                 verschickt++;
             }
-            showAlert({ type: 'success', message: `${verschickt} Nachrichten in die Warteschlange gelegt.` });
+            // "In die Warteschlange gelegt" war schon ehrlich -- aber
+            // unvollstaendig: ohne Postausgang bleibt sie dort liegen.
+            const bereit = await postausgangBereit();
+            showAlert({ type: bereit ? 'success' : 'error',
+              message: bereit
+                ? `${verschickt} Nachrichten in den Versand gegeben.`
+                : `${verschickt} Nachrichten liegen in der Warteschlange — es ist kein `
+                  + 'Postausgang eingerichtet, sie gehen vorerst nicht hinaus.' });
         } catch (e: any) {
             showAlert({ type: 'error', message: e?.message || t('comm.failed') });
         }

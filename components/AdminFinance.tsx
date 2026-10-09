@@ -647,8 +647,11 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
         try {
             const u = users.find(x => x.id === payment.userId);
             const r = await mahnungSenden(payment, u, invoiceAssociation);
-            showAlert({ type: 'success',
-                message: `Mahnung ${r.stufe} an ${r.empfaenger} verschickt (${r.sprachen.join('/')}).` });
+            showAlert({ type: r.unterwegs ? 'success' : 'error',
+                message: r.unterwegs
+                  ? `Mahnung ${r.stufe} an ${r.empfaenger} in den Versand gegeben (${r.sprachen.join('/')}).`
+                  : `Mahnung ${r.stufe} liegt in der Warteschlange für ${r.empfaenger} — es ist kein `
+                    + 'Postausgang eingerichtet, sie geht vorerst nicht hinaus.' });
         } catch (e: any) {
             showAlert({ type: 'error', message: e?.message || t('admin.finance.reminder_failed') });
         }

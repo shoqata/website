@@ -1,5 +1,5 @@
 import { supabase } from '@/services/supabase-bridge';
-import { sendEmail } from '../services/mailService';
+import { sendEmail, postausgangBereit } from '../services/mailService';
 import { hasUsableEmail } from './memberEmail';
 import { textwerkLaden, textFuer, alsHtml, sprachenFuer, type Textwerk } from './textbaustein';
 import { erzeugeRechnungPdf } from './rechnungpdf';
@@ -16,7 +16,8 @@ import { erzeugeRechnungPdf } from './rechnungpdf';
 // erhoehen, ohne dass der Brief hinausging, ist derselbe Fehler wie gar
 // nicht zu verschicken -- nur stiller.
 
-export type Mahnergebnis = { stufe: number; empfaenger: string; sprachen: string[] };
+export type Mahnergebnis = { stufe: number; empfaenger: string; sprachen: string[];
+                             unterwegs: boolean };
 
 export async function mahnungSenden(
   zahlung: any,
@@ -108,5 +109,9 @@ export async function mahnungSenden(
       + 'nicht erhöhen — fehlende Berechtigung?');
   }
 
-  return { stufe, empfaenger: email, sprachen: gebaut.sprachen };
+  // unterwegs sagt, ob ueberhaupt ein Postausgang eingerichtet ist.
+  // sendEmail reiht nur ein; ohne Postausgang bleibt die Mahnung liegen,
+  // und die Mahnstufe waere dann vorschnell erhoeht.
+  return { stufe, empfaenger: email, sprachen: gebaut.sprachen,
+           unterwegs: await postausgangBereit() };
 }

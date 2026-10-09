@@ -1,6 +1,6 @@
 
 import { db } from './datenzugriff';
-import { collection, addDoc, serverTimestamp } from '@/services/supabase-bridge';
+import { collection, addDoc, serverTimestamp, supabase } from '@/services/supabase-bridge';
 
 interface EmailAttachment {
   filename: string;
@@ -32,6 +32,28 @@ interface EmailOptions {
 // die Nachrichten ab und versendet sie ueber den hinterlegten Postausgang.
 // Solange keiner hinterlegt ist, bleibt alles stehen -- sichtbar und
 // nachholbar, statt unbemerkt verloren.
+// Ist ein Postausgang eingerichtet?
+//
+// Das muss jeder wissen, der nach sendEmail() eine Rueckmeldung gibt.
+// sendEmail STELLT NUR IN DIE WARTESCHLANGE -- "verschickt" zu melden war
+// falsch, und ohne Postausgang ist es nicht einmal eine Verzoegerung,
+// sondern ein Liegenbleiben auf unbestimmte Zeit.
+export const postausgangBereit = async (): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase.rpc('postausgang_bereit');
+    if (error) return false;
+    return !!data;
+  } catch { return false; }
+};
+
+// Was man nach dem Einreihen ehrlich sagen kann.
+export const versandsatz = async (wohin: string): Promise<string> => {
+  return (await postausgangBereit())
+    ? `In den Versand gegeben an ${wohin}. Sie geht in den nächsten Minuten hinaus.`
+    : `Liegt in der Warteschlange für ${wohin} — es ist noch kein Postausgang `
+      + 'eingerichtet, deshalb geht vorerst nichts hinaus.';
+};
+
 export const sendEmail = async (options: EmailOptions) => {
   const empfaenger = Array.isArray(options.to) ? options.to : [options.to];
   const text = options.text || options.html.replace(/<[^>]*>?/gm, '');

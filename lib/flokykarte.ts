@@ -1,6 +1,6 @@
 import { supabase } from '@/services/supabase-bridge';
 import { mahnungSenden } from './mahnung';
-import { sendEmail } from '../services/mailService';
+import { sendEmail, versandsatz } from '../services/mailService';
 import { alsHtml } from './textbaustein';
 import { hasUsableEmail } from './memberEmail';
 
@@ -228,8 +228,21 @@ export async function karteAusfuehren(k: Karte): Promise<string> {
     if (!hasUsableEmail(e as any)) {
       throw new Error(`Für ${e.displayName} ist keine brauchbare E-Mail-Adresse hinterlegt.`);
     }
+    // Ein Brief, der nur aus Anrede und Gruss besteht, ist keiner.
+    // Gemessen an einer echten Nachricht: "Burim, / Mit freundlichen
+    // Gruessen / Floky" -- dazwischen nichts. Auf der Karte sah das durch
+    // die Leerzeilen nach Text aus, und es ging so hinaus.
+    const kern = String(w.text)
+      .replace(/^\s*[^\n]{0,40},?\s*$/m, '')          // Anredezeile
+      .replace(/(mit freundlichen gr[üu]ssen|përshëndetje|kind regards)[\s\S]*$/i, '')
+      .replace(/\s+/g, ' ').trim();
+    if (kern.length < 15) {
+      throw new Error('Diese Nachricht hat keinen Inhalt — nur Anrede und Gruss. '
+        + 'Bitte sagen Sie Floky, was darin stehen soll.');
+    }
+
     await sendEmail({ to: e.email, subject: String(w.betreff), html: alsHtml(String(w.text)) });
-    return `Verschickt an ${e.displayName} (${e.email}).`;
+    return await versandsatz(`${e.displayName} (${e.email})`);
   }
 
   throw new Error(`Unbekannte Karte: ${k.art}`);

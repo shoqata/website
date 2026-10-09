@@ -5,7 +5,7 @@ import { collection, onSnapshot, query, orderBy, supabase } from '../services/su
 import { db } from '../services/supabase-bridge';
 import { useTranslation } from '../context/LanguageContext';
 import { spendenbescheinigungErzeugen } from '../lib/spendenbescheinigung';
-import { sendEmail } from '../services/mailService';
+import { sendEmail, versandsatz } from '../services/mailService';
 import { textwerkLaden, textFuer, alsHtml, type Textwerk } from '../lib/textbaustein';
 import { doc, getDoc } from '../services/supabase-bridge';
 
@@ -28,6 +28,7 @@ const AdminSpenden: React.FC = () => {
   const [spenden, setSpenden] = useState<Spende[]>([]);
   const [laedt, setLaedt] = useState(true);
   const [fehler, setFehler] = useState<string | null>(null);
+  const [hinweis, setHinweis] = useState<string | null>(null);
   const [arbeitet, setArbeitet] = useState<string | null>(null);
   const [suche, setSuche] = useState('');
   const [filter, setFilter] = useState<'ALLE' | 'OFFEN' | 'BEZAHLT'>('OFFEN');
@@ -80,7 +81,7 @@ const AdminSpenden: React.FC = () => {
   // dieselbe Regel wie bei Mitgliedern ohne hinterlegte Sprache.
   const danken = async (s: Spende) => {
     if (!s.email) { setFehler('Diese Spende hat keine E-Mail-Adresse.'); return; }
-    setArbeitet(s.id); setFehler(null);
+    setArbeitet(s.id); setFehler(null); setHinweis(null);
     try {
       const werk: Textwerk = await textwerkLaden();
       const g = textFuer(werk, 'DANK_SPENDE', ['sq', 'de'], {
@@ -100,7 +101,9 @@ const AdminSpenden: React.FC = () => {
         return;
       }
       await sendEmail({ to: s.email, subject: g.betreff, html: alsHtml(g.text) });
-      setFehler(null);
+      // Vorher meldete der Dank gar nichts -- weder Erfolg noch
+      // Warteschlange. Wer klickte, wusste nicht, ob etwas geschah.
+      setHinweis(await versandsatz(s.name || s.email));
     } catch (e: any) { setFehler(e?.message ?? String(e)); }
     finally { setArbeitet(null); }
   };
@@ -172,6 +175,13 @@ const AdminSpenden: React.FC = () => {
       {fehler && (
         <div className="flex gap-3 items-start p-4 bg-rose-50 rounded-2xl text-xs text-rose-700">
           <AlertTriangle size={16} className="shrink-0 mt-0.5" /> <span>{fehler}</span>
+        </div>
+      )}
+
+      {hinweis && (
+        <div className="flex gap-3 items-start p-4 bg-stone-50 rounded-2xl text-xs text-stone-600
+                        border border-stone-100">
+          <Check size={16} className="shrink-0 mt-0.5 text-emerald-600" /> <span>{hinweis}</span>
         </div>
       )}
 
