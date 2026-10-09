@@ -978,19 +978,15 @@ Deno.serve(async (req) => {
     return json({ fehler: "Floky ist fuer diesen Verein nicht gebucht." , gebucht: false }, 403);
   }
 
-  // Fuer das Gespraech: ob die Plattform eingerichtet ist, erfaehrt erst,
-  // wer angemeldet ist und dessen Verein das Modul gebucht hat.
-  if (!schluessel) {
-    return json({ fehler: "Floky ist noch nicht eingerichtet: der Plattformbetreiber "
-      + "muss das Geheimnis INFOMANIAK_AI_API_KEY hinterlegen." }, 503);
-  }
-
   // ----------------------------------------------- Befehle ohne KI
   //
-  // Sie stehen VOR dem Zaehler. Das Konzept sagt "lokal beantwortet, ohne
-  // KI-Aufruf" -- dann darf es auch nichts vom Kontingent nehmen. Ein
-  // Zaehler, der Antworten mitzaehlt, die kein Modell gegeben hat, waere
-  // eine falsche Rechnung.
+  // Sie stehen vor dem Zaehler UND vor der Schluesselpruefung. Das
+  // Konzept sagt "lokal beantwortet, ohne KI-Aufruf" -- dann duerfen sie
+  // weder etwas vom Kontingent nehmen noch daran scheitern, dass der
+  // Betreiber das Geheimnis noch nicht hinterlegt hat.
+  //
+  // Genau daran lagen sie vorher: ohne Schluessel meldete /hilfe einen
+  // 503 fuer einen Antwortdienst, den es gar nicht fragt.
   const letzte = String(verlauf[verlauf.length - 1]?.text ?? "");
   const { befehl, rest } = befehlLesen(letzte);
   const assistentName = einstVorab?.assistent_name ?? "Floky";
@@ -1003,6 +999,14 @@ Deno.serve(async (req) => {
   if (befehl === "wochenstart" || befehl === "java" || befehl === "weekstart") {
     const text = await wochenstart(sb, rolleRoh, sprache);
     return json({ text, ohne_ki: true, name: assistentName });
+  }
+
+  // Erst jetzt: ob die Plattform eingerichtet ist, erfaehrt nur, wer
+  // angemeldet ist, dessen Verein das Modul gebucht hat und etwas will,
+  // wofuer tatsaechlich ein Antwortdienst gebraucht wird.
+  if (!schluessel) {
+    return json({ fehler: "Floky ist noch nicht eingerichtet: der Plattformbetreiber "
+      + "muss das Geheimnis INFOMANIAK_AI_API_KEY hinterlegen." }, 503);
   }
 
   const { data: kont } = await sb.rpc("floky_kontingent");
