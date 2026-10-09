@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Mail, Eye, EyeOff, Check, AlertTriangle, Loader2, Send } from 'lucide-react';
 import { supabase } from '../services/supabase-bridge';
-import { flushMailQueue } from '../services/mailService';
+import { flushMailQueue, postausgangPruefen } from '../services/mailService';
 import { useTranslation } from '../context/LanguageContext';
 import { useWerBinIch } from '../lib/useWerBinIch';
 
@@ -77,6 +77,28 @@ const AdminPostausgang: React.FC = () => {
     } finally {
       setSpeichert(false);
     }
+  };
+
+  // Nachsehen, ohne etwas zu verschicken.
+  //
+  // Vorher tat der einzige Knopf beides: er hiess "Ausprobieren" und
+  // leerte die Warteschlange. Wer nur wissen wollte, ob die Einstellung
+  // stimmt, verschickte dabei alles, was wartete.
+  const nachsehen = async () => {
+    setProbe('laeuft'); setMeldung(null);
+    try {
+      const r = await postausgangPruefen(false);
+      const zeilen = [r.ergebnis, r.hinweis, r.naechster_schritt].filter(Boolean);
+      if (r.dns) {
+        zeilen.push(Object.entries(r.dns).map(([k, v]) => `${k}: ${v}`).join(' · '));
+      }
+      setMeldung({
+        art: String(r.ergebnis ?? '').startsWith('In Ordnung') ? 'gut' : 'schlecht',
+        text: zeilen.join('  ·  '),
+      });
+    } catch (e: any) {
+      setMeldung({ art: 'schlecht', text: e?.message ?? String(e) });
+    } finally { setProbe(null); }
   };
 
   // Die Warteschlange einmal abarbeiten lassen. Das ist der ehrlichste Test:
@@ -271,10 +293,17 @@ const AdminPostausgang: React.FC = () => {
           {speichert ? <Loader2 className="animate-spin" size={14} /> : <Mail size={14} />}
           {t('post.speichern')}
         </button>
+        <button onClick={nachsehen} disabled={!!probe}
+                title="Prüft Verbindung, Schlüssel und Absender. Verschickt nichts."
+                className="px-6 py-3 bg-white border border-stone-200 text-stone-600 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-stone-50 disabled:opacity-40">
+          {probe ? <Loader2 className="animate-spin" size={14} /> : <Eye size={14} />}
+          Prüfen (sendet nichts)
+        </button>
         <button onClick={ausprobieren} disabled={!!probe || unvollstaendig}
+                title="Arbeitet die Warteschlange ab — alles Wartende geht hinaus."
                 className="px-6 py-3 bg-white border border-stone-200 text-stone-600 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-stone-50 disabled:opacity-40">
           {probe ? <Loader2 className="animate-spin" size={14} /> : <Send size={14} />}
-          {t('post.ausprobieren')}
+          Warteschlange jetzt senden
         </button>
         {stand.geaendert_am && (
           <span className="text-[11px] text-stone-400">

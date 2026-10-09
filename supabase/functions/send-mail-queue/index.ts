@@ -148,8 +148,13 @@ Deno.serve(async (req) => {
       const vonProbe = typeof koerper?.von === "string" && koerper.von.includes("@")
         ? String(koerper.von).slice(0, 120) : (absender ?? "");
 
+      // Pruefen OHNE Probenachricht: Verbindung, Schluessel und DNS lassen
+      // sich feststellen, ohne dass etwas hinausgeht. Vorher war beides
+      // dasselbe -- wer nur nachsehen wollte, verschickte dabei Post.
+      const ohneMail = koerper?.ohne_mail === true;
+
       const a: Record<string, unknown> = {
-        weg: "HTTPS (Postal)", url: postalUrl,
+        weg: "HTTPS (Postal)", url: postalUrl, probenachricht: !ohneMail,
         // Die Form des Schluessels -- nicht sein Inhalt. Ein mitkopiertes
         // Leerzeichen sieht man in keiner Oberflaeche, macht den Schluessel
         // aber ungueltig, und "24 Zeichen" allein verraet es nicht.
@@ -163,18 +168,26 @@ Deno.serve(async (req) => {
         eingestellter_absender: absender ?? "(nicht gesetzt)",
       };
       try {
+        // Ohne Probenachricht: an eine Adresse im eigenen Haus, die
+        // garantiert nicht zugestellt wird. Postal prueft Schluessel und
+        // Absender VOR der Zustellung -- die Antwort sagt also alles, was
+        // wir wissen wollen, und niemand bekommt Post.
         const r = await fetch(`${postalUrl}/api/v1/send/message`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "X-Server-API-Key": postalKey },
           body: JSON.stringify({
-            to: [vonProbe], from: vonProbe,
+            to: [ohneMail ? `pruefung-ohne-zustellung@${(vonProbe.split("@")[1] ?? "invalid")}.invalid`
+                          : vonProbe],
+            from: vonProbe,
             subject: "unityhub — Prüfung des Postausgangs",
             plain_body: "Diese Nachricht bestätigt, dass der Versand über Postal funktioniert.",
           }),
         });
         const leib = await r.json().catch(() => ({}));
         if (leib?.status === "success") {
-          a.ergebnis = `In Ordnung. Eine Prüfnachricht ging an ${vonProbe}.`;
+          a.ergebnis = ohneMail
+            ? "In Ordnung. Schlüssel und Absender werden angenommen; es wurde nichts verschickt."
+            : `In Ordnung. Eine Prüfnachricht ging an ${vonProbe}.`;
           if (vonProbe !== absender) {
             a.achtung = `Geprüft wurde ${vonProbe}, gesetzt ist aber ${absender}. `
               + "Setzen Sie SMTP_FROM auf die Adresse, die funktioniert.";
@@ -492,10 +505,19 @@ Deno.serve(async (req) => {
         // Erst nach dem fuenften vergeblichen Versuch endgueltig aufgeben --
         // ein voruebergehend nicht erreichbarer Postausgang soll keine
         // Nachricht verbrennen.
+        //
+        // Dazu wachsender Abstand. Vorher lief der Zeitplan alle zehn
+        // Minuten und verbrauchte damit alle fuenf Versuche in knapp einer
+        // Stunde: am 09.10. sind sechs Nachrichten waehrend einer Stoerung
+        // verbrannt, die Wochen dauerte. Jetzt 10 Min, 1 h, 4 h, 12 h --
+        // nach fuenf Versuchen sind gut zwei Tage vergangen statt einer
+        // Stunde.
+        const wartezeit = [10, 60, 240, 720][Math.min(versuche - 1, 3)];
         await admin.from("mail_queue")
           .update({
             status: versuche >= 5 ? "FAILED" : "PENDING",
             attempts: versuche,
+            scheduledFor: new Date(Date.now() + wartezeit * 60_000).toISOString(),
             lastError: String((e as any)?.message ?? e).slice(0, 500),
           })
           .eq("id", m.id);
