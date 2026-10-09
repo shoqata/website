@@ -129,6 +129,20 @@ pruefe("Liste kennzeichnet Ungeloestes",
 pruefe("Liste enthaelt NICHT den Bausteintext",
   !JSON.stringify(li).includes("{{betrag}}"), "sonst steht der Brief im Fenster");
 
+// Eine fehlgeschlagene Abfrage darf NICHT wie "nichts gefunden" aussehen.
+// Genau dieser stille Ausfall war der Grund, Fehler durchzureichen.
+const kaputt = {
+  from() {
+    const api: any = { select: () => api, limit: () => api, eq: () => api, ilike: () => api,
+      then: (ok: any) => ok({ data: null, error: { message: "permission denied" } }) };
+    return api;
+  },
+};
+const panne = (await kuerzelAufloesen(kaputt, "@Arben Krasniqi", "de"))?.text ?? "";
+pruefe("Abfragefehler wird genannt",
+  panne.includes("Abfrage fehlgeschlagen") && panne.includes("permission denied"),
+  panne.split("\n").slice(-2)[0] ?? "");
+
 pruefe("ohne Kuerzel: keine Beilage", (await kuerzelAufloesen(sb, "Guten Tag", "de")) === null);
 pruefe("E-Mail ist kein Kuerzel",
   (await kuerzelAufloesen(sb, "schreib an a@x.ch", "de")) === null, "kein @ mitten im Wort");

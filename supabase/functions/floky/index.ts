@@ -612,6 +612,16 @@ async function kuerzelAufloesen(sb: any, text: string, sprache: string) {
   const treffer: Treffer[] = [];
   const offen: string[] = [];
   const gesehen = new Set<string>();
+  const pannen: string[] = [];
+
+  // Eine fehlgeschlagene Abfrage sieht sonst aus wie "nichts gefunden".
+  // Beides fuehrt zu keinem Treffer, aber nur eines davon ist ein Fehler,
+  // und der Unterschied gehoert dem Menschen gesagt.
+  const hole = async (was: string, p: Promise<any>) => {
+    const { data, error } = await p;
+    if (error) { pannen.push(`${was}: ${error.message}`); return []; }
+    return data ?? [];
+  };
 
   // Erst die Marken FINDEN, dann dazwischen schneiden.
   //
@@ -671,9 +681,9 @@ async function kuerzelAufloesen(sb: any, text: string, sprache: string) {
       let gefunden = false;
       for (const kand of kandidaten(rest, 3)) {
         const schluessel = bausteinSchluessel(kand);
-        const { data } = await sb.from("textbausteine")
-          .select("schluessel,sprache,betreff,text").eq("schluessel", schluessel);
-        if (data?.length) {
+        const data = await hole("Textbausteine", sb.from("textbausteine")
+          .select("schluessel,sprache,betreff,text").eq("schluessel", schluessel));
+        if (data.length) {
           const k = `>${kand}`;
           if (gesehen.has(k)) { gefunden = true; break; }
           gesehen.add(k);
@@ -685,8 +695,8 @@ async function kuerzelAufloesen(sb: any, text: string, sprache: string) {
         }
       }
       if (!gefunden) {
-        const { data: alle } = await sb.from("textbausteine").select("schluessel");
-        const namen = [...new Set((alle ?? []).map((b: any) => b.schluessel))];
+        const alle = await hole("Textbausteine", sb.from("textbausteine").select("schluessel"));
+        const namen = [...new Set(alle.map((b: any) => b.schluessel))];
         offen.push(`>${rest.trim().split(/\s+/).slice(0,2).join(" ")} — kein solcher Textbaustein. `
           + `Vorhanden: ${namen.join(", ") || "keine"}`);
       }
@@ -702,41 +712,41 @@ async function kuerzelAufloesen(sb: any, text: string, sprache: string) {
       const funde: string[] = [];
 
       if (zeichen === "#") {
-        const { data: lagje } = await sb.from("neighborhoods")
-          .select("id,name").ilike("name", kand).limit(5);
-        for (const n of lagje ?? []) funde.push(`Nachbarschaft „${n.name}"`);
+        const lagje = await hole("Nachbarschaften", sb.from("neighborhoods")
+          .select("id,name").ilike("name", kand).limit(5));
+        for (const n of lagje) funde.push(`Nachbarschaft „${n.name}"`);
 
         // Zwei Abfragen statt .or(): in einem PostgREST-or sind Komma und
         // Punkt Trennzeichen, und der Text kommt aus dem, was jemand
         // getippt hat. Eine Abfrage soll suchen, wonach gefragt wurde.
-        const { data: perCode } = await sb.from("accounting_accounts")
-          .select("code,name").eq("code", kand).limit(5);
-        const { data: perName } = await sb.from("accounting_accounts")
-          .select("code,name").ilike("name", kand).limit(5);
-        for (const c of [...(perCode ?? []), ...(perName ?? [])])
+        const perCode = await hole("Konten", sb.from("accounting_accounts")
+          .select("code,name").eq("code", kand).limit(5));
+        const perName = await hole("Konten", sb.from("accounting_accounts")
+          .select("code,name").ilike("name", kand).limit(5));
+        for (const c of [...perCode, ...perName])
           funde.push(`Konto ${c.code} „${c.name}"`);
 
         const gross = kand.toUpperCase();
         if (["AKTIV","PASSIV","INDIVIDUAL"].includes(gross)) funde.push(`Mitgliederkategorie ${gross}`);
         if (["STANDARD","KOSOVO"].includes(gross)) funde.push(`Beitragsgruppe ${gross}`);
       } else {
-        const { data: leute } = await sb.from("users")
-          .select("id,displayName,email,membershipStatus").ilike("displayName", kand).limit(5);
-        for (const u of leute ?? [])
+        const leute = await hole("Mitglieder", sb.from("users")
+          .select("id,displayName,email,membershipStatus").ilike("displayName", kand).limit(5));
+        for (const u of leute)
           funde.push(`Mitglied „${u.displayName}" (id ${u.id}, ${u.membershipStatus})`);
 
-        const { data: fam } = await sb.from("families").select("id,name").ilike("name", kand).limit(5);
-        for (const f of fam ?? []) funde.push(`Familie „${f.name}" (id ${f.id})`);
+        const fam = await hole("Familien", sb.from("families").select("id,name").ilike("name", kand).limit(5));
+        for (const f of fam) funde.push(`Familie „${f.name}" (id ${f.id})`);
 
-        const { data: anl } = await sb.from("events").select("id,title,date").ilike("title", kand).limit(5);
-        for (const e of anl ?? []) funde.push(`Anlass „${e.title}" am ${e.date} (id ${e.id})`);
+        const anl = await hole("Anlaesse", sb.from("events").select("id,title,date").ilike("title", kand).limit(5));
+        for (const e of anl) funde.push(`Anlass „${e.title}" am ${e.date} (id ${e.id})`);
 
-        const { data: tr } = await sb.from("treffen").select("id,titel,datum").ilike("titel", kand).limit(5);
-        for (const t of tr ?? []) funde.push(`Treffen „${t.titel}" am ${t.datum} (id ${t.id})`);
+        const tr = await hole("Treffen", sb.from("treffen").select("id,titel,datum").ilike("titel", kand).limit(5));
+        for (const t of tr) funde.push(`Treffen „${t.titel}" am ${t.datum} (id ${t.id})`);
 
-        const { data: re } = await sb.from("payments")
-          .select("id,invoiceNumber,amount,status").eq("invoiceNumber", kand).limit(5);
-        for (const p of re ?? [])
+        const re = await hole("Rechnungen", sb.from("payments")
+          .select("id,invoiceNumber,amount,status").eq("invoiceNumber", kand).limit(5));
+        for (const p of re)
           funde.push(`Rechnung ${p.invoiceNumber} über ${p.amount} (${p.status}, id ${p.id})`);
       }
 
@@ -758,6 +768,7 @@ async function kuerzelAufloesen(sb: any, text: string, sprache: string) {
     }
   }
 
+  for (const p of pannen) offen.push(`Abfrage fehlgeschlagen — ${p}`);
   if (!treffer.length && !offen.length) return null;
 
   const zeilen = [

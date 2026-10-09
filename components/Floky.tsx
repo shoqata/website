@@ -45,6 +45,48 @@ type Groesse = keyof typeof GROESSEN;
 
 const MARKEN = /(^|\s)(\/\/|@|#|!|>)(?=[^\s@#!>])/g;
 
+// Ein Vorschlag in der Liste ueber dem Eingabefeld.
+type Vorschlag = { text: string; zusatz: string; einfuegen: string };
+
+// Welche Marke wird gerade getippt?
+//
+// Gesucht wird die LETZTE Marke vor dem Schreibzeiger. Namen duerfen
+// Leerzeichen enthalten ("Burim Dervishi"), deshalb reicht das Fragment
+// bis zum Zeiger -- und wird aufgegeben, sobald es zu lang wird, damit die
+// Liste nicht mitten in einem Satz aufgeht.
+function markeAmZeiger(text: string, zeiger: number) {
+  const vor = text.slice(0, zeiger);
+  let letzte: { zeichen: string; von: number } | null = null;
+  for (const m of vor.matchAll(/(^|\s)(\/\/|@|#|!|>)/g)) {
+    letzte = { zeichen: m[2], von: m.index! + m[1].length + m[2].length };
+  }
+  if (!letzte) return null;
+  const fragment = vor.slice(letzte.von);
+  if (fragment.length > 34 || /\n/.test(fragment)) return null;
+  return { ...letzte, fragment };
+}
+
+// Datumsvorschlaege rechnen im Browser -- derselbe Wortschatz wie im
+// Server, und der Vorschlag zeigt gleich, welcher Tag gemeint ist.
+function datumsVorschlaege(fragment: string): Vorschlag[] {
+  const heute = new Date();
+  const plus = (t: number) => { const d = new Date(heute); d.setDate(d.getDate() + t); return d; };
+  const monatsende = new Date(heute.getFullYear(), heute.getMonth() + 1, 0);
+  const zeig = (d: Date) => d.toLocaleDateString('de-CH', { weekday: 'short', day: 'numeric', month: 'long' });
+  const alle: Vorschlag[] = [
+    { text: 'heute',          zusatz: zeig(heute),       einfuegen: 'heute' },
+    { text: 'morgen',         zusatz: zeig(plus(1)),     einfuegen: 'morgen' },
+    { text: 'übermorgen',     zusatz: zeig(plus(2)),     einfuegen: 'übermorgen' },
+    { text: 'in 7 Tagen',     zusatz: zeig(plus(7)),     einfuegen: 'in 7 Tagen' },
+    { text: 'in 14 Tagen',    zusatz: zeig(plus(14)),    einfuegen: 'in 14 Tagen' },
+    { text: 'in 30 Tagen',    zusatz: zeig(plus(30)),    einfuegen: 'in 30 Tagen' },
+    { text: 'Ende Monat',     zusatz: zeig(monatsende),  einfuegen: 'Ende Monat' },
+    { text: 'Ende Jahr',      zusatz: `31. Dezember ${heute.getFullYear()}`, einfuegen: 'Ende Jahr' },
+  ];
+  const f = fragment.trim().toLowerCase();
+  return f ? alle.filter(v => v.text.toLowerCase().startsWith(f)) : alle;
+}
+
 // Nur das Zeichen hervorheben. Wo ein Verweis endet, weiss der Browser
 // nicht -- das entscheidet die Datenbank.
 const mitMarken = (text: string) => {
@@ -81,8 +123,10 @@ const Floky: React.FC = () => {
   const [fehler, setFehler] = useState<string | null>(null);
   const [kartenstand, setKartenstand] = useState<Record<string, Kartenstand>>({});
   const [befehle, setBefehle] = useState<{ name: string; zweck: string }[]>([]);
-  const [zeigeBefehle, setZeigeBefehle] = useState(false);
+  const [vorschlaege, setVorschlaege] = useState<Vorschlag[]>([]);
+  const [marke, setMarke] = useState<{ zeichen: string; von: number; fragment: string } | null>(null);
   const [markiert, setMarkiert] = useState(0);
+  const [sucht, setSucht] = useState(false);
 
   const [groesse, setGroesse] = useState<Groesse>(() => {
     const g = localStorage.getItem('floky-groesse');
@@ -123,8 +167,100 @@ const Floky: React.FC = () => {
 
   useEffect(() => { ende.current?.scrollIntoView({ behavior: 'smooth' }); }, [verlauf, laeuft]);
 
-  const gefiltert = befehle.filter(b => b.name.startsWith(eingabe.trim().toLowerCase()));
-  useEffect(() => { setMarkiert(0); }, [eingabe]);
+  useEffect(() => { setMarkiert(0); }, [vorschlaege]);
+
+  // Vorschlaege zur getippten Marke holen.
+  //
+  // Gefragt wird mit dem Konto des Fragenden -- ein Vertreter bekommt
+  // damit nur seine Nachbarschaft zu sehen, ohne dass das hier
+  // programmiert werden muesste.
+  const lauf = useRef(0);
+  const vorschlaegeHolen = async (zeichen: string, fragment: string) => {
+    const meine = ++lauf.current;
+    const f = fragment.trim();
+    const fertig = (v: Vorschlag[]) => {
+      // Eine spaetere Eingabe hat die Antwort ueberholt: verwerfen, sonst
+      // blinkt die Liste zwischen altem und neuem Stand.
+      if (meine !== lauf.current) return;
+      setVorschlaege(v); setSucht(false);
+    };
+
+    if (zeichen === '/') {
+      fertig(befehle.filter(b => b.name.startsWith('/' + f.toLowerCase()))
+        .map(b => ({ text: b.name, zusatz: b.zweck, einfuegen: b.name })));
+      return;
+    }
+    if (zeichen === '//') { fertig(datumsVorschlaege(f)); return; }
+    if (zeichen === '!') {
+      fertig([['dringend', 'vorziehen'], ['wichtig', 'nicht liegen lassen'], ['normal', '']]
+        .filter(([w]) => w.startsWith(f.toLowerCase()))
+        .map(([w, z]) => ({ text: w, zusatz: z, einfuegen: w })));
+      return;
+    }
+
+    if (!f) { fertig([]); return; }
+    setSucht(true);
+    const wie = `%${f.replace(/[%_,()]/g, ' ')}%`;
+    const aus: Vorschlag[] = [];
+
+    if (zeichen === '>') {
+      const { data } = await supabase.from('textbausteine')
+        .select('schluessel').ilike('schluessel', `%${f.replace(/[%_,()\s]/g, '_')}%`).limit(20);
+      const namen: string[] = [...new Set<string>((data ?? []).map((b: any) => String(b.schluessel)))];
+      for (const n of namen) aus.push({ text: n, zusatz: 'Textbaustein', einfuegen: n });
+    } else if (zeichen === '#') {
+      const [{ data: lagje }, { data: konten }] = await Promise.all([
+        supabase.from('neighborhoods').select('name').ilike('name', wie).limit(8),
+        supabase.from('accounting_accounts').select('code,name').ilike('name', wie).limit(8),
+      ]);
+      for (const n of lagje ?? []) aus.push({ text: n.name, zusatz: 'Nachbarschaft', einfuegen: n.name });
+      for (const k of konten ?? []) aus.push({ text: k.code, zusatz: `Konto — ${k.name}`, einfuegen: k.code });
+      for (const k of ['AKTIV', 'PASSIV', 'INDIVIDUAL', 'STANDARD', 'KOSOVO'])
+        if (k.toLowerCase().startsWith(f.toLowerCase()))
+          aus.push({ text: k, zusatz: 'Kategorie', einfuegen: k });
+    } else if (zeichen === '@') {
+      const [{ data: leute }, { data: fam }, { data: anl }, { data: tr }] = await Promise.all([
+        supabase.from('users').select('displayName,membershipStatus').ilike('displayName', wie).limit(8),
+        supabase.from('families').select('name').ilike('name', wie).limit(4),
+        supabase.from('events').select('title,date').ilike('title', wie).limit(4),
+        supabase.from('treffen').select('titel,datum').ilike('titel', wie).limit(4),
+      ]);
+      for (const u of leute ?? [])
+        aus.push({ text: u.displayName, zusatz: u.membershipStatus === 'ACTIVE' ? 'Mitglied' : 'Mitglied, inaktiv',
+                   einfuegen: u.displayName });
+      for (const x of fam ?? []) aus.push({ text: x.name, zusatz: 'Familie', einfuegen: x.name });
+      for (const e of anl ?? []) aus.push({ text: e.title, zusatz: `Anlass — ${e.date}`, einfuegen: e.title });
+      for (const t of tr ?? []) aus.push({ text: t.titel, zusatz: `Treffen — ${t.datum}`, einfuegen: t.titel });
+    }
+    fertig(aus.slice(0, 12));
+  };
+
+  const eingabeGeaendert = (wert: string, zeiger: number) => {
+    setEingabe(wert);
+    // Der Schraegstrich zaehlt nur am Zeilenanfang: ein Befehl steht
+    // vorne, sonst waere jedes Datum "7/8" eine Befehlsliste.
+    if (/^\/[^\s]*$/.test(wert)) {
+      const m = { zeichen: '/', von: 1, fragment: wert.slice(1) };
+      setMarke(m); vorschlaegeHolen('/', m.fragment); return;
+    }
+    const m = markeAmZeiger(wert, zeiger);
+    setMarke(m);
+    if (!m) { setVorschlaege([]); return; }
+    vorschlaegeHolen(m.zeichen, m.fragment);
+  };
+
+  const uebernehmen = (v: Vorschlag) => {
+    if (!marke) return;
+    const vorne = eingabe.slice(0, marke.von) + v.einfuegen + ' ';
+    const hinten = eingabe.slice(marke.von + marke.fragment.length);
+    setEingabe(vorne + hinten);
+    // Programmatisch gesetzt -- onChange feuert nicht, die Liste bleibt zu.
+    setMarke(null); setVorschlaege([]);
+    setTimeout(() => {
+      feld.current?.focus();
+      feld.current?.setSelectionRange(vorne.length, vorne.length);
+    }, 0);
+  };
 
   const gespraechOeffnen = async (id: string) => {
     setZeigeListe(false); setFehler(null); setKartenstand({});
@@ -451,52 +587,73 @@ const Floky: React.FC = () => {
         </div>
 
         <div className="p-3 border-t border-stone-100 shrink-0 relative">
-          {zeigeBefehle && gefiltert.length > 0 && (
+          {marke && (vorschlaege.length > 0 || sucht) && (
             <div className="absolute bottom-full left-3 right-3 mb-2 bg-white border border-stone-200
                             rounded-2xl shadow-xl overflow-hidden max-h-64 overflow-y-auto">
-              {gefiltert.map((b, i) => (
-                <button key={b.name}
+              {sucht && vorschlaege.length === 0 && (
+                <p className="px-4 py-3 text-xs text-stone-400 flex items-center gap-2">
+                  <Loader2 size={12} className="animate-spin" /> sucht …
+                </p>
+              )}
+              {vorschlaege.map((v, i) => (
+                <button key={`${v.text}-${i}`}
                   onMouseEnter={() => setMarkiert(i)}
-                  onClick={() => { setEingabe(b.name + ' '); setZeigeBefehle(false); feld.current?.focus(); }}
+                  onMouseDown={e => { e.preventDefault(); uebernehmen(v); }}
                   className={`w-full text-left px-4 py-2.5 border-b border-stone-50 last:border-0 ${
                     i === markiert ? 'bg-stone-100' : 'hover:bg-stone-50'}`}>
-                  <span className="font-mono text-xs font-bold text-stone-800">{b.name}</span>
-                  <span className="block text-[11px] text-stone-400 mt-0.5">{b.zweck}</span>
+                  <span className="text-xs font-bold text-stone-800">
+                    <span className="font-mono text-stone-400">{marke.zeichen}</span>{v.text}
+                  </span>
+                  {v.zusatz && <span className="block text-[11px] text-stone-400 mt-0.5">{v.zusatz}</span>}
                 </button>
               ))}
-              <p className="px-4 py-2 text-[10px] text-stone-400 bg-stone-50 border-t border-stone-100">
-                ↑ ↓ wählen · ⏎ oder ⇥ übernehmen · esc schliessen
-              </p>
+              {vorschlaege.length > 0 && (
+                <p className="px-4 py-2 text-[10px] text-stone-400 bg-stone-50 border-t border-stone-100 sticky bottom-0">
+                  ↑ ↓ wählen · ⏎ oder ⇥ übernehmen · esc schliessen
+                </p>
+              )}
             </div>
+          )}
+
+          {/* Nichts gefunden: das muss dastehen. Ohne diesen Satz wirkt
+              die Marke, als taete sie gar nichts -- und genau so hat es
+              sich angefuehlt. */}
+          {marke && !sucht && vorschlaege.length === 0 && marke.fragment.trim().length >= 2 && (
+            <p className="absolute bottom-full left-3 right-3 mb-2 bg-white border border-stone-200
+                          rounded-2xl shadow-xl px-4 py-3 text-xs text-stone-400">
+              Nichts gefunden zu <span className="font-mono text-stone-600">{marke.zeichen}{marke.fragment}</span>.
+              Sie können trotzdem senden — {name} fragt dann nach.
+            </p>
           )}
 
           <div className="flex items-end gap-2">
             <textarea ref={feld} value={eingabe}
-              onChange={e => {
-                setEingabe(e.target.value);
-                // Nur am Zeilenanfang und solange kein Leerzeichen getippt
-                // ist -- sonst springt die Liste mitten im Satz auf.
-                setZeigeBefehle(/^\/[a-zäöü]*$/i.test(e.target.value));
+              onChange={e => eingabeGeaendert(e.target.value, e.target.selectionStart ?? e.target.value.length)}
+              onClick={e => {
+                // Der Zeiger kann auch per Maus in eine Marke wandern.
+                const z = (e.target as HTMLTextAreaElement).selectionStart ?? 0;
+                const m = markeAmZeiger(eingabe, z);
+                if (!m || !m.fragment) { setMarke(null); setVorschlaege([]); }
               }}
+              onBlur={() => setTimeout(() => { setMarke(null); setVorschlaege([]); }, 120)}
               onKeyDown={e => {
                 // Die Tastatur fuehrt durch die Liste. Vorher sendete Enter
                 // bei offenem Menue die halb getippte Zeile ("/wo"), und
                 // Floky verstand sie nicht.
-                if (zeigeBefehle && gefiltert.length) {
+                if (marke && vorschlaege.length) {
                   if (e.key === 'ArrowDown') {
-                    e.preventDefault(); setMarkiert(m => (m + 1) % gefiltert.length); return;
+                    e.preventDefault(); setMarkiert(m => (m + 1) % vorschlaege.length); return;
                   }
                   if (e.key === 'ArrowUp') {
                     e.preventDefault();
-                    setMarkiert(m => (m - 1 + gefiltert.length) % gefiltert.length); return;
+                    setMarkiert(m => (m - 1 + vorschlaege.length) % vorschlaege.length); return;
                   }
                   if (e.key === 'Enter' || e.key === 'Tab') {
                     e.preventDefault();
-                    setEingabe(gefiltert[Math.min(markiert, gefiltert.length - 1)].name + ' ');
-                    setZeigeBefehle(false); return;
+                    uebernehmen(vorschlaege[Math.min(markiert, vorschlaege.length - 1)]); return;
                   }
                 }
-                if (e.key === 'Escape') { setZeigeBefehle(false); return; }
+                if (e.key === 'Escape') { setMarke(null); setVorschlaege([]); return; }
                 if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); fragen(); }
               }}
               rows={1} placeholder="Frage oder Auftrag …"
