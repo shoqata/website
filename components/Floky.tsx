@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Sparkles, Send, Loader2, X, AlertTriangle, MessageSquare, Check } from 'lucide-react';
 import { supabase } from '@/services/supabase-bridge';
 import { karteAusfuehren, type Karte } from '../lib/flokykarte';
+import { useTranslation } from '../context/LanguageContext';
 
 // Floky -- das Gespraechsfenster.
 //
@@ -16,10 +17,26 @@ import { karteAusfuehren, type Karte } from '../lib/flokykarte';
 
 type Zeile = { rolle: 'mensch' | 'floky'; text: string; werkzeuge?: string[]; karten?: Karte[] };
 
+// **fett** darstellen, sonst nichts. Der Wochenstart gliedert damit seine
+// Abschnitte, und roh gesetzte Sternchen sahen aus wie ein Fehler.
+//
+// Bewusst kein Markdown-Werkzeug und kein dangerouslySetInnerHTML: der Text
+// kommt von einem Sprachmodell. Ihm HTML zu erlauben, hiesse ihm das
+// Fenster zu oeffnen.
+const mitFett = (text: string) =>
+  text.split(/(\*\*[^*]+\*\*)/g).map((teil, i) =>
+    teil.startsWith('**') && teil.endsWith('**') && teil.length > 4
+      ? <strong key={i} className="font-bold text-stone-900">{teil.slice(2, -2)}</strong>
+      : <React.Fragment key={i}>{teil}</React.Fragment>);
+
 // Zustand je Karte: offen, laeuft, erledigt (mit Satz) oder gescheitert.
 type Kartenstand = { lauf?: boolean; fertig?: string; fehler?: string };
 
 const Floky: React.FC = () => {
+  // Die eingestellte Sprache geht mit. Floky hat sie bisher aus der
+  // Nachricht geraten -- und lag falsch: wer deutsch schrieb, bekam
+  // albanisch zurueck. Was die Oberflaeche weiss, muss sie sagen.
+  const { language } = useTranslation();
   const [offen, setOffen] = useState(false);
   const [darf, setDarf] = useState<boolean | null>(null);
   const [name, setName] = useState('Floky');
@@ -29,6 +46,10 @@ const Floky: React.FC = () => {
   const [laeuft, setLaeuft] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
   const [kartenstand, setKartenstand] = useState<Record<string, Kartenstand>>({});
+  // Die Befehlsliste kommt vom Server: dort steht, welche Rolle welche
+  // bekommt. Eine zweite Liste im Browser liefe auseinander.
+  const [befehle, setBefehle] = useState<{ name: string; zweck: string }[]>([]);
+  const [zeigeBefehle, setZeigeBefehle] = useState(false);
   const ende = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -43,6 +64,8 @@ const Floky: React.FC = () => {
         const { data: k } = await supabase.rpc('floky_kontingent');
         const kk = Array.isArray(k) ? k[0] : k;
         if (kk && lebt) { setName(kk.assistent_name || 'Floky'); setUebrig(kk.uebrig); }
+        const { data: b } = await supabase.functions.invoke('floky', { body: { befehle: true } });
+        if (lebt && Array.isArray(b?.befehle)) setBefehle(b.befehle);
       }
     })();
     return () => { lebt = false; };
@@ -57,7 +80,7 @@ const Floky: React.FC = () => {
     setVerlauf(neu); setEingabe(''); setLaeuft(true); setFehler(null);
     try {
       const { data, error } = await supabase.functions.invoke('floky', {
-        body: { verlauf: neu.map(z => ({ rolle: z.rolle, text: z.text })) },
+        body: { sprache: language, verlauf: neu.map(z => ({ rolle: z.rolle, text: z.text })) },
       });
       if (error) {
         // invoke() liefert bei 4xx/5xx den Leib im Fehler mit; ohne das
@@ -137,6 +160,10 @@ const Floky: React.FC = () => {
               Fragen Sie in Ihrer Sprache — deutsch, shqip oder englisch.
               <br /><br />
               <span className="text-stone-300">„Wer hat den Beitrag 2026 noch nicht bezahlt?"</span>
+              <br /><br />
+              <span className="text-stone-400">
+                <code className="font-mono bg-stone-100 rounded px-1">/</code> zeigt die Kurzbefehle
+              </span>
             </p>
           </div>
         )}
@@ -144,7 +171,7 @@ const Floky: React.FC = () => {
           <div key={i} className={z.rolle === 'mensch' ? 'flex justify-end' : ''}>
             <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
               z.rolle === 'mensch' ? 'bg-stone-900 text-white' : 'bg-white border border-stone-100 text-stone-700'}`}>
-              {z.text}
+              {z.rolle === 'floky' ? mitFett(z.text) : z.text}
               {z.werkzeuge?.length ? (
                 <p className="mt-2 pt-2 border-t border-stone-100 text-[10px] text-stone-400 uppercase tracking-widest">
                   gelesen: {z.werkzeuge.join(', ')}
@@ -223,10 +250,34 @@ const Floky: React.FC = () => {
         <div ref={ende} />
       </div>
 
-      <div className="p-3 border-t border-stone-100 shrink-0">
+      <div className="p-3 border-t border-stone-100 shrink-0 relative">
+        {zeigeBefehle && befehle.length > 0 && (
+          <div className="absolute bottom-full left-3 right-3 mb-2 bg-white border border-stone-200
+                          rounded-2xl shadow-xl overflow-hidden max-h-64 overflow-y-auto">
+            {befehle
+              .filter(b => b.name.startsWith(eingabe.trim().toLowerCase()))
+              .map(b => (
+              <button key={b.name}
+                onClick={() => { setEingabe(b.name + ' '); setZeigeBefehle(false); }}
+                className="w-full text-left px-4 py-2.5 hover:bg-stone-50 border-b border-stone-50 last:border-0">
+                <span className="font-mono text-xs font-bold text-stone-800">{b.name}</span>
+                <span className="block text-[11px] text-stone-400 mt-0.5">{b.zweck}</span>
+              </button>
+            ))}
+          </div>
+        )}
         <div className="flex items-end gap-2">
-          <textarea value={eingabe} onChange={e => setEingabe(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); fragen(); } }}
+          <textarea value={eingabe}
+            onChange={e => {
+              setEingabe(e.target.value);
+              // Nur am Zeilenanfang und solange noch kein Leerzeichen
+              // getippt ist -- sonst springt die Liste mitten im Satz auf.
+              setZeigeBefehle(/^\/[a-zäöü]*$/i.test(e.target.value));
+            }}
+            onKeyDown={e => {
+              if (e.key === 'Escape') { setZeigeBefehle(false); return; }
+              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); setZeigeBefehle(false); fragen(); }
+            }}
             rows={1} placeholder="Frage oder Auftrag …"
             className="flex-1 resize-none p-3 bg-stone-50 border border-stone-200 rounded-xl
                        text-sm outline-none focus:border-stone-300 max-h-32" />

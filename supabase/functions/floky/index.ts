@@ -351,11 +351,147 @@ const KARTE_BAUEN = (name: string, a: any): Karte | null => {
   return null;
 };
 
+// --------------------------------------------------------- Kurzbefehle
+//
+// Zwei Arten, und der Unterschied ist wichtig:
+//
+//   /hilfe und /wochenstart werden HIER beantwortet, ohne KI. Das Konzept
+//   verlangt das ausdruecklich, und es ist auch richtig so: eine Liste der
+//   eigenen Faehigkeiten von einem Sprachmodell erfinden zu lassen, ist
+//   eine Einladung zur Fantasie. Ohne KI heisst zugleich: ohne Kontingent.
+//
+//   Alle uebrigen werden zu einer klaren Anweisung ausgeschrieben und der
+//   Nachricht vorangestellt. "/mahnung Arben" allein versteht kein Modell
+//   als Auftrag -- ausgeschrieben schon.
+
+const BEFEHLE: Record<string, { zweck: string; rollen: string[] }> = {
+  mitglied:   { zweck: "Ein Mitglied aufnehmen oder Stammdaten aendern.", rollen: ["SUPER_ADMIN","ADMIN"] },
+  beitrag:    { zweck: "Den Beitragslauf vorbereiten oder offene Beitraege zeigen.", rollen: ["SUPER_ADMIN","ADMIN","BOARD"] },
+  mahnung:    { zweck: "Fuer offene Rechnungen die naechste Mahnstufe vorschlagen.", rollen: ["SUPER_ADMIN","ADMIN"] },
+  zahlung:    { zweck: "Eine Zahlung oder Barzahlung erfassen.", rollen: ["SUPER_ADMIN","ADMIN","REPRESENTATIVE"] },
+  buchung:    { zweck: "Eine Buchung vorschlagen.", rollen: ["SUPER_ADMIN","ADMIN"] },
+  anlass:     { zweck: "Einen Anlass oder ein Treffen anlegen, Anmeldungen zaehlen.", rollen: ["SUPER_ADMIN","ADMIN","BOARD"] },
+  spende:     { zweck: "Einen Spendenaufruf entwerfen oder einem Spender danken.", rollen: ["SUPER_ADMIN","ADMIN","BOARD"] },
+  news:       { zweck: "Eine Neuigkeit fuer die Website entwerfen.", rollen: ["SUPER_ADMIN","ADMIN","BOARD"] },
+  protokoll:  { zweck: "Aus Stichworten einen Protokollentwurf machen.", rollen: ["SUPER_ADMIN","ADMIN","BOARD"] },
+};
+
+// Die Oberflaeche fragt diese Liste ab, damit die Befehle auffindbar sind.
+// Ein Kuerzel, das niemand kennt, ist keines.
+function befehlsliste(rolle: string) {
+  const eigene = Object.entries(BEFEHLE)
+    .filter(([, b]) => b.rollen.includes(rolle))
+    .map(([name, b]) => ({ name: `/${name}`, zweck: b.zweck }));
+  return [
+    { name: "/hilfe", zweck: "Was ich kann — ohne KI-Anfrage." },
+    { name: "/wochenstart", zweck: "Offene Beitraege, Meldungen, naechste Anlaesse — ohne KI-Anfrage." },
+    ...eigene,
+  ];
+}
+
+function hilfetext(rolle: string, name: string, sprache: string): string {
+  const liste = befehlsliste(rolle).map((b) => `${b.name} — ${b.zweck}`).join("\n");
+  const kuerzel = sprache === "sq"
+    ? "@ anëtar/familje/ngjarje · // datë · # lagje/kategori/llogari · ! prioritet · > tekst i gatshëm"
+    : "@ Mitglied/Familie/Anlass · // Datum · # Nachbarschaft/Kategorie/Konto · ! Priorität · > Textbaustein";
+  const kopf = sprache === "sq"
+    ? `Unë jam ${name}. Shkruani lirisht — shqip, gjermanisht ose anglisht.`
+    : sprache === "en"
+    ? `I am ${name}. Just write — German, Albanian or English.`
+    : `Ich bin ${name}. Schreiben Sie einfach — deutsch, shqip oder englisch.`;
+  const schluss = sprache === "sq"
+    ? "Unë propozoj; ju vendosni. Asgjë nuk regjistrohet pa konfirmimin tuaj."
+    : sprache === "en"
+    ? "I propose; you decide. Nothing is recorded without your confirmation."
+    : "Ich schlage vor, Sie entscheiden. Ohne Ihre Bestätigung wird nichts gebucht.";
+  return `${kopf}\n\n${liste}\n\n${kuerzel}\n\n${schluss}`;
+}
+
+// Teilt eine Nachricht in Befehl und Rest.
+function befehlLesen(text: string): { befehl: string | null; rest: string } {
+  const m = String(text ?? "").trim().match(/^\/([a-zA-ZäöüÄÖÜ]+)\s*([\s\S]*)$/);
+  if (!m) return { befehl: null, rest: String(text ?? "") };
+  return { befehl: m[1].toLowerCase(), rest: m[2] };
+}
+
+// ------------------------------------------------------------ Wochenstart
+//
+// Ohne KI, aus der Datenbank. Gelesen wird mit dem Konto des Fragenden --
+// ein Vertreter bekommt damit nur seine Nachbarschaft zu sehen, ohne dass
+// das hier eigens programmiert werden muesste.
+//
+// Es wird nur genannt, was tatsaechlich da ist. Eine Uebersicht, die
+// "0 offene Meldungen" neben "0 Anlaesse" neben "0 Pendenzen" stellt, liest
+// niemand zweimal.
+async function wochenstart(sb: any, rolle: string, sprache: string): Promise<string> {
+  const chf = (n: number) =>
+    `CHF ${n.toLocaleString("de-CH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const W = sprache === "sq"
+    ? { titel: "Fillimi i javës", offen: "Kuota të hapura", meldungen: "Pagesa të raportuara, në pritje",
+        anlaesse: "Ngjarjet e 14 ditëve të ardhshme", nichts: "Asgjë për të raportuar — java është e qetë.",
+        posten: "pozicione", personen: "persona" }
+    : sprache === "en"
+    ? { titel: "Week start", offen: "Open fees", meldungen: "Reported payments awaiting a decision",
+        anlaesse: "Events in the next 14 days", nichts: "Nothing to report — a quiet week.",
+        posten: "items", personen: "people" }
+    : { titel: "Wochenstart", offen: "Offene Beiträge", meldungen: "Gemeldete Zahlungen, noch offen",
+        anlaesse: "Anlässe der nächsten 14 Tage", nichts: "Nichts zu melden — eine ruhige Woche.",
+        posten: "Posten", personen: "Personen" };
+
+  const teile: string[] = [];
+
+  // Offene Beitraege
+  const { data: offen } = await sb.from("payments")
+    .select("amount,status").neq("status", "PAID")
+    .neq("status", "CANCELLED").neq("status", "WRITTEN_OFF").limit(1000);
+  if (offen?.length) {
+    const summe = offen.reduce((n: number, z: any) => n + Number(z.amount || 0), 0);
+    teile.push(`**${W.offen}:** ${offen.length} ${W.posten}, ${chf(summe)}`);
+  }
+
+  // Meldungen der Vertreter, die auf Entscheid warten
+  if (["SUPER_ADMIN", "ADMIN", "BOARD"].includes(rolle)) {
+    const { data: meld } = await sb.from("payment_reports")
+      .select("amount,method,paidOn").eq("status", "OPEN").limit(200);
+    if (meld?.length) {
+      const summe = meld.reduce((n: number, m: any) => n + Number(m.amount || 0), 0);
+      teile.push(`**${W.meldungen}:** ${meld.length} × ${chf(summe)}`);
+    }
+  }
+
+  // Anlaesse der naechsten 14 Tage
+  const heute = new Date().toISOString().slice(0, 10);
+  const in14 = new Date(Date.now() + 14 * 864e5).toISOString().slice(0, 10);
+  const { data: anl } = await sb.from("events")
+    .select("id,title,date").gte("date", heute).lte("date", in14)
+    .order("date").limit(10);
+  if (anl?.length) {
+    const zeilen: string[] = [];
+    for (const e of anl) {
+      const { data: an } = await sb.from("event_registrations")
+        .select("tickets,status").eq("eventId", e.id).limit(1000);
+      const gueltig = (an ?? []).filter((r: any) => r.status !== "CANCELLED");
+      const kopf = gueltig.reduce((n: number, r: any) => n + Number(r.tickets || 1), 0);
+      const d = new Date(e.date).toLocaleDateString("de-CH");
+      zeilen.push(`· ${d} — ${e.title} (${kopf} ${W.personen})`);
+    }
+    teile.push(`**${W.anlaesse}:**\n${zeilen.join("\n")}`);
+  }
+
+  if (!teile.length) return W.nichts;
+  return `**${W.titel}**\n\n${teile.join("\n\n")}`;
+}
+
+
 // ------------------------------------------------------------ Systemtext
+const SPRACHNAME: Record<string, string> = {
+  de: "Deutsch", sq: "Albanisch (shqip)", en: "Englisch",
+};
+
 function systemtext(k: {
   name: string; verein: string; person: string; rolle: string;
   nachbarschaft: string | null; module: string[]; glossar: string;
-  du: boolean; werkzeuge: string[];
+  du: boolean; werkzeuge: string[]; sprache: string;
 }) {
   const heute = new Date().toLocaleDateString("de-CH", { timeZone: "Europe/Zurich" });
   return `Du bist ${k.name}, der Helfer des Vereins ${k.verein} in unityhub.
@@ -365,7 +501,8 @@ Heute ist ${heute} (Europe/Zurich). Gebuchte Module: ${k.module.join(", ") || "k
 Der Verein arbeitet ehrenamtlich. Sei kurz, freundlich und konkret: zuerst das Ergebnis, dann was fehlt.
 
 Sprache:
-- Antworte in der Sprache der letzten Nachricht (Deutsch, Albanisch oder Englisch). Bei gemischten Nachrichten in der Sprache, die überwiegt.
+- ANTWORTE AUF ${SPRACHNAME[k.sprache] ?? "Deutsch"}. Das ist die Sprache, die diese Person eingestellt hat. Sie gilt auch dann, wenn der Vereinsname, das Glossar oder Mitgliedernamen albanisch sind — daran erkennst du die Sprache nicht.
+- Nur wenn die letzte Nachricht eindeutig in einer anderen Sprache geschrieben ist, antwortest du in dieser.
 - Texte an Mitglieder in deren hinterlegter Sprache; fehlt sie: Albanisch, darunter Deutsch.
 - Vereinsbegriffe nach dem Glossar: ${k.glossar || "keines hinterlegt"}.
 - Namen von Personen und Orten nie verändern (ë, ç beibehalten).
@@ -404,8 +541,13 @@ Deno.serve(async (req) => {
   let koerper: any;
   try { koerper = await req.json(); } catch { return json({ fehler: "Kein gueltiger Auftrag." }, 400); }
   const verlauf = Array.isArray(koerper?.verlauf) ? koerper.verlauf : [];
-  // Der Selbsttest braucht keinen Gespraechsverlauf.
-  if (!verlauf.length && koerper?.pruefen !== true) {
+  // Die Oberflaeche kennt die eingestellte Sprache. Floky hat sie bisher
+  // aus der Nachricht geraten und lag falsch -- der Vereinsname und das
+  // Glossar sind albanisch, daran erkennt man die Sprache nicht.
+  const sprache = ["de", "sq", "en"].includes(String(koerper?.sprache))
+    ? String(koerper.sprache) : "de";
+  // Selbsttest und Befehlsliste brauchen keinen Gespraechsverlauf.
+  if (!verlauf.length && koerper?.pruefen !== true && koerper?.befehle !== true) {
     return json({ fehler: "Keine Nachricht." }, 400);
   }
 
@@ -453,6 +595,18 @@ Deno.serve(async (req) => {
   // Abweisung soll sagen, was zutrifft, statt "nicht gebucht".
   if (!ich || !ich.verein) return json({ fehler: "Nicht angemeldet." }, 401);
 
+  const rolleRoh = String(ich.rolle ?? "MEMBER");
+
+  // Welche Befehle es gibt, darf jeder Angemeldete erfahren -- das kostet
+  // nichts und verraet nichts. Ohne diese Auskunft bliebe jedes Kuerzel
+  // unsichtbar, und ein Kuerzel, das niemand kennt, ist keines.
+  if (koerper?.befehle === true) {
+    return json({ befehle: befehlsliste(rolleRoh) });
+  }
+
+  const { data: einstVorab } = await sb.from("floky_einstellungen")
+    .select("assistent_name,anrede_du").maybeSingle();
+
   const { data: darf } = await sb.rpc("floky_darf");
   if (!darf) {
     return json({ fehler: "Floky ist fuer diesen Verein nicht gebucht." , gebucht: false }, 403);
@@ -463,6 +617,26 @@ Deno.serve(async (req) => {
   if (!schluessel) {
     return json({ fehler: "Floky ist noch nicht eingerichtet: der Plattformbetreiber "
       + "muss das Geheimnis INFOMANIAK_AI_API_KEY hinterlegen." }, 503);
+  }
+
+  // ----------------------------------------------- Befehle ohne KI
+  //
+  // Sie stehen VOR dem Zaehler. Das Konzept sagt "lokal beantwortet, ohne
+  // KI-Aufruf" -- dann darf es auch nichts vom Kontingent nehmen. Ein
+  // Zaehler, der Antworten mitzaehlt, die kein Modell gegeben hat, waere
+  // eine falsche Rechnung.
+  const letzte = String(verlauf[verlauf.length - 1]?.text ?? "");
+  const { befehl, rest } = befehlLesen(letzte);
+  const assistentName = einstVorab?.assistent_name ?? "Floky";
+
+  if (befehl === "hilfe" || befehl === "help" || befehl === "ndihme") {
+    return json({ text: hilfetext(rolleRoh, assistentName, sprache),
+                  ohne_ki: true, name: assistentName });
+  }
+
+  if (befehl === "wochenstart" || befehl === "java" || befehl === "weekstart") {
+    const text = await wochenstart(sb, rolleRoh, sprache);
+    return json({ text, ohne_ki: true, name: assistentName });
   }
 
   const { data: kont } = await sb.rpc("floky_kontingent");
@@ -480,7 +654,7 @@ Deno.serve(async (req) => {
         ? sb.from("users").select("displayName,email,neighborhoodId").eq("id", meineId).maybeSingle()
         : Promise.resolve({ data: null }),
       sb.from("glossar").select("begriff,de,sq,en").limit(50),
-      sb.from("floky_einstellungen").select("assistent_name,anrede_du").maybeSingle(),
+      Promise.resolve({ data: einstVorab }),
       sb.from("tenant_modules").select("modul,zustand"),
       sb.rpc("my_neighborhoods"),
     ]);
@@ -510,14 +684,32 @@ Deno.serve(async (req) => {
       `${g.begriff}=${g.de ?? g.sq ?? g.en ?? g.begriff}`).join("; "),
     du: !!einst?.anrede_du,
     werkzeuge: erlaubt.map((w) => w.name),
+    sprache,
   });
 
   // ----------------------------------------------------- Das Gespraech
+  // Einen Befehl ausschreiben. "/mahnung Arben" allein versteht kein
+  // Modell als Auftrag; mit dem Zweck davor schon. Der Befehl wird dabei
+  // NICHT entfernt -- im Verlauf soll stehen, was die Person getippt hat.
+  const ausgeschrieben = (text: string) => {
+    const { befehl, rest } = befehlLesen(text);
+    const b = befehl ? BEFEHLE[befehl] : null;
+    if (!b) return text;
+    if (!b.rollen.includes(rolleRoh)) {
+      return `${text}\n\n[Hinweis: Der Befehl /${befehl} steht der Rolle ${rolleRoh} `
+           + `nicht zur Verfuegung. Sage das und biete an, was stattdessen geht.]`;
+    }
+    return `[Auftrag: ${b.zweck}]\n${rest || text}`;
+  };
+
   const nachrichten: any[] = [
     { role: "system", content: system },
-    ...verlauf.map((n: any) => ({
+    ...verlauf.map((n: any, i: number) => ({
       role: n.rolle === "floky" ? "assistant" : "user",
-      content: String(n.text ?? ""),
+      // Nur die letzte Nachricht wird ausgeschrieben; frueher Getipptes
+      // bleibt, wie es war.
+      content: n.rolle === "floky" || i !== verlauf.length - 1
+        ? String(n.text ?? "") : ausgeschrieben(String(n.text ?? "")),
     })).filter((n: any) => n.content),
   ];
 
