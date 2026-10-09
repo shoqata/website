@@ -43,6 +43,7 @@ import { useTranslation } from '../context/LanguageContext';
 import MemberPicker from './ui/MemberPicker';
 import { hasUsableEmail } from '../lib/memberEmail';
 import { mahnungSenden } from '../lib/mahnung';
+import { postausgangBereit } from '../services/mailService';
 import SwissQRBill from './SwissQRBill';
 import { QrBillData } from '../services/qrBillService';
 import { jsPDF } from "jspdf";
@@ -150,6 +151,26 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
     });
     
     const invoiceAssociation = loc(branding.associationName) || paymentSettings.accountHolder || '';
+
+    // Kann ein Mitglied diese Rechnung ueberhaupt bezahlen?
+    //
+    // Gemessen bei Koretini am 09.10.: settings/payment ist leer, im ganzen
+    // System steht keine IBAN. Die Rechnung entstand trotzdem -- ohne
+    // QR-Code, mit leerer Zeile "Kontoinhaber:". Das Mitglied haette eine
+    // Rechnung bekommen, die es nicht bezahlen kann, und der Verein haette
+    // eine Erfolgsmeldung gesehen.
+    const zahlwegFehlt = (): string | null => {
+        const p: any = paymentSettings;
+        const hat = (x: any) => !!String(x ?? '').trim();
+        if (hat(p.qrIban) || hat(p.iban)) {
+            // Fuer die QR-Rechnung braucht es zusaetzlich den Kontoinhaber:
+            // ohne ihn ist der Beleg nach der Spezifikation unvollstaendig.
+            if (!hat(p.accountHolder)) return 'Der Kontoinhaber fehlt';
+            return null;
+        }
+        if (hat(p.paypalEmail) || hat(p.twintNumber)) return null;
+        return 'Es ist keine Zahlungsverbindung hinterlegt (IBAN, PayPal oder TWINT)';
+    };
     const invoiceInitials = invoiceAssociation.trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || 'V';
 
     // UI State
@@ -385,7 +406,10 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
         }
     };
 
-    const handleSendInvoiceEmail = async (payment: Payment) => {
+    // Gibt zurueck, ob die Nachricht wirklich eingereiht wurde. Vorher gab
+    // sie nichts zurueck, und der Sammelversand meldete deshalb Erfolg fuer
+    // alles -- auch fuer das, was er gerade abgewiesen hatte.
+    const handleSendInvoiceEmail = async (payment: Payment): Promise<boolean> => {
         let email = '';
         let recipientName = '';
         let anschrift: { adresse?: string; plz?: string; ort?: string; land?: string } = {};
@@ -403,7 +427,14 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
         }
         if (!hasUsableEmail({ email } as any)) {
             showAlert({ type: 'error', message: t('mail.no_address') });
-            return;
+            return false;
+        }
+        const fehlt = zahlwegFehlt();
+        if (fehlt) {
+            showAlert({ type: 'error', message:
+                `${fehlt}. Eine Rechnung ohne Zahlungsverbindung kann niemand bezahlen — `
+                + 'bitte zuerst unter Finanzen → Einstellungen eintragen.' });
+            return false;
         }
         try {
             const association = loc(branding?.associationName) || paymentSettings.accountHolder || '';
@@ -508,17 +539,44 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
             }
             await sendEmail({ to: email, subject, html, attachments: anhaenge });
             showAlert({ type: 'success', message: t('mail.sent_to', { email }) });
-        } catch (error) { showAlert({ type: 'error', message: t('mail.send_failed') }); }
+            return true;
+        } catch (error) {
+            showAlert({ type: 'error', message: t('mail.send_failed') });
+            return false;
+        }
     };
 
     const handleSendBulkEmails = async () => {
         if (pendingEmailPayments.length === 0) return;
+
+        // Einmal vorher pruefen statt hundertmal dieselbe Fehlermeldung.
+        const fehlt = zahlwegFehlt();
+        if (fehlt) {
+            showAlert({ type: 'error', message:
+                `${fehlt}. Es wurde nichts verschickt — bitte zuerst unter `
+                + 'Finanzen → Einstellungen eintragen.' });
+            return;
+        }
+
         const confirmed = await showConfirm({ title: t('mail.bulk.title'), message: t('mail.bulk.text', { count: pendingEmailPayments.length }), confirmText: t('mail.bulk.confirm'), type: 'primary' });
         if (!confirmed) return;
         setIsSendingEmails(true);
-        for (const payment of pendingEmailPayments) { await handleSendInvoiceEmail(payment); }
+        // Gezaehlt wird, was wirklich durchging. "Sent emails successfully"
+        // stand hier fest, auch wenn keine einzige hinausging.
+        let gut = 0, schlecht = 0;
+        for (const payment of pendingEmailPayments) {
+            (await handleSendInvoiceEmail(payment)) ? gut++ : schlecht++;
+        }
         setIsSendingEmails(false);
-        showAlert({ type: 'success', message: `Sent emails successfully.` });
+        const bereit = await postausgangBereit();
+        showAlert({ type: schlecht ? 'error' : 'success',
+            message: schlecht
+                ? `${gut} von ${gut + schlecht} eingereiht, ${schlecht} nicht — `
+                  + 'meist fehlt eine brauchbare E-Mail-Adresse.'
+                : bereit
+                  ? `${gut} Rechnungen in den Versand gegeben.`
+                  : `${gut} Rechnungen liegen in der Warteschlange — es ist kein `
+                    + 'Postausgang eingerichtet.' });
     };
 
     const toggleUserSelection = (userId: string) => {

@@ -150,7 +150,15 @@ Deno.serve(async (req) => {
 
       const a: Record<string, unknown> = {
         weg: "HTTPS (Postal)", url: postalUrl,
-        schluessel: `gesetzt, ${postalKey.length} Zeichen`,
+        // Die Form des Schluessels -- nicht sein Inhalt. Ein mitkopiertes
+        // Leerzeichen sieht man in keiner Oberflaeche, macht den Schluessel
+        // aber ungueltig, und "24 Zeichen" allein verraet es nicht.
+        schluessel: `${postalKey.length} Zeichen`
+          + (postalKey !== postalKey.trim()
+              ? ` — ACHTUNG: Leerzeichen am Rand (getrimmt ${postalKey.trim().length})` : "")
+          + (/[^A-Za-z0-9_-]/.test(postalKey.trim())
+              ? " — enthält Sonderzeichen, untypisch für einen Postal-Schlüssel" : "")
+          + `, beginnt ${postalKey.trim().slice(0, 2)}…${postalKey.trim().slice(-2)}`,
         absender: vonProbe || "(nicht gesetzt)",
         eingestellter_absender: absender ?? "(nicht gesetzt)",
       };
