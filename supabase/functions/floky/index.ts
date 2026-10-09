@@ -22,11 +22,12 @@
 // verlangt genau das. Die Schnittstelle ist OpenAI-kompatibel.
 //
 // Umgebungsvariablen:
-//   INFOMANIAK_TOKEN       Pflicht. API-Token aus dem Infomaniak-Manager.
-//   INFOMANIAK_PRODUCT_ID  optional. Fehlt er, wird er ueber GET /1/ai
-//                          ermittelt und fuer die Laufzeit gemerkt.
-//   FLOKY_MODELL           optional, Vorgabe qwen3
-//                          (verfuegbar: llama3, mistral3, qwen3, gemma3n)
+//   INFOMANIAK_AI_API_KEY     Pflicht. API-Token aus dem Infomaniak-Manager.
+//   INFOMANIAK_AI_PRODUCT_ID  optional. Fehlt er, wird er ueber GET /1/ai
+//                             ermittelt und fuer die Laufzeit gemerkt.
+//   ASSISTANT_MODELS          optional. Welches Modell. Mehrere durch Komma
+//                             getrennt sind erlaubt -- genommen wird das
+//                             erste; die uebrigen stehen fuer spaeter.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.47.10";
 
@@ -38,12 +39,16 @@ const CORS = {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 
-const MODELL = Deno.env.get("FLOKY_MODELL") ?? "qwen3";
+// Der Name steht im Plural, also wird auch eine Liste vertragen. Genommen
+// wird das erste Modell -- eine Liste stillschweigend als einen Namen zu
+// verwenden, haette "mistral, llama" an Infomaniak geschickt.
+const MODELL = (Deno.env.get("ASSISTANT_MODELS") ?? "mistralai/Mistral-Small-4-119B-2603")
+  .split(",")[0].trim();
 
 // Die Produkt-Nummer aendert sich nicht; sie einmal je Kaltstart zu holen
 // reicht. Ein Fehlschlag wird NICHT gemerkt -- sonst bliebe eine Funktion
 // nach einer Stoerung dauerhaft stumm.
-let produktId: string | null = Deno.env.get("INFOMANIAK_PRODUCT_ID") ?? null;
+let produktId: string | null = Deno.env.get("INFOMANIAK_AI_PRODUCT_ID") ?? null;
 async function produktErmitteln(token: string): Promise<string> {
   if (produktId) return produktId;
   const r = await fetch("https://api.infomaniak.com/1/ai", {
@@ -420,10 +425,10 @@ Deno.serve(async (req) => {
 
   // Erst jetzt, nachdem Konto, Verein und Buchung des Moduls feststehen:
   // ob die Plattform eingerichtet ist, geht einen Fremden nichts an.
-  const schluessel = Deno.env.get("INFOMANIAK_TOKEN");
+  const schluessel = Deno.env.get("INFOMANIAK_AI_API_KEY");
   if (!schluessel) {
     return json({ fehler: "Floky ist noch nicht eingerichtet: der Plattformbetreiber "
-      + "muss das Geheimnis INFOMANIAK_TOKEN hinterlegen." }, 503);
+      + "muss das Geheimnis INFOMANIAK_AI_API_KEY hinterlegen." }, 503);
   }
 
   // ------------------------------------------------------- Selbsttest
