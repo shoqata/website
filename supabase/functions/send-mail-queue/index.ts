@@ -174,7 +174,19 @@ Deno.serve(async (req) => {
           await admin.rpc("postausgang_melden",
             { p_bereit: true, p_quelle: "postal", p_fehler: null }).then(() => {}, () => {});
         } else {
-          a.ergebnis = `Abgelehnt — ${leib?.data?.message ?? leib?.data?.code ?? r.status}`;
+          const code = String(leib?.data?.code ?? "");
+          a.ergebnis = `Abgelehnt — ${leib?.data?.message ?? code ?? r.status}`;
+
+          // Der Hinweis stand fest auf "der Schluessel gilt" -- auch dann,
+          // wenn Postal genau das Gegenteil meldete. Ein Hinweis, der
+          // nicht zur Meldung passt, schickt an die falsche Stelle.
+          if (code === "InvalidServerAPIKey") {
+            a.hinweis = "Die Verbindung steht, aber dieser Schlüssel gilt nicht. "
+              + "In Postal haben Zugangsdaten einen Typ: nur Type=API funktioniert hier, "
+              + "Type=SMTP nicht. Prüfen Sie ausserdem, ob beim Kopieren ein Leerzeichen "
+              + "mitgegangen ist.";
+            return json(a, 200);   // Ohne gueltigen Schluessel sagt das DNS nichts aus.
+          }
           a.hinweis = "Die Verbindung steht und der Schlüssel gilt. Es fehlt an der Domain.";
 
           // Nachsehen, welcher DNS-Eintrag fehlt.
