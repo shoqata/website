@@ -197,16 +197,39 @@ Deno.serve(async (req) => {
             const spf = await frag(domain, "TXT");
             dns.spf = /v=spf1/i.test(spf) ? "vorhanden" : "FEHLT";
             dns.rueckpfad = (await frag(`psrp.${domain}`, "CNAME")) ? "vorhanden" : "FEHLT";
-            const dkim = await frag(`postal._domainkey.${domain}`, "TXT");
-            dns.dkim = /v=DKIM1/i.test(dkim)
-              ? "vorhanden"
-              : `FEHLT — TXT auf postal._domainkey.${domain}`;
-            a.dns = dns;
-            if (dns.dkim.startsWith("FEHLT")) {
-              a.naechster_schritt = `Im Postal unter ${postalUrl} die Domain ${domain} oeffnen; `
-                + "dort steht der DKIM-Eintrag im Wortlaut. Diesen TXT-Eintrag im DNS "
-                + `von ${domain} anlegen, dann in Postal auf "Verify" klicken.`;
+            // Postal vergibt je Domain einen eigenen Selektor --
+            // "postal" bei der einen, "postal-yyk2bc" bei der naechsten.
+            // Raten ist zwecklos, und DNS laesst sich nicht auflisten.
+            // Also: den Standardnamen pruefen, einen mitgegebenen
+            // Selektor pruefen -- und sonst sagen, dass man ihn nicht
+            // kennt, statt "FEHLT" zu behaupten. Genau das hat hier in
+            // die Irre gefuehrt: der Eintrag stand laengst da.
+            const selektoren = ["postal"];
+            if (typeof koerper?.selektor === "string") {
+              selektoren.unshift(String(koerper.selektor).replace(/[^A-Za-z0-9_-]/g, ""));
             }
+            let gefunden = "";
+            for (const sel of selektoren) {
+              const t = await frag(`${sel}._domainkey.${domain}`, "TXT");
+              if (/v=DKIM1/i.test(t)) { gefunden = sel; break; }
+            }
+            dns.dkim = gefunden
+              ? `vorhanden (Selektor ${gefunden})`
+              : `nicht gefunden unter ${selektoren.join(", ")}._domainkey.${domain} — `
+                + "Postal nutzt je Domain einen eigenen Selektor (z.B. postal-yyk2bc). "
+                + "Mit {\"selektor\": \"...\"} pruefen oder in Postal nachsehen.";
+            a.dns = dns;
+            a.naechster_schritt = dns.dkim.startsWith("vorhanden")
+              // Alle drei Eintraege stehen und Postal lehnt trotzdem ab:
+              // dann liegt es nicht am DNS, sondern daran, WELCHEM Server
+              // der Schluessel gehoert. In Postal hat jeder Server seine
+              // eigenen Domains und seine eigenen Zugangsdaten.
+              ? `SPF, Rückpfad und DKIM stehen. Dann gehört der API-Schlüssel zu einem `
+                + `anderen Postal-Server als die Domain ${domain}. In ${postalUrl} prüfen: `
+                + `Ist ${domain} unter DEMSELBEN Server eingetragen, unter dem der Schlüssel `
+                + "erzeugt wurde — und steht die Domain dort auf verifiziert?"
+              : `Im Postal unter ${postalUrl} die Domain ${domain} oeffnen; dort steht der `
+                + "DKIM-Eintrag mit seinem Selektor im Wortlaut.";
           }
         }
       } catch (e) {
