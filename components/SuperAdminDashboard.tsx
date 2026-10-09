@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import SuperAdminModule from './SuperAdminModule';
+import AdminPostausgang from './AdminPostausgang';
 import { AnimatePresence } from 'framer-motion';
 import { useTranslation } from '../context/LanguageContext';
 import { 
@@ -380,6 +381,17 @@ const SuperAdminDashboard: React.FC<{ user?: any }> = ({ user }) => {
               return (
                   <div className="space-y-8">
                       <h2 className="text-2xl font-bold">{t('sa.global_config')}</h2>
+
+                      {/* Der zentrale Postausgang.
+                          Er liess sich bisher nur in den Einstellungen eines
+                          VEREINS eintragen -- obwohl er dem Betreiber gehoert
+                          und fuer alle gilt. Der Betreiber musste dafuer die
+                          Verwaltungsseite eines Vereins oeffnen. Eine
+                          Einstellung gehoert dorthin, wo die Person sitzt,
+                          die sie setzen darf. */}
+                      <div className="bg-white rounded-3xl p-6 text-stone-800">
+                        <AdminPostausgang />
+                      </div>
                       <div className="grid grid-cols-2 gap-8">
                           {/* Hier standen zwei Preisfelder (50 Mitglieder frei, 49 pro
                               Monat) und ein Knopf "Preise aktualisieren". Die Zahlen
