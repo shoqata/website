@@ -10,7 +10,22 @@
 // muessen sicher sein, da sonst das misbruacht werden kann."
 //
 // Benoetigte Umgebungsvariablen:
+//   POSTAL_URL, POSTAL_API_KEY   bevorzugt, siehe unten
 //   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM
+//
+// ZWEI WEGE HINAUS, und der Grund dafuer ist gemessen:
+//
+// SMTP geht aus diesem Rechenzentrum nicht zu jedem Anbieter. Bei
+// mail.helvico.ch sind 25, 465 und 587 von einem gewoehnlichen Anschluss
+// aus offen -- von hier aus wird 465 abgewiesen und 587 antwortet
+// ueberhaupt nicht. Das ist eine Sperre gegen Rechenzentren, und sie
+// laesst sich von dieser Seite nicht umgehen: Edge Functions haben keine
+// feste Absenderadresse, die man freischalten lassen koennte.
+//
+// HTTPS geht. Dieselbe Maschine betreibt Postal (postalserver.io), und
+// dessen Schnittstelle auf 443 antwortete aus dem Supabase-Netz in 16
+// Millisekunden. Deshalb hat POSTAL_URL Vorrang vor SMTP, wo beides
+// gesetzt ist.
 //   SMTP_TLS        optional, "starttls" (Vorgabe) oder "tls"
 //
 // Vorrang hat inzwischen die Tabelle mail_settings: dort traegt jeder Verein
@@ -50,6 +65,10 @@ Deno.serve(async (req) => {
   const kennwort = Deno.env.get("SMTP_PASS");
   const absender = Deno.env.get("SMTP_FROM");
   const tlsArt = (Deno.env.get("SMTP_TLS") ?? "starttls").toLowerCase();
+  // Der Weg ueber HTTPS. URL ohne Pfad, z.B. https://mail.helvico.ch
+  const postalUrl = (Deno.env.get("POSTAL_URL") ?? "").replace(/\/+$/, "");
+  const postalKey = Deno.env.get("POSTAL_API_KEY") ?? "";
+  const ueberPostal = !!postalUrl && !!postalKey;
   const menge = Math.min(Number(Deno.env.get("MAIL_BATCH") ?? "40"), 200);
   const cronToken = Deno.env.get("MAIL_CRON_TOKEN");
 
@@ -120,7 +139,41 @@ Deno.serve(async (req) => {
     const probePort = Number.isInteger(koerper?.port) && koerper.port > 0 && koerper.port < 65536
       ? koerper.port as number : port;
 
+    // Der Weg ueber HTTPS wird zuerst geprueft, weil er Vorrang hat.
+    if (ueberPostal) {
+      const a: Record<string, unknown> = {
+        weg: "HTTPS (Postal)", url: postalUrl,
+        schluessel: `gesetzt, ${postalKey.length} Zeichen`,
+        absender: absender ?? "(nicht gesetzt)",
+      };
+      try {
+        const r = await fetch(`${postalUrl}/api/v1/send/message`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Server-API-Key": postalKey },
+          body: JSON.stringify({
+            to: [absender ?? ""], from: absender ?? "",
+            subject: "unityhub — Prüfung des Postausgangs",
+            plain_body: "Diese Nachricht bestätigt, dass der Versand über Postal funktioniert.",
+          }),
+        });
+        const leib = await r.json().catch(() => ({}));
+        if (leib?.status === "success") {
+          a.ergebnis = `In Ordnung. Eine Prüfnachricht ging an ${absender}.`;
+          await admin.rpc("postausgang_melden",
+            { p_bereit: true, p_quelle: "postal", p_fehler: null }).then(() => {}, () => {});
+        } else {
+          a.ergebnis = `Abgelehnt — ${leib?.data?.message ?? leib?.data?.code ?? r.status}`;
+          a.hinweis = "Die Verbindung steht. Pruefen Sie den Server-API-Schluessel und "
+            + "ob die Absenderadresse zu einer Domain dieses Postal-Servers gehoert.";
+        }
+      } catch (e) {
+        a.ergebnis = `Nicht erreichbar — ${e instanceof Error ? e.message : e}`;
+      }
+      return json(a, 200);
+    }
+
     const antwort: Record<string, unknown> = {
+      weg: "SMTP",
       host: host ?? "(nicht gesetzt)",
       port: probePort, eingestellter_port: port, tls: tlsArt,
       benutzer: verkuerzt(benutzer),
@@ -234,15 +287,17 @@ Deno.serve(async (req) => {
   // Der Oberflaeche sagen, ob ueberhaupt etwas hinausgehen kann. Sie
   // konnte das bisher nur in mail_settings nachsehen -- der falschen
   // Stelle, wenn die Zugangsdaten als Geheimnis liegen.
-  const kannUeberhaupt = !!postausgangZentral.host && !!postausgangZentral.kennwort;
+  const kannUeberhaupt = ueberPostal
+    || (!!postausgangZentral.host && !!postausgangZentral.kennwort);
   await admin.rpc("postausgang_melden", {
-    p_bereit: kannUeberhaupt, p_quelle: quelle,
-    p_fehler: kannUeberhaupt ? null : "Weder eine brauchbare Zeile noch SMTP-Geheimnisse.",
+    p_bereit: kannUeberhaupt, p_quelle: ueberPostal ? "postal" : quelle,
+    p_fehler: kannUeberhaupt ? null
+      : "Weder POSTAL_URL/POSTAL_API_KEY noch eine brauchbare SMTP-Einstellung.",
   }).then(() => {}, () => {});
 
   if (!kannUeberhaupt) {
     return json({ ok: false, configured: false,
-      error: "Kein Postausgang: weder eine aktive Zeile mit Kennwort noch SMTP-Geheimnisse." }, 200);
+      error: "Kein Postausgang: weder POSTAL_URL/POSTAL_API_KEY noch SMTP." }, 200);
   }
 
   // Name und Antwortadresse je Verein. Der technische Absender bleibt
@@ -279,13 +334,14 @@ Deno.serve(async (req) => {
 
     // Ohne Postausgang wird nichts versendet -- und nichts angetastet. Die
     // Nachrichten bleiben stehen, statt als gescheitert zu gelten.
-    if (!vollstaendig(p)) {
+    if (!ueberPostal && !vollstaendig(p)) {
       liegengeblieben += nachrichten.length;
       if (!ohnePostausgang.includes(verein)) ohnePostausgang.push(verein);
       continue;
     }
 
-    const client = new SMTPClient({
+    // Ueber HTTPS braucht es keine Verbindung, die offen bleibt.
+    const client = ueberPostal ? null : new SMTPClient({
       connection: {
         hostname: p.host!,
         port: p.port,
@@ -296,7 +352,34 @@ Deno.serve(async (req) => {
 
     for (const m of nachrichten) {
       try {
-        await client.send({
+        if (ueberPostal) {
+          const r = await fetch(`${postalUrl}/api/v1/send/message`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-Server-API-Key": postalKey },
+            body: JSON.stringify({
+              to: [m.recipient],
+              from: `${info?.name ?? p.absendername ?? "unityhub"} <${p.absender ?? absender}>`,
+              sender: p.absender ?? absender,
+              reply_to: info?.antwortAn ?? undefined,
+              subject: m.subject,
+              html_body: m.html,
+              plain_body: m.text ?? undefined,
+              attachments: Array.isArray(m.attachments) && m.attachments.length
+                ? m.attachments.map((a: any) => ({
+                    name: a.filename, content_type: "application/pdf", data: a.content }))
+                : undefined,
+            }),
+          });
+          const leib = await r.json().catch(() => ({}));
+          // Postal antwortet mit HTTP 200 auch dann, wenn es ablehnt --
+          // der Zustand steht im Leib. Nur auf den Statuscode zu sehen
+          // hiesse, jede Ablehnung als Erfolg zu verbuchen.
+          if (!r.ok || leib?.status !== "success") {
+            throw new Error(leib?.data?.message
+              ?? leib?.data?.code ?? `Postal meldet ${r.status}`);
+          }
+        } else {
+        await client!.send({
           // Anzeigename: der Verein, dem die Nachricht gehoert. Ohne
           // Vereinsbezug (Betreiber-Nachrichten) der Name des Postausgangs.
           from: `${info?.name ?? p.absendername ?? "unityhub"} <${p.absender}>`,
@@ -313,6 +396,7 @@ Deno.serve(async (req) => {
               }))
             : undefined,
         });
+        }
         await admin.from("mail_queue")
           .update({ status: "SENT", sentAt: new Date().toISOString(), attempts: (m.attempts ?? 0) + 1 })
           .eq("id", m.id);
@@ -333,7 +417,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    try { await client.close(); } catch { /* geschlossen ist geschlossen */ }
+    try { await client?.close(); } catch { /* geschlossen ist geschlossen */ }
   }
 
   // Wessen Post bleibt liegen? Frueher stand hier ein pauschales "Kein
