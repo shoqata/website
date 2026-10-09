@@ -410,34 +410,25 @@ Deno.serve(async (req) => {
   }
 
   // --------------------------------------------------- Wer, ob, wie oft
+  const schluessel = Deno.env.get("INFOMANIAK_AI_API_KEY");
+
   const { data: wer, error: werFehler } = await sb.rpc("wer_bin_ich");
   if (werFehler) return json({ fehler: werFehler.message }, 403);
   const ich = Array.isArray(wer) ? wer[0] : wer;
-  // wer_bin_ich faellt ohne Anmeldung auf rolle MEMBER zurueck, laesst aber
-  // verein leer. Ohne Verein ist niemand da, der fragen koennte -- und die
-  // Abweisung soll sagen, was zutrifft, statt "nicht gebucht".
-  if (!ich || !ich.verein) return json({ fehler: "Nicht angemeldet." }, 401);
-
-  const { data: darf } = await sb.rpc("floky_darf");
-  if (!darf) {
-    return json({ fehler: "Floky ist fuer diesen Verein nicht gebucht." , gebucht: false }, 403);
-  }
-
-  // Erst jetzt, nachdem Konto, Verein und Buchung des Moduls feststehen:
-  // ob die Plattform eingerichtet ist, geht einen Fremden nichts an.
-  const schluessel = Deno.env.get("INFOMANIAK_AI_API_KEY");
-  if (!schluessel) {
-    return json({ fehler: "Floky ist noch nicht eingerichtet: der Plattformbetreiber "
-      + "muss das Geheimnis INFOMANIAK_AI_API_KEY hinterlegen." }, 503);
-  }
-
   // ------------------------------------------------------- Selbsttest
   //
   // Der Betreiber soll die Einrichtung pruefen koennen, ohne jemandem den
   // Token zu zeigen. Antwortet: welche Produktnummer gefunden wurde, welche
   // Modelle das Konto hat, und ob das eingestellte darunter ist.
+  //
+  // Er steht VOR der Vereins- und Modulpruefung: geprueft wird die
+  // Einrichtung der PLATTFORM, nicht die eines Vereins. Stuende er
+  // dahinter, kaeme der Betreiber auf unityhub.li nie an ihn heran -- er
+  // gehoert dort zu keinem Verein. Genau dafuer ist er aber da.
   if (koerper?.pruefen === true) {
-    if (!ich.ist_betreiber) return json({ fehler: "Nur der Plattformbetreiber." }, 403);
+    if (!ich?.ist_betreiber) return json({ fehler: "Nur der Plattformbetreiber." }, 403);
+    if (!schluessel) return json({ ok: false,
+      fehler: "Das Geheimnis INFOMANIAK_AI_API_KEY ist nicht gesetzt." }, 503);
     try {
       const pid = await produktErmitteln(schluessel);
       const r = await fetch(`https://api.infomaniak.com/2/ai/${pid}/openai/v1/models`,
@@ -454,6 +445,24 @@ Deno.serve(async (req) => {
     } catch (e) {
       return json({ ok: false, fehler: e instanceof Error ? e.message : String(e) }, 502);
     }
+  }
+
+
+  // wer_bin_ich faellt ohne Anmeldung auf rolle MEMBER zurueck, laesst aber
+  // verein leer. Ohne Verein ist niemand da, der fragen koennte -- und die
+  // Abweisung soll sagen, was zutrifft, statt "nicht gebucht".
+  if (!ich || !ich.verein) return json({ fehler: "Nicht angemeldet." }, 401);
+
+  const { data: darf } = await sb.rpc("floky_darf");
+  if (!darf) {
+    return json({ fehler: "Floky ist fuer diesen Verein nicht gebucht." , gebucht: false }, 403);
+  }
+
+  // Fuer das Gespraech: ob die Plattform eingerichtet ist, erfaehrt erst,
+  // wer angemeldet ist und dessen Verein das Modul gebucht hat.
+  if (!schluessel) {
+    return json({ fehler: "Floky ist noch nicht eingerichtet: der Plattformbetreiber "
+      + "muss das Geheimnis INFOMANIAK_AI_API_KEY hinterlegen." }, 503);
   }
 
   const { data: kont } = await sb.rpc("floky_kontingent");
