@@ -414,6 +414,269 @@ function befehlLesen(text: string): { befehl: string | null; rest: string } {
   return { befehl: m[1].toLowerCase(), rest: m[2] };
 }
 
+// ------------------------------------------------------- Inline-Kuerzel
+//
+// @ Mitglied/Familie/Anlass/Rechnung · // Datum · # Nachbarschaft/Kategorie/
+// Konto · ! Prioritaet · > Textbaustein
+//
+// Sie werden HIER aufgeloest, gegen die Datenbank, und das Ergebnis geht
+// als Tatsache an das Modell. Der Grund ist derselbe wie ueberall:
+// ">Mahnung 1" soll den Text des Vereins einsetzen, nicht einen, den sich
+// ein Sprachmodell ausdenkt. Ein erfundener Mahntext geht an ein Mitglied
+// hinaus und ist dann nicht mehr einzuholen.
+//
+// Gelesen wird mit dem Konto des Fragenden. Ein Vertreter loest damit nur
+// auf, was er ohnehin sehen darf -- das muss hier nicht programmiert
+// werden, die Zeilenregeln tun es.
+//
+// Mehrdeutigkeit wird NICHT aufgeloest. Zwei Mitglieder "Gashi" ergeben
+// eine Rueckfrage, keine Auswahl per Zufall.
+
+type Treffer = { kuerzel: string; aufloesung: string; zusatz?: string };
+
+// Wie weit reicht ein Name? "@Arben Gashi hat bezahlt" soll Arben Gashi
+// finden, nicht "Arben Gashi hat bezahlt". Deshalb werden bis zu vier
+// Woerter genommen und von der laengsten Fassung abwaerts probiert -- die
+// Datenbank entscheidet, wo der Name endet.
+function kandidaten(rest: string, maxWorte = 4): string[] {
+  const worte = rest.trim().split(/\s+/).slice(0, maxWorte);
+  const out: string[] = [];
+  for (let n = worte.length; n >= 1; n--) {
+    const s = worte.slice(0, n).join(" ").replace(/[.,;:!?]+$/, "");
+    if (s) out.push(s);
+  }
+  return out;
+}
+
+function heuteInZuerich(): Date {
+  const s = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Zurich" });
+  return new Date(s + "T00:00:00");
+}
+const alsIso = (d: Date) => d.toISOString().slice(0, 10);
+const alsSchweiz = (d: Date) => d.toLocaleDateString("de-CH");
+
+// Datum aufloesen. Was sich nicht eindeutig bestimmen laesst, wird NICHT
+// geraten -- "//GV" kann der Mensch meinen, aber nur er weiss welche.
+function datumLesen(text: string): { iso: string; wie: string } | null {
+  const t = text.trim().toLowerCase();
+  const heute = heuteInZuerich();
+  const plus = (tage: number) => { const d = new Date(heute); d.setDate(d.getDate() + tage); return d; };
+
+  let m = t.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+  if (m) return { iso: `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`, wie: "Datum" };
+  m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return { iso: `${m[1]}-${m[2]}-${m[3]}`, wie: "Datum" };
+  // Ohne Jahr: das naechste Vorkommen, nicht das vergangene.
+  m = t.match(/^(\d{1,2})\.(\d{1,2})\.?$/);
+  if (m) {
+    const tag = +m[1], monat = +m[2];
+    let jahr = heute.getFullYear();
+    const d = new Date(`${jahr}-${String(monat).padStart(2,"0")}-${String(tag).padStart(2,"0")}T00:00:00`);
+    if (d < heute) { jahr++; }
+    return { iso: `${jahr}-${String(monat).padStart(2,"0")}-${String(tag).padStart(2,"0")}`,
+             wie: "Datum (Jahr ergaenzt)" };
+  }
+
+  if (/^(heute|sot|today)$/.test(t)) return { iso: alsIso(heute), wie: "heute" };
+  if (/^(morgen|nes[eë]r|tomorrow)$/.test(t)) return { iso: alsIso(plus(1)), wie: "morgen" };
+  if (/^([uü]bermorgen|pasnes[eë]r)$/.test(t)) return { iso: alsIso(plus(2)), wie: "uebermorgen" };
+
+  m = t.match(/^in\s+(\d{1,3})\s*(tag|tage|tagen|dit[eë]|days?)$/);
+  if (m) return { iso: alsIso(plus(+m[1])), wie: `in ${m[1]} Tagen` };
+  m = t.match(/^in\s+(\d{1,2})\s*(woche|wochen|jav[eë]|weeks?)$/);
+  if (m) return { iso: alsIso(plus(+m[1] * 7)), wie: `in ${m[1]} Wochen` };
+
+  if (/^(ende monat|monatsende|fundi i muajit|end of month)$/.test(t)) {
+    const d = new Date(heute.getFullYear(), heute.getMonth() + 1, 0);
+    return { iso: alsIso(d), wie: "Ende des Monats" };
+  }
+  if (/^(n[aä]chste woche|java e ardhshme|next week)$/.test(t)) {
+    return { iso: alsIso(plus(7)), wie: "in einer Woche" };
+  }
+  if (/^(ende jahr|jahresende|fundi i vitit|end of year)$/.test(t)) {
+    return { iso: `${heute.getFullYear()}-12-31`, wie: "Ende des Jahres" };
+  }
+  return null;
+}
+
+// Freundliche Namen auf Schluessel. "Mahnung 1" tippt sich leichter als
+// MAHNUNG_1, und das Konzept nennt genau diese Schreibweise.
+function bausteinSchluessel(text: string): string {
+  return text.trim().toUpperCase()
+    .replace(/[ÄÖÜ]/g, (z) => ({ "Ä":"AE","Ö":"OE","Ü":"UE" }[z] as string))
+    .replace(/[^A-Z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+
+async function kuerzelAufloesen(sb: any, text: string, sprache: string) {
+  const treffer: Treffer[] = [];
+  const offen: string[] = [];
+  const gesehen = new Set<string>();
+
+  // Erst die Marken FINDEN, dann dazwischen schneiden.
+  //
+  // Ein einziger Ausdruck, der Zeichen und Rest zusammen greift, verschluckt
+  // die ganze Zeile: "@Arben //morgen >Mahnung 1" waere EINE Fundstelle, und
+  // alles nach dem @ ginge verloren. Genau das ist passiert.
+  //
+  // Die Marke muss am Wortanfang stehen -- sonst waere jede E-Mail-Adresse
+  // ein Mitgliedsverweis.
+  const roh = String(text);
+  const stellen: { zeichen: string; von: number }[] = [];
+  for (const m of roh.matchAll(/(?:^|\s)(\/\/|@|#|!|>)(?=[^\s@#!>])/g)) {
+    stellen.push({ zeichen: m[1], von: m.index! + m[0].length });
+  }
+
+  for (let i = 0; i < stellen.length; i++) {
+    const zeichen = stellen[i].zeichen;
+    // Bis zur naechsten Marke -- oder bis zum Ende.
+    const bis = i + 1 < stellen.length
+      ? stellen[i + 1].von - stellen[i + 1].zeichen.length - 1 : roh.length;
+    const rest = roh.slice(stellen[i].von, Math.max(bis, stellen[i].von));
+
+    // ---------------------------------------------------------- Prioritaet
+    if (zeichen === "!") {
+      const wort = rest.trim().split(/\s+/)[0].replace(/[.,;:!?]+$/, "");
+      if (!wort) continue;
+      const k = `!${wort}`;
+      if (gesehen.has(k)) continue; gesehen.add(k);
+      treffer.push({ kuerzel: k, aufloesung: `als "${wort}" gekennzeichnet — vorziehen` });
+      continue;
+    }
+
+    // ---------------------------------------------------------- Datum
+    if (zeichen === "//") {
+      let gefunden = false;
+      for (const kand of kandidaten(rest, 3)) {
+        const d = datumLesen(kand);
+        if (!d) continue;
+        const k = `//${kand}`;
+        if (!gesehen.has(k)) {
+          gesehen.add(k);
+          treffer.push({ kuerzel: k,
+            aufloesung: `${alsSchweiz(new Date(d.iso + "T00:00:00"))} (${d.iso}) — ${d.wie}` });
+        }
+        gefunden = true; break;
+      }
+      if (!gefunden) {
+        // "//GV" kann der Mensch meinen -- aber nur er weiss, welche.
+        offen.push(`//${rest.trim().split(/\s+/).slice(0, 2).join(" ")} `
+          + `— kein eindeutiges Datum; frag nach, welches gemeint ist`);
+      }
+      continue;
+    }
+
+    // ---------------------------------------------------------- Baustein
+    if (zeichen === ">") {
+      let gefunden = false;
+      for (const kand of kandidaten(rest, 3)) {
+        const schluessel = bausteinSchluessel(kand);
+        const { data } = await sb.from("textbausteine")
+          .select("schluessel,sprache,betreff,text").eq("schluessel", schluessel);
+        if (data?.length) {
+          const k = `>${kand}`;
+          if (gesehen.has(k)) { gefunden = true; break; }
+          gesehen.add(k);
+          const eigene = data.find((b: any) => b.sprache === sprache) ?? data[0];
+          treffer.push({ kuerzel: k,
+            aufloesung: `Textbaustein ${schluessel}, vorhanden in: ${data.map((b: any) => b.sprache).join(", ")}`,
+            zusatz: `Betreff: ${eigene.betreff ?? "—"}\nText:\n${eigene.text}` });
+          gefunden = true; break;
+        }
+      }
+      if (!gefunden) {
+        const { data: alle } = await sb.from("textbausteine").select("schluessel");
+        const namen = [...new Set((alle ?? []).map((b: any) => b.schluessel))];
+        offen.push(`>${rest.trim().split(/\s+/).slice(0,2).join(" ")} — kein solcher Textbaustein. `
+          + `Vorhanden: ${namen.join(", ") || "keine"}`);
+      }
+      continue;
+    }
+
+    // ---------------------------------------------------------- # und @
+    let erledigt = false;
+    for (const kand of kandidaten(rest)) {
+      const k = `${zeichen}${kand}`;
+      if (gesehen.has(k)) { erledigt = true; break; }
+
+      const funde: string[] = [];
+
+      if (zeichen === "#") {
+        const { data: lagje } = await sb.from("neighborhoods")
+          .select("id,name").ilike("name", kand).limit(5);
+        for (const n of lagje ?? []) funde.push(`Nachbarschaft „${n.name}"`);
+
+        // Zwei Abfragen statt .or(): in einem PostgREST-or sind Komma und
+        // Punkt Trennzeichen, und der Text kommt aus dem, was jemand
+        // getippt hat. Eine Abfrage soll suchen, wonach gefragt wurde.
+        const { data: perCode } = await sb.from("accounting_accounts")
+          .select("code,name").eq("code", kand).limit(5);
+        const { data: perName } = await sb.from("accounting_accounts")
+          .select("code,name").ilike("name", kand).limit(5);
+        for (const c of [...(perCode ?? []), ...(perName ?? [])])
+          funde.push(`Konto ${c.code} „${c.name}"`);
+
+        const gross = kand.toUpperCase();
+        if (["AKTIV","PASSIV","INDIVIDUAL"].includes(gross)) funde.push(`Mitgliederkategorie ${gross}`);
+        if (["STANDARD","KOSOVO"].includes(gross)) funde.push(`Beitragsgruppe ${gross}`);
+      } else {
+        const { data: leute } = await sb.from("users")
+          .select("id,displayName,email,membershipStatus").ilike("displayName", kand).limit(5);
+        for (const u of leute ?? [])
+          funde.push(`Mitglied „${u.displayName}" (id ${u.id}, ${u.membershipStatus})`);
+
+        const { data: fam } = await sb.from("families").select("id,name").ilike("name", kand).limit(5);
+        for (const f of fam ?? []) funde.push(`Familie „${f.name}" (id ${f.id})`);
+
+        const { data: anl } = await sb.from("events").select("id,title,date").ilike("title", kand).limit(5);
+        for (const e of anl ?? []) funde.push(`Anlass „${e.title}" am ${e.date} (id ${e.id})`);
+
+        const { data: tr } = await sb.from("treffen").select("id,titel,datum").ilike("titel", kand).limit(5);
+        for (const t of tr ?? []) funde.push(`Treffen „${t.titel}" am ${t.datum} (id ${t.id})`);
+
+        const { data: re } = await sb.from("payments")
+          .select("id,invoiceNumber,amount,status").eq("invoiceNumber", kand).limit(5);
+        for (const p of re ?? [])
+          funde.push(`Rechnung ${p.invoiceNumber} über ${p.amount} (${p.status}, id ${p.id})`);
+      }
+
+      if (funde.length === 1) {
+        gesehen.add(k);
+        treffer.push({ kuerzel: k, aufloesung: funde[0] });
+        erledigt = true; break;
+      }
+      if (funde.length > 1) {
+        gesehen.add(k);
+        // Mehrdeutig: ausdruecklich NICHT entscheiden.
+        offen.push(`${k} — mehrdeutig: ${funde.join(" | ")}. Frag nach, wer gemeint ist.`);
+        erledigt = true; break;
+      }
+    }
+    if (!erledigt) {
+      const kurz = rest.trim().split(/\s+/).slice(0, 2).join(" ");
+      offen.push(`${zeichen}${kurz} — nichts gefunden. Rate nicht; frag nach.`);
+    }
+  }
+
+  if (!treffer.length && !offen.length) return null;
+
+  const zeilen = [
+    ...treffer.map((t) => `${t.kuerzel} → ${t.aufloesung}` + (t.zusatz ? `\n${t.zusatz}` : "")),
+    ...offen.map((o) => `${o}`),
+  ];
+  return {
+    // Fuer das Modell: als Tatsachen, mit dem vollen Bausteintext.
+    text: `[Aufgelöste Kürzel — das sind Tatsachen aus der Datenbank, nicht zu ändern:\n`
+        + zeilen.join("\n") + `\n]`,
+    // Fuer den Menschen: knapp, ohne den Bausteintext -- er soll sehen,
+    // WAS verstanden wurde, nicht den ganzen Brief noch einmal.
+    liste: [
+      ...treffer.map((t) => ({ kuerzel: t.kuerzel, wurde: t.aufloesung, offen: false })),
+      ...offen.map((o) => ({ kuerzel: o.split(" — ")[0], wurde: o.split(" — ").slice(1).join(" — "),
+                             offen: true })),
+    ],
+  };
+}
+
 // ------------------------------------------------------------ Wochenstart
 //
 // Ohne KI, aus der Datenbank. Gelesen wird mit dem Konto des Fragenden --
@@ -519,7 +782,9 @@ Regeln:
 7. Keine Rechts- oder Steuerberatung; allgemein erklären und an Fachleute verweisen.
 8. Ein nicht gebuchtes Modul erwähnst du höchstens einmal als Hinweis.
 
-Kürzel: @ Mitglied/Familie/Anlass, // Datum, # Nachbarschaft/Kategorie/Konto, ! Priorität, > Textbaustein.
+Kürzel: @ Mitglied/Familie/Anlass/Rechnung, // Datum, # Nachbarschaft/Kategorie/Konto, ! Priorität, > Textbaustein.
+Was die Person mit einem Kürzel schreibt, ist bereits aufgelöst und steht am Ende ihrer Nachricht unter "[Aufgelöste Kürzel". Das sind Tatsachen aus der Datenbank: übernimm sie wörtlich, erfinde nichts dazu und ändere keine Namen, Beträge oder Texte. Steht dort "mehrdeutig" oder "nichts gefunden", frag nach — rate nicht.
+Steht dort der Text eines Textbausteins, ist das der Text des Vereins. Schreibe keinen eigenen.
 
 Verfügbare Werkzeuge für diese Rolle: ${k.werkzeuge.join(", ") || "keine"}.`;
 }
@@ -702,15 +967,22 @@ Deno.serve(async (req) => {
     return `[Auftrag: ${b.zweck}]\n${rest || text}`;
   };
 
+  // Kuerzel der letzten Nachricht aufloesen. Nur der letzten: was frueher
+  // aufgeloest wurde, steht schon im Verlauf, und eine zweite Aufloesung
+  // koennte inzwischen etwas anderes ergeben.
+  const aufgeloest = await kuerzelAufloesen(sb, letzte, sprache);
+
   const nachrichten: any[] = [
     { role: "system", content: system },
-    ...verlauf.map((n: any, i: number) => ({
-      role: n.rolle === "floky" ? "assistant" : "user",
-      // Nur die letzte Nachricht wird ausgeschrieben; frueher Getipptes
-      // bleibt, wie es war.
-      content: n.rolle === "floky" || i !== verlauf.length - 1
-        ? String(n.text ?? "") : ausgeschrieben(String(n.text ?? "")),
-    })).filter((n: any) => n.content),
+    ...verlauf.map((n: any, i: number) => {
+      const roh = String(n.text ?? "");
+      if (n.rolle === "floky" || i !== verlauf.length - 1) {
+        return { role: n.rolle === "floky" ? "assistant" : "user", content: roh };
+      }
+      // Die letzte Nachricht bekommt Befehl und Kuerzel ausgeschrieben.
+      return { role: "user",
+               content: ausgeschrieben(roh) + (aufgeloest ? `\n\n${aufgeloest.text}` : "") };
+    }).filter((n: any) => n.content),
   ];
 
   const werkzeugliste = erlaubt.map((w) => ({
@@ -797,7 +1069,7 @@ Deno.serve(async (req) => {
       p_zusammenfassung: String(verlauf[verlauf.length - 1]?.text ?? "").slice(0, 200),
     });
 
-    return json({ text, werkzeuge: benutzt, karten, uebrig,
+    return json({ text, werkzeuge: benutzt, karten, kuerzel: aufgeloest?.liste ?? [], uebrig,
                   kontingent: kontingent?.kontingent, name: einst?.assistent_name ?? "Floky" });
   } catch (e) {
     return json({ fehler: e instanceof Error ? e.message : String(e) }, 502);

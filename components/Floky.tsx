@@ -15,7 +15,8 @@ import { useTranslation } from '../context/LanguageContext';
 // Sie zeigt nur, was ohnehin wahr ist: ist das Modul nicht gebucht,
 // erscheint der Knopf gar nicht.
 
-type Zeile = { rolle: 'mensch' | 'floky'; text: string; werkzeuge?: string[]; karten?: Karte[] };
+type Kuerzel = { kuerzel: string; wurde: string; offen: boolean };
+type Zeile = { rolle: 'mensch' | 'floky'; text: string; werkzeuge?: string[]; karten?: Karte[]; kuerzel?: Kuerzel[] };
 
 // **fett** darstellen, sonst nichts. Der Wochenstart gliedert damit seine
 // Abschnitte, und roh gesetzte Sternchen sahen aus wie ein Fehler.
@@ -23,6 +24,24 @@ type Zeile = { rolle: 'mensch' | 'floky'; text: string; werkzeuge?: string[]; ka
 // Bewusst kein Markdown-Werkzeug und kein dangerouslySetInnerHTML: der Text
 // kommt von einem Sprachmodell. Ihm HTML zu erlauben, hiesse ihm das
 // Fenster zu oeffnen.
+// Die Kuerzel im eigenen Text hervorheben. Ohne das tippt jemand
+// "@Arben" und sieht nicht, ob es als Verweis gelesen wurde oder nur als
+// Zeichen.
+const MARKEN = /(^|\s)(\/\/|@|#|!|>)(?=[^\s@#!>])/g;
+const mitMarken = (text: string) => {
+  const teile: React.ReactNode[] = [];
+  let pos = 0;
+  for (const m of text.matchAll(MARKEN)) {
+    const start = m.index! + m[1].length;
+    if (start > pos) teile.push(<React.Fragment key={`v${start}`}>{text.slice(pos, start)}</React.Fragment>);
+    teile.push(<span key={`m${start}`} className="text-white/50 font-bold">{m[2]}</span>);
+    pos = start + m[2].length;
+  }
+  if (!teile.length) return text;
+  if (pos < text.length) teile.push(<React.Fragment key="rest">{text.slice(pos)}</React.Fragment>);
+  return teile;
+};
+
 const mitFett = (text: string) =>
   text.split(/(\*\*[^*]+\*\*)/g).map((teil, i) =>
     teil.startsWith('**') && teil.endsWith('**') && teil.length > 4
@@ -91,7 +110,8 @@ const Floky: React.FC = () => {
       }
       if (data?.fehler) throw new Error(data.fehler);
       setVerlauf([...neu, { rolle: 'floky', text: data?.text || '(keine Antwort)',
-                            werkzeuge: data?.werkzeuge, karten: data?.karten ?? [] }]);
+                            werkzeuge: data?.werkzeuge, karten: data?.karten ?? [],
+                            kuerzel: data?.kuerzel ?? [] }]);
       if (typeof data?.uebrig === 'number') setUebrig(data.uebrig);
       if (data?.name) setName(data.name);
     } catch (e: any) {
@@ -165,13 +185,38 @@ const Floky: React.FC = () => {
                 <code className="font-mono bg-stone-100 rounded px-1">/</code> zeigt die Kurzbefehle
               </span>
             </p>
+            <div className="mt-5 pt-4 border-t border-stone-100 text-left max-w-xs mx-auto space-y-1">
+              {[['@', 'Mitglied, Familie, Anlass, Rechnung'],
+                ['//', 'Datum oder Frist'],
+                ['#', 'Nachbarschaft, Kategorie, Konto'],
+                ['!', 'Priorität'],
+                ['>', 'Textbaustein des Vereins']].map(([z, w]) => (
+                <p key={z} className="text-[11px] text-stone-400 flex gap-2">
+                  <code className="font-mono font-bold text-stone-500 w-6 shrink-0">{z}</code>
+                  {w}
+                </p>
+              ))}
+            </div>
           </div>
         )}
         {verlauf.map((z, i) => (
           <div key={i} className={z.rolle === 'mensch' ? 'flex justify-end' : ''}>
             <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
               z.rolle === 'mensch' ? 'bg-stone-900 text-white' : 'bg-white border border-stone-100 text-stone-700'}`}>
-              {z.rolle === 'floky' ? mitFett(z.text) : z.text}
+              {z.rolle === 'floky' ? mitFett(z.text) : mitMarken(z.text)}
+              {/* Was aus den Kuerzeln wurde. Ohne das tippt jemand
+                  "@Gashi" und erfaehrt nie, dass zwei Personen so
+                  heissen -- er sieht nur eine Rueckfrage ohne Grund. */}
+              {z.kuerzel?.length ? (
+                <div className="mt-2 pt-2 border-t border-stone-100 space-y-1">
+                  {z.kuerzel.map((k, n) => (
+                    <p key={n} className={`text-[10px] leading-snug ${k.offen ? 'text-amber-600' : 'text-stone-400'}`}>
+                      <code className="font-mono font-bold">{k.kuerzel}</code>
+                      {' → '}{k.wurde}
+                    </p>
+                  ))}
+                </div>
+              ) : null}
               {z.werkzeuge?.length ? (
                 <p className="mt-2 pt-2 border-t border-stone-100 text-[10px] text-stone-400 uppercase tracking-widest">
                   gelesen: {z.werkzeuge.join(', ')}
