@@ -36,7 +36,8 @@
 //   MAIL_BATCH      optional, Hoechstzahl je Lauf (Vorgabe 40)
 //   MAIL_CRON_TOKEN optional, Kennwort fuer den Aufruf durch den Zeitplan
 
-import { brevoSmtpPruefen, brevoSmtpSenden, ipv4Herkunft } from "./brevo_smtp.ts";
+import { brevoSmtpPruefen, brevoSmtpSenden, ipv4Herkunft, BREVO_SCHALTER }
+  from "./brevo_smtp.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.47.10";
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 import { geheimschluessel } from "../_shared/schluessel.ts";
@@ -162,10 +163,15 @@ async function brevoPruefen(key: string): Promise<string> {
         // andere, und genau das ist der Beweis, dass Freigeben einzelner
         // Adressen nicht haelt.
         const ip = meldung.match(/address ([0-9a-f.:]+)/i)?.[1] ?? "unbekannt";
+        // Dieselbe Wegbeschreibung wie beim SMTP-Weg, aus derselben
+        // Quelle. Hier stand sie getrennt und zeigte noch auf die Seite
+        // mit der Adressliste -- also dorthin, wo man nur freigeben
+        // kann. Genau der Fall, den der Kommentar an der Konstante
+        // beschreibt: zwei Beschreibungen, eine davon veraltet.
         return `Schlüssel gilt, aber Brevo lässt diese Herkunft nicht zu (${ip}). `
-          + "Edge Functions haben keine feste Absenderadresse — bei jedem Aufruf eine "
-          + "andere. Unter app.brevo.com/security/authorised_ips die IP-Beschränkung "
-          + "ganz ausschalten; einzelne Adressen freizugeben hilft nicht.";
+          + "Edge Functions haben keine feste Absenderadresse — gemessen sieben "
+          + "Aufrufe, sieben Adressen, keine zweimal. Freigeben trägt deshalb "
+          + `nicht. Abschalten unter ${BREVO_SCHALTER}`;
       }
 
       const art = key.startsWith("xsmtpsib-")

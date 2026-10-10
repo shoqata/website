@@ -17,7 +17,7 @@
 
 // Wo der Schalter wirklich sitzt. Einmal benannt, damit die beiden
 // Meldungen nicht auseinanderlaufen.
-const BREVO_SCHALTER =
+export const BREVO_SCHALTER =
   "Einstellungen → Sicherheit → Autorisierte IPs, Abschnitt \"Blockierung "
   + "nicht autorisierter IP-Adressen\". Dort stehen ZWEI Zeilen, "
   + "API-Schlüssel und SMTP-Schlüssel, je mit eigenem Schalter — "
