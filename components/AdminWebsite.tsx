@@ -42,6 +42,7 @@ import { useFeedback } from '../context/FeedbackContext';
 
 import { onImageError } from '../lib/imageFallback';
 import AdminVorlagen from './AdminVorlagen';
+import AdminSeiten from './AdminSeiten';
 // --- TYPES ---
 // Helper type for localized strings
 type LocalizedString = string | { [key: string]: string };
@@ -84,7 +85,7 @@ interface BrandingSettings {
   whyJoinHighlightWords: string[];
 }
 
-type Tab = 'DESIGN' | 'GLOBAL' | 'HOME' | 'ABOUT' | 'LIVE' | 'LEGAL';
+type Tab = 'DESIGN' | 'GLOBAL' | 'HOME' | 'ABOUT' | 'SEITEN' | 'LIVE' | 'LEGAL';
 type LangCode = 'de' | 'en' | 'sq';
 
 const AdminWebsite: React.FC = () => {
@@ -374,13 +375,20 @@ const AdminWebsite: React.FC = () => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[calc(100vh-140px)]">
       {/* CMS Sidebar */}
-      <div className="lg:col-span-5 flex flex-col h-full bg-white rounded-[2.5rem] border border-stone-100 shadow-sm overflow-hidden">
+      {/* Im Seiten-Reiter die volle Breite: der Editor hat seine eigene
+          Vorschau, und die Geraetevorschau rechts zeigt die STARTSEITE --
+          daneben gestellt behauptet sie, man saehe die bearbeitete Seite. */}
+      <div className={`${activeTab === 'SEITEN' ? 'lg:col-span-12' : 'lg:col-span-5'} flex flex-col h-full bg-white rounded-[2.5rem] border border-stone-100 shadow-sm overflow-hidden`}>
           
           {/* Tabs */}
           <div className="flex border-b border-stone-100 overflow-x-auto bg-stone-50/50 p-2 gap-1 shrink-0">
-             {(['DESIGN', 'GLOBAL', 'HOME', 'ABOUT', 'LIVE', 'LEGAL'] as const).map(t => (
-                 <button key={t} onClick={() => { setActiveTab(t); setExpandedSection(null); }} className={`flex-1 px-4 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === t ? 'bg-white text-primary shadow-sm' : 'text-stone-400 hover:text-stone-900'}`}>
-                     {t}
+             {/* Die Reiter zeigten bisher ihren Schluessel: DESIGN, GLOBAL,
+                 LIVE. Verstaendlich fuer den, der den Quelltext kennt. */}
+             {([['DESIGN','Design'], ['GLOBAL','Allgemein'], ['HOME','Startseite'],
+                ['ABOUT','Über uns'], ['SEITEN','Eigene Seiten'], ['LIVE','Dorfleben'],
+                ['LEGAL','Rechtliches']] as const).map(([k, name]) => (
+                 <button key={k} onClick={() => { setActiveTab(k); setExpandedSection(null); }} className={`flex-1 px-4 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === k ? 'bg-white text-primary shadow-sm' : 'text-stone-400 hover:text-stone-900'}`}>
+                     {name}
                  </button>
              ))}
           </div>
@@ -409,6 +417,10 @@ const AdminWebsite: React.FC = () => {
                 allem anderen, weil die Entscheidung alles darunter
                 einrahmt -- und weil sie vorher in den Einstellungen lag,
                 also dort, wo sie niemand suchte. */}
+            {/* Eigene Seiten. Bis hierher waren alle Seiten im Quelltext
+                festgelegt; ein Verein mit einer eigenen Idee musste warten,
+                bis jemand sie programmiert. */}
+            {activeTab === 'SEITEN' && <AdminSeiten />}
             {activeTab === 'DESIGN' && <AdminVorlagen onGewaehlt={() => setVorschauSchluessel(k => k + 1)} />}
 
             {activeTab === 'GLOBAL' && (
@@ -770,6 +782,12 @@ const AdminWebsite: React.FC = () => {
 
           </div>
 
+          {/* Dieser Knopf speichert das Branding -- nicht die eigenen
+              Seiten. Die haben ihr eigenes Speichern, und ein grosser
+              roter Knopf darunter, der etwas anderes tut, waere eine
+              Falle: wer ihn drueckt, glaubt seine Seite gesichert zu
+              haben. */}
+          {activeTab !== 'SEITEN' && (
           <div className="p-6 border-t border-stone-100 bg-stone-50 shrink-0">
               <button 
                 onClick={handleSaveBranding}
@@ -780,10 +798,12 @@ const AdminWebsite: React.FC = () => {
                 {isUploading ? t('web.uploading') : t('web.publish')}
               </button>
           </div>
+          )}
       </div>
 
       {/* Preview Panel */}
-      <div className={`lg:col-span-7 transition-all duration-500 hidden lg:block ${showPreview ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
+      <div className={`lg:col-span-7 transition-all duration-500 ${
+        activeTab === 'SEITEN' ? 'hidden' : 'hidden lg:block'} ${showPreview ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
         {/* Im Design-Reiter die ECHTE Seite, nicht die Nachbildung.
             Die Nachbildung darunter kennt nur die klassische Vorlage -- wer
             Magazin oder Buehne waehlte, sah rechts weiter Klassisch und

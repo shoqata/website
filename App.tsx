@@ -71,6 +71,7 @@ import Hero from './components/Hero';
 const Dashboard = React.lazy(() => import('./components/Dashboard'));
 const AdminPanel = React.lazy(() => import('./components/AdminPanel'));
 const Floky = React.lazy(() => import('./components/Floky'));
+const EigeneSeite = React.lazy(() => import('./components/EigeneSeite'));
 const BoardDashboard = React.lazy(() => import('./components/BoardDashboard'));
 // Die Kassen-Ansicht der Vertreter ist derzeit nicht verlinkt, siehe die
 // Begruendung an der Dashboard-Weiche weiter unten. Die Datei bleibt liegen,
@@ -562,6 +563,14 @@ const AppContent: React.FC = () => {
                     
                     <Route path="/admin" element={<ProtectedRoute user={sichtUser} adminOnly><AdminPanel /></ProtectedRoute>} />
                     <Route path="/super-admin" element={<ProtectedRoute user={user} superAdminOnly><SuperAdminDashboard user={user} /></ProtectedRoute>} />
+                    {/* Selbst gebaute Seiten. Steht ganz unten, aber das
+                        entscheidet nicht die Reihenfolge: Router 6 bewertet
+                        statische Pfade hoeher als dynamische, /about gewinnt
+                        also weiterhin gegen /:pfad. Auf der Betreiberdomain
+                        gibt es keine Vereinsseiten. */}
+                    {!istPlattformDomain && (
+                      <Route path="/:pfad" element={<EigeneSeite />} />
+                    )}
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
                 </React.Suspense>
@@ -735,6 +744,26 @@ const ConditionalNavigation = ({ user, branding, systemSettings }: any) => {
 
 const ConditionalFooter = ({ branding, user }: any) => {
   const { t, loc } = useTranslation();
+  // Eigene Seiten des Vereins, die ins Menue sollen. Die Fusszeile ist die
+  // einzige durchgehende Navigation dieser Seite -- ohne sie waere der
+  // Schalter "Im Menue zeigen" ein Schalter ohne Wirkung.
+  //
+  // Gelesen wird ohne Anmeldung: die Zeilenregel gibt Besuchern nur
+  // veroeffentlichte Seiten ihres Vereins.
+  const [eigene, setEigene] = React.useState<{ pfad: string; titel: any }[]>([]);
+  React.useEffect(() => {
+    let lebt = true;
+    (async () => {
+      try {
+        const { supabase } = await import('./services/supabase-bridge');
+        if (!supabase) return;
+        const { data } = await supabase.from('seiten')
+          .select('pfad,titel').eq('im_menue', true).order('reihenfolge').limit(12);
+        if (lebt) setEigene((data as any[]) ?? []);
+      } catch { /* ohne eigene Seiten ist die Fusszeile wie bisher */ }
+    })();
+    return () => { lebt = false; };
+  }, []);
   const routeLoc = useLocation();
   // Dieselbe Ueberlegung wie bei der Navigation: die Fusszeile eines Vereins
   // gehoert nicht auf die Adresse der Plattform.
@@ -765,6 +794,11 @@ const ConditionalFooter = ({ branding, user }: any) => {
               <Link to="/about" className="hover:text-white transition-colors">{t('nav.about')}</Link>
               <Link to="/live" className="hover:text-white transition-colors">{t('nav.live')}</Link>
               <Link to="/login" className="hover:text-white transition-colors">{t('nav.membership')}</Link>
+              {eigene.map(seite => (
+                <Link key={seite.pfad} to={`/${seite.pfad}`} className="hover:text-white transition-colors">
+                  {loc(seite.titel) || seite.pfad}
+                </Link>
+              ))}
             </div>
           </div>
         </div>
