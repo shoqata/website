@@ -15,6 +15,14 @@
 // Die Pruefung geht bis zur Anmeldung und bricht dort ab. Kein MAIL
 // FROM, kein DATA, also kein Versand -- auch nicht versehentlich.
 
+// Wo der Schalter wirklich sitzt. Einmal benannt, damit die beiden
+// Meldungen nicht auseinanderlaufen.
+const BREVO_SCHALTER =
+  "Einstellungen → Sicherheit → Autorisierte IPs, Abschnitt \"Blockierung "
+  + "nicht autorisierter IP-Adressen\". Dort stehen ZWEI Zeilen, "
+  + "API-Schlüssel und SMTP-Schlüssel, je mit eigenem Schalter — "
+  + "beide deaktivieren.";
+
 type Draht = { lesen: () => Promise<string>; schreiben: (s: string) => Promise<void> };
 
 const draht = (c: Deno.Conn): Draht => {
@@ -132,14 +140,16 @@ export async function brevoSmtpPruefen(
     // durch -- und schickte damit zur Schluesselsuche statt zur
     // Einstellung, an der es wirklich liegt.
     if (/\b5\.7\.1\b|unauthori[sz]ed ip|unrecogni[sz]ed ip|authoris?ed_ips/i.test(f3)) {
+      // Der Schalter liegt NICHT auf der Seite mit der Adressliste --
+      // dort kann man nur freigeben. Gemessen, warum Freigeben nicht
+      // traegt: sechs Aufrufe ergaben sechs IPv4-Adressen in vier
+      // Bereichen, dazu zwanzig IPv6-Adressen in Brevos eigenem
+      // Protokoll. Und es sind ZWEI Schalter; wer nur den fuer die
+      // Schnittstelle abschaltet, steht hier wieder.
       return "Die IP-Beschränkung greift auch bei SMTP — Brevo antwortet "
-        + `"${f3.slice(0, 60).trim()}". Supabase hat keine feste Absenderadresse `
-        + "über IPv6 keine feste Absenderadresse. Die SMTP-Verbindung läuft "
-        + "dagegen über IPv4, weil smtp-relay.brevo.com keinen AAAA-Eintrag hat "
-        + "— dieser Bereich ist klein genug zum Freigeben"
-        + (gesehen ? `. Freizugeben: ${gesehen}` : "")
-        + ". Sonst unter app.brevo.com/security/authorised_ips die Beschränkung "
-        + "ganz ausschalten.";
+        + `"${f3.slice(0, 60).trim()}". Freigeben trägt nicht: die Adresse `
+        + "wechselt mit jedem Aufruf. Abschalten unter "
+        + BREVO_SCHALTER;
     }
     return `Anmeldung abgelehnt: ${f3.slice(0, 140)}`;
   } catch (e) {
@@ -175,6 +185,7 @@ export async function brevoSmtpPruefen(
 //   verschluckt oder verdoppelt.
 
 const KOPF_GRENZE = 998;
+
 
 // Nicht-ASCII im Kopf kodieren -- aber nur dann. Ein reiner ASCII-Betreff
 // bleibt lesbar, auch in Protokollen und Fehlermeldungen.
@@ -301,8 +312,7 @@ export async function brevoSmtpSenden(
       // der Warteschlange "Anmeldung: 525 5.7.1 …" -- richtig, aber es
       // sagt niemandem, wo der Schalter sitzt.
       const ip = /\b5\.7\.1\b|unauthori[sz]ed ip/i.test(ang)
-        ? " Die IP-Beschränkung im Brevo-Konto ist noch an; sie muss ganz aus, "
-          + "einzelne Adressen zu freigeben hilft nicht."
+        ? ` Die IP-Beschränkung im Brevo-Konto ist noch an: ${BREVO_SCHALTER}`
         : "";
       throw new Error(`Anmeldung: ${ang.slice(0, 140)}.${ip}`);
     }
