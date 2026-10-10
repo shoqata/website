@@ -57,10 +57,21 @@ const json = (body: unknown, status = 200) =>
 //
 // Das ist eine andere Frage als "gilt der Schluessel". Ein gueltiger
 // Schluessel verschickt; ob die Nachricht ANKOMMT, entscheidet der
-// Empfaenger anhand von SPF und DKIM. Bei unityhub.li steht DMARC auf
-// p=reject -- scheitert beides, wird die Nachricht nicht in den Spam
-// gelegt, sondern zurueckgewiesen. Ohne diese Pruefung saehe man
-// "gesendet" und der Empfaenger bekaeme nichts.
+// Empfaenger anhand von DKIM und DMARC. Steht DMARC auf p=reject und
+// stimmt die Unterschrift nicht, wird die Nachricht nicht in den Spam
+// gelegt, sondern zurueckgewiesen -- waehrend der Versand Erfolg
+// meldet. Ohne diese Pruefung waere das unsichtbar.
+//
+// Diese Funktion stand zuerst falsch hier: sie suchte ein TXT auf
+// brevo._domainkey. Brevo arbeitet aber mit ZWEI CNAME, brevo1 und
+// brevo2._domainkey, die auf b1/b2.<domain-mit-bindestrich>.dkim.brevo.com
+// zeigen; der Schluessel selbst liegt erst am Ende dieser Kette. Mit
+// zwei Eintraegen kann Brevo den Schluessel wechseln, ohne dass der
+// Versand stillsteht. Derselbe Irrtum -- den Namen raten statt ihn
+// nachzusehen -- hat bei Postal dazu gefuehrt, dass mein Hinweis den
+// falschen Eintrag als fehlend meldete und der richtige geloescht wurde.
+// Darum wird die Kette hier bis zum Schluessel verfolgt und nicht nur
+// das Vorhandensein des Namens geprueft.
 async function brevoDns(domain: string): Promise<Record<string, string>> {
   const txt = async (name: string) => {
     try {
@@ -68,32 +79,55 @@ async function brevoDns(domain: string): Promise<Record<string, string>> {
       return (r as string[][]).map((x) => x.join("")).join(" ");
     } catch { return ""; }
   };
-  const apex = await txt(domain);
-  const dkim = await txt(`brevo._domainkey.${domain}`);
-  const dmarc = await txt(`_dmarc.${domain}`);
-  const streng = /p=reject|p=quarantine/i.test(dmarc);
+  const cname = async (name: string) => {
+    try { return (await Deno.resolveDns(name, "CNAME"))[0] ?? ""; }
+    catch { return ""; }
+  };
+
+  // Je Haelfte: zeigt der CNAME irgendwohin, und liegt dort ein
+  // RSA-Schluessel? Ein CNAME, der ins Leere zeigt, sieht in der
+  // DNS-Verwaltung richtig aus und unterschreibt nichts.
+  const haelfte = async (n: 1 | 2) => {
+    const ziel = await cname(`brevo${n}._domainkey.${domain}`);
+    if (!ziel) return `FEHLT — CNAME brevo${n}._domainkey fehlt`;
+    const schluessel = await txt(ziel.replace(/\.$/, ""));
+    if (!/k=rsa/i.test(schluessel)) {
+      return `zeigt auf ${ziel} — dort aber kein Schlüssel`;
+    }
+    return `in Ordnung (${ziel.replace(/\.$/, "")})`;
+  };
+
+  const [apex, d1, d2, dmarc] = await Promise.all([
+    txt(domain), haelfte(1), haelfte(2), txt(`_dmarc.${domain}`),
+  ]);
+  const dkimSteht = d1.startsWith("in Ordnung") || d2.startsWith("in Ordnung");
+  const strenge = /p=reject/i.test(dmarc) ? "reject"
+    : /p=quarantine/i.test(dmarc) ? "quarantine"
+    : /v=DMARC1/i.test(dmarc) ? "none" : "keiner";
 
   return {
     besitznachweis: /brevo-code/i.test(apex) ? "vorhanden" : "FEHLT (brevo-code im Stamm)",
-    dkim: /v=DKIM1/i.test(dkim) ? "vorhanden"
-      : `FEHLT — TXT auf brevo._domainkey.${domain}`,
-    // SPF bewusst nur als Hinweis. Brevo setzt als Rueckweg seine EIGENE
-    // Domain ein; der Empfaenger prueft SPF darum gegen Brevo und nicht
-    // gegen unityhub.li. Ein include:spf.brevo.com verbessert die
-    // DMARC-Zuordnung also NICHT -- die stellt allein das DKIM oben her.
-    // Zuerst stand hier "FEHLT"; das haette in die falsche Ecke der
-    // DNS-Verwaltung geschickt.
-    spf_hinweis: /include:spf\.brevo\.com/i.test(apex)
-      ? "enthält Brevo (unschädlich, für DMARC aber nicht nötig)"
-      : "ohne Brevo — nicht nötig, den Rückweg stellt Brevo selbst",
-    dmarc: dmarc ? dmarc.slice(0, 60) : "keiner",
-    folge: /v=DKIM1/i.test(dkim)
-      ? "Brevo darf im Namen dieser Domain senden."
-      : streng
-        ? "DMARC steht auf " + (/p=reject/i.test(dmarc) ? "reject" : "quarantine")
-          + ": ohne das Brevo-DKIM weist der Empfänger die Nachricht ab — sie landet "
-          + "nicht einmal im Spam, und der Versand meldete trotzdem Erfolg."
-        : "Ohne das Brevo-DKIM landet die Post beim Empfänger eher im Spam.",
+    dkim_1: d1,
+    dkim_2: d2,
+    dmarc: `p=${strenge}`,
+    // Brevo schlaegt auf seiner Einrichtungsseite p=none vor. Dem zu
+    // folgen waere ein Rueckschritt: p=none heisst, dass ein Fremder
+    // unter unityhub.li schreiben kann, ohne dass der Empfaenger es
+    // abweist. Mit gueltigem DKIM braucht Brevo das nicht -- die
+    // Unterschrift stellt die Zuordnung her, und reject bleibt richtig.
+    bewertung: !dkimSteht
+      ? (strenge === "reject" || strenge === "quarantine"
+          ? `Ohne DKIM und mit p=${strenge} weist der Empfänger die Nachricht ab — `
+            + "der Versand meldete trotzdem Erfolg."
+          : "Ohne DKIM landet die Post beim Empfänger eher im Spam.")
+      : strenge === "none"
+        ? "Brevo darf senden. DMARC steht aber auf p=none — damit kann ein Fremder "
+          + "unter dieser Domain schreiben, ohne abgewiesen zu werden. Da das DKIM "
+          + "steht, ist p=reject möglich und besser."
+        : strenge === "keiner"
+          ? "Brevo darf senden; ein DMARC-Eintrag fehlt ganz."
+          : `Brevo darf senden, und p=${strenge} bleibt dabei bestehen — `
+            + "Unterschrift und strenge Regel zusammen.",
   };
 }
 
