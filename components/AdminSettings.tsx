@@ -2,8 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminPostausgang from './AdminPostausgang';
 import AdminTexte from './AdminTexte';
-import AdminVorstandsrechte from './AdminVorstandsrechte';
-import AdminVertreterrechte from './AdminVertreterrechte';
+import AdminRollenverwaltung from './AdminRollenverwaltung';
 import AdminFloky from './AdminFloky';
 import AdminVereinsjahr from './AdminVereinsjahr';
 import { Link } from 'react-router-dom';
@@ -470,10 +469,11 @@ const AdminSettings: React.FC = () => {
             {/* Wer im Verein aendern darf. Steht bewusst bei den
                 Einstellungen und nicht bei den Mitgliedern: es ist eine
                 Entscheidung ueber den Verein, nicht ueber eine Person. */}
-            <section className="space-y-5">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500">Rechte im Verein</h3>
-                <AdminVorstandsrechte />
-                <AdminVertreterrechte />
+            {/* Rollenverwaltung ueber die volle Breite: hier stehen eine
+                Personenliste und zwei Rechtetafeln nebeneinander. */}
+            <section className="space-y-5 md:col-span-2">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500">Rollenverwaltung</h3>
+                <AdminRollenverwaltung />
             </section>
 
         </div>
