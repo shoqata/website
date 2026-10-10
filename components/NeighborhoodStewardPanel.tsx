@@ -34,6 +34,7 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
   const [nachbarschaften, setNachbarschaften] = useState<Neighborhood[]>([]);
   const [mitglieder, setMitglieder] = useState<UserProfile[]>([]);
   const [rechnungen, setRechnungen] = useState<Payment[]>([]);
+  const [familien, setFamilien] = useState<{ id: string; name: string }[]>([]);
   const [laedt, setLaedt] = useState(true);
   const [suche, setSuche] = useState('');
   // Bei 35 offenen Beitraegen und 39 unvollstaendigen Datensaetzen unter 46
@@ -57,11 +58,13 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
 
       // Die Zugriffsregeln begrenzen ohnehin auf die eigenen Nachbarschaften.
       // Die Abfragen holen deshalb schlicht, was sichtbar ist.
-      const [nb, mg, zg] = await Promise.all([
+      const [nb, mg, zg, fa] = await Promise.all([
         getDocs(query(collection(db, 'neighborhoods'))),
         getDocs(query(collection(db, 'users'))),
         getDocs(query(collection(db, 'payments'))),
+        getDocs(query(collection(db, 'families'))),
       ]);
+      setFamilien(fa.docs.map(d => ({ id: d.id, name: (d.data() as any).name ?? d.id })));
       setNachbarschaften(nb.docs.map(d => ({ id: d.id, ...d.data() } as Neighborhood)).filter(n => ids.includes(n.id)));
       // Entfernte Mitglieder erscheinen gar nicht erst. Der Datensatz bleibt
       // in der Datenbank, weil Rechnungen und Zahlungen daran haengen -- in
@@ -153,6 +156,13 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
         // anruft und nicht oeffentlich erscheinen will, muss den Widerspruch
         // hier eintragen lassen koennen, sonst hat er keinen.
         nicht_oeffentlich: !!bearbeitet.nicht_oeffentlich,
+        // Was der Verantwortliche vor Ort weiss: wer aktiv dabei ist und
+        // wer zu welcher Familie gehoert. Beides bewegt kein Geld -- der
+        // Beitrag haengt an der Beitragsgruppe, und die bleibt beim
+        // Vorstand. Ein Ausloeser in der Datenbank setzt diese Grenze;
+        // dass die Maske sie einhaelt, genuegt nicht.
+        membershipCategory: (bearbeitet as any).membershipCategory || null,
+        familyId: (bearbeitet as any).familyId || null,
       } as any);
       setMitglieder(l => l.map(m => (m.id === bearbeitet.id ? bearbeitet : m)));
       showAlert({ type: 'success', message: t('steward.saved') });
@@ -177,6 +187,21 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
       setMeldet(false);
     }
   };
+
+  // Welche Kategorien gibt es? Die, die der Verein benutzt -- nicht die,
+  // die ich mir ausdenke. Gemessen bei Koretini: 340 von 340 Mitgliedern
+  // stehen auf INDIVIDUAL; im Demo-Verein auf FAMILJE. Eine feste Liste
+  // haette den vorhandenen Wert als "—" angezeigt und beim Speichern
+  // geloescht -- ein Feld, das einen Wert still verwirft, ist schlimmer
+  // als keines.
+  const kategorien = React.useMemo(() => {
+    const vorhanden = mitglieder
+      .map(m => String((m as any).membershipCategory ?? '').trim())
+      .filter(Boolean);
+    const dazu = (bearbeitet as any)?.membershipCategory;
+    return [...new Set([...vorhanden, ...(dazu ? [String(dazu)] : []),
+                        'AKTIV', 'PASSIV', 'INDIVIDUAL'])].sort();
+  }, [mitglieder, bearbeitet]);
 
   const feld = 'w-full p-3 bg-white border border-stone-200 rounded-xl outline-none text-sm focus:border-[color:color-mix(in_srgb,var(--primary)_40%,transparent)] transition-colors';
   const marke = 'text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1.5';
@@ -423,6 +448,47 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
                 <label className={marke}>{t('field.email')}</label>
                 <input value={bearbeitet.email || ''} onChange={e => setBearbeitet({ ...bearbeitet, email: e.target.value })} className={feld} />
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={marke}>Kategorie</label>
+                  <select value={(bearbeitet as any).membershipCategory || ''}
+                    onChange={e => setBearbeitet({ ...bearbeitet, membershipCategory: e.target.value } as any)}
+                    className={feld}>
+                    <option value="">—</option>
+                    {kategorien.map(k => <option key={k} value={k}>{k}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={marke}>Familie</label>
+                  <select value={(bearbeitet as any).familyId || ''}
+                    onChange={e => setBearbeitet({ ...bearbeitet, familyId: e.target.value } as any)}
+                    className={feld}>
+                    <option value="">keiner zugeordnet</option>
+                    {familien.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                  </select>
+                </div>
+              </div>
+              {/* Was der Vorstand entscheidet, steht hier nur zum Nachsehen.
+                  Ein Feld, das man aendern kann und das die Datenbank dann
+                  zurueckweist, ist schlimmer als keines. */}
+              <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 flex flex-wrap gap-x-8 gap-y-2">
+                <div>
+                  <p className={marke}>Beitragsgruppe</p>
+                  <p className="text-sm font-bold text-stone-500">
+                    {(bearbeitet as any).billingGroup || '—'}
+                  </p>
+                </div>
+                <div>
+                  <p className={marke}>Status</p>
+                  <p className="text-sm font-bold text-stone-500">
+                    {bearbeitet.membershipStatus || '—'}
+                  </p>
+                </div>
+                <p className="text-[11px] text-stone-400 basis-full leading-relaxed">
+                  Beitrag und Status entscheidet der Vorstand — melden Sie ihm, was sich geändert hat.
+                </p>
+              </div>
+
               <label className="flex items-start gap-3 p-4 rounded-2xl border border-stone-200 bg-stone-50 cursor-pointer">
                 <input type="checkbox" checked={!!bearbeitet.nicht_oeffentlich}
                   onChange={e => setBearbeitet({ ...bearbeitet, nicht_oeffentlich: e.target.checked })}
