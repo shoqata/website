@@ -36,7 +36,7 @@
 //   MAIL_BATCH      optional, Hoechstzahl je Lauf (Vorgabe 40)
 //   MAIL_CRON_TOKEN optional, Kennwort fuer den Aufruf durch den Zeitplan
 
-import { brevoSmtpPruefen, brevoSmtpSenden } from "./brevo_smtp.ts";
+import { brevoSmtpPruefen, brevoSmtpSenden, ipv4Herkunft } from "./brevo_smtp.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.47.10";
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 import { geheimschluessel } from "../_shared/schluessel.ts";
@@ -384,6 +384,7 @@ const brevoSmtpDa = !!brevoSmtpLogin && !!brevoSmtpKey;
           : brevoKey ? "Brevo über die Programmschnittstelle"
           : "keiner — Microsoft-Post geht über Postal und wird dort abgewiesen",
         microsoft_ueber_brevo_smtp: await brevoSmtpPruefen(brevoSmtpLogin, brevoSmtpKey),
+        ipv4_herkunft: await ipv4Herkunft(admin),
         microsoft_ueber_brevo: brevoKey
           ? (await brevoPruefen(brevoKey))
             + (brevoUmhuellt

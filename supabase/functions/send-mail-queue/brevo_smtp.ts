@@ -61,12 +61,22 @@ export async function brevoSmtpPruefen(
   }
 
   try {
-    let d = draht(rohe);
+    let d = draht(tcp!);
     const gruss = await d.lesen();
     if (!gruss.startsWith("220")) return `Unerwarteter Gruss: ${gruss.slice(0, 80)}`;
 
     await d.schreiben("EHLO unityhub.li");
     const ehlo1 = await d.lesen();
+
+    // Die Adresse, die BREVO sieht -- nicht die, die wir vermuten.
+    // Viele SMTP-Server nennen sie in der Begruessung oder in der
+    // EHLO-Antwort. Das ist die genaueste Messung, die hier moeglich
+    // ist: dieselbe Verbindung, derselbe Augenblick, kein fremder
+    // Dienst dazwischen. Ohne sie waere die Frage "welche IP?" nur
+    // ueber die Brevo-Verwaltung beantwortbar, also mit einer
+    // Rueckfrage je Versuch.
+    const gesehen = (gruss + " " + ehlo1)
+      .match(/\b(?:\d{1,3}\.){3}\d{1,3}\b|\b(?:[0-9a-f]{0,4}:){2,7}[0-9a-f]{0,4}\b/i)?.[0];
     if (!/STARTTLS/i.test(ehlo1)) {
       return "Server bietet kein STARTTLS an — unverschlüsselt wird hier nicht "
         + `angemeldet. Antwort: ${ehlo1.slice(0, 120)}`;
@@ -87,7 +97,8 @@ export async function brevoSmtpPruefen(
 
     if (!login || !schluessel) {
       return "Verbindung und TLS stehen. Für die Anmeldung fehlen noch "
-        + "BREVO_SMTP_LOGIN und BREVO_SMTP_KEY.";
+        + "BREVO_SMTP_LOGIN und BREVO_SMTP_KEY."
+        + (gesehen ? ` Herkunft laut Brevo: ${gesehen}.` : "");
     }
 
     // AUTH LOGIN: Benutzer und Schluessel je als base64, getrennt.
@@ -105,7 +116,8 @@ export async function brevoSmtpPruefen(
     await d.schreiben("QUIT").catch(() => {});
 
     if (f3.startsWith("235")) {
-      return "in Ordnung — Anmeldung über SMTP gelingt, es wurde nichts verschickt.";
+      return "in Ordnung — Anmeldung über SMTP gelingt, es wurde nichts verschickt."
+        + (gesehen ? ` Herkunft: ${gesehen}.` : "");
     }
     // Gemessen: Brevo prueft die Herkunft auch beim SMTP-Versand und
     // antwortet "525 5.7.1 Unauthorized IP address". Ich hatte das
@@ -122,9 +134,12 @@ export async function brevoSmtpPruefen(
     if (/\b5\.7\.1\b|unauthori[sz]ed ip|unrecogni[sz]ed ip|authoris?ed_ips/i.test(f3)) {
       return "Die IP-Beschränkung greift auch bei SMTP — Brevo antwortet "
         + `"${f3.slice(0, 60).trim()}". Supabase hat keine feste Absenderadresse `
-        + "(fünf Aufrufe ergaben fünf verschiedene), es gibt also keine Adresse "
-        + "zum Freigeben. Unter app.brevo.com/security/authorised_ips die "
-        + "Beschränkung ganz ausschalten.";
+        + "über IPv6 keine feste Absenderadresse. Die SMTP-Verbindung läuft "
+        + "dagegen über IPv4, weil smtp-relay.brevo.com keinen AAAA-Eintrag hat "
+        + "— dieser Bereich ist klein genug zum Freigeben"
+        + (gesehen ? `. Freizugeben: ${gesehen}` : "")
+        + ". Sonst unter app.brevo.com/security/authorised_ips die Beschränkung "
+        + "ganz ausschalten.";
     }
     return `Anmeldung abgelehnt: ${f3.slice(0, 140)}`;
   } catch (e) {
@@ -315,4 +330,92 @@ export async function brevoSmtpSenden(
   } finally {
     try { offen?.close(); } catch { /* schon zu */ }
   }
+}
+
+
+// Welche IPv4-Adressen benutzt Supabase nach aussen?
+//
+// Die Frage entsteht, weil Brevo nur das Freigeben einzelner Adressen
+// anbietet und nicht das Abschalten der Pruefung. Ueber IPv6 ist die
+// Frage sinnlos -- gemessen zwanzig verschiedene Adressen. Ueber IPv4
+// koennte sie beantwortbar sein, denn smtp-relay.brevo.com hat keinen
+// AAAA-Eintrag; die SMTP-Verbindung MUSS also ueber IPv4 laufen, und
+// dort ist der Vorrat an Adressen erfahrungsgemaess kleiner.
+//
+// Brevos Begruessung nennt die gesehene Adresse nicht, also wird sie
+// bei einem Echodienst erfragt -- aber ausdruecklich ueber IPv4, sonst
+// antwortet er mit der IPv6-Adresse und die Messung ginge am Fall
+// vorbei. Dazu wird der A-Eintrag selbst aufgeloest und die Verbindung
+// zur Zahl aufgebaut, statt dem Namen zu folgen.
+//
+// Nach aussen geht dabei nur die Frage nach der eigenen Adresse. Keine
+// Vereinsdaten, kein Schluessel, keine Empfaengeradresse.
+export async function ipv4Herkunft(admin: any, versuche = 2): Promise<string> {
+  const wirt = "api.ipify.org";
+  const gesehen = new Map<string, number>();
+  let fehler = "";
+
+  for (let i = 0; i < versuche; i++) {
+    let c: Deno.Conn | null = null;
+    try {
+      const a = (await Deno.resolveDns(wirt, "A"))[0];
+      if (!a) { fehler = "kein A-Eintrag"; break; }
+      c = await Deno.connect({ hostname: a, port: 80 });
+      await c.write(new TextEncoder().encode(
+        `GET / HTTP/1.1\r\nHost: ${wirt}\r\nConnection: close\r\n`
+        + "User-Agent: unityhub-diagnose\r\n\r\n"));
+      let roh = ""; const puffer = new Uint8Array(2048);
+      for (let k = 0; k < 8; k++) {
+        const n = await c.read(puffer);
+        if (n === null) break;
+        roh += new TextDecoder().decode(puffer.subarray(0, n));
+      }
+      const ip = roh.split("\r\n\r\n").pop()?.trim()
+        .match(/\b(?:\d{1,3}\.){3}\d{1,3}\b/)?.[0];
+      if (ip) gesehen.set(ip, (gesehen.get(ip) ?? 0) + 1);
+      else fehler = `keine Adresse in der Antwort (${roh.slice(0, 60)})`;
+    } catch (e) {
+      fehler = e instanceof Error ? e.message : String(e);
+    } finally {
+      try { c?.close(); } catch { /* schon zu */ }
+    }
+  }
+
+  if (!gesehen.size) return `nicht messbar — ${fehler || "unbekannt"}`;
+
+  // Hier stand zuerst das Urteil aus DIESEM Aufruf, und es war falsch.
+  // Sechs Messungen ergaben sechs Mal dieselbe Adresse, und daraus wurde
+  // "Freigeben ist aussichtsreich". Vier Aufrufe spaeter waren es vier
+  // verschiedene Adressen in drei Bereichen. Die Adresse ist je
+  // Behaelter fest, nicht je Plattform -- ein Behaelter lebt Minuten,
+  // und innerhalb eines Aufrufs sieht man darum immer nur eine.
+  //
+  // Ein Urteil aus einem Aufruf kann diese Frage nicht beantworten. Es
+  // braucht das Gedaechtnis ueber Aufrufe hinweg; genau dafuer gibt es
+  // versand_herkunft. Waere das nicht korrigiert worden, haette die
+  // Meldung in die stundenlange Pflege einer Freigabeliste geschickt,
+  // die nie vollstaendig wird.
+  let alle: { ip: string; n: number }[] = [];
+  for (const ip of gesehen.keys()) {
+    const { data, error } = await admin.rpc("herkunft_vermerken", { p_ip: ip });
+    if (error) return `${[...gesehen.keys()].join(", ")} · nicht bewertbar — `
+      + `das Gedächtnis ist nicht erreichbar (${error.message})`;
+    alle = (data ?? []).map((z: any) => ({ ip: z.r_ip, n: z.r_anzahl }));
+  }
+
+  const jetzt = [...gesehen.keys()].join(", ");
+  const zahl = alle.length;
+  // Der Bereich zaehlt mit: Adressen in verschiedenen /8 stammen aus
+  // verschiedenen Bloecken des Anbieters. Dass 16.62.x, 16.63.x UND
+  // 51.34.x auftreten, sagt mehr als die blosse Anzahl -- es gibt keinen
+  // zusammenhaengenden Bereich, den man eintragen koennte.
+  const bereiche = new Set(alle.map(z => z.ip.split(".").slice(0, 2).join(".")));
+  const urteil = zahl <= 1
+    ? "erst eine Adresse bekannt — für ein Urteil zu früh, die Messung sammelt weiter"
+    : zahl <= 4 && bereiche.size === 1
+      ? `${zahl} Adressen in einem Bereich (${[...bereiche][0]}.x) — eine Freigabeliste `
+        + "könnte tragen, sicher ist es nicht"
+      : `${zahl} verschiedene Adressen in ${bereiche.size} Bereichen `
+        + `(${[...bereiche].slice(0, 5).join(", ")}) — eine Freigabeliste trägt nicht`;
+  return `jetzt ${jetzt} · bisher gesehen: ${urteil}`;
 }
