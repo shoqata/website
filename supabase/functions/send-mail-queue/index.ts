@@ -52,6 +52,41 @@ const json = (body: unknown, status = 200) =>
     headers: { ...CORS, "Content-Type": "application/json" },
   });
 
+// Darf Brevo im Namen dieser Domain senden?
+//
+// Das ist eine andere Frage als "gilt der Schluessel". Ein gueltiger
+// Schluessel verschickt; ob die Nachricht ANKOMMT, entscheidet der
+// Empfaenger anhand von SPF und DKIM. Bei unityhub.li steht DMARC auf
+// p=reject -- scheitert beides, wird die Nachricht nicht in den Spam
+// gelegt, sondern zurueckgewiesen. Ohne diese Pruefung saehe man
+// "gesendet" und der Empfaenger bekaeme nichts.
+async function brevoDns(domain: string): Promise<Record<string, string>> {
+  const txt = async (name: string) => {
+    try {
+      const r = await Deno.resolveDns(name, "TXT");
+      return (r as string[][]).map((x) => x.join("")).join(" ");
+    } catch { return ""; }
+  };
+  const apex = await txt(domain);
+  const dkim = await txt(`brevo._domainkey.${domain}`);
+  const dmarc = await txt(`_dmarc.${domain}`);
+  const streng = /p=reject|p=quarantine/i.test(dmarc);
+
+  return {
+    besitznachweis: /brevo-code/i.test(apex) ? "vorhanden" : "FEHLT (brevo-code im Stamm)",
+    dkim: /v=DKIM1/i.test(dkim) ? "vorhanden"
+      : `FEHLT — TXT auf brevo._domainkey.${domain}`,
+    spf: /include:spf\.brevo\.com/i.test(apex) ? "enthält Brevo"
+      : "OHNE Brevo — include:spf.brevo.com fehlt",
+    dmarc: dmarc ? dmarc.slice(0, 60) : "keiner",
+    folge: streng
+      ? "DMARC ist streng: ohne Brevo-DKIM ODER Brevo im SPF weist der Empfänger die "
+        + "Nachricht ab — sie landet nicht einmal im Spam."
+      : "DMARC ist nicht streng; ohne DKIM/SPF landet die Post aber eher im Spam.",
+  };
+}
+
+
 // Gilt der Brevo-Schluessel, und was steht noch zur Verfuegung?
 //
 // /v3/account verschickt nichts und beantwortet beides. "Ein Geheimnis
@@ -78,10 +113,14 @@ async function brevoPruefen(key: string): Promise<string> {
       // gemacht hat.
       const meldung = String(leib?.message ?? "");
       if (/unrecognised IP|unrecognized IP|authorised_ips/i.test(meldung)) {
-        return "Schlüssel gilt, aber Brevo lässt diese Herkunft nicht zu. "
-          + "Edge Functions haben keine feste Absenderadresse — eine einzelne "
-          + "IP freizugeben hilft deshalb nicht. Unter "
-          + "app.brevo.com/security/authorised_ips die IP-Beschränkung ausschalten.";
+        // Die Adresse mit ausgeben: sie ist bei jedem Aufruf eine
+        // andere, und genau das ist der Beweis, dass Freigeben einzelner
+        // Adressen nicht haelt.
+        const ip = meldung.match(/address ([0-9a-f.:]+)/i)?.[1] ?? "unbekannt";
+        return `Schlüssel gilt, aber Brevo lässt diese Herkunft nicht zu (${ip}). `
+          + "Edge Functions haben keine feste Absenderadresse — bei jedem Aufruf eine "
+          + "andere. Unter app.brevo.com/security/authorised_ips die IP-Beschränkung "
+          + "ganz ausschalten; einzelne Adressen freizugeben hilft nicht.";
       }
 
       const art = key.startsWith("xsmtpsib-")
@@ -283,6 +322,8 @@ Deno.serve(async (req) => {
         // Microsoft-Empfaenger gehen einen anderen Weg; ob der steht,
         // gehoert in dieselbe Auskunft. Und zwar GEPRUEFT -- dass ein
         // Geheimnis da ist, heisst nicht, dass es gilt.
+        brevo_dns: brevoKey
+          ? await brevoDns((absender ?? "@").split("@")[1] ?? "") : undefined,
         microsoft_ueber_brevo: brevoKey
           ? (await brevoPruefen(brevoKey))
             + (brevoUmhuellt
