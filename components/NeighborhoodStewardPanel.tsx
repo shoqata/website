@@ -7,7 +7,7 @@ import {
 import { db } from '../services/datenzugriff';
 import {
   doc, updateDoc, collection, getDocs, query, where,
-  myNeighborhoods, reportPaymentPaid,
+  myNeighborhoods, reportPaymentPaid, supabase,
 } from '@/services/supabase-bridge';
 import { useTranslation } from '../context/LanguageContext';
 import { useFeedback } from '../context/FeedbackContext';
@@ -35,6 +35,12 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
   const [mitglieder, setMitglieder] = useState<UserProfile[]>([]);
   const [rechnungen, setRechnungen] = useState<Payment[]>([]);
   const [familien, setFamilien] = useState<{ id: string; name: string }[]>([]);
+  // Was dieser Verein seinen Verantwortlichen erlaubt. Ein Feld
+  // anzuzeigen, das die Datenbank hinterher zurueckweist, waere eine
+  // Falle -- also wird nur gezeigt, was auch durchgeht.
+  const [erlaubt, setErlaubt] = useState<Set<string>>(new Set());
+  const [meldeGrund, setMeldeGrund] = useState('');
+  const [meldetInaktiv, setMeldetInaktiv] = useState(false);
   const [laedt, setLaedt] = useState(true);
   const [suche, setSuche] = useState('');
   // Bei 35 offenen Beitraegen und 39 unvollstaendigen Datensaetzen unter 46
@@ -65,6 +71,8 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
         getDocs(query(collection(db, 'families'))),
       ]);
       setFamilien(fa.docs.map(d => ({ id: d.id, name: (d.data() as any).name ?? d.id })));
+      const { data: t } = await supabase.from('tenants').select('vertreter_felder').maybeSingle();
+      setErlaubt(new Set(((t as any)?.vertreter_felder as string[]) ?? []));
       setNachbarschaften(nb.docs.map(d => ({ id: d.id, ...d.data() } as Neighborhood)).filter(n => ids.includes(n.id)));
       // Entfernte Mitglieder erscheinen gar nicht erst. Der Datensatz bleibt
       // in der Datenbank, weil Rechnungen und Zahlungen daran haengen -- in
@@ -141,7 +149,12 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
       // und Beitragsgruppe bleiben aussen vor -- die Zugriffsregel wuerde sie
       // ohnehin zurueckweisen, und was nicht mitgeschickt wird, kann sich
       // nicht versehentlich aendern.
-      await updateDoc(doc(db, 'users', bearbeitet.id), {
+      // Nur schicken, was erlaubt ist. Schickt die Maske mehr, weist es
+      // der Ausloeser zurueck -- und der ganze Vorgang scheitert, auch
+      // die erlaubten Felder.
+      const nurErlaubt = (o: Record<string, any>) =>
+        Object.fromEntries(Object.entries(o).filter(([k]) => erlaubt.has(k)));
+      await updateDoc(doc(db, 'users', bearbeitet.id), nurErlaubt({
         // Leer wird zu NULL: in der Spalte steht heute keine einzige leere
         // Zeichenkette, und dabei soll es bleiben.
         birthdate: bearbeitet.birthdate?.trim() || null,
@@ -163,7 +176,8 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
         // dass die Maske sie einhaelt, genuegt nicht.
         membershipCategory: (bearbeitet as any).membershipCategory || null,
         familyId: (bearbeitet as any).familyId || null,
-      } as any);
+        invoiceDeliveryMethod: (bearbeitet as any).invoiceDeliveryMethod || null,
+      }) as any);
       setMitglieder(l => l.map(m => (m.id === bearbeitet.id ? bearbeitet : m)));
       showAlert({ type: 'success', message: t('steward.saved') });
       setBearbeitet(null);
@@ -449,6 +463,7 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
                 <input value={bearbeitet.email || ''} onChange={e => setBearbeitet({ ...bearbeitet, email: e.target.value })} className={feld} />
               </div>
               <div className="grid grid-cols-2 gap-3">
+                {erlaubt.has('membershipCategory') && (
                 <div>
                   <label className={marke}>Kategorie</label>
                   <select value={(bearbeitet as any).membershipCategory || ''}
@@ -458,6 +473,8 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
                     {kategorien.map(k => <option key={k} value={k}>{k}</option>)}
                   </select>
                 </div>
+                )}
+                {erlaubt.has('familyId') && (
                 <div>
                   <label className={marke}>Familie</label>
                   <select value={(bearbeitet as any).familyId || ''}
@@ -467,7 +484,59 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
                     {familien.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                   </select>
                 </div>
+                )}
               </div>
+              {erlaubt.has('invoiceDeliveryMethod') && (
+                <div>
+                  <label className={marke}>Rechnungsweg</label>
+                  <div className="flex gap-1 bg-stone-100 p-1 rounded-xl">
+                    {([['EMAIL', 'E-Mail'], ['POST', 'Post']] as const).map(([w, n]) => (
+                      <button key={w} type="button"
+                        onClick={() => setBearbeitet({ ...bearbeitet, invoiceDeliveryMethod: w } as any)}
+                        className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
+                          (bearbeitet as any).invoiceDeliveryMethod === w
+                            ? 'bg-stone-900 text-white' : 'text-stone-500 hover:text-stone-800'}`}>
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-stone-400 mt-1.5">
+                    Wer keine brauchbare Adresse hat, bekommt die Rechnung per Post.
+                  </p>
+                </div>
+              )}
+
+              {/* Jemanden auf inaktiv zu setzen beendet eine Mitgliedschaft.
+                  Das entscheidet der Vorstand -- der Verantwortliche meldet
+                  es, so wie er eine Barzahlung meldet. */}
+              <div className="p-4 rounded-2xl border border-amber-100 bg-amber-50/60 space-y-3">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-amber-700">
+                  Dem Vorstand melden
+                </p>
+                <p className="text-[11px] text-stone-600 leading-relaxed">
+                  Weggezogen, verstorben oder nicht mehr erreichbar? Melden Sie es —
+                  der Vorstand entscheidet, ob die Mitgliedschaft endet.
+                </p>
+                <input value={meldeGrund} onChange={e => setMeldeGrund(e.target.value)}
+                  placeholder="Was ist passiert?" className={feld} />
+                <button type="button" disabled={meldetInaktiv || !meldeGrund.trim()}
+                  onClick={async () => {
+                    setMeldetInaktiv(true);
+                    const { error } = await supabase.rpc('mitglied_melden', {
+                      p_member: bearbeitet.id, p_art: 'INAKTIV', p_bemerkung: meldeGrund.trim(),
+                    });
+                    setMeldetInaktiv(false);
+                    if (error) { showAlert({ type: 'error', message: error.message }); return; }
+                    setMeldeGrund('');
+                    showAlert({ type: 'success',
+                      message: 'Gemeldet. Der Vorstand sieht es unter Finanzen.' });
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-amber-600 text-white text-[10px]
+                             font-bold uppercase tracking-widest disabled:opacity-40">
+                  {meldetInaktiv ? 'Meldet …' : 'Als inaktiv melden'}
+                </button>
+              </div>
+
               {/* Was der Vorstand entscheidet, steht hier nur zum Nachsehen.
                   Ein Feld, das man aendern kann und das die Datenbank dann
                   zurueckweist, ist schlimmer als keines. */}

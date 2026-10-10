@@ -40,6 +40,7 @@ import AdminWebsite from './AdminWebsite';
 import SocialAI from './SocialAI';
 import AdminFinance from './AdminFinance';
 import AdminPaymentReports from './AdminPaymentReports';
+import AdminMitgliedMeldungen from './AdminMitgliedMeldungen';
 import AdminMailQueue from './AdminMailQueue';
 import AdminData from './AdminData';
 import AdminAccounting from './AdminAccounting';
@@ -591,6 +592,10 @@ const AdminPanel: React.FC = () => {
                                 {/* Meldungen aus den Nachbarschaften zuerst: sie warten
                                     auf eine Entscheidung, alles andere nicht. */}
                                 <AdminPaymentReports />
+                                {/* Meldungen ueber Mitglieder stehen neben denen
+                                    ueber Zahlungen: beide warten auf dieselbe
+                                    Entscheidung desselben Vorstands. */}
+                                <AdminMitgliedMeldungen />
                                 <AdminFinance viewMode="GRID" selectedYear={selectedYear} />
                             </div>
                         )}

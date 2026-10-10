@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import AdminPostausgang from './AdminPostausgang';
 import AdminTexte from './AdminTexte';
 import AdminVorstandsrechte from './AdminVorstandsrechte';
+import AdminVertreterrechte from './AdminVertreterrechte';
 import AdminFloky from './AdminFloky';
 import AdminVereinsjahr from './AdminVereinsjahr';
 import { Link } from 'react-router-dom';
@@ -472,6 +473,7 @@ const AdminSettings: React.FC = () => {
             <section className="space-y-5">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500">Rechte im Verein</h3>
                 <AdminVorstandsrechte />
+                <AdminVertreterrechte />
             </section>
 
         </div>
