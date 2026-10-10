@@ -383,8 +383,25 @@ const brevoSmtpDa = !!brevoSmtpLogin && !!brevoSmtpKey;
         microsoft_weg: brevoSmtpDa ? "Brevo über SMTP"
           : brevoKey ? "Brevo über die Programmschnittstelle"
           : "keiner — Microsoft-Post geht über Postal und wird dort abgewiesen",
-        microsoft_ueber_brevo_smtp: await brevoSmtpPruefen(brevoSmtpLogin, brevoSmtpKey),
-        ipv4_herkunft: await ipv4Herkunft(admin),
+        // Beide Proben bauen eine Verbindung nach draussen auf, und jede
+        // davon legt bei Brevo eine Zeile in der Liste "nicht
+        // autorisierte IP-Adressen" an -- die Liste wuchs von 20 auf 57,
+        // waehrend ich gemessen habe. Eine Diagnose, die den Zustand
+        // verschlechtert, den sie beschreibt, laeuft nicht bei jedem
+        // Aufruf. Darum nur auf ausdrueckliche Anforderung.
+        ...(koerper?.smtp_pruefen
+          ? {
+              microsoft_ueber_brevo_smtp:
+                await brevoSmtpPruefen(brevoSmtpLogin, brevoSmtpKey),
+              ipv4_herkunft: await ipv4Herkunft(admin),
+            }
+          : {
+              microsoft_ueber_brevo_smtp: brevoSmtpDa
+                ? "Zugangsdaten hinterlegt. Für die Anmeldeprobe "
+                  + '{"pruefen":true,"smtp_pruefen":true} senden — sie baut eine '
+                  + "Verbindung auf und hinterlässt dabei eine Adresse in Brevos Liste."
+                : "BREVO_SMTP_LOGIN und BREVO_SMTP_KEY fehlen.",
+            }),
         microsoft_ueber_brevo: brevoKey
           ? (await brevoPruefen(brevoKey))
             + (brevoUmhuellt
