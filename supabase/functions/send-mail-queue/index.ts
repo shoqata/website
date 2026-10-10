@@ -11,6 +11,7 @@
 //
 // Benoetigte Umgebungsvariablen:
 //   POSTAL_URL, POSTAL_API_KEY   bevorzugt, siehe unten
+//   BREVO_API_KEY                fuer Microsoft-Empfaenger, siehe unten
 //   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM
 //
 // ZWEI WEGE HINAUS, und der Grund dafuer ist gemessen:
@@ -51,6 +52,57 @@ const json = (body: unknown, status = 200) =>
     headers: { ...CORS, "Content-Type": "application/json" },
   });
 
+// --------------------------------------------- Weg je Empfaengerdomain
+//
+// Erkannt wird am MX-Eintrag, nicht an einer Liste. Gemessen an den
+// Mitgliedern von Koretini: isen-tiefbau.ch, dervishi.ch, ha-tech.ch,
+// multinetcom.ch und direct.ch liegen alle bei Microsoft 365 -- das
+// sieht man nur am MX (*.mail.protection.outlook.com). Eine Liste
+// haette sie uebersehen, und niemand haette gemerkt, warum deren Post
+// nicht ankommt.
+//
+// Die bekannten Endkundendomains stehen trotzdem als Abkuerzung da:
+// fuer hotmail.com braucht es keine DNS-Abfrage.
+
+const MS_DIREKT = /@(hotmail|outlook|live|msn|windowslive|passport)\./i;
+
+async function istMicrosoft(admin: any, adresse: string): Promise<boolean> {
+  const domain = (adresse.split("@")[1] ?? "").trim().toLowerCase();
+  if (!domain) return false;
+  if (MS_DIREKT.test("@" + domain)) return true;
+
+  // Gemerktes zuerst. Aelter als 30 Tage wird neu geprueft -- eine
+  // Domain kann den Anbieter wechseln.
+  const { data: bekannt } = await admin.from("mail_domain_weg")
+    .select("weg,geprueft_am").eq("domain", domain).maybeSingle();
+  if (bekannt?.geprueft_am
+      && Date.now() - new Date(bekannt.geprueft_am).getTime() < 30 * 864e5) {
+    return bekannt.weg === "brevo";
+  }
+
+  let ms = false;
+  let grund = "kein MX";
+  try {
+    const mx = await Deno.resolveDns(domain, "MX");
+    const ziele = (mx ?? []).map((m: any) => String(m.exchange ?? "").toLowerCase());
+    ms = ziele.some((z) => z.includes("outlook.com") || z.includes("protection.outlook"));
+    grund = ziele[0] ?? "kein MX";
+  } catch {
+    // Keine Antwort: Postal bleibt der Weg. Eine fehlgeschlagene
+    // Abfrage darf nicht dazu fuehren, dass alles ueber Brevo geht --
+    // dort gibt es 300 Nachrichten am Tag und sonst nichts.
+    ms = false;
+  }
+
+  await admin.from("mail_domain_weg").upsert({
+    domain, weg: ms ? "brevo" : "postal",
+    grund: String(grund).slice(0, 120), geprueft_am: new Date().toISOString(),
+  }, { onConflict: "domain" }).then(() => {}, () => {});
+
+  return ms;
+}
+
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ error: "Nur POST." }, 405);
@@ -69,6 +121,9 @@ Deno.serve(async (req) => {
   const postalUrl = (Deno.env.get("POSTAL_URL") ?? "").replace(/\/+$/, "");
   const postalKey = Deno.env.get("POSTAL_API_KEY") ?? "";
   const ueberPostal = !!postalUrl && !!postalKey;
+  // Microsoft nimmt von Contabo-Adressen keine Post an, und dort steht
+  // der Postal-Server. Fuer Microsoft-Empfaenger deshalb Brevo.
+  const brevoKey = Deno.env.get("BREVO_API_KEY") ?? "";
   const menge = Math.min(Number(Deno.env.get("MAIL_BATCH") ?? "40"), 200);
   const cronToken = Deno.env.get("MAIL_CRON_TOKEN");
 
@@ -155,6 +210,12 @@ Deno.serve(async (req) => {
 
       const a: Record<string, unknown> = {
         weg: "HTTPS (Postal)", url: postalUrl, probenachricht: !ohneMail,
+        // Microsoft-Empfaenger gehen einen anderen Weg; ob der steht,
+        // gehoert in dieselbe Auskunft.
+        microsoft_ueber_brevo: brevoKey
+          ? `eingerichtet (${brevoKey.length} Zeichen)`
+          : "NICHT eingerichtet — Microsoft-Empfänger gehen über Postal und "
+            + "werden von Microsoft abgewiesen",
         // Die Form des Schluessels -- nicht sein Inhalt. Ein mitkopiertes
         // Leerzeichen sieht man in keiner Oberflaeche, macht den Schluessel
         // aber ungueltig, und "24 Zeichen" allein verraet es nicht.
@@ -168,17 +229,43 @@ Deno.serve(async (req) => {
         eingestellter_absender: absender ?? "(nicht gesetzt)",
       };
       try {
-        // Ohne Probenachricht: an eine Adresse im eigenen Haus, die
-        // garantiert nicht zugestellt wird. Postal prueft Schluessel und
-        // Absender VOR der Zustellung -- die Antwort sagt also alles, was
-        // wir wissen wollen, und niemand bekommt Post.
+        // Ohne Probenachricht wird GAR NICHT der Sendeweg benutzt.
+        //
+        // Vorher ging die Pruefung an eine Adresse unter .invalid -- und
+        // Postal wies sie wegen des EMPFAENGERS ab, nicht wegen des
+        // Schluessels. Die Antwort lautete "Abgelehnt" ohne Grund, und
+        // das sagte ueber die Einrichtung genau nichts.
+        //
+        // Stattdessen eine Abfrage, die nichts verschickt: eine
+        // Nachricht mit unmoeglicher Kennung nachschlagen. Gilt der
+        // Schluessel nicht, antwortet Postal mit InvalidServerAPIKey;
+        // gilt er, meldet es schlicht, dass es die Nachricht nicht gibt.
+        if (ohneMail) {
+          const r2 = await fetch(`${postalUrl}/api/v1/messages/message`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-Server-API-Key": postalKey },
+            body: JSON.stringify({ id: 0 }),
+          });
+          const l2 = await r2.json().catch(() => ({}));
+          const code2 = String(l2?.data?.code ?? "");
+          if (code2 === "InvalidServerAPIKey") {
+            a.ergebnis = "Abgelehnt — dieser Schlüssel gilt nicht.";
+            a.hinweis = "In Postal haben Zugangsdaten einen Typ: nur Type=API "
+              + "funktioniert hier, Type=SMTP nicht.";
+          } else {
+            a.ergebnis = "In Ordnung. Verbindung und Schlüssel stimmen; "
+              + "es wurde nichts verschickt.";
+            await admin.rpc("postausgang_melden",
+              { p_bereit: true, p_quelle: "postal", p_fehler: null }).then(() => {}, () => {});
+          }
+          return json(a, 200);
+        }
+
         const r = await fetch(`${postalUrl}/api/v1/send/message`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "X-Server-API-Key": postalKey },
           body: JSON.stringify({
-            to: [ohneMail ? `pruefung-ohne-zustellung@${(vonProbe.split("@")[1] ?? "invalid")}.invalid`
-                          : vonProbe],
-            from: vonProbe,
+            to: [vonProbe], from: vonProbe,
             subject: "unityhub — Prüfung des Postausgangs",
             plain_body: "Diese Nachricht bestätigt, dass der Versand über Postal funktioniert.",
           }),
@@ -422,6 +509,7 @@ Deno.serve(async (req) => {
     nachVerein.get(v)!.push(m);
   }
 
+  let ueberBrevoGesendet = 0;
   let gesendet = 0;
   let gescheitert = 0;
   let liegengeblieben = 0;
@@ -451,7 +539,36 @@ Deno.serve(async (req) => {
 
     for (const m of nachrichten) {
       try {
-        if (ueberPostal) {
+        // Microsoft-Empfaenger ueber Brevo, alle uebrigen ueber Postal.
+        const ueberBrevo = !!brevoKey && await istMicrosoft(admin, String(m.recipient));
+
+        if (ueberBrevo) {
+          const absenderName = info?.name ?? p.absendername ?? "unityhub";
+          const r = await fetch("https://api.brevo.com/v3/smtp/email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "api-key": brevoKey },
+            body: JSON.stringify({
+              sender: { name: absenderName, email: p.absender ?? absender },
+              to: [{ email: m.recipient }],
+              ...(info?.antwortAn ? { replyTo: { email: info.antwortAn } } : {}),
+              subject: m.subject,
+              htmlContent: m.html,
+              ...(m.text ? { textContent: m.text } : {}),
+              ...(Array.isArray(m.attachments) && m.attachments.length
+                ? { attachment: m.attachments.map((a: any) => ({
+                      name: a.filename, content: a.content })) }
+                : {}),
+            }),
+          });
+          if (!r.ok) {
+            const leib = await r.text();
+            // Brevo nennt den Grund im Leib; der Statuscode allein sagt
+            // nicht, ob der Absender unbestaetigt oder das Kontingent
+            // aufgebraucht ist.
+            throw new Error(`Brevo meldet ${r.status}: ${leib.slice(0, 300)}`);
+          }
+          ueberBrevoGesendet++;
+        } else if (ueberPostal) {
           const r = await fetch(`${postalUrl}/api/v1/send/message`, {
             method: "POST",
             headers: { "Content-Type": "application/json", "X-Server-API-Key": postalKey },
@@ -547,6 +664,10 @@ Deno.serve(async (req) => {
     }, 200);
   }
 
+  // Aufgeschluesselt nach Weg: ohne das sieht man nicht, ob die
+  // Umleitung fuer Microsoft ueberhaupt greift.
   return json({ ok: true, configured: true, sent: gesendet, failed: gescheitert,
+                davon_brevo: ueberBrevoGesendet,
+                davon_postal: gesendet - ueberBrevoGesendet,
                 pending: liegengeblieben, ohnePostausgang, by: aufrufer });
 });
