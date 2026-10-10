@@ -36,6 +36,7 @@
 //   MAIL_BATCH      optional, Hoechstzahl je Lauf (Vorgabe 40)
 //   MAIL_CRON_TOKEN optional, Kennwort fuer den Aufruf durch den Zeitplan
 
+import { brevoSmtpPruefen, brevoSmtpSenden } from "./brevo_smtp.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.47.10";
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 import { geheimschluessel } from "../_shared/schluessel.ts";
@@ -76,13 +77,23 @@ async function brevoDns(domain: string): Promise<Record<string, string>> {
     besitznachweis: /brevo-code/i.test(apex) ? "vorhanden" : "FEHLT (brevo-code im Stamm)",
     dkim: /v=DKIM1/i.test(dkim) ? "vorhanden"
       : `FEHLT — TXT auf brevo._domainkey.${domain}`,
-    spf: /include:spf\.brevo\.com/i.test(apex) ? "enthält Brevo"
-      : "OHNE Brevo — include:spf.brevo.com fehlt",
+    // SPF bewusst nur als Hinweis. Brevo setzt als Rueckweg seine EIGENE
+    // Domain ein; der Empfaenger prueft SPF darum gegen Brevo und nicht
+    // gegen unityhub.li. Ein include:spf.brevo.com verbessert die
+    // DMARC-Zuordnung also NICHT -- die stellt allein das DKIM oben her.
+    // Zuerst stand hier "FEHLT"; das haette in die falsche Ecke der
+    // DNS-Verwaltung geschickt.
+    spf_hinweis: /include:spf\.brevo\.com/i.test(apex)
+      ? "enthält Brevo (unschädlich, für DMARC aber nicht nötig)"
+      : "ohne Brevo — nicht nötig, den Rückweg stellt Brevo selbst",
     dmarc: dmarc ? dmarc.slice(0, 60) : "keiner",
-    folge: streng
-      ? "DMARC ist streng: ohne Brevo-DKIM ODER Brevo im SPF weist der Empfänger die "
-        + "Nachricht ab — sie landet nicht einmal im Spam."
-      : "DMARC ist nicht streng; ohne DKIM/SPF landet die Post aber eher im Spam.",
+    folge: /v=DKIM1/i.test(dkim)
+      ? "Brevo darf im Namen dieser Domain senden."
+      : streng
+        ? "DMARC steht auf " + (/p=reject/i.test(dmarc) ? "reject" : "quarantine")
+          + ": ohne das Brevo-DKIM weist der Empfänger die Nachricht ab — sie landet "
+          + "nicht einmal im Spam, und der Versand meldete trotzdem Erfolg."
+        : "Ohne das Brevo-DKIM landet die Post beim Empfänger eher im Spam.",
   };
 }
 
@@ -233,6 +244,17 @@ Deno.serve(async (req) => {
     return { key: v, umhuellt: false };
   };
   const { key: brevoKey, umhuellt: brevoUmhuellt } = brevoAuspacken(brevoRoh);
+
+// Brevo bietet zwei Wege, und sie unterscheiden sich hier nicht in der
+// Bequemlichkeit, sondern darin, ob sie ueberhaupt funktionieren: die
+// Programmschnittstelle wird von der IP-Beschraenkung des Kontos
+// abgewiesen (gemessen, mit drei verschiedenen Herkunftsadressen in drei
+// aufeinanderfolgenden Aufrufen), SMTP meldet sich mit Benutzer und
+// Schluessel an und fragt nicht nach dem Ort. Darum hat SMTP den
+// Vorrang, wenn beides hinterlegt ist.
+const brevoSmtpLogin = (Deno.env.get("BREVO_SMTP_LOGIN") ?? "").trim();
+const brevoSmtpKey = (Deno.env.get("BREVO_SMTP_KEY") ?? "").trim();
+const brevoSmtpDa = !!brevoSmtpLogin && !!brevoSmtpKey;
   const menge = Math.min(Number(Deno.env.get("MAIL_BATCH") ?? "40"), 200);
   const cronToken = Deno.env.get("MAIL_CRON_TOKEN");
 
@@ -324,6 +346,10 @@ Deno.serve(async (req) => {
         // Geheimnis da ist, heisst nicht, dass es gilt.
         brevo_dns: brevoKey
           ? await brevoDns((absender ?? "@").split("@")[1] ?? "") : undefined,
+        microsoft_weg: brevoSmtpDa ? "Brevo über SMTP"
+          : brevoKey ? "Brevo über die Programmschnittstelle"
+          : "keiner — Microsoft-Post geht über Postal und wird dort abgewiesen",
+        microsoft_ueber_brevo_smtp: await brevoSmtpPruefen(brevoSmtpLogin, brevoSmtpKey),
         microsoft_ueber_brevo: brevoKey
           ? (await brevoPruefen(brevoKey))
             + (brevoUmhuellt
@@ -655,15 +681,37 @@ Deno.serve(async (req) => {
     for (const m of nachrichten) {
       try {
         // Microsoft-Empfaenger ueber Brevo, alle uebrigen ueber Postal.
-        const ueberBrevo = !!brevoKey && await istMicrosoft(admin, String(m.recipient));
+        const zeigeName = info?.name ?? p.absendername ?? "unityhub";
 
-        if (ueberBrevo) {
-          const absenderName = info?.name ?? p.absendername ?? "unityhub";
+        // Einmal fragen, dann entscheiden. Die Abfrage ist
+        // zwischengespeichert; zweimal zu fragen waere nur unordentlich.
+        const istMs = (brevoSmtpDa || !!brevoKey)
+          && await istMicrosoft(admin, String(m.recipient));
+        const ueberBrevoSmtp = istMs && brevoSmtpDa;
+        const ueberBrevo = istMs && !brevoSmtpDa && !!brevoKey;
+
+        if (ueberBrevoSmtp) {
+          await brevoSmtpSenden(brevoSmtpLogin, brevoSmtpKey, {
+            von: p.absender ?? absender,
+            vonName: zeigeName,
+            an: String(m.recipient),
+            antwortAn: info?.antwortAn ?? null,
+            betreff: String(m.subject ?? ""),
+            html: String(m.html ?? ""),
+            text: m.text ?? null,
+            anhaenge: Array.isArray(m.attachments)
+              ? m.attachments.map((a: any) => ({
+                  filename: String(a.filename ?? "anhang.pdf"),
+                  content: String(a.content ?? ""),
+                })) : [],
+          });
+          ueberBrevoGesendet++;
+        } else if (ueberBrevo) {
           const r = await fetch("https://api.brevo.com/v3/smtp/email", {
             method: "POST",
             headers: { "Content-Type": "application/json", "api-key": brevoKey },
             body: JSON.stringify({
-              sender: { name: absenderName, email: p.absender ?? absender },
+              sender: { name: zeigeName, email: p.absender ?? absender },
               to: [{ email: m.recipient }],
               ...(info?.antwortAn ? { replyTo: { email: info.antwortAn } } : {}),
               subject: m.subject,
@@ -689,7 +737,7 @@ Deno.serve(async (req) => {
             headers: { "Content-Type": "application/json", "X-Server-API-Key": postalKey },
             body: JSON.stringify({
               to: [m.recipient],
-              from: `${info?.name ?? p.absendername ?? "unityhub"} <${p.absender ?? absender}>`,
+              from: `${zeigeName} <${p.absender ?? absender}>`,
               sender: p.absender ?? absender,
               reply_to: info?.antwortAn ?? undefined,
               subject: m.subject,
@@ -713,7 +761,7 @@ Deno.serve(async (req) => {
         await client!.send({
           // Anzeigename: der Verein, dem die Nachricht gehoert. Ohne
           // Vereinsbezug (Betreiber-Nachrichten) der Name des Postausgangs.
-          from: `${info?.name ?? p.absendername ?? "unityhub"} <${p.absender}>`,
+          from: `${zeigeName} <${p.absender}>`,
           replyTo: info?.antwortAn ?? undefined,
           to: m.recipient,
           subject: m.subject,
