@@ -52,6 +52,57 @@ const json = (body: unknown, status = 200) =>
     headers: { ...CORS, "Content-Type": "application/json" },
   });
 
+// Gilt der Brevo-Schluessel, und was steht noch zur Verfuegung?
+//
+// /v3/account verschickt nichts und beantwortet beides. "Ein Geheimnis
+// ist gesetzt" ist keine Auskunft -- bei Postal hat genau diese Annahme
+// zwei Tage gekostet.
+async function brevoPruefen(key: string): Promise<string> {
+  try {
+    const r = await fetch("https://api.brevo.com/v3/account", {
+      headers: { "api-key": key, accept: "application/json" },
+    });
+    const leib = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      // Brevo hat zwei Arten von Schluesseln, und sie sehen beide lang
+      // und zufaellig aus: xkeysib- fuer die Programmschnittstelle,
+      // xsmtpsib- fuer den SMTP-Versand. Nur der erste funktioniert
+      // hier. Das Praefix ist kein Geheimnis, sondern die Art -- und es
+      // zu nennen erspart das Raten, das bei Postal zwei Tage gekostet
+      // hat.
+      // Brevo sperrt fremde Absenderadressen, wenn die IP-Beschraenkung
+      // an ist. Das sieht aus wie ein ungueltiger Schluessel, ist aber
+      // das Gegenteil: der Schluessel stimmt, nur der Ort passt nicht.
+      // Den Unterschied nicht zu nennen schickt an die falsche Stelle --
+      // derselbe Fehler, den mein Hinweis bei Postal schon einmal
+      // gemacht hat.
+      const meldung = String(leib?.message ?? "");
+      if (/unrecognised IP|unrecognized IP|authorised_ips/i.test(meldung)) {
+        return "Schlüssel gilt, aber Brevo lässt diese Herkunft nicht zu. "
+          + "Edge Functions haben keine feste Absenderadresse — eine einzelne "
+          + "IP freizugeben hilft deshalb nicht. Unter "
+          + "app.brevo.com/security/authorised_ips die IP-Beschränkung ausschalten.";
+      }
+
+      const art = key.startsWith("xsmtpsib-")
+        ? ' Es ist ein SMTP-Schlüssel (xsmtpsib-…). Gebraucht wird ein '
+          + 'API-Schlüssel (xkeysib-…): Brevo → SMTP & API → API Keys.'
+        : key.startsWith("xkeysib-")
+          ? ' Die Art stimmt (xkeysib-…) — der Schlüssel ist wohl gelöscht oder falsch kopiert.'
+          : ` Unbekannte Art: beginnt mit "${key.slice(0, 9)}". Erwartet wird xkeysib-…`;
+      return `Schlüssel gilt nicht — ${leib?.message ?? r.status}.${art}`;
+    }
+    const frei = (leib?.plan ?? [])
+      .map((p: any) => `${p.type}: ${p.credits ?? "?"} ${p.creditsType ?? ""}`.trim())
+      .join(", ");
+    return `in Ordnung — ${leib?.companyName ?? leib?.email ?? "Konto"}`
+      + (frei ? ` (${frei})` : "");
+  } catch (e) {
+    return `nicht erreichbar — ${e instanceof Error ? e.message : e}`;
+  }
+}
+
+
 // --------------------------------------------- Weg je Empfaengerdomain
 //
 // Erkannt wird am MX-Eintrag, nicht an einer Liste. Gemessen an den
@@ -123,7 +174,26 @@ Deno.serve(async (req) => {
   const ueberPostal = !!postalUrl && !!postalKey;
   // Microsoft nimmt von Contabo-Adressen keine Post an, und dort steht
   // der Postal-Server. Fuer Microsoft-Empfaenger deshalb Brevo.
-  const brevoKey = Deno.env.get("BREVO_API_KEY") ?? "";
+  // Der Schluessel darf auch umhuellt ankommen.
+  //
+  // Brevos MCP-Einrichtung gibt ihn als base64-verpacktes JSON heraus
+  // ({"api_key": "xkeysib-..."}), und genau das wurde gesetzt. Statt den
+  // Betreiber ein zweites Mal durch die Oberflaeche zu schicken, wird
+  // ausgepackt, was eindeutig auspackbar ist -- die Pruefung sagt
+  // trotzdem, dass es umhuellt war.
+  const brevoRoh = (Deno.env.get("BREVO_API_KEY") ?? "").trim();
+  const brevoAuspacken = (v: string): { key: string; umhuellt: boolean } => {
+    if (!v || v.startsWith("xkeysib-")) return { key: v, umhuellt: false };
+    try {
+      const klar = atob(v);
+      if (!klar.trimStart().startsWith("{")) return { key: v, umhuellt: false };
+      const o = JSON.parse(klar);
+      const k = String(o?.api_key ?? o?.apiKey ?? o?.key ?? "");
+      if (k.startsWith("xkeysib-")) return { key: k, umhuellt: true };
+    } catch { /* dann eben unveraendert */ }
+    return { key: v, umhuellt: false };
+  };
+  const { key: brevoKey, umhuellt: brevoUmhuellt } = brevoAuspacken(brevoRoh);
   const menge = Math.min(Number(Deno.env.get("MAIL_BATCH") ?? "40"), 200);
   const cronToken = Deno.env.get("MAIL_CRON_TOKEN");
 
@@ -211,9 +281,13 @@ Deno.serve(async (req) => {
       const a: Record<string, unknown> = {
         weg: "HTTPS (Postal)", url: postalUrl, probenachricht: !ohneMail,
         // Microsoft-Empfaenger gehen einen anderen Weg; ob der steht,
-        // gehoert in dieselbe Auskunft.
+        // gehoert in dieselbe Auskunft. Und zwar GEPRUEFT -- dass ein
+        // Geheimnis da ist, heisst nicht, dass es gilt.
         microsoft_ueber_brevo: brevoKey
-          ? `eingerichtet (${brevoKey.length} Zeichen)`
+          ? (await brevoPruefen(brevoKey))
+            + (brevoUmhuellt
+                ? ' — Hinweis: das Geheimnis ist base64-verpacktes JSON; es wird '
+                  + 'ausgepackt. Sauberer wäre der blosse Schlüssel (xkeysib-…).' : '')
           : "NICHT eingerichtet — Microsoft-Empfänger gehen über Postal und "
             + "werden von Microsoft abgewiesen",
         // Die Form des Schluessels -- nicht sein Inhalt. Ein mitkopiertes
