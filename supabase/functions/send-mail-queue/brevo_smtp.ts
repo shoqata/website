@@ -107,8 +107,24 @@ export async function brevoSmtpPruefen(
     if (f3.startsWith("235")) {
       return "in Ordnung — Anmeldung über SMTP gelingt, es wurde nichts verschickt.";
     }
-    if (/unrecognised IP|unrecognized IP|authorised/i.test(f3)) {
-      return `Die IP-Beschränkung greift auch bei SMTP: ${f3.slice(0, 120)}`;
+    // Gemessen: Brevo prueft die Herkunft auch beim SMTP-Versand und
+    // antwortet "525 5.7.1 Unauthorized IP address". Ich hatte das
+    // Gegenteil angenommen -- SMTP melde sich mit Benutzer und
+    // Schluessel an und frage nicht nach dem Ort. Diese Annahme war der
+    // Grund, diesen Weg ueberhaupt zu bauen; sie hat nicht gehalten.
+    //
+    // Das Muster deckt bewusst mehrere Schreibweisen ab. Brevo
+    // schreibt an der Schnittstelle "unrecognised IP" (britisch) und
+    // hier "Unauthorized IP" (amerikanisch); ein Muster fuer nur eine
+    // davon liess diese Antwort als blosses "Anmeldung abgelehnt"
+    // durch -- und schickte damit zur Schluesselsuche statt zur
+    // Einstellung, an der es wirklich liegt.
+    if (/\b5\.7\.1\b|unauthori[sz]ed ip|unrecogni[sz]ed ip|authoris?ed_ips/i.test(f3)) {
+      return "Die IP-Beschränkung greift auch bei SMTP — Brevo antwortet "
+        + `"${f3.slice(0, 60).trim()}". Supabase hat keine feste Absenderadresse `
+        + "(fünf Aufrufe ergaben fünf verschiedene), es gibt also keine Adresse "
+        + "zum Freigeben. Unter app.brevo.com/security/authorised_ips die "
+        + "Beschränkung ganz ausschalten.";
     }
     return `Anmeldung abgelehnt: ${f3.slice(0, 140)}`;
   } catch (e) {
@@ -265,7 +281,16 @@ export async function brevoSmtpSenden(
     await d.schreiben(btoa(login)); await d.lesen();
     await d.schreiben(btoa(schluessel));
     const ang = await d.lesen();
-    if (!ang.startsWith("235")) throw new Error(`Anmeldung: ${ang.slice(0, 140)}`);
+    if (!ang.startsWith("235")) {
+      // Denselben Hinweis auch hier. Sonst steht in der Fehlerspalte
+      // der Warteschlange "Anmeldung: 525 5.7.1 …" -- richtig, aber es
+      // sagt niemandem, wo der Schalter sitzt.
+      const ip = /\b5\.7\.1\b|unauthori[sz]ed ip/i.test(ang)
+        ? " Die IP-Beschränkung im Brevo-Konto ist noch an; sie muss ganz aus, "
+          + "einzelne Adressen zu freigeben hilft nicht."
+        : "";
+      throw new Error(`Anmeldung: ${ang.slice(0, 140)}.${ip}`);
+    }
 
     await d.schreiben(`MAIL FROM:<${b.von}>`);
     const mf = await d.lesen();
