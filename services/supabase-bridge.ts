@@ -1018,13 +1018,51 @@ export async function resetMemberPassword(memberId: string): Promise<{
 
 // ------------------------------------------- Nachbarschafts-Betreuung
 // Die Nachbarschaften, fuer die ich verantwortlich bin.
+// Kennungen aus einer PostgREST-Antwort holen, in jeder Form.
+//
+// Hier lag der Fehler, und er hat drei Runden Suche gekostet. Die alte
+// Fassung las z?.my_neighborhoods -- den FUNKTIONSNAMEN. Die Funktion
+// gibt aber TABLE(id text) zurueck, PostgREST liefert also
+//
+//   [{ "id": "Gw8s5lNhSTd54MqCjczI" }]
+//
+// und z.my_neighborhoods ist undefined. Das anschliessende
+// filter(Boolean) warf es weg: myNeighborhoods() hat im Browser IMMER
+// ein leeres Array geliefert.
+//
+// Die Folgen waren ueberall und sahen nirgends nach dieser Ursache aus:
+// das Dashboard zeigte keinen Zugang zur Betreuungsmaske, der Klick auf
+// einen Nachbarn tat nichts, und die Betreuungsmaske haette eine leere
+// Liste gezeigt. Gemeldet wurde es dreimal als "ich kann die
+// Mitgliederdaten nicht anpassen" -- in der Datenbank war immer alles
+// in Ordnung, und genau dort habe ich zweimal gesucht.
+//
+// Darum jetzt keine Annahme ueber den Feldnamen mehr: Zeichenkette,
+// bekanntes Feld, oder der erste Wert des Objekts.
+export function idsAus(data: unknown): string[] {
+  const liste = Array.isArray(data) ? data : data == null ? [] : [data];
+  return liste
+    .map((z) => {
+      if (typeof z === "string") return z;
+      if (z && typeof z === "object") {
+        const o = z as Record<string, unknown>;
+        const treffer = o.id ?? Object.values(o).find((v) => typeof v === "string");
+        return typeof treffer === "string" ? treffer : null;
+      }
+      return null;
+    })
+    .filter((x): x is string => typeof x === "string" && x.trim().length > 0);
+}
+
 export async function myNeighborhoods(): Promise<string[]> {
   if (!supabase) return [];
   const { data, error } = await supabase.rpc("my_neighborhoods");
-  if (error) { console.error("[Bridge] my_neighborhoods:", error); return []; }
-  // Die Funktion gibt eine Menge von Werten zurueck; PostgREST liefert je nach
-  // Fassung blosse Zeichenketten oder Objekte mit einem Feld.
-  return (data as any[] || []).map((z) => (typeof z === "string" ? z : z?.my_neighborhoods)).filter(Boolean);
+  // Der Fehler wird geworfen und nicht verschluckt. Vorher gab diese
+  // Funktion bei einem Fehler [] zurueck -- nicht unterscheidbar von
+  // "diese Person betreut keine Nachbarschaft", und der Aufrufer
+  // behandelte beides als "nicht verantwortlich".
+  if (error) throw new Error(`my_neighborhoods: ${error.message}`);
+  return idsAus(data);
 }
 
 // Die Verantwortlichen der eigenen Nachbarschaft -- fuer das Mitglied, damit

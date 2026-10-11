@@ -209,7 +209,6 @@ const RepresentativeDashboard: React.FC<RepresentativeDashboardProps> = ({ user 
               joinedAt: new Date().toISOString(),
               email: '', // Placeholder
               profileComplete: false,
-              tenantId: 'koretini'
           });
           showAlert({ type: 'success', message: t('common.success') });
           setShowMemberModal(false);

@@ -367,7 +367,9 @@ const AdminData: React.FC = () => {
                       isLegacyImport: true, // Marker for admin
                       
                       invoiceDeliveryMethod: invoiceDeliveryMethod,
-                      tenantId: 'koretini'
+                      // Kein fester Verein: die Schreibschicht loest ihn aus der
+                      // Domain auf. Fest eingetragen landete ein Import auf der
+                      // Domain eines anderen Vereins bei Koretini.
                   };
 
                   await addDoc(collection(db, 'users'), userData);

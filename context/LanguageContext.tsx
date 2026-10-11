@@ -437,6 +437,17 @@ const translations: Translations = {
   // Betreuungsabfrage leer war -- und leer hiess dreierlei: nicht
   // verantwortlich, noch nicht geladen, oder fehlgeschlagen. Jeder Fall
   // sagt jetzt, was los ist.
+  // Konto da, Mitgliedseintrag nicht verknuepft. Vorher endete dieser
+  // Fall im Einrichtungsassistenten mit einer Meldung ueber updateDoc
+  // und null geaenderte Zeilen -- richtig und nutzlos.
+  'profil.nicht_verbunden.titel': {
+    en: 'Your account is not linked yet',
+    de: 'Ihr Konto ist noch nicht verbunden',
+    sq: 'Llogaria juaj nuk është lidhur ende' },
+  'profil.nicht_verbunden.text': {
+    en: 'You have signed in, but your account is not yet linked to your membership record. That happens when a role was assigned before you registered — for safety, a privileged role cannot link itself. Please contact the association administration: they link it in one step under Members.',
+    de: 'Sie sind angemeldet, aber Ihr Konto ist noch nicht mit Ihrem Mitgliedseintrag verbunden. Das kommt vor, wenn die Rolle vor Ihrer Registrierung vergeben wurde — eine bevorrechtigte Rolle darf sich aus Sicherheitsgründen nicht selbst verbinden. Bitte wenden Sie sich an die Vereinsadministration; sie verbindet es unter Mitglieder mit einem Schritt.',
+    sq: 'Jeni i identifikuar, por llogaria juaj nuk është lidhur ende me regjistrimin tuaj të anëtarësisë. Kjo ndodh kur roli u caktua përpara regjistrimit — për sigurí, një rol i privilegjuar nuk mund të lidhet vetë. Kontaktoni administratën e shoqatës; ajo e lidh nën Anëtarët me një hap.' },
   'dash.manage.loading': {
     en: 'Still checking which neighbourhoods you look after — one moment.',
     de: 'Es wird noch geprüft, welche Nachbarschaften Sie betreuen — einen Moment.',

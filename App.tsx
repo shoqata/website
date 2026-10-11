@@ -278,6 +278,10 @@ const AppContent: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [branding, setBranding] = useState<Branding>({});
+  // Konto vorhanden, Mitgliedseintrag nicht verknuepfbar. Eigener Zustand,
+  // weil es weder "angemeldet" noch "abgemeldet" ist -- und weil die
+  // Person etwas Lesbares braucht.
+  const [profilFehler, setProfilFehler] = useState<string | null>(null);
   const [systemSettings, setSystemSettings] = useState<SystemSettings | null>(null);
   const { tenant } = useTenant();
 
@@ -360,12 +364,31 @@ const AppContent: React.FC = () => {
                     profileComplete: true,
                 } as any);
             } else {
-                // Weder eine Zeile unter der Auth-UID noch eine beanspruchbare:
-                // es ist wirklich ein neues Konto.
+                // Weder eine Zeile unter der Auth-UID noch eine beanspruchbare.
+                //
+                // Das heisst NICHT zwangsläufig "neues Konto". Gemessen an
+                // einem echten Fall: Alban Rexha war als Mitglied erfasst,
+                // bekam die Rolle REPRESENTATIVE und registrierte sich
+                // danach selbst. claim_my_profile() verknuepft bewusst nur
+                // gewoehnliche Zeilen (MEMBER, GUEST) -- sonst koennte sich
+                // jemand mit der Adresse eines Vorstands anmelden und dessen
+                // Rechte uebernehmen. Der Anspruch wurde also zu Recht
+                // abgewiesen.
+                //
+                // Danach lief dieser Zweig und versuchte eine ZWEITE Zeile
+                // anzulegen. users.email ist eindeutig, der Insert scheiterte
+                // mit 23505, der Fehler wurde geloggt und verworfen -- und
+                // setUser erfand trotzdem ein Profil im Speicher. Die Person
+                // landete im Einrichtungsassistenten und bekam dort beim
+                // Speichern "updateDoc hat keine Zeile geaendert": eine
+                // technische Meldung ueber eine Zeile, die es nie gab.
                 const newUser: any = {
                     id: uid,
                     authUserId: uid,
-                    tenantId: 'koretini',
+                    // Kein fest eingetragenes 'koretini' mehr. Die
+                    // Schreibschicht loest den Verein aus der Domain auf; ein
+                    // neues Konto auf der Domain eines anderen Vereins waere
+                    // sonst bei Koretini gelandet.
                     email,
                     role: UserRole.MEMBER,
                     membershipStatus: 'ACTIVE',
@@ -375,10 +398,16 @@ const AppContent: React.FC = () => {
                 };
                 try {
                     await setDoc(doc(db, 'users', uid), newUser);
-                } catch (err) {
+                    setUser(newUser as UserProfile);
+                } catch (err: any) {
+                    // Kein erfundenes Profil. Wer hier scheitert, braucht
+                    // die Administration -- und soll das lesen koennen,
+                    // statt zwei Masken weiter eine Fehlermeldung ueber
+                    // updateDoc zu bekommen.
                     console.error("[App] Profil konnte nicht angelegt werden:", err);
+                    setProfilFehler(String(err?.message ?? err));
+                    setUser(null);
                 }
-                setUser(newUser as UserProfile);
             }
             setLoading(false);
         });
@@ -441,6 +470,37 @@ const AppContent: React.FC = () => {
          style={{ background: 'var(--accent)' }}>
       <Loader2 className="animate-spin text-primary" size={40} />
       <p className="mt-4 text-stone-400 animate-pulse">{t('app.connecting')}</p>
+    </div>
+  );
+
+  // Konto vorhanden, Mitgliedseintrag nicht verknuepfbar.
+  //
+  // Der Fall ist echt und hat einen Namen: ein Mitglied bekommt eine
+  // bevorrechtigte Rolle und registriert sich DANACH selbst.
+  // claim_my_profile() verknuepft bewusst nur gewoehnliche Zeilen, sonst
+  // koennte sich jemand mit der Adresse eines Vorstands anmelden und
+  // dessen Rechte uebernehmen. Der Anspruch wird also zu Recht
+  // abgewiesen -- aber bisher landete die Person danach im
+  // Einrichtungsassistenten und bekam beim Speichern eine Meldung ueber
+  // updateDoc und null geaenderte Zeilen. Das ist richtig und nutzlos.
+  if (profilFehler) return (
+    <div className="min-h-screen flex items-center justify-center p-6"
+         style={{ background: 'var(--accent)' }}>
+      <div className="max-w-md bg-white rounded-[2rem] shadow-xl border border-stone-100 p-8 space-y-4">
+        <h1 className="font-display font-bold italic text-2xl text-stone-900">
+          {t('profil.nicht_verbunden.titel')}
+        </h1>
+        <p className="text-sm text-stone-600 leading-relaxed">
+          {t('profil.nicht_verbunden.text')}
+        </p>
+        <p className="text-[11px] text-stone-400 font-mono bg-stone-50 border border-stone-100 rounded-xl p-3 break-words">
+          {profilFehler}
+        </p>
+        <button onClick={async () => { await signOut(auth).catch(() => {}); setProfilFehler(null); }}
+          className="w-full py-3 bg-stone-900 text-white rounded-xl font-bold text-sm">
+          {t('nav.logout')}
+        </button>
+      </div>
     </div>
   );
 
