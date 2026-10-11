@@ -236,8 +236,15 @@ const ContactSection = ({ branding, getLoc }: { branding: any, getLoc: (v: any) 
         <h2 className="text-4xl font-display font-bold mb-6 italic">{t('live.contact')}</h2>
         <p className="text-white/40 text-lg mb-12 italic">{getLoc(branding.footerText)}</p>
         <div className="flex flex-col md:flex-row justify-center gap-8 mb-12">
-          <div className="flex items-center gap-3"><Mail className="text-primary" /> {branding.footerEmail || "info@koretini.org"}</div>
-          <div className="flex items-center gap-3"><MapPin className="text-primary" /> {branding.footerAddress || "Koretin, Kosovë"}</div>
+          {/* Dieselben zwei Festwerte standen hier ein zweites Mal,
+              unabhaengig von der Sprachdatei. Zwei Stellen, die dasselbe
+              raten, raten irgendwann Verschiedenes. */}
+          {branding.footerEmail && (
+            <div className="flex items-center gap-3"><Mail className="text-primary" /> {branding.footerEmail}</div>
+          )}
+          {branding.footerAddress && (
+            <div className="flex items-center gap-3"><MapPin className="text-primary" /> {branding.footerAddress}</div>
+          )}
         </div>
         <div className="flex justify-center gap-4">
           <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center hover:bg-primary transition-colors cursor-pointer shadow-lg shadow-black/20"><Send size={20} /></div>

@@ -778,13 +778,32 @@ const ConditionalFooter = ({ branding, user }: any) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12 border-b border-white/10 pb-12">
           <div className="lg:col-span-2 space-y-8">
             {branding.logoUrl ? <img src={branding.logoUrl} style={{ height: branding.logoHeight || '3rem' }} className="w-auto mb-6 object-contain" alt="Logo"  onError={onImageError}/> : <h3 className="font-display text-3xl font-bold italic mb-6">{loc((branding as any).associationName) || ''}</h3>}
-            <p className="text-white/50 text-lg leading-relaxed max-w-md italic">{loc(branding.footerText) || t('footer.tagline')}</p>
+            {/* Nur was der Verein selbst hinterlegt hat.
+                Hier stand ein Rueckfall auf koretinis Satz ueber die
+                Diaspora -- ein zweiter Verein mit leerer Fusszeile haette
+                ihn als seinen eigenen angezeigt. */}
+            {loc(branding.footerText) && (
+              <p className="text-white/50 text-lg leading-relaxed max-w-md italic">{loc(branding.footerText)}</p>
+            )}
           </div>
           <div className="space-y-4">
             <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-primary">{t('footer.contact')}</h4>
             <div className="space-y-3 text-white/60">
-               <p className="flex items-center gap-3"><MapPin size={18} className="text-primary" /> {loc(branding.footerAddress) || t('footer.address.fallback')}</p>
-               <p className="flex items-center gap-3"><Mail size={18} className="text-primary" /> {loc(branding.footerEmail) || t('footer.email.fallback')}</p>
+               {/* Gemessen: koretinis footerEmail war eine leere
+                   Zeichenkette, darum griff der Rueckfall -- und der
+                   lautete info@koretini.org, die ALTE Domain. Jeder
+                   andere Verein mit leerer Fusszeile hat dieselbe
+                   fremde Adresse angezeigt. Eine erfundene Angabe ist
+                   schlechter als keine. */}
+               {loc(branding.footerAddress) && (
+                 <p className="flex items-center gap-3"><MapPin size={18} className="text-primary" /> {loc(branding.footerAddress)}</p>
+               )}
+               {loc(branding.footerEmail) && (
+                 <p className="flex items-center gap-3"><Mail size={18} className="text-primary" /> {loc(branding.footerEmail)}</p>
+               )}
+               {!loc(branding.footerAddress) && !loc(branding.footerEmail) && (
+                 <p className="text-white/30 text-sm italic">{t('footer.contact.none')}</p>
+               )}
             </div>
           </div>
           <div className="space-y-4">
@@ -803,7 +822,13 @@ const ConditionalFooter = ({ branding, user }: any) => {
           </div>
         </div>
         <div className="flex flex-col md:flex-row justify-between items-center gap-6 text-white/30 text-xs font-medium uppercase tracking-widest">
-          <p>© {new Date().getFullYear()} {loc(branding.associationName) || 'Shoqata Koretini'}. {t('footer.rights')}</p>
+          {/* Ohne Namen kein Name -- und kein fremder. Der Punkt entfaellt
+              mit, sonst stuende "© 2026 . Alle Rechte vorbehalten." */}
+          <p>© {new Date().getFullYear()}
+            {loc((branding as any).associationName)
+              ? ` ${loc((branding as any).associationName)}. `
+              : ' · '}
+            {t('footer.rights')}</p>
         </div>
       </div>
     </footer>

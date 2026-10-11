@@ -1297,10 +1297,21 @@ const translations: Translations = {
   'error.boundary.retry': { en: 'Try again', de: 'Erneut versuchen', sq: 'Provo përsëri' },
 
   // --- FOOTER ---
-  'footer.tagline': { en: 'Together for our home. The diaspora and Koretin, one step towards the future.', de: 'Gemeinsam für unsere Heimat. Die Diaspora und Koretin, einen Schritt in die Zukunft.', sq: 'Bashkë për vendlindjen tonë. Diaspora dhe Koretini në një hap drejt të ardhmes.' },
+  // footer.tagline ist entfallen. Der Satz gehoert einem Verein, nicht
+  // der Plattform -- er steht jetzt in dessen branding.footerText, wo
+  // die Adminmaske ihn auch bearbeiten kann. Als Rueckfall hier haette
+  // jeder andere Verein mit leerer Fusszeile ihn als seinen eigenen
+  // angezeigt.
   'footer.rights': { en: 'All rights reserved.', de: 'Alle Rechte vorbehalten.', sq: 'Të gjitha të drejtat e rezervuara.' },
-  'footer.address.fallback': { en: 'Koretin, Kosovo', de: 'Koretin, Kosovo', sq: 'Koretin, Kosovë' },
-  'footer.email.fallback': { en: 'info@koretini.org', de: 'info@koretini.org', sq: 'info@koretini.org' },
+  // Die beiden Rueckfaelle sind entfallen. Sie lauteten "Koretin, Kosovo"
+  // und "info@koretini.org" -- die Angaben EINES Vereins, und die
+  // E-Mail-Adresse ueberdies auf der alten Domain. Jeder andere Verein
+  // mit leerer Fusszeile hat sie als seine eigenen angezeigt. Statt zu
+  // raten steht jetzt da, dass noch nichts hinterlegt ist.
+  'footer.contact.none': {
+    en: 'No contact details entered yet.',
+    de: 'Noch keine Kontaktangaben hinterlegt.',
+    sq: 'Nuk janë shtuar ende të dhëna kontakti.' },
 
   // --- UEBER UNS ---
   'about.badge': { en: 'Global network', de: 'Globales Netzwerk', sq: 'Rrjet global' },

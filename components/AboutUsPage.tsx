@@ -176,13 +176,20 @@ const AboutUsPage: React.FC = () => {
             
             <div className="relative h-[600px] flex items-center justify-center">
                  <Globe markers={globeMarkers} />
+                 {/* Die Karte braucht eine Ortsangabe. Hier stand ein Rueckfall
+                     auf "Koretin, Kosovo" -- fuer einen zweiten Verein waere das
+                     ein fremder Ort gewesen, mitten auf seiner Ueber-uns-Seite.
+                     Ohne hinterlegte Anschrift bleibt das Kaertchen aus; der
+                     Globus selbst zeigt ohnehin die eigenen Nachbarschaften. */}
+                 {loc(branding.footerAddress) && (
                  <div className="absolute bottom-10 left-10 bg-white/80 backdrop-blur-md p-6 rounded-3xl shadow-xl border border-white max-w-xs">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white"><MapPin size={16} /></div>
-                        <p className="font-bold text-sm">{loc(branding.footerAddress) || t('footer.address.fallback')}</p>
+                        <p className="font-bold text-sm">{loc(branding.footerAddress)}</p>
                     </div>
                     <p className="text-xs text-stone-500 italic">{t('about.map.center_desc')}</p>
                  </div>
+                 )}
             </div>
         </div>
 
