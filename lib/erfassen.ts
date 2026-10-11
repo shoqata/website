@@ -98,16 +98,16 @@ export type NeuesMitglied = {
 
 // Hat diese Adresse schon jemand?
 //
-// users.email ist GLOBAL eindeutig, nicht je Verein -- gemessen:
-// UNIQUE (email) auf public.users, ohne tenantId. Ein zweiter Eintrag
-// mit derselben Adresse scheitert darum mit 23505, und der Rohtext
-// "duplicate key value violates unique constraint users_email_key"
-// sagt niemandem, was zu tun ist.
+// users.email ist je VEREIN eindeutig (users_email_je_verein, ohne
+// Ruecksicht auf Gross- und Kleinschreibung). Ein zweiter Eintrag mit
+// derselben Adresse im selben Verein scheitert mit 23505, und der
+// Rohtext "duplicate key value violates unique constraint" sagt
+// niemandem, was zu tun ist.
 //
-// Die Vorabsuche findet den haeufigen Fall: die Person ist im eigenen
-// Verein schon erfasst. Liegt die Adresse bei einem ANDEREN Verein,
-// findet sie nichts -- die Leseregel laesst fremde Zeilen nicht
-// durch -- und dann traegt die uebersetzte Fehlermeldung unten.
+// Die Suche laeuft ueber die Leseregel und sieht darum nur den eigenen
+// Verein -- genau richtig: eine Adresse in einem anderen Verein ist
+// seit der Umstellung kein Hindernis mehr, und sie dort zu melden
+// waere ueberdies ein Blick in fremde Daten.
 export async function mitgliedMitAdresse(
   email: string,
 ): Promise<{ id: string; displayName: string } | null> {
@@ -128,9 +128,14 @@ export async function mitgliedMitAdresse(
 export function fehlerKlartext(meldung: string): string {
   const m = String(meldung ?? '');
   if (/users_email_key|users_email_partial_key/.test(m)) {
-    return 'Diese E-Mail-Adresse ist bereits vergeben. Jede Adresse darf nur '
-      + 'einmal vorkommen — auch über Vereine hinweg. Bitte die bestehende '
-      + 'Person bearbeiten oder eine andere Adresse verwenden.';
+    // Der Zusatz "auch über Vereine hinweg" stand hier und stimmt seit
+    // der Umstellung auf users_email_je_verein nicht mehr: dieselbe
+    // Person DARF jetzt in mehreren Vereinen Mitglied sein. Innerhalb
+    // eines Vereins bleibt die Adresse eindeutig, und nur darum geht es
+    // hier noch.
+    return 'Diese E-Mail-Adresse ist in diesem Verein bereits vergeben. Bitte '
+      + 'die bestehende Person bearbeiten oder eine andere Adresse verwenden — '
+      + 'leer lassen geht auch, dann läuft alles über Post.';
   }
   if (/users_auth_user_id_key/.test(m)) {
     return 'Dieses Anmeldekonto ist bereits mit einem anderen Mitglied verbunden.';

@@ -140,6 +140,11 @@ describe('Fehler in Klartext', () => {
     expect(klar).not.toContain('users_email_key');
     expect(klar).toContain('E-Mail-Adresse');
     expect(klar.length).toBeGreaterThan(40);
+    // Und sie darf nicht behaupten, die Adresse sei ueberall vergeben:
+    // seit users_email_je_verein darf dieselbe Person in mehreren
+    // Vereinen Mitglied sein. Der Satz stand zuerst falsch hier.
+    expect(klar).toContain('in diesem Verein');
+    expect(klar).not.toContain('über Vereine hinweg');
   });
 
   it('das doppelte Anmeldekonto auch', async () => {
