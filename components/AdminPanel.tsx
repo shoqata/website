@@ -37,6 +37,7 @@ import Papa from 'papaparse';
 // Sub-components
 import AdminAnalytics from './AdminAnalytics';
 import AdminWebsite from './AdminWebsite';
+import AdminSeo from './AdminSeo';
 import SocialAI from './SocialAI';
 import AdminFinance from './AdminFinance';
 import AdminPaymentReports from './AdminPaymentReports';
@@ -63,7 +64,7 @@ import { missingFieldKeys, qualityScore, feeStateFor, hasDeliveryConflict } from
 import { isPlaceholderEmail, hasUsableEmail, emailMissingForDelivery, deliveryNeedsEmail } from '../lib/memberEmail';
 import AdminTreffen from './AdminTreffen';
 import SuperAdminTreffen from './SuperAdminTreffen';
-type AdminTabId = 'USERS' | 'NEIGHBORHOODS' | 'ANALYTICS' | 'STATISTICS' | 'WEBSITE' | 'SOCIAL_AI' | 'EVENTS' | 'NEWS' | 'FINANCE' | 'EXPENSES' | 'DATA' | 'ACCOUNTING' | 'SETTINGS' | 'BOARD' | 'COMMUNICATION' | 'DATA_QUALITY' | 'STAMMBAUM' | 'MARKTPLATZ' | 'SPENDEN' | 'VIDEOS' | 'PROZESSE' | 'TREFFEN';
+type AdminTabId = 'USERS' | 'NEIGHBORHOODS' | 'ANALYTICS' | 'STATISTICS' | 'WEBSITE' | 'SOCIAL_AI' | 'EVENTS' | 'NEWS' | 'FINANCE' | 'EXPENSES' | 'DATA' | 'ACCOUNTING' | 'SETTINGS' | 'BOARD' | 'COMMUNICATION' | 'DATA_QUALITY' | 'STAMMBAUM' | 'MARKTPLATZ' | 'SPENDEN' | 'VIDEOS' | 'PROZESSE' | 'TREFFEN' | 'SEO';
 
 interface NavItem {
     id: AdminTabId;
@@ -223,6 +224,9 @@ const AdminPanel: React.FC = () => {
               { id: 'VIDEOS', label: t('admin.tab.videos'), icon: <Film size={18} /> },
               { id: 'NEWS', label: t('admin.tab.news'), icon: <Newspaper size={18} /> },
               { id: 'WEBSITE', label: t('admin.tab.website'), icon: <Globe size={18} /> },
+              // Direkt unter der Website: wer sie gerade bearbeitet hat,
+              // will als naechstes wissen, ob es etwas bringt.
+              { id: 'SEO', label: 'Besuche & SEO', icon: <TrendingUp size={18} /> },
               { id: 'SOCIAL_AI', label: 'Social AI', icon: <Zap size={18} /> },
           ]
       },
@@ -604,6 +608,7 @@ const AdminPanel: React.FC = () => {
                         {activeTab === 'ACCOUNTING' && <AdminAccounting selectedYear={selectedYear} />}
                         {activeTab === 'STATISTICS' && <AdminStatistics users={users} payments={payments} neighborhoods={neighborhoods} selectedYear={selectedYear} />}
                         {activeTab === 'WEBSITE' && <AdminWebsite />}
+                        {activeTab === 'SEO' && <AdminSeo />}
                         {activeTab === 'SOCIAL_AI' && <SocialAI />}
                         {activeTab === 'DATA' && <AdminData />}
                         {activeTab === 'STAMMBAUM' && <AdminStammbaum />}

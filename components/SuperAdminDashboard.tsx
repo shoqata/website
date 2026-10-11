@@ -36,12 +36,13 @@ import { useFeedback } from '../context/FeedbackContext';
 import { signOut } from '@/services/supabase-bridge';
 import { useNavigate } from 'react-router-dom';
 import SuperAdminTreffen from './SuperAdminTreffen';
+import AdminSeo from './AdminSeo';
 
 const SuperAdminDashboard: React.FC<{ user?: any }> = ({ user }) => {
   const { t } = useTranslation();
   const { showAlert, showPrompt } = useFeedback();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'CRM' | 'FINANCES' | 'MODULE' | 'TREFFEN' | 'CONFIG'>('OVERVIEW');
+  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'CRM' | 'FINANCES' | 'MODULE' | 'TREFFEN' | 'SEO' | 'CONFIG'>('OVERVIEW');
   const [tenants, setTenants] = useState<Tenant[]>([]);
   // Die Meta-App. Nur Nummer und Rueckruf-Adresse -- das App-Geheimnis
   // gehoert in die Umgebung der Funktion meta-oauth und nie hierher.
@@ -259,6 +260,11 @@ const SuperAdminDashboard: React.FC<{ user?: any }> = ({ user }) => {
   const renderContent = () => {
       switch(activeTab) {
           case 'TREFFEN': return <SuperAdminTreffen />;
+          // Dieselbe Maske wie beim Verein, nur mit anderem Umfang. Die
+          // Zugriffspruefung steckt in den Datenbankfunktionen -- der
+          // Schalter hier entscheidet nur, ob zusaetzlich die Tabelle je
+          // Verein erscheint.
+          case 'SEO': return <div className="p-8 md:p-12"><AdminSeo fuerBetreiber /></div>;
         case 'MODULE': return <SuperAdminModule />;
           case 'CRM':
               return (
@@ -568,6 +574,9 @@ const SuperAdminDashboard: React.FC<{ user?: any }> = ({ user }) => {
                     </button>
                     <button onClick={() => setActiveTab('TREFFEN')} className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-3 transition-all ${activeTab === 'TREFFEN' ? 'bg-white/10 text-white' : 'text-stone-400 hover:text-white hover:bg-white/5'}`}>
                         <CalendarDays size={18}/> Vereinstreffen
+                    </button>
+                    <button onClick={() => setActiveTab('SEO')} className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-3 transition-all ${activeTab === 'SEO' ? 'bg-white/10 text-white' : 'text-stone-400 hover:text-white hover:bg-white/5'}`}>
+                        <TrendingUp size={18}/> Websites & SEO
                     </button>
                     <button onClick={() => setActiveTab('CONFIG')} className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-3 transition-all ${activeTab === 'CONFIG' ? 'bg-white/10 text-white' : 'text-stone-400 hover:text-white hover:bg-white/5'}`}>
                         <Settings size={18} /> {t('sa.configuration')}
