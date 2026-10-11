@@ -5,6 +5,7 @@ import {
 import { supabase } from '@/services/supabase-bridge';
 import AdminVorstandsrechte from './AdminVorstandsrechte';
 import AdminVertreterrechte from './AdminVertreterrechte';
+import AdminVerantwortliche from './AdminVerantwortliche';
 
 // Rollenverwaltung.
 //
@@ -194,6 +195,14 @@ const AdminRollenverwaltung: React.FC = () => {
       {/* ----------------------------- Was die Rollen im Einzelnen duerfen */}
       <AdminVorstandsrechte />
       <AdminVertreterrechte />
+
+      {/* Und wer davon tatsaechlich hereinkommt.
+          Die Rechte oben festzulegen genuegt nicht: gemessen konnten
+          sechs von acht hinterlegten Verantwortlichen sich gar nicht
+          anmelden, darunter der von Canaj-t mit 45 Mitgliedern. Die
+          schoenste Rechteverwaltung wirkt auf niemanden, der nicht
+          hereinkommt -- darum steht das hier direkt darunter. */}
+      <AdminVerantwortliche />
     </div>
   );
 };
