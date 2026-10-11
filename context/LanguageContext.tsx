@@ -430,6 +430,17 @@ const translations: Translations = {
     en: 'Booked. {betrag} still open — the invoice stays due.',
     de: 'Gebucht. {betrag} bleiben offen — die Rechnung bleibt fällig.',
     sq: 'U regjistrua. {betrag} mbeten të hapura — fatura mbetet për pagesë.' },
+  // Dass eine Zeile anklickbar ist, muss dastehen. Sie war schon ein
+  // Knopf, sah aber wie eine Karte aus -- und auf dem Telefon gibt es
+  // kein Darueberfahren, das es verraten haette.
+  'steward.edit': { en: 'Edit', de: 'Bearbeiten', sq: 'Përpunо' },
+  'steward.not_editable_short': {
+    en: 'board — not editable', de: 'Vorstand — nicht änderbar',
+    sq: 'kryesi — nuk ndryshohet' },
+  'steward.list_hint': {
+    en: 'Tap a member to correct their details.',
+    de: 'Auf ein Mitglied tippen, um die Angaben zu berichtigen.',
+    sq: 'Shtypni një anëtar për të korrigjuar të dhënat.' },
   'steward.amount_received': { en: 'Amount received', de: 'Erhaltener Betrag',
     sq: 'Shuma e marrë' },
   'steward.amount_more': {

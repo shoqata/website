@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { VERTRETER_FELD_KEYS } from '../lib/vertreterfelder';
 import { motion } from 'framer-motion';
 import {
-  Home, Users, Receipt, Search, Save, Loader2, CheckCircle2, Clock,
+  Home, Users, Receipt, Search, Save, Loader2, CheckCircle2, Clock, Pencil,
   AlertTriangle, Phone, Mail, MapPin, Send, X, ShieldAlert,
 } from 'lucide-react';
 import { db } from '../services/datenzugriff';
@@ -383,6 +383,11 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
             ))}
           </div>
 
+          {gefiltert.length > 0 && (
+            <p className="text-xs text-stone-500 mb-1">
+              {t('steward.list_hint')}
+            </p>
+          )}
           {gefiltert.length === 0 && (
             <p className="text-sm text-stone-400 italic p-6 text-center">{t('steward.filter_empty')}</p>
           )}
@@ -390,7 +395,11 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
           <div className="grid gap-3">
             {gefiltert.map(({ m, beitrag, fehlt, bearbeitbar }) => (
               <button key={m.id} onClick={() => setBearbeitet({ ...m })}
-                className="text-left bg-white border border-stone-100 rounded-2xl p-5 hover:border-stone-300 transition-colors flex flex-wrap items-start justify-between gap-4">
+                disabled={!bearbeitbar}
+                className={`text-left bg-white border rounded-2xl p-5 flex flex-wrap items-start justify-between gap-4 transition-colors ${
+                  bearbeitbar
+                    ? 'border-stone-200 hover:border-stone-400 hover:bg-stone-50 cursor-pointer'
+                    : 'border-stone-100 opacity-70 cursor-not-allowed'}`}>
                 <div className="min-w-0 flex-1 space-y-1.5">
                   <p className="font-bold text-stone-900 truncate flex items-center gap-2">
                     <span>{m.displayName || '-'}</span>
@@ -438,6 +447,17 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
                     <span className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1.5 text-right">
                       <AlertTriangle size={12} className="shrink-0" />
                       {t('steward.data_missing')}: {fehlt.map(k => t(k)).join(', ')}
+                    </span>
+                  )}
+                
+                  {/* Dass die Zeile anklickbar ist, muss dastehen. */}
+                  {bearbeitbar ? (
+                    <span className="mt-1 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-stone-900 text-white flex items-center gap-1.5">
+                      <Pencil size={11} /> {t('steward.edit')}
+                    </span>
+                  ) : (
+                    <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-stone-400">
+                      {t('steward.not_editable_short')}
                     </span>
                   )}
                 </div>
