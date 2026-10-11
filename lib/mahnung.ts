@@ -1,4 +1,5 @@
 import { supabase } from '@/services/supabase-bridge';
+import { einstellungLaden } from './einstellungen';
 import { sendEmail, postausgangBereit } from '../services/mailService';
 import { hasUsableEmail } from './memberEmail';
 import { textwerkLaden, textFuer, alsHtml, sprachenFuer, type Textwerk } from './textbaustein';
@@ -62,9 +63,14 @@ export async function mahnungSenden(
   // das anders zu entscheiden -- lieber ohne Anhang als gar nicht. Eine
   // Mahnung aber verweist ausdruecklich auf die Beilage; ohne sie
   // verschickt sie eine Unwahrheit.
-  const { data: zahlwerk } = await supabase.from('settings')
-    .select('data').eq('id', 'payment').maybeSingle();
-  const z: any = (zahlwerk?.data as any) ?? {};
+  // Ueber einstellungLaden, weil hier die FALSCHE Spalte stand:
+  // select('data') statt select('payment'). Die Spalte data ist bei
+  // allen Zeilen {} -- die QR-Rechnung bekam also nie eine IBAN, das
+  // PDF scheiterte, und die Mahnung wurde mit "Die Rechnung liess sich
+  // nicht erzeugen" abgelehnt. Aus genau dieser Meldung habe ich auf
+  // eine fehlende IBAN geschlossen und dem Verein mehrfach gesagt, er
+  // muesse eine eintragen -- die er laengst eingetragen hatte.
+  const z: any = await einstellungLaden('payment');
 
   const pdf = await erzeugeRechnungPdf({
     nummer: zahlung.invoiceNumber || '',

@@ -1,4 +1,5 @@
 import { supabase } from '@/services/supabase-bridge';
+import { einstellungLaden, alsText } from './einstellungen';
 import { mahnungSenden } from './mahnung';
 import { sendEmail, versandsatz } from '../services/mailService';
 import { alsHtml } from './textbaustein';
@@ -89,12 +90,11 @@ export async function karteAusfuehren(k: Karte): Promise<string> {
 
     const { data: m } = await supabase.from('users')
       .select('id,displayName,email,sprache').eq('id', z.userId).maybeSingle();
-    const { data: marke } = await supabase.from('settings')
-      .select('data').eq('id', 'branding').maybeSingle();
-    const verein = (marke?.data as any)?.associationName || '';
-
-    const r = await mahnungSenden(z, m, typeof verein === 'string' ? verein
-      : (verein?.de || verein?.sq || verein?.en || ''));
+    // Dieselbe falsche Spalte wie in mahnung.ts: select('data') statt
+    // select('branding'). Der Vereinsname war damit immer leer, und die
+    // Mahnung ging ohne Absendernamen hinaus -- ohne jeden Fehler.
+    const marke: any = await einstellungLaden('branding');
+    const r = await mahnungSenden(z, m, alsText(marke?.associationName));
     return `Mahnung ${r.stufe} an ${r.empfaenger} verschickt (${r.sprachen.join('/')}).`;
   }
 
