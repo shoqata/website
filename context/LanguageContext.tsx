@@ -433,6 +433,28 @@ const translations: Translations = {
   // Dass eine Zeile anklickbar ist, muss dastehen. Sie war schon ein
   // Knopf, sah aber wie eine Karte aus -- und auf dem Telefon gibt es
   // kein Darueberfahren, das es verraten haette.
+  // Der Klick auf eine Nachbarskachel brach bisher still ab, wenn die
+  // Betreuungsabfrage leer war -- und leer hiess dreierlei: nicht
+  // verantwortlich, noch nicht geladen, oder fehlgeschlagen. Jeder Fall
+  // sagt jetzt, was los ist.
+  'dash.manage.loading': {
+    en: 'Still checking which neighbourhoods you look after — one moment.',
+    de: 'Es wird noch geprüft, welche Nachbarschaften Sie betreuen — einen Moment.',
+    sq: 'Po kontrollohet për cilat lagje jeni përgjegjës — një moment.' },
+  'dash.manage.failed': {
+    en: 'Could not determine which neighbourhoods you look after: {reason}',
+    de: 'Es liess sich nicht feststellen, welche Nachbarschaften Sie betreuen: {reason}',
+    sq: 'Nuk mund të përcaktohej për cilat lagje jeni përgjegjës: {reason}' },
+  'dash.manage.not_steward': {
+    en: 'You are not listed as a contact person for this neighbourhood. The administration enters that under Neighbourhoods.',
+    de: 'Sie sind für diese Nachbarschaft nicht als Kontaktperson hinterlegt. Die Vereinsadministration trägt das unter Nachbarschaften ein.',
+    sq: 'Nuk jeni i regjistruar si person kontakti për këtë lagje. Administrata e shton nën Lagjet.' },
+  'dash.manage.full': {
+    en: 'Edit all details', de: 'Alle Angaben bearbeiten',
+    sq: 'Përpunо të gjitha të dhënat' },
+  'dash.update_subject': {
+    en: 'Please update your profile', de: 'Bitte Profil aktualisieren',
+    sq: 'Ju lutemi përditësoni profilin' },
   'steward.edit': { en: 'Edit', de: 'Bearbeiten', sq: 'Përpunо' },
   'steward.not_editable_short': {
     en: 'board — not editable', de: 'Vorstand — nicht änderbar',

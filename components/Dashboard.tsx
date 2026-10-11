@@ -90,6 +90,16 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [weitereKontakte, setWeitereKontakte] = useState<any[]>([]);
   // Nachbarschaften, fuer die dieses Mitglied selbst verantwortlich ist.
   const [betreutNachbarschaften, setBetreutNachbarschaften] = useState<string[]>([]);
+  // Ob die Betreuungsabfrage ueberhaupt durch ist, und mit welchem
+  // Ergebnis. Eine leere Liste allein konnte drei Dinge heissen: nicht
+  // verantwortlich, noch nicht geladen, oder Abfrage fehlgeschlagen.
+  // Alle drei endeten in einem Klick, der nichts tut -- und genau das
+  // wurde gemeldet: "ich klicke auf ein Mitglied, es passiert nichts".
+  const [betreuungStand, setBetreuungStand] =
+    useState<{ geladen: boolean; fehler?: string }>({ geladen: false });
+  // Was dieser Verein seinen Verantwortlichen erlaubt. Dieselbe Quelle
+  // wie in der Betreuungsmaske -- zwei Listen laufen auseinander.
+  const [erlaubteFelder, setErlaubteFelder] = useState<Set<string>>(new Set());
   const [nachbarschaftsZahlungen, setNachbarschaftsZahlungen] = useState<Payment[]>([]);
   // Freigegebene Sitzungsprotokolle. Welche das sind, entscheidet die
   // Zugriffsregel -- ein nicht freigegebenes wird gar nicht erst geliefert.
@@ -218,11 +228,30 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   useEffect(() => {
     let lebt = true;
     (async () => {
-      const [kontakte, meine] = await Promise.all([myNeighborhoodContacts(), myNeighborhoods()]);
+      let meine: string[] = [];
+      let kontakte: any[] = [];
+      let fehler: string | undefined;
+      try {
+        [kontakte, meine] = await Promise.all([myNeighborhoodContacts(), myNeighborhoods()]);
+      } catch (e: any) {
+        // Fruehere Fassung liess den Fehler durchfallen: die Zuweisung
+        // unten wurde dann nie erreicht, und der Klick blieb ohne
+        // Wirkung -- ohne jede Spur, warum.
+        fehler = e?.message || String(e);
+      }
       if (!lebt) return;
       setManager((kontakte[0] as any) || null);
       setWeitereKontakte(kontakte.slice(1));
       setBetreutNachbarschaften(meine);
+      setBetreuungStand({ geladen: true, fehler });
+
+      // Die Freigabeliste des Vereins, wie in der Betreuungsmaske.
+      // supabase wird hier bei Bedarf geholt, wie schon an anderer
+      // Stelle in dieser Datei -- der Baustein soll nicht wegen einer
+      // Nebenabfrage am Anfang geladen werden.
+      const { supabase: sb } = await import('../services/supabase-bridge');
+      const { data: tn } = await sb.from('tenants').select('vertreter_felder').maybeSingle();
+      if (lebt) setErlaubteFelder(new Set(((tn as any)?.vertreter_felder as string[]) ?? []));
 
       // Die Rechnungen der betreuten Nachbarschaften. Ohne Filter auf
       // neighborhoodId -- das Feld ist nur bei 3 von 324 Zahlungen gesetzt.
@@ -286,7 +315,22 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       // verantwortlichen Personen tragen fast alle die Rolle MEMBER, und die
       // Kacheln waren fuer sie deshalb nicht anklickbar. Ob die Aenderung
       // durchgeht, entscheidet ohnehin die Zugriffsregel.
-      if (!istBetreuer) return;
+      // Kein stummes return mehr. Jeder der drei Faelle sagt, was los
+      // ist -- sonst sucht der Nutzer den Fehler bei sich, und ich suche
+      // ihn an der falschen Stelle.
+      if (!betreuungStand.geladen) {
+          showAlert({ type: 'error', message: t('dash.manage.loading') });
+          return;
+      }
+      if (betreuungStand.fehler) {
+          showAlert({ type: 'error',
+                      message: t('dash.manage.failed', { reason: betreuungStand.fehler }) });
+          return;
+      }
+      if (!istBetreuer) {
+          showAlert({ type: 'error', message: t('dash.manage.not_steward') });
+          return;
+      }
       setManagedNeighbor(neighbor);
       setManagedData({ ...neighbor });
   };
@@ -298,16 +342,39 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           const displayName = `${managedData.firstName || ''} ${managedData.lastName || ''}`.trim() || managedData.displayName;
           const address = `${managedData.street || ''}, ${managedData.zip || ''} ${managedData.city || ''}, ${managedData.country || 'Switzerland'}`;
           
-          await updateDoc(doc(db, 'users', managedNeighbor.id), {
-              ...managedData,
+          // Hier stand ...managedData -- die GANZE Mitgliederzeile, jede
+          // Spalte, dazu dataUpdateRequested. Das Feld steht in keiner
+          // Freigabeliste, und der Ausloeser in der Datenbank weist
+          // deshalb den GESAMTEN Vorgang ab, auch die erlaubten Felder.
+          // Gemeldet wurde das als "kann nichts aendern"; der Grund
+          // stand in der Meldung, die das catch unten verworfen hat.
+          const roh: Record<string, any> = {
+              email: managedData.email ?? null,
+              phone: managedData.phone ?? null,
+              street: managedData.street ?? null,
+              zip: managedData.zip ?? null,
+              city: managedData.city ?? null,
+              country: managedData.country ?? null,
+              birthdate: managedData.birthdate?.trim() || null,
               displayName,
               address,
-              dataUpdateRequested: false // Reset flag as data is now provided
-          });
+          };
+          const zuSchicken = Object.fromEntries(
+              Object.entries(roh).filter(([k]) => erlaubteFelder.has(k)));
+
+          if (Object.keys(zuSchicken).length === 0) {
+              // Sonst meldete ein updateDoc({}) ohne Fehler Erfolg.
+              showAlert({ type: 'error', message: t('steward.nothing_allowed') });
+              return;
+          }
+
+          await updateDoc(doc(db, 'users', managedNeighbor.id), zuSchicken as any);
           showAlert({ type: 'success', message: t('dash.saved') });
           setManagedNeighbor(null);
-      } catch (e) {
-          showAlert({ type: 'error', message: t('common.error') });
+      } catch (e: any) {
+          // Den echten Grund zeigen. Die Datenbank schreibt dort genau,
+          // welches Feld sie abgewiesen hat.
+          showAlert({ type: 'error', message: e?.message || t('common.error') });
       }
   };
 
@@ -320,7 +387,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       try {
           await sendEmail({
               to: managedNeighbor.email,
-              subject: "Bitte Profil aktualisieren - Shoqata Koretini",
+              // Stand fest auf "Shoqata Koretini" -- ein zweiter Verein
+              // haette in seinem eigenen Namen mit dem fremden
+              // geschrieben. Derselbe Fehler wie in der Fusszeile.
+              subject: `${t('dash.update_subject')}${loc((branding as any)?.associationName) ? ' - ' + loc((branding as any).associationName) : ''}`,
               html: `<p>Hallo ${managedNeighbor.displayName},</p><p>Dein Nachbarschafts-Manager (${user.displayName}) bittet dich, deine Profildaten (Adresse, Telefon) zu aktualisieren, um die Erreichbarkeit sicherzustellen.</p><p><a href="${window.location.origin}/#/login">{t('dash.login_here')}</a></p>`
           });
           
@@ -1102,6 +1172,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                             <button onClick={handleSaveManagedNeighbor} className="w-full py-3 bg-stone-900 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-black transition-all">
                                 <Save size={16}/> {t('dash.save_data')}
                             </button>
+                            {/* Dieses Fenster bietet sieben Felder. Die
+                                Betreuungsansicht bietet alle freigegebenen und
+                                sagt zudem je Mitglied, was fehlt -- genau das
+                                wurde hier vermisst. Ein Weg dorthin ist
+                                ehrlicher als ein drittes Formular. */}
+                            <Link to="/nachbarschaft"
+                                className="w-full py-3 text-center text-xs font-bold text-stone-500 hover:text-stone-900 transition-colors">
+                                {t('dash.manage.full')} →
+                            </Link>
                             <div className="relative py-2 flex items-center">
                                 <div className="flex-grow border-t border-stone-200"></div>
                                 <span className="flex-shrink-0 mx-4 text-stone-400 text-xs font-bold uppercase">{t('common.or')}</span>
