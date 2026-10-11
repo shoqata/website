@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import type { Zahlungseingang } from "../types";
 
 // Credentials
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
@@ -1041,7 +1042,8 @@ export async function reportPaymentPaid(
   paymentId: string,
   method?: string | null,
   paidOn?: string | null,
-  note?: string | null
+  note?: string | null,
+  betrag?: number | null
 ): Promise<string> {
   if (!supabase) throw new Error("Supabase ist nicht eingerichtet.");
   const { data, error } = await supabase.rpc("report_payment_paid", {
@@ -1049,6 +1051,9 @@ export async function reportPaymentPaid(
     p_method: method || null,
     p_paid_on: paidOn || null,
     p_note: note || null,
+    // Was der Verantwortliche wirklich bekommen hat. Ohne Angabe bleibt
+    // es beim Rechnungsbetrag, wie bisher.
+    p_betrag: betrag ?? null,
   });
   if (error) throw new Error(error.message);
   return data as string;
@@ -1078,15 +1083,87 @@ export async function decidePaymentReport(
 export async function markPaymentPaid(
   paymentId: string,
   method?: string | null,
-  paidOn?: string | null
+  paidOn?: string | null,
+  betrag?: number | null
 ): Promise<void> {
   if (!supabase) throw new Error("Supabase ist nicht eingerichtet.");
   const { error } = await supabase.rpc("mark_payment_paid", {
     p_payment: paymentId,
     p_method: method || null,
     p_paid_on: paidOn || null,
+    // Ohne Betrag gilt weiterhin "der noch offene Rest" -- bei einer
+    // Rechnung ohne Eingaenge also der Rechnungsbetrag. So wirken
+    // vorhandene Aufrufe unveraendert.
+    p_betrag: betrag ?? null,
   });
   if (error) throw new Error(error.message);
+}
+
+
+// Die Zahlungseingaenge einer Rechnung.
+//
+// Getrennt geladen und nicht an der Rechnung mitgeschleppt: bei 322
+// Rechnungen waere das eine lange Liste, die fast nie gebraucht wird.
+export async function zahlungseingaengeLaden(
+  paymentId: string
+): Promise<Zahlungseingang[]> {
+  if (!supabase) throw new Error("Supabase ist nicht eingerichtet.");
+  const { data, error } = await supabase
+    .from("zahlungseingaenge")
+    .select('id,"tenantId","paymentId",betrag,waehrung,weg,eingang,"erfasstVon","erfasstAm",notiz,altbestand')
+    .eq("paymentId", paymentId)
+    .order("eingang", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data as Zahlungseingang[]) ?? [];
+}
+
+
+// Einen Zahlungseingang erfassen.
+//
+// Der Betrag ist das Pflichtstueck -- genau der, der angekommen ist, auch
+// wenn er vom Rechnungsbetrag abweicht. Verein, Erfasser und Buchung
+// setzt der Server.
+export async function zahlungEingangErfassen(
+  paymentId: string,
+  betrag: number,
+  weg?: string | null,
+  eingang?: string | null,
+  notiz?: string | null
+): Promise<string> {
+  if (!supabase) throw new Error("Supabase ist nicht eingerichtet.");
+  const { data, error } = await supabase.rpc("zahlung_eingang_erfassen", {
+    p_payment: paymentId,
+    p_betrag: betrag,
+    p_weg: weg || null,
+    p_eingang: eingang || null,
+    p_notiz: notiz || null,
+  });
+  if (error) throw new Error(error.message);
+  return data as string;
+}
+
+
+// Einen falsch erfassten Eingang zuruecknehmen. Die Gegenbuchung geht
+// mit -- darum eine Funktion und kein Delete.
+export async function zahlungEingangEntfernen(id: string): Promise<void> {
+  if (!supabase) throw new Error("Supabase ist nicht eingerichtet.");
+  const { error } = await supabase.rpc("zahlung_eingang_entfernen", { p_eingang: id });
+  if (error) throw new Error(error.message);
+}
+
+
+// Was die Differenz bedeutet, und damit die Buchung dazu.
+export async function zahlungDifferenzSetzen(
+  paymentId: string,
+  art: "OFFEN" | "SPENDE" | "GUTHABEN" | "ERLASS"
+): Promise<{ art: string; differenz: number; gebucht: boolean; hinweis?: string }> {
+  if (!supabase) throw new Error("Supabase ist nicht eingerichtet.");
+  const { data, error } = await supabase.rpc("zahlung_differenz_setzen", {
+    p_payment: paymentId,
+    p_art: art,
+  });
+  if (error) throw new Error(error.message);
+  return data as any;
 }
 
 // Anfrage von der Startseite der Plattform.

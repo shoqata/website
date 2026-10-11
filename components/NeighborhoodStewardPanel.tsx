@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { VERTRETER_FELD_KEYS } from '../lib/vertreterfelder';
 import { motion } from 'framer-motion';
 import {
   Home, Users, Receipt, Search, Save, Loader2, CheckCircle2, Clock,
@@ -137,6 +138,21 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
     });
   }, [bewertet, suche, filter]);
 
+  // Der angezeigte Name folgt Vor- und Nachnamen -- aber nur, solange er
+  // noch dem alten Paar entspricht. Wer ihn eigens gesetzt hat (etwa
+  // "Familie Dervishi"), soll ihn nicht beim Berichtigen des Vornamens
+  // verlieren.
+  const namenFolgen = (m: any, feldName: 'firstName' | 'lastName', wert: string) => {
+    const neu = { ...m, [feldName]: wert };
+    const altPaar = [m.firstName, m.lastName].filter(Boolean).join(' ').trim();
+    const eigens = (m.displayName || '').trim() && (m.displayName || '').trim() !== altPaar;
+    if (!eigens) {
+      neu.displayName = [neu.firstName, neu.lastName].filter(Boolean).join(' ').trim()
+        || m.displayName;
+    }
+    return neu;
+  };
+
   const nameVon = (id?: string) => mitglieder.find(m => m.id === id)?.displayName || '-';
   const offen = rechnungen.filter(r => r.status !== 'PAID');
   const bezahlt = rechnungen.filter(r => r.status === 'PAID');
@@ -154,7 +170,8 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
       // die erlaubten Felder.
       const nurErlaubt = (o: Record<string, any>) =>
         Object.fromEntries(Object.entries(o).filter(([k]) => erlaubt.has(k)));
-      await updateDoc(doc(db, 'users', bearbeitet.id), nurErlaubt({
+
+      const zuSchicken = nurErlaubt({
         // Leer wird zu NULL: in der Spalte steht heute keine einzige leere
         // Zeichenkette, und dabei soll es bleiben.
         birthdate: bearbeitet.birthdate?.trim() || null,
@@ -177,7 +194,33 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
         membershipCategory: (bearbeitet as any).membershipCategory || null,
         familyId: (bearbeitet as any).familyId || null,
         invoiceDeliveryMethod: (bearbeitet as any).invoiceDeliveryMethod || null,
-      }) as any);
+        // Die Person selbst. Diese sechs Felder fehlten, obwohl die
+        // Administration sie freigegeben hatte -- darunter der Name. Ein
+        // Verantwortlicher, der einen Schreibfehler berichtigen wollte,
+        // fand kein Feld dafuer und hielt es fuer ein fehlendes Recht.
+        salutation: (bearbeitet as any).salutation || null,
+        firstName: (bearbeitet as any).firstName || null,
+        lastName: (bearbeitet as any).lastName || null,
+        displayName: bearbeitet.displayName || null,
+        sprache: (bearbeitet as any).sprache || null,
+        phoneSecondary: (bearbeitet as any).phoneSecondary || null,
+        billingGroup: (bearbeitet as any).billingGroup || null,
+        customAnnualFee: (bearbeitet as any).customAnnualFee === '' ||
+                         (bearbeitet as any).customAnnualFee === undefined
+          ? null : Number((bearbeitet as any).customAnnualFee),
+      });
+
+      // Bleibt nichts uebrig, wird nichts geschickt -- und vor allem kein
+      // Erfolg gemeldet. Vorher ergab eine leere Freigabeliste ein
+      // updateDoc({}), das ohne Fehler durchlief: die Maske sagte
+      // "gespeichert", und geaendert war nichts. Genau diese Art stiller
+      // Erfolgsmeldung hat in diesem Projekt schon mehrfach Zeit gekostet.
+      if (Object.keys(zuSchicken).length === 0) {
+        showAlert({ type: 'error', message: t('steward.nothing_allowed') });
+        return;
+      }
+
+      await updateDoc(doc(db, 'users', bearbeitet.id), zuSchicken as any);
       setMitglieder(l => l.map(m => (m.id === bearbeitet.id ? bearbeitet : m)));
       showAlert({ type: 'success', message: t('steward.saved') });
       setBearbeitet(null);
@@ -215,6 +258,17 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
     const dazu = (bearbeitet as any)?.membershipCategory;
     return [...new Set([...vorhanden, ...(dazu ? [String(dazu)] : []),
                         'AKTIV', 'PASSIV', 'INDIVIDUAL'])].sort();
+  }, [mitglieder, bearbeitet]);
+
+  // Beitragsgruppen ebenso aus den Daten. Gemessen bei Koretini:
+  // STANDARD 329, KOSOVO 3, ohne Angabe 8. Eine feste Liste haette den
+  // vorhandenen Wert still verworfen -- und hier haengt Geld daran.
+  const beitragsgruppen = React.useMemo(() => {
+    const vorhanden = mitglieder
+      .map(m => String((m as any).billingGroup ?? '').trim())
+      .filter(Boolean);
+    const dazu = (bearbeitet as any)?.billingGroup;
+    return [...new Set([...vorhanden, ...(dazu ? [String(dazu)] : [])])].sort();
   }, [mitglieder, bearbeitet]);
 
   const feld = 'w-full p-3 bg-white border border-stone-200 rounded-xl outline-none text-sm focus:border-[color:color-mix(in_srgb,var(--primary)_40%,transparent)] transition-colors';
@@ -430,16 +484,97 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
                   hier aber nicht einzutragen -- die Ansicht verlangte etwas, das
                   sie nicht anbot. Es ist zugleich die Grundlage der
                   Geburtstagsgruesse: bisher haben 17 von 350 Mitgliedern eines. */}
+              {/* Hat der Verein nichts freigegeben, ist die Maske leer --
+                  das muss dastehen und nicht als stummes Formular enden. */}
+              {erlaubt.size === 0 && (
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex gap-2.5 text-amber-800">
+                  <ShieldAlert size={16} className="mt-0.5 shrink-0" />
+                  <p className="text-xs leading-relaxed">{t('steward.nothing_allowed')}</p>
+                </div>
+              )}
+
+              {/* Die Person. Jedes Feld haengt an der Freigabe -- eines
+                  anzuzeigen, das die Datenbank zurueckweist, waere eine
+                  Falle; eines zu verbergen, das freigegeben ist, war der
+                  Fehler, den dieser Abschnitt behebt. */}
+              {erlaubt.has('salutation') && (
+                <div>
+                  <label className={marke}>Anrede</label>
+                  <select value={(bearbeitet as any).salutation || ''}
+                    onChange={e => setBearbeitet({ ...bearbeitet, salutation: e.target.value } as any)}
+                    className={feld}>
+                    <option value="">—</option>
+                    <option value="HERR">Herr</option>
+                    <option value="FRAU">Frau</option>
+                    <option value="FAMILIE">Familie</option>
+                  </select>
+                </div>
+              )}
+              {(erlaubt.has('firstName') || erlaubt.has('lastName')) && (
+                <div className="grid grid-cols-2 gap-3">
+                  {erlaubt.has('firstName') && (
+                    <div>
+                      <label className={marke}>{t('field.firstName')}</label>
+                      <input value={(bearbeitet as any).firstName || ''}
+                        onChange={e => setBearbeitet(namenFolgen(bearbeitet, 'firstName', e.target.value))}
+                        className={feld} />
+                    </div>
+                  )}
+                  {erlaubt.has('lastName') && (
+                    <div>
+                      <label className={marke}>{t('field.lastName')}</label>
+                      <input value={(bearbeitet as any).lastName || ''}
+                        onChange={e => setBearbeitet(namenFolgen(bearbeitet, 'lastName', e.target.value))}
+                        className={feld} />
+                    </div>
+                  )}
+                </div>
+              )}
+              {erlaubt.has('displayName') && (
+                <div>
+                  <label className={marke}>Angezeigter Name</label>
+                  <input value={bearbeitet.displayName || ''}
+                    onChange={e => setBearbeitet({ ...bearbeitet, displayName: e.target.value })}
+                    className={feld} />
+                  <p className="text-[10px] text-stone-400 mt-1">
+                    Folgt Vor- und Nachnamen, solange er nicht eigens geändert wird.
+                  </p>
+                </div>
+              )}
+              {erlaubt.has('birthdate') && (
               <div>
                 <label className={marke}>{t('field.birthdate')}</label>
                 <input type="date" value={bearbeitet.birthdate || ''}
                   onChange={e => setBearbeitet({ ...bearbeitet, birthdate: e.target.value })}
                   className={feld} />
               </div>
+              )}
+              {erlaubt.has('sprache') && (
+                <div>
+                  <label className={marke}>Sprache</label>
+                  <div className="flex gap-1 bg-stone-100 p-1 rounded-xl">
+                    {([['', 'beide'], ['sq', 'Shqip'], ['de', 'Deutsch']] as const).map(([w, n]) => (
+                      <button key={w || 'beide'} type="button"
+                        onClick={() => setBearbeitet({ ...bearbeitet, sprache: w || null } as any)}
+                        className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
+                          ((bearbeitet as any).sprache || '') === w
+                            ? 'bg-stone-900 text-white' : 'text-stone-500 hover:text-stone-800'}`}>
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-stone-400 mt-1">
+                    Ohne Angabe gehen Briefe zweisprachig hinaus, Albanisch zuerst.
+                  </p>
+                </div>
+              )}
+              {erlaubt.has('street') && (
               <div>
                 <label className={marke}>{t('admin.members.street_no')}</label>
                 <input value={bearbeitet.street || ''} onChange={e => setBearbeitet({ ...bearbeitet, street: e.target.value })} className={feld} />
               </div>
+              )}
+              {(erlaubt.has('zip') || erlaubt.has('city')) && (
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className={marke}>{t('field.zip')}</label>
@@ -450,18 +585,33 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
                   <input value={bearbeitet.city || ''} onChange={e => setBearbeitet({ ...bearbeitet, city: e.target.value })} className={feld} />
                 </div>
               </div>
+              )}
+              {erlaubt.has('country') && (
               <div>
                 <label className={marke}>{t('field.country')}</label>
                 <CountrySelect value={bearbeitet.country} onChange={v => setBearbeitet({ ...bearbeitet, country: v })} className={feld} />
               </div>
+              )}
+              {erlaubt.has('phone') && (
               <div>
                 <label className={marke}>{t('field.phone')}</label>
                 <input value={bearbeitet.phone || ''} onChange={e => setBearbeitet({ ...bearbeitet, phone: e.target.value })} className={feld} />
               </div>
+              )}
+              {erlaubt.has('phoneSecondary') && (
+                <div>
+                  <label className={marke}>Telefon (zweit)</label>
+                  <input value={(bearbeitet as any).phoneSecondary || ''}
+                    onChange={e => setBearbeitet({ ...bearbeitet, phoneSecondary: e.target.value } as any)}
+                    className={feld} />
+                </div>
+              )}
+              {erlaubt.has('email') && (
               <div>
                 <label className={marke}>{t('field.email')}</label>
                 <input value={bearbeitet.email || ''} onChange={e => setBearbeitet({ ...bearbeitet, email: e.target.value })} className={feld} />
               </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 {erlaubt.has('membershipCategory') && (
                 <div>
@@ -486,6 +636,40 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
                 </div>
                 )}
               </div>
+              {/* Geld. Diese beiden standen im Katalog der Adminmaske, hatten
+                  aber nirgends ein Eingabefeld -- die Freigabe war damit
+                  wirkungslos. Sie bleiben bewusst unten und mit Hinweis:
+                  sie bestimmen, was jemand zahlt. */}
+              {(erlaubt.has('billingGroup') || erlaubt.has('customAnnualFee')) && (
+                <div className="p-4 bg-stone-50 border border-stone-200 rounded-xl space-y-3">
+                  <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">
+                    Beitrag — bestimmt, was dieses Mitglied zahlt
+                  </p>
+                  {erlaubt.has('billingGroup') && (
+                    <div>
+                      <label className={marke}>Beitragsgruppe</label>
+                      <select value={(bearbeitet as any).billingGroup || ''}
+                        onChange={e => setBearbeitet({ ...bearbeitet, billingGroup: e.target.value } as any)}
+                        className={feld}>
+                        <option value="">—</option>
+                        {beitragsgruppen.map(g => <option key={g} value={g}>{g}</option>)}
+                      </select>
+                    </div>
+                  )}
+                  {erlaubt.has('customAnnualFee') && (
+                    <div>
+                      <label className={marke}>Eigener Jahresbeitrag</label>
+                      <input type="number" step="0.05" min="0"
+                        value={(bearbeitet as any).customAnnualFee ?? ''}
+                        onChange={e => setBearbeitet({ ...bearbeitet, customAnnualFee: e.target.value } as any)}
+                        className={feld} placeholder="leer = nach Beitragsgruppe" />
+                      <p className="text-[10px] text-stone-400 mt-1">
+                        Überschreibt die Beitragsgruppe. Leer lassen heisst: normaler Beitrag.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
               {erlaubt.has('invoiceDeliveryMethod') && (
                 <div>
                   <label className={marke}>Rechnungsweg</label>
@@ -558,6 +742,7 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
                 </p>
               </div>
 
+              {erlaubt.has('nicht_oeffentlich') && (
               <label className="flex items-start gap-3 p-4 rounded-2xl border border-stone-200 bg-stone-50 cursor-pointer">
                 <input type="checkbox" checked={!!bearbeitet.nicht_oeffentlich}
                   onChange={e => setBearbeitet({ ...bearbeitet, nicht_oeffentlich: e.target.checked })}
@@ -567,6 +752,7 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
                   <span className="block text-xs text-stone-500 leading-relaxed mt-0.5">{t('oeff.mitglied_text')}</span>
                 </span>
               </label>
+              )}
             </div>
             <div className="p-6 border-t border-stone-100 bg-stone-50 flex gap-3">
               <button onClick={() => setBearbeitet(null)} className="flex-1 py-3 bg-stone-200 text-stone-600 rounded-xl font-bold">{t('common.cancel')}</button>

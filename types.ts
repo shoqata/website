@@ -114,6 +114,25 @@ export interface Neighborhood {
   lastActivity: string;
 }
 
+// Ein einzelner Zahlungseingang zu einer Rechnung.
+//
+// Eine Zeile je Eingang statt eines Feldes am Zahlungssatz: ein Mitglied
+// gibt 20 jetzt und 20 spaeter, und eine Revision will beide sehen --
+// samt wann und von wem erfasst.
+export interface Zahlungseingang {
+  id: string;
+  tenantId?: string;
+  paymentId: string;
+  betrag: number;          // negativ = Rueckzahlung an das Mitglied
+  waehrung: string;
+  weg?: string | null;
+  eingang: string;         // YYYY-MM-DD
+  erfasstVon?: string | null;
+  erfasstAm?: string;
+  notiz?: string | null;
+  altbestand?: boolean;    // Stand aus der Zeit vor den Eingaengen
+}
+
 export interface Payment {
   id: string;
   tenantId?: string;
@@ -145,6 +164,14 @@ export interface Payment {
   timestamp: any;
   dueDate?: string;
   paidAt?: string;
+
+  // Was tatsaechlich eingegangen ist -- Summe der Zahlungseingaenge.
+  // Wird serverseitig gepflegt und darf aus der Anwendung nie gesetzt
+  // werden: zwei Quellen fuer eine Zahl laufen auseinander.
+  bezahlt?: number;
+  // Was die Abweichung zwischen amount und bezahlt bedeutet. Der Verein
+  // entscheidet das, nicht die Software.
+  differenzArt?: 'OFFEN' | 'SPENDE' | 'GUTHABEN' | 'ERLASS';
   invoiceNumber?: string;
   reference?: string;
   description?: string;

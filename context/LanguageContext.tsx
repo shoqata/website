@@ -397,6 +397,13 @@ const translations: Translations = {
   'steward.no_address': { en: 'No address recorded', de: 'Keine Adresse erfasst', sq: 'Pa adresë të regjistruar' },
   'steward.no_invoices': { en: 'No invoices for this neighborhood yet.', de: 'Noch keine Rechnungen für diese Nachbarschaft.', sq: 'Ende asnjë faturë për këtë lagje.' },
   'steward.saved': { en: 'Address updated', de: 'Adresse aktualisiert', sq: 'Adresa u përditësua' },
+  // "Gespeichert" waere hier eine Luege: schickt die Maske nichts, weil
+  // der Verein nichts freigegeben hat, aendert sich nichts. Vorher lief
+  // genau dieser Fall als Erfolg durch.
+  'steward.nothing_allowed': {
+    en: 'Your association has not released any fields for neighbourhood stewards yet. Ask the administration to set this under Settings → Steward rights.',
+    de: 'Ihr Verein hat für Nachbarschaftsverantwortliche noch keine Felder freigegeben. Die Vereinsadministration legt das unter Einstellungen → Rechte der Verantwortlichen fest.',
+    sq: 'Shoqata juaj nuk ka lëshuar ende fusha për përgjegjësit e lagjeve. Administrata e cakton këtë nën Cilësimet → Të drejtat e përgjegjësve.' },
   'steward.reported': { en: 'Payment reported — the board will confirm it', de: 'Zahlung gemeldet — der Vorstand bestätigt sie', sq: 'Pagesa u raportua — bordi do ta konfirmojë' },
   'steward.report': { en: 'Report as paid', de: 'Als bezahlt melden', sq: 'Raporto si të paguar' },
   'steward.send_report': { en: 'Send report', de: 'Meldung senden', sq: 'Dërgo raportin' },

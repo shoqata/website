@@ -16,40 +16,14 @@ import { supabase } from '@/services/supabase-bridge';
 // befoerdern oder Mitglieder in die eigene Lagje ziehen kann, pflegt
 // keine Daten mehr, sondern erweitert seine Zustaendigkeit.
 
-type Feld = { key: string; name: string; hinweis?: string };
-
-const GRUPPEN: { titel: string; felder: Feld[] }[] = [
-  { titel: 'Person', felder: [
-    { key: 'salutation', name: 'Anrede' },
-    { key: 'firstName', name: 'Vorname' },
-    { key: 'lastName', name: 'Nachname' },
-    { key: 'displayName', name: 'Angezeigter Name' },
-    { key: 'birthdate', name: 'Geburtsdatum' },
-    { key: 'sprache', name: 'Sprache' },
-  ] },
-  { titel: 'Erreichbarkeit', felder: [
-    { key: 'street', name: 'Strasse' },
-    { key: 'zip', name: 'PLZ' },
-    { key: 'city', name: 'Ort' },
-    { key: 'country', name: 'Land' },
-    { key: 'address', name: 'Adresszeile' },
-    { key: 'phone', name: 'Telefon' },
-    { key: 'phoneSecondary', name: 'Telefon (zweit)' },
-    { key: 'email', name: 'E-Mail' },
-  ] },
-  { titel: 'Zuordnung', felder: [
-    { key: 'membershipCategory', name: 'Kategorie' },
-    { key: 'familyId', name: 'Familie' },
-    { key: 'nicht_oeffentlich', name: 'Nicht öffentlich zeigen' },
-    { key: 'invoiceDeliveryMethod', name: 'Rechnungsweg (E-Mail / Post)' },
-  ] },
-  { titel: 'Geld — mit Bedacht', felder: [
-    { key: 'billingGroup', name: 'Beitragsgruppe',
-      hinweis: 'bestimmt, was jemand zahlt' },
-    { key: 'customAnnualFee', name: 'Eigener Beitrag',
-      hinweis: 'überschreibt die Beitragsgruppe' },
-  ] },
-];
+// Der Katalog steht in lib/vertreterfelder.ts, nicht hier.
+//
+// Er stand hier -- und die Betreuungsmaske hatte ihre eigene, kuerzere
+// Fassung als Satz von Eingabefeldern. Die beiden sind auseinander
+// gelaufen: 18 Felder freigegeben, 11 angeboten. Der Admin konnte
+// "Vorname" ankreuzen, und in der Maske erschien nichts. Eine
+// Einstellung, die nichts bewirkt, ist schlechter als keine.
+import { VERTRETER_GRUPPEN as GRUPPEN } from '../lib/vertreterfelder';
 
 const GESPERRT = [
   { name: 'Rolle', warum: 'Wer sich selbst befördern kann, ist nicht gebunden.' },
