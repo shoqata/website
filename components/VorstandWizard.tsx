@@ -73,6 +73,11 @@ const VorstandWizard: React.FC<Props> = ({ mitglieder, nachbarschaften, onClose,
     [mitglieder]);
 
   // ------------------------------------------------------- Rechnung
+  // Willkommensnachricht. Vorgabe AN -- das ist der haeufige Fall bei
+  // einem neuen Mitglied. Wer einen Altbestand nachtraegt, schaltet es
+  // aus; darum ein sichtbarer Schalter und keine stille Vorgabe.
+  const [willkommen, setWillkommen] = useState(true);
+
   const [suche, setSuche] = useState('');
   const [fuer, setFuer] = useState<UserProfile | null>(null);
   const [r, setR] = useState({
@@ -103,6 +108,10 @@ const VorstandWizard: React.FC<Props> = ({ mitglieder, nachbarschaften, onClose,
       const id = await mitgliedErfassen({
         ...m,
         invoiceDeliveryMethod: m.invoiceDeliveryMethod || undefined,
+        // Ohne brauchbare Adresse geht ohnehin nichts hinaus; die
+        // Funktion in der Datenbank prueft das ebenfalls. Hier gar nicht
+        // erst zu fragen waere besser als eine Zusage, die nicht haelt.
+        willkommen: willkommen && !!m.email.trim(),
       } as any);
       showAlert({ type: 'success', message: `${m.firstName} ${m.lastName} ist erfasst.` });
       onFertig?.();
@@ -347,6 +356,26 @@ const VorstandWizard: React.FC<Props> = ({ mitglieder, nachbarschaften, onClose,
                   „Automatisch" heisst: E-Mail, wenn eine brauchbare Adresse vorliegt, sonst Post.
                 </p>
               </div>
+
+              {/* Die Begruessung. Steht sichtbar hier und nicht still im
+                  Hintergrund: eine Nachricht an ein Mitglied ist nichts,
+                  was ohne Wissen des Erfassers hinausgehen soll. */}
+              <label className={`flex items-start gap-3 p-4 rounded-xl border transition-colors ${
+                m.email.trim() ? 'bg-white border-stone-200 cursor-pointer hover:border-stone-400'
+                               : 'bg-stone-50 border-stone-100'}`}>
+                <input type="checkbox" checked={willkommen && !!m.email.trim()}
+                  disabled={!m.email.trim()}
+                  onChange={e => setWillkommen(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 accent-stone-900 shrink-0" />
+                <span className="text-xs leading-relaxed">
+                  <span className="font-bold text-stone-900 block">Willkommensnachricht senden</span>
+                  <span className="text-stone-500">
+                    {m.email.trim()
+                      ? 'Zweisprachig, Albanisch zuerst. Sie wird in den Postausgang gelegt und von dort verschickt.'
+                      : 'Ohne E-Mail-Adresse nicht möglich — die Aufnahme geht trotzdem durch.'}
+                  </span>
+                </span>
+              </label>
 
               {/* Noch einmal lesen, bevor es steht. */}
               <div className="p-4 bg-stone-50 border border-stone-200 rounded-xl space-y-1 text-xs">

@@ -101,6 +101,23 @@ const RegistrationWizard: React.FC = () => {
       
       await setDoc(doc(db, 'users', user.uid), profileData);
 
+      // Willkommensnachricht einreihen -- noch angemeldet, denn gleich
+      // unten wird abgemeldet, und die Funktion in der Datenbank laesst
+      // nur das Mitglied selbst oder die Vereinsleitung durch.
+      //
+      // Verschickt wird nichts: der Postausgang nimmt sie und entscheidet
+      // ueber den Weg. Scheitert das Einreihen, bleibt die Anmeldung
+      // trotzdem gueltig -- eine missglueckte Begruessung darf keine
+      // Aufnahme rueckgaengig machen.
+      try {
+        const { supabase } = await import('@/services/supabase-bridge');
+        const { error: wErr } = await supabase.rpc('willkommen_einreihen',
+          { p_member: user.uid });
+        if (wErr) console.error('[Registrierung] Willkommensnachricht:', wErr.message);
+      } catch (wErr) {
+        console.error('[Registrierung] Willkommensnachricht:', wErr);
+      }
+
       // 3. Send Email Verification
       await sendEmailVerification(user);
 

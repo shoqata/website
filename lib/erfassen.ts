@@ -90,6 +90,10 @@ export type NeuesMitglied = {
   membershipCategory?: string;
   billingGroup?: string;
   invoiceDeliveryMethod?: 'EMAIL' | 'POST' | 'BOTH';
+  // Willkommensnachricht einreihen? Ausdruecklich und nicht als
+  // Vorgabe: wer einen Altbestand nachtraegt, will keine 300 Briefe
+  // ausloesen. Der Wizard fragt danach.
+  willkommen?: boolean;
 };
 
 export function mitgliedPruefen(e: NeuesMitglied): string | null {
@@ -136,6 +140,21 @@ export async function mitgliedErfassen(e: NeuesMitglied): Promise<string> {
     invoiceDeliveryMethod: e.invoiceDeliveryMethod || null,
     timestamp: serverTimestamp(),
   });
+
+  // Die Nachricht wird EINGEREIHT, nicht verschickt -- den Versand macht
+  // der Postausgang. Scheitert das Einreihen, ist das Mitglied trotzdem
+  // erfasst: eine missglueckte Begruessung darf keine Aufnahme
+  // rueckgaengig machen.
+  if (e.willkommen) {
+    try {
+      const { supabase } = await import('@/services/supabase-bridge');
+      const { error } = await supabase.rpc('willkommen_einreihen', { p_member: id });
+      if (error) console.error('[erfassen] Willkommensnachricht:', error.message);
+    } catch (err) {
+      console.error('[erfassen] Willkommensnachricht:', err);
+    }
+  }
+
   return id;
 }
 
