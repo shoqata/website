@@ -54,6 +54,11 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
   const [meldung, setMeldung] = useState<Payment | null>(null);
   const [meldeArt, setMeldeArt] = useState('CASH');
   const [meldeNotiz, setMeldeNotiz] = useState('');
+  // Was der Verantwortliche wirklich bekommen hat. Als Text gehalten und
+  // nicht als Zahl: ein leeres Zahlenfeld ist in React entweder NaN oder
+  // 0, und 0 waere hier eine Aussage ("nichts bekommen") statt einer
+  // fehlenden Angabe.
+  const [meldeBetrag, setMeldeBetrag] = useState('');
   const [meldet, setMeldet] = useState(false);
 
   const laden = async () => {
@@ -231,11 +236,30 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
     }
   };
 
+  // Eine Meldung oeffnen und mit dem Rechnungsbetrag vorbelegen.
+  const oeffneMeldung = (z: Payment) => {
+    setMeldung(z);
+    setMeldeBetrag(String(z.amount ?? ''));
+    setMeldeNotiz('');
+  };
+
   const melden = async () => {
     if (!meldung?.id) return;
     setMeldet(true);
     try {
-      await reportPaymentPaid(meldung.id, meldeArt, new Date().toISOString().slice(0, 10), meldeNotiz || null);
+      // Der gemeldete Betrag darf abweichen -- genau das ist der Zweck.
+      // Unsinn soll er nicht sein: null oder negativ waere keine
+      // Zahlung, und die Datenbank weist es ohnehin zurueck. Es hier zu
+      // sagen erspart dem Verantwortlichen die technische Meldung.
+      const betrag = Number(String(meldeBetrag).replace(',', '.'));
+      if (!Number.isFinite(betrag) || betrag <= 0) {
+        showAlert({ type: 'error', message: t('steward.amount_invalid') });
+        setMeldet(false);
+        return;
+      }
+      await reportPaymentPaid(
+        meldung.id, meldeArt, new Date().toISOString().slice(0, 10),
+        meldeNotiz || null, betrag);
       showAlert({ type: 'success', message: t('steward.reported') });
       setMeldung(null); setMeldeNotiz('');
     } catch (e: any) {
@@ -447,7 +471,7 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
                     <span className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase bg-amber-50 text-amber-700 flex items-center gap-1.5">
                       <Clock size={12} /> {t('steward.open')}
                     </span>
-                    <button onClick={() => setMeldung(r)}
+                    <button onClick={() => oeffneMeldung(r)}
                       className="px-4 py-2 bg-stone-900 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 hover:bg-stone-700 transition-colors">
                       <Send size={12} /> {t('steward.report')}
                     </button>
@@ -783,6 +807,35 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
               </div>
               <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 leading-relaxed">
                 {t('steward.report_explain')}
+              </div>
+              {/* Der Betrag. Vorher ging immer der Rechnungsbetrag hinaus,
+                  egal was an der Tuer uebergeben wurde -- wer 30 statt 40
+                  bekam, konnte das nicht melden, und der Vorstand
+                  bestaetigte anschliessend eine Zahlung, die es so nicht
+                  gab. */}
+              <div>
+                <label className={marke}>{t('steward.amount_received')}</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-stone-400">
+                    {meldung.currency || 'CHF'}
+                  </span>
+                  <input type="text" inputMode="decimal" value={meldeBetrag}
+                    onChange={e => setMeldeBetrag(e.target.value)}
+                    className={feld + ' pl-14 font-mono font-bold'} />
+                </div>
+                {(() => {
+                  const b = Number(String(meldeBetrag).replace(',', '.'));
+                  const soll = Number(meldung.amount ?? 0);
+                  if (!Number.isFinite(b) || b === soll) return null;
+                  const d = b - soll;
+                  return (
+                    <p className={`text-[11px] mt-1.5 font-bold ${d > 0 ? 'text-sky-700' : 'text-amber-700'}`}>
+                      {d > 0
+                        ? t('steward.amount_more', { betrag: d.toFixed(2) })
+                        : t('steward.amount_less', { betrag: Math.abs(d).toFixed(2) })}
+                    </p>
+                  );
+                })()}
               </div>
               <div>
                 <label className={marke}>{t('steward.method')}</label>

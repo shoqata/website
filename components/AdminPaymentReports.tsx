@@ -16,16 +16,24 @@ const AdminPaymentReports: React.FC = () => {
   const { showAlert } = useFeedback();
   const [meldungen, setMeldungen] = useState<any[]>([]);
   const [namen, setNamen] = useState<Record<string, string>>({});
+  const [rechnungen, setRechnungen] = useState<Record<string, any>>({});
   const [laedt, setLaedt] = useState(true);
   const [arbeitet, setArbeitet] = useState<string | null>(null);
 
   const laden = async () => {
     setLaedt(true);
     try {
-      const [rep, usr] = await Promise.all([
+      const [rep, usr, zhl] = await Promise.all([
         getDocs(query(collection(db, 'payment_reports'))),
         getDocs(query(collection(db, 'users'))),
+        getDocs(query(collection(db, 'payments'))),
       ]);
+      // Was verrechnet wurde und was schon eingegangen ist. Der gemeldete
+      // Betrag allein sagt nichts -- erst daneben wird sichtbar, dass
+      // jemand zu wenig oder zu viel gegeben hat.
+      const rech: Record<string, any> = {};
+      zhl.docs.forEach(d => { rech[d.id] = d.data(); });
+      setRechnungen(rech);
       const karte: Record<string, string> = {};
       usr.docs.forEach(d => { karte[d.id] = (d.data() as any).displayName || d.id; });
       setNamen(karte);
@@ -78,7 +86,28 @@ const AdminPaymentReports: React.FC = () => {
         <div key={m.id} className="bg-white border border-stone-100 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4">
           <div className="min-w-0 space-y-1">
             <p className="font-bold text-stone-900 flex items-center gap-2">
-              <Banknote size={14} className="text-primary" /> {m.amount} · {m.method || '-'}
+              <Banknote size={14} className="text-primary" />
+              {(() => {
+                const r = rechnungen[m.paymentId] || {};
+                const soll = Number(r.amount ?? NaN);
+                const ist = Number(m.amount ?? NaN);
+                const waehrung = r.currency || 'CHF';
+                if (!Number.isFinite(soll) || !Number.isFinite(ist) || soll === ist) {
+                  return <span>{waehrung} {Number.isFinite(ist) ? ist.toFixed(2) : '?'} · {m.method || '-'}</span>;
+                }
+                const d = ist - soll;
+                return (
+                  <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="font-mono font-bold">{waehrung} {ist.toFixed(2)}</span>
+                    <span className="text-stone-400 line-through font-mono">{soll.toFixed(2)}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                      d > 0 ? 'bg-sky-100 text-sky-800' : 'bg-amber-100 text-amber-800'}`}>
+                      {d > 0 ? `+${d.toFixed(2)} zu viel` : `${d.toFixed(2)} offen`}
+                    </span>
+                    <span className="text-stone-400">· {m.method || '-'}</span>
+                  </span>
+                );
+              })()}
             </p>
             <p className="text-xs text-stone-500 flex flex-wrap items-center gap-3">
               <span className="flex items-center gap-1"><User size={11} /> {t('reports.by')} {namen[m.reportedBy] || m.reportedBy}</span>

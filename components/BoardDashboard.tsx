@@ -5,7 +5,7 @@ import { UserProfile, Payment, Neighborhood, Inquiry, BoardMeeting } from '../ty
 import BoardMinutesEditor from './BoardMinutesEditor';
 import CountrySelect from './ui/CountrySelect';
 import { missingFieldKeys } from '../lib/memberQuality';
-import { markPaymentPaid } from '@/services/supabase-bridge';
+import { markPaymentPaid, zahlungDifferenzSetzen } from '@/services/supabase-bridge';
 import { db } from '../services/datenzugriff';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc } from '@/services/supabase-bridge';
 import { 
@@ -242,23 +242,85 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
       }
   };
 
+  // Welche Rechnung gerade gebucht wird, und mit welchem Betrag.
+  //
+  // Vorher war das ein einziger Klick, der immer den Rechnungsbetrag
+  // buchte. Das ist der haeufige Fall, aber nicht der einzige: es kommt
+  // vor, dass jemand mehr oder weniger gibt, und dann stand im Journal
+  // trotzdem der verrechnete Betrag -- die Kasse stimmte nicht.
+  const [buchung, setBuchung] = React.useState<Payment | null>(null);
+  const [buchBetrag, setBuchBetrag] = React.useState('');
+  const [buchArt, setBuchArt] = React.useState('BANK_TRANSFER');
+  const [buchLaeuft, setBuchLaeuft] = React.useState(false);
+  // Entstandener Mehrbetrag, ueber den noch zu entscheiden ist. Solange
+  // er gesetzt ist, bleibt das Fenster offen -- die Entscheidung in eine
+  // andere Maske zu verschieben hiesse, dass sie niemand trifft.
+  const [mehrbetrag, setMehrbetrag] = React.useState<{ id: string; betrag: number } | null>(null);
+
+  const offenerRest = (z: Payment) =>
+    Math.max(0, Number(z.amount ?? 0) - Number((z as any).bezahlt ?? 0));
+
   // Eine Zahlung buchen. Der Stand wird serverseitig gesetzt -- dort haengt
   // auch die Erledigung einer offenen Meldung daran.
-  const handleMarkPaid = async (zahlung: Payment) => {
-      const ok = await showConfirm({
-          title: t('board.mark_paid'),
-          message: t('board.mark_paid_confirm', {
-              amount: `${zahlung.amount} ${zahlung.currency || 'CHF'}`,
-              name: users.find(u => u.id === zahlung.userId)?.displayName || '-',
-          }),
-          confirmText: t('board.mark_paid'),
-      });
-      if (!ok) return;
+  // Das Fenster oeffnen, mit dem offenen Rest vorbelegt. Bei einer
+  // Rechnung ohne Eingaenge ist das genau der Rechnungsbetrag -- der
+  // haeufige Fall bleibt also ein Bestaetigen.
+  const handleMarkPaid = (zahlung: Payment) => {
+      setBuchung(zahlung);
+      setBuchBetrag(String(offenerRest(zahlung) || zahlung.amount || ''));
+      setBuchArt(zahlung.method || 'BANK_TRANSFER');
+  };
+
+  const buchen = async () => {
+      if (!buchung) return;
+      const betrag = Number(String(buchBetrag).replace(',', '.'));
+      if (!Number.isFinite(betrag) || betrag <= 0) {
+          showAlert({ type: 'error', message: t('board.amount_invalid') });
+          return;
+      }
+      setBuchLaeuft(true);
       try {
-          await markPaymentPaid(zahlung.id, zahlung.method || 'BANK_TRANSFER', new Date().toISOString().slice(0, 10));
-          showAlert({ type: 'success', message: t('board.marked_paid') });
+          await markPaymentPaid(buchung.id, buchArt,
+              new Date().toISOString().slice(0, 10), betrag);
+          const d = betrag - Number(buchung.amount ?? 0) + Number((buchung as any).bezahlt ?? 0);
+          showAlert({
+              type: 'success',
+              // Die Meldung sagt, was daraus folgt. "Gebucht" allein
+              // liesse offen, ob die Rechnung damit erledigt ist -- und
+              // bei einer Teilzahlung ist sie es nicht.
+              message: d === 0 ? t('board.marked_paid')
+                : d > 0 ? t('board.booked_more', { betrag: d.toFixed(2) })
+                : t('board.booked_less', { betrag: Math.abs(d).toFixed(2) }),
+          });
+          if (d > 0) setMehrbetrag({ id: buchung.id, betrag: d });
+          else setBuchung(null);
       } catch (e: any) {
           showAlert({ type: 'error', message: e?.message || '?' });
+      } finally {
+          setBuchLaeuft(false);
+      }
+  };
+
+  // Was mit dem Mehrbetrag geschieht. Die Software entscheidet das
+  // nicht: ob ein Mitglied 5 Franken gespendet oder eine Anzahlung
+  // fuers naechste Jahr geleistet hat, weiss nur der Verein. Zu raten
+  // hiesse, ihm eine Buchung unterzuschieben.
+  const mehrbetragDeuten = async (art: 'SPENDE' | 'GUTHABEN' | 'OFFEN') => {
+      if (!mehrbetrag) return;
+      setBuchLaeuft(true);
+      try {
+          if (art !== 'OFFEN') await zahlungDifferenzSetzen(mehrbetrag.id, art);
+          showAlert({
+              type: 'success',
+              message: art === 'SPENDE' ? t('board.surplus_donation')
+                : art === 'GUTHABEN' ? t('board.surplus_credit')
+                : t('board.surplus_later'),
+          });
+          setMehrbetrag(null); setBuchung(null);
+      } catch (e: any) {
+          showAlert({ type: 'error', message: e?.message || '?' });
+      } finally {
+          setBuchLaeuft(false);
       }
   };
 
@@ -751,7 +813,19 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                                                     <p className="text-[10px] text-stone-400 font-mono">{inv.invoiceNumber}</p>
                                                 </td>
                                                 <td className="py-3 text-stone-500 font-mono text-xs">{new Date(inv.timestamp?.toDate()).toLocaleDateString()}</td>
-                                                <td className="py-3 text-right font-mono font-bold">{inv.amount} {inv.currency}</td>
+                                                <td className="py-3 text-right font-mono font-bold">
+                                                    {inv.amount} {inv.currency}
+                                                    {/* Angezahlt: vorher sah eine halb bezahlte
+                                                        Rechnung wie eine unbezahlte aus. */}
+                                                    {Number((inv as any).bezahlt ?? 0) > 0 &&
+                                                     Number((inv as any).bezahlt) !== Number(inv.amount) && (
+                                                        <span className={`block text-[10px] font-bold ${
+                                                            Number((inv as any).bezahlt) > Number(inv.amount)
+                                                                ? 'text-sky-700' : 'text-amber-700'}`}>
+                                                            {Number((inv as any).bezahlt).toFixed(2)} erhalten
+                                                        </span>
+                                                    )}
+                                                </td>
                                                 {showInvoiceListModal === 'OPEN' && (
                                                     <td className="py-3 text-right">
                                                         <button onClick={() => handleMarkPaid(inv)}
@@ -980,6 +1054,142 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                     </motion.div>
                 </div>
             )}
+        </AnimatePresence>
+
+        {/* Eine Zahlung buchen.
+            Mit Betrag, weil er abweichen kann. Steht hier als eigenes
+            Fenster und nicht als Bestaetigungsdialog: in eine
+            Bestaetigung laesst sich nichts eintippen, und genau das war
+            der Grund, dass bisher immer der Rechnungsbetrag gebucht
+            wurde. */}
+        <AnimatePresence>
+        {buchung && (
+          <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-stone-900/70 backdrop-blur-sm">
+            <motion.div initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.96, opacity: 0 }}
+              className="bg-white w-full max-w-md rounded-[2rem] shadow-2xl overflow-hidden">
+              <div className="p-6 border-b border-stone-100 bg-stone-50 flex justify-between items-center">
+                <div>
+                  <h3 className="font-bold text-lg text-stone-900">{t('board.mark_paid')}</h3>
+                  <p className="text-xs text-stone-500 mt-0.5">
+                    {users.find(u => u.id === buchung.userId)?.displayName || '-'}
+                    {buchung.invoiceNumber ? ` · ${buchung.invoiceNumber}` : ''}
+                  </p>
+                </div>
+                <button onClick={() => setBuchung(null)}
+                  className="p-2 hover:bg-stone-200 rounded-full text-stone-500"><X size={18} /></button>
+              </div>
+
+              {mehrbetrag ? (
+                <>
+                  <div className="p-8 space-y-4">
+                    <div className="p-4 bg-sky-50 border border-sky-200 rounded-xl">
+                      <p className="text-xs text-sky-900 leading-relaxed">
+                        Gebucht. Es wurden <strong>{mehrbetrag.betrag.toFixed(2)} {buchung.currency || 'CHF'}</strong>{' '}
+                        mehr bezahlt als verrechnet. Was soll damit geschehen?
+                      </p>
+                    </div>
+                    <button onClick={() => mehrbetragDeuten('SPENDE')} disabled={buchLaeuft}
+                      className="w-full p-4 text-left bg-white border border-stone-200 rounded-xl hover:border-stone-400 transition-colors disabled:opacity-50">
+                      <p className="font-bold text-sm text-stone-900">Als Spende verbuchen</p>
+                      <p className="text-[11px] text-stone-500 mt-0.5">
+                        Geht auf das Spendenkonto und erscheint im Jahresergebnis.
+                      </p>
+                    </button>
+                    <button onClick={() => mehrbetragDeuten('GUTHABEN')} disabled={buchLaeuft}
+                      className="w-full p-4 text-left bg-white border border-stone-200 rounded-xl hover:border-stone-400 transition-colors disabled:opacity-50">
+                      <p className="font-bold text-sm text-stone-900">Als Guthaben behalten</p>
+                      <p className="text-[11px] text-stone-500 mt-0.5">
+                        Bleibt eine Verbindlichkeit gegenüber dem Mitglied und kann nächstes Jahr angerechnet werden.
+                      </p>
+                    </button>
+                    <button onClick={() => mehrbetragDeuten('OFFEN')} disabled={buchLaeuft}
+                      className="w-full p-3 text-center text-xs font-bold text-stone-400 hover:text-stone-700 transition-colors disabled:opacity-50">
+                      Später entscheiden
+                    </button>
+                  </div>
+                </>
+              ) : (
+              <>
+              <div className="p-8 space-y-5">
+                <div className="grid grid-cols-2 gap-3 text-center">
+                  <div className="p-3 bg-stone-50 rounded-xl">
+                    <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">verrechnet</p>
+                    <p className="font-mono font-bold text-stone-800 mt-1">
+                      {buchung.currency || 'CHF'} {Number(buchung.amount ?? 0).toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-stone-50 rounded-xl">
+                    <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">bisher erhalten</p>
+                    <p className="font-mono font-bold text-stone-800 mt-1">
+                      {Number((buchung as any).bezahlt ?? 0).toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1.5">
+                    {t('board.amount_received')}
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-stone-400">
+                      {buchung.currency || 'CHF'}
+                    </span>
+                    <input type="text" inputMode="decimal" value={buchBetrag}
+                      onChange={e => setBuchBetrag(e.target.value)}
+                      className="w-full p-3 pl-14 bg-white border border-stone-200 rounded-xl outline-none text-sm font-mono font-bold focus:border-stone-400" />
+                  </div>
+                  {(() => {
+                    const b = Number(String(buchBetrag).replace(',', '.'));
+                    if (!Number.isFinite(b)) return null;
+                    const neu = Number((buchung as any).bezahlt ?? 0) + b;
+                    const d = neu - Number(buchung.amount ?? 0);
+                    if (d === 0) return (
+                      <p className="text-[11px] mt-1.5 font-bold text-emerald-700">
+                        Damit ist die Rechnung gedeckt.
+                      </p>
+                    );
+                    return (
+                      <p className={`text-[11px] mt-1.5 font-bold ${d > 0 ? 'text-sky-700' : 'text-amber-700'}`}>
+                        {d > 0
+                          ? `${d.toFixed(2)} mehr als verrechnet — Sie entscheiden anschliessend, was damit geschieht.`
+                          : `${Math.abs(d).toFixed(2)} bleiben offen — die Rechnung bleibt mahnbar.`}
+                      </p>
+                    );
+                  })()}
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1.5">
+                    {t('steward.method')}
+                  </label>
+                  <select value={buchArt} onChange={e => setBuchArt(e.target.value)}
+                    className="w-full p-3 bg-white border border-stone-200 rounded-xl outline-none text-sm">
+                    <option value="CASH">{t('steward.method_cash')}</option>
+                    <option value="BANK_TRANSFER">{t('steward.method_bank')}</option>
+                    <option value="QR_BILL">QR</option>
+                    <option value="TWINT">TWINT</option>
+                    <option value="PAYPAL">PayPal</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-stone-100 bg-stone-50 flex gap-3">
+                <button onClick={() => setBuchung(null)}
+                  className="flex-1 py-3 bg-stone-200 text-stone-600 rounded-xl font-bold">
+                  {t('common.cancel')}
+                </button>
+                <button onClick={buchen} disabled={buchLaeuft}
+                  className="flex-[2] py-3 bg-emerald-600 text-white rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 disabled:opacity-60">
+                  {buchLaeuft ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
+                  {t('board.mark_paid')}
+                </button>
+              </div>
+              </>
+              )}
+            </motion.div>
+          </div>
+        )}
         </AnimatePresence>
 
     </div>

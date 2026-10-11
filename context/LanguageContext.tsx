@@ -400,6 +400,50 @@ const translations: Translations = {
   // "Gespeichert" waere hier eine Luege: schickt die Maske nichts, weil
   // der Verein nichts freigegeben hat, aendert sich nichts. Vorher lief
   // genau dieser Fall als Erfolg durch.
+  // Der Betrag, der wirklich uebergeben wurde. Vorher ging immer der
+  // Rechnungsbetrag hinaus -- wer 30 statt 40 bekam, konnte das nicht
+  // melden.
+  // Buchen im Vorstandsbereich. Die Meldung sagt, was daraus folgt --
+  // "gebucht" allein liesse offen, ob die Rechnung erledigt ist, und
+  // bei einer Teilzahlung ist sie es nicht.
+  'board.surplus_donation': {
+    en: 'Booked as a donation.', de: 'Als Spende verbucht.',
+    sq: 'U regjistrua si dhuratë.' },
+  'board.surplus_credit': {
+    en: 'Kept as a credit for the member.', de: 'Als Guthaben des Mitglieds behalten.',
+    sq: 'U mbajt si kredi e anëtarit.' },
+  'board.surplus_later': {
+    en: 'The surplus stays visible as an open item.',
+    de: 'Der Mehrbetrag bleibt als offener Posten sichtbar.',
+    sq: 'Shuma e tepërt mbetet e dukshme si zë i hapur.' },
+  'board.amount_received': { en: 'Amount received', de: 'Erhaltener Betrag',
+    sq: 'Shuma e marrë' },
+  'board.amount_invalid': {
+    en: 'Please enter the amount actually received.',
+    de: 'Bitte den tatsächlich erhaltenen Betrag eintragen.',
+    sq: 'Shkruani shumën e marrë vërtet.' },
+  'board.booked_more': {
+    en: 'Booked. {betrag} more than invoiced — decide whether it is a donation or a credit.',
+    de: 'Gebucht. {betrag} mehr als verrechnet — entscheiden Sie, ob das eine Spende oder ein Guthaben ist.',
+    sq: 'U regjistrua. {betrag} më shumë se e faturuar — vendosni nëse është dhuratë apo kredi.' },
+  'board.booked_less': {
+    en: 'Booked. {betrag} still open — the invoice stays due.',
+    de: 'Gebucht. {betrag} bleiben offen — die Rechnung bleibt fällig.',
+    sq: 'U regjistrua. {betrag} mbeten të hapura — fatura mbetet për pagesë.' },
+  'steward.amount_received': { en: 'Amount received', de: 'Erhaltener Betrag',
+    sq: 'Shuma e marrë' },
+  'steward.amount_more': {
+    en: '{betrag} more than invoiced — the board decides whether this is a donation or a credit.',
+    de: '{betrag} mehr als verrechnet — der Vorstand entscheidet, ob das eine Spende oder ein Guthaben ist.',
+    sq: '{betrag} më shumë se e faturuar — kryesia vendos nëse është dhuratë apo kredi.' },
+  'steward.amount_less': {
+    en: '{betrag} less than invoiced — the remainder stays open.',
+    de: '{betrag} weniger als verrechnet — der Rest bleibt offen.',
+    sq: '{betrag} më pak se e faturuar — pjesa tjetër mbetet e hapur.' },
+  'steward.amount_invalid': {
+    en: 'Please enter the amount you actually received.',
+    de: 'Bitte den Betrag eintragen, den Sie tatsächlich erhalten haben.',
+    sq: 'Shkruani shumën që keni marrë vërtet.' },
   'steward.nothing_allowed': {
     en: 'Your association has not released any fields for neighbourhood stewards yet. Ask the administration to set this under Settings → Steward rights.',
     de: 'Ihr Verein hat für Nachbarschaftsverantwortliche noch keine Felder freigegeben. Die Vereinsadministration legt das unter Einstellungen → Rechte der Verantwortlichen fest.',
