@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import {
   mitgliedErfassen, rechnungErfassen, mitgliedPruefen, rechnungPruefen,
-  zustellweg, zahlungsart,
+  zustellweg, zahlungsart, mitgliedMitAdresse,
 } from '../lib/erfassen';
 import { useFeedback } from '../context/FeedbackContext';
 import type { UserProfile, Neighborhood } from '../types';
@@ -77,6 +77,13 @@ const VorstandWizard: React.FC<Props> = ({ mitglieder, nachbarschaften, onClose,
   // einem neuen Mitglied. Wer einen Altbestand nachtraegt, schaltet es
   // aus; darum ein sichtbarer Schalter und keine stille Vorgabe.
   const [willkommen, setWillkommen] = useState(true);
+  // Wer die eingegebene Adresse schon hat. users.email ist global
+  // eindeutig -- ohne diesen Hinweis bekam der Erfasser erst beim
+  // Speichern "duplicate key value violates unique constraint
+  // users_email_key" und wusste nicht, wen er gerade doppelt anlegt.
+  const [belegtVon, setBelegtVon] =
+    useState<{ id: string; displayName: string } | null>(null);
+  const [pruefeAdresse, setPruefeAdresse] = useState(false);
 
   const [suche, setSuche] = useState('');
   const [fuer, setFuer] = useState<UserProfile | null>(null);
@@ -286,11 +293,20 @@ const VorstandWizard: React.FC<Props> = ({ mitglieder, nachbarschaften, onClose,
             <div className="p-8 space-y-4 overflow-y-auto">
               <div>
                 <label className={marke}>E-Mail</label>
-                <input value={m.email} onChange={e => setM({ ...m, email: e.target.value })}
+                <input value={m.email}
+                  onChange={e => { setM({ ...m, email: e.target.value }); setBelegtVon(null); }}
                   className={feld} placeholder="kann leer bleiben" />
                 <p className="text-[10px] text-stone-400 mt-1">
                   Ohne Adresse gehen Rechnungen automatisch per Post.
                 </p>
+                {belegtVon && (
+                  <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 leading-relaxed">
+                    <strong>{belegtVon.displayName}</strong> hat diese Adresse bereits.
+                    Jede Adresse darf nur einmal vorkommen. Bitte die bestehende
+                    Person bearbeiten oder eine andere Adresse eintragen — leer
+                    lassen geht auch, dann läuft alles über Post.
+                  </div>
+                )}
               </div>
               <div>
                 <label className={marke}>Telefon</label>
@@ -311,7 +327,23 @@ const VorstandWizard: React.FC<Props> = ({ mitglieder, nachbarschaften, onClose,
                 </div>
               </div>
             </div>
-            <Fuss zurueck={() => setSchritt(1)} weiter={() => setSchritt(3)} weiterText="Weiter" />
+            <Fuss zurueck={() => setSchritt(1)} weiter={async () => {
+              // Vor dem naechsten Schritt nachsehen, nicht erst beim
+              // Speichern. Wer zwei Schritte weiter eine Meldung ueber
+              // eine Nebenbedingung bekommt, hat die Eingabe schon
+              // vergessen.
+              setBelegtVon(null);
+              const adresse = m.email.trim();
+              if (adresse) {
+                setPruefeAdresse(true);
+                try {
+                  const da = await mitgliedMitAdresse(adresse);
+                  if (da) { setBelegtVon(da); setPruefeAdresse(false); return; }
+                } catch { /* dann traegt die Meldung beim Speichern */ }
+                setPruefeAdresse(false);
+              }
+              setSchritt(3);
+            }} weiterText={pruefeAdresse ? 'Prüft …' : 'Weiter'} sperre={pruefeAdresse} />
           </>
         )}
 

@@ -127,3 +127,39 @@ describe('Pruefung bei der Rechnung', () => {
     expect(rechnungPruefen({ ...gut, description: '  ' })).toBe('description');
   });
 });
+
+describe('Fehler in Klartext', () => {
+  it('die doppelte Adresse wird erklärt, nicht zitiert', async () => {
+    const { fehlerKlartext } = await import('../../lib/erfassen');
+    const roh = 'duplicate key value violates unique constraint "users_email_key"';
+    const klar = fehlerKlartext(roh);
+    // Genau die Meldung, die der Nutzer gesehen hat. Sie ist richtig und
+    // unbrauchbar: sie nennt den Namen einer Nebenbedingung und sagt
+    // nicht, was zu tun ist.
+    expect(klar).not.toContain('duplicate key');
+    expect(klar).not.toContain('users_email_key');
+    expect(klar).toContain('E-Mail-Adresse');
+    expect(klar.length).toBeGreaterThan(40);
+  });
+
+  it('das doppelte Anmeldekonto auch', async () => {
+    const { fehlerKlartext } = await import('../../lib/erfassen');
+    expect(fehlerKlartext('duplicate key ... "users_auth_user_id_key"'))
+      .toContain('Anmeldekonto');
+  });
+
+  it('eine unbekannte Doppelung nennt wenigstens die Bedingung', async () => {
+    const { fehlerKlartext } = await import('../../lib/erfassen');
+    const klar = fehlerKlartext('duplicate key value violates unique constraint "irgendwas_key"');
+    expect(klar).toContain('irgendwas_key');
+    expect(klar).not.toContain('duplicate key');
+  });
+
+  it('andere Meldungen bleiben unverändert', async () => {
+    const { fehlerKlartext } = await import('../../lib/erfassen');
+    // Nicht jede Meldung verbessern wollen: eine unbekannte Ursache
+    // umzuformulieren verschleiert sie nur.
+    expect(fehlerKlartext('permission denied for table users'))
+      .toBe('permission denied for table users');
+  });
+});

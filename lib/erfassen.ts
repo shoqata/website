@@ -96,6 +96,51 @@ export type NeuesMitglied = {
   willkommen?: boolean;
 };
 
+// Hat diese Adresse schon jemand?
+//
+// users.email ist GLOBAL eindeutig, nicht je Verein -- gemessen:
+// UNIQUE (email) auf public.users, ohne tenantId. Ein zweiter Eintrag
+// mit derselben Adresse scheitert darum mit 23505, und der Rohtext
+// "duplicate key value violates unique constraint users_email_key"
+// sagt niemandem, was zu tun ist.
+//
+// Die Vorabsuche findet den haeufigen Fall: die Person ist im eigenen
+// Verein schon erfasst. Liegt die Adresse bei einem ANDEREN Verein,
+// findet sie nichts -- die Leseregel laesst fremde Zeilen nicht
+// durch -- und dann traegt die uebersetzte Fehlermeldung unten.
+export async function mitgliedMitAdresse(
+  email: string,
+): Promise<{ id: string; displayName: string } | null> {
+  const adresse = email.trim().toLowerCase();
+  if (!adresse) return null;
+  const { supabase } = await import('@/services/supabase-bridge');
+  const { data } = await supabase
+    .from('users')
+    .select('id,"displayName"')
+    .ilike('email', adresse)
+    .limit(1);
+  const z = (data as any[])?.[0];
+  return z ? { id: z.id, displayName: z.displayName || z.id } : null;
+}
+
+// Die Rohmeldung von PostgreSQL in einen Satz verwandeln, mit dem man
+// etwas anfangen kann.
+export function fehlerKlartext(meldung: string): string {
+  const m = String(meldung ?? '');
+  if (/users_email_key|users_email_partial_key/.test(m)) {
+    return 'Diese E-Mail-Adresse ist bereits vergeben. Jede Adresse darf nur '
+      + 'einmal vorkommen — auch über Vereine hinweg. Bitte die bestehende '
+      + 'Person bearbeiten oder eine andere Adresse verwenden.';
+  }
+  if (/users_auth_user_id_key/.test(m)) {
+    return 'Dieses Anmeldekonto ist bereits mit einem anderen Mitglied verbunden.';
+  }
+  if (/duplicate key value/.test(m)) {
+    return `Dieser Eintrag gibt es schon (${m.match(/constraint "([^"]+)"/)?.[1] ?? 'doppelt'}).`;
+  }
+  return m;
+}
+
 export function mitgliedPruefen(e: NeuesMitglied): string | null {
   if (!e.firstName?.trim() || !e.lastName?.trim()) return 'name';
   // Ohne Nachbarschaft gehoert das Mitglied niemandem: es erscheint in
@@ -114,7 +159,9 @@ export async function mitgliedErfassen(e: NeuesMitglied): Promise<string> {
   const { addDoc, collection, serverTimestamp, db } = await schreiben();
   const vorname = e.firstName.trim();
   const nachname = e.lastName.trim();
-  const { id } = await addDoc(collection(db, 'users'), {
+  let angelegt: { id: string };
+  try {
+    angelegt = await addDoc(collection(db, 'users'), {
     firstName: vorname,
     lastName: nachname,
     displayName: `${vorname} ${nachname}`,
@@ -139,7 +186,12 @@ export async function mitgliedErfassen(e: NeuesMitglied): Promise<string> {
     billingGroup: e.billingGroup?.trim() || null,
     invoiceDeliveryMethod: e.invoiceDeliveryMethod || null,
     timestamp: serverTimestamp(),
-  });
+    });
+  } catch (err: any) {
+    // Die Rohmeldung der Datenbank hilft niemandem weiter.
+    throw new Error(fehlerKlartext(err?.message ?? String(err)));
+  }
+  const id = angelegt.id;
 
   // Die Nachricht wird EINGEREIHT, nicht verschickt -- den Versand macht
   // der Postausgang. Scheitert das Einreihen, ist das Mitglied trotzdem
