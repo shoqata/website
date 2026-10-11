@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from '../context/LanguageContext';
 import { UserProfile, Payment, Neighborhood, Inquiry, BoardMeeting } from '../types';
 import BoardMinutesEditor from './BoardMinutesEditor';
+import VorstandWizard from './VorstandWizard';
 import CountrySelect from './ui/CountrySelect';
 import { missingFieldKeys } from '../lib/memberQuality';
 import { markPaymentPaid, zahlungDifferenzSetzen } from '@/services/supabase-bridge';
@@ -248,6 +249,13 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
   // buchte. Das ist der haeufige Fall, aber nicht der einzige: es kommt
   // vor, dass jemand mehr oder weniger gibt, und dann stand im Journal
   // trotzdem der verrechnete Betrag -- die Kasse stimmte nicht.
+  // Erfassen von Mitglied und Rechnung. Gemessen: der Server erlaubt dem
+  // Vorstand beides, nur /admin wies ihn ab (isAdmin kennt nur ADMIN und
+  // SUPER_ADMIN). Statt den ganzen Adminbereich zu oeffnen -- dort stehen
+  // Domain, Module und die Rollenvergabe -- zwei Formulare an der Stelle,
+  // an der er ohnehin arbeitet.
+  const [wizard, setWizard] = React.useState(false);
+
   const [buchung, setBuchung] = React.useState<Payment | null>(null);
   const [buchBetrag, setBuchBetrag] = React.useState('');
   const [buchArt, setBuchArt] = React.useState('BANK_TRANSFER');
@@ -409,6 +417,17 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                         ))}
                     </select>
                 </div>
+
+                {/* Erfassen. Steht neben dem Profilknopf, weil der Vorstand
+                    hier arbeitet -- der Adminbereich ist fuer ihn gesperrt,
+                    und das ist richtig: dort stehen Domain, Module und die
+                    Rollenvergabe. */}
+                <button
+                    onClick={() => setWizard(true)}
+                    className="px-4 py-3 bg-stone-900 text-white rounded-2xl shadow-sm hover:bg-stone-800 transition-colors flex items-center gap-2 font-bold text-xs"
+                >
+                    <Plus size={16}/> <span className="hidden sm:inline">Erfassen</span>
+                </button>
 
                 <button 
                     onClick={handleOpenProfile}
@@ -1055,6 +1074,14 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                 </div>
             )}
         </AnimatePresence>
+
+        {wizard && (
+          <VorstandWizard
+            mitglieder={users}
+            nachbarschaften={neighborhoods}
+            onClose={() => setWizard(false)}
+          />
+        )}
 
         {/* Eine Zahlung buchen.
             Mit Betrag, weil er abweichen kann. Steht hier als eigenes

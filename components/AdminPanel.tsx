@@ -56,6 +56,7 @@ import { onImageError } from '../lib/imageFallback';
 import AdminNeighborhoodEditor from './AdminNeighborhoodEditor';
 import CountrySelect from './ui/CountrySelect';
 import AdminPasswordReset from './AdminPasswordReset';
+import { rechnungErfassen } from '../lib/erfassen';
 import { neighborhoodsLedBy } from '../lib/stewardship';
 import { billingYearOf } from '../lib/memberQuality';
 import { missingFieldKeys, qualityScore, feeStateFor, hasDeliveryConflict } from '../lib/memberQuality';
@@ -1193,23 +1194,29 @@ const AdminPanel: React.FC = () => {
                                                   }
 
                                                   try {
-                                                      const method = selectedUser.country === 'Switzerland' ? 'QR_BILL' : 'BANK_TRANSFER';
-                                                      const invoiceNumber = `INV-${Date.now().toString().slice(-5)}`;
-                                                      
-                                                      await addDoc(collection(db, 'payments'), {
-                                                          userId: selectedUser.id,
+                                                      // Ueber die gemeinsame Stelle.
+                                                      //
+                                                      // Hier stand ein eigener Weg mit zwei Fehlern:
+                                                      // die Rechnungsnummer aus fuenf Stellen des
+                                                      // Zeitstempels (wiederholt sich alle hundert
+                                                      // Sekunden), und deliveryMethod fest auf
+                                                      // 'EMAIL'. Gemessen wollen 241 von 348
+                                                      // Rechnungen Post -- eine Rechnung mit EMAIL
+                                                      // an jemanden ohne brauchbare Adresse geht
+                                                      // nirgendwohin, und der Versand meldet keinen
+                                                      // Fehler. Das Beitragsjahr fehlte ausserdem
+                                                      // ganz; drei Rechnungen haben darum keines
+                                                      // und fallen aus jeder Jahresauswertung.
+                                                      const { invoiceNumber, deliveryMethod } =
+                                                        await rechnungErfassen({
+                                                          mitglied: selectedUser as any,
                                                           amount,
-                                                          currency: 'CHF',
                                                           description: desc,
                                                           dueDate: due,
-                                                          status: 'PENDING',
-                                                          method,
-                                                          deliveryMethod: 'EMAIL',
-                                                          invoiceNumber,
-                                                          timestamp: serverTimestamp()
-                                                      });
-                                                      
-                                                      showAlert({ type: 'success', message: t('admin.invoice.created') });
+                                                          billingYear: new Date(due).getFullYear(),
+                                                        });
+                                                      showAlert({ type: 'success',
+                                                        message: `${invoiceNumber} — ${deliveryMethod === 'POST' ? 'Zustellung per Post' : 'Zustellung per E-Mail'}` });
                                                       setUserDrawerTab('HISTORY');
                                                   } catch (e: any) {
                                                       showAlert({ type: 'error', message: t('admin.invoice.failed', { reason: e.message }) });
