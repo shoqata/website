@@ -16,6 +16,7 @@ import {
   signOut,
 } from '@/services/supabase-bridge';
 import { collection, getDocs, query, orderBy, doc, setDoc } from '@/services/supabase-bridge';
+import { zielErreicht } from '@/lib/zaehler';
 import { Neighborhood } from '../types';
 
 import { neighborhoodCity } from '../lib/neighborhood';
@@ -124,6 +125,8 @@ const RegistrationWizard: React.FC = () => {
       // 4. Sign out automatically as per request
       await signOut(auth);
       
+      // Die Anmeldung ist durch -- als Ziel vermerken.
+      void zielErreicht('ANMELDUNG');
       setStep(4);
     } catch (err: any) {
       console.error(err);

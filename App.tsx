@@ -59,6 +59,7 @@ import { LanguageProvider, useTranslation } from './context/LanguageContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { FeedbackProvider } from './context/FeedbackContext';
 import { TenantProvider, useTenant } from './context/TenantContext';
+import { aufrufZaehlen, zaehlerStarten } from './lib/zaehler';
 import { useSecurity } from './hooks/useSecurity';
 import { useAutoLogout } from './hooks/useAutoLogout';
 
@@ -271,6 +272,24 @@ const MaintenanceGuard = ({ children, maintenanceMode, user, branding }: { child
     const canBypass = user && (user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN || user.role === UserRole.BOARD || ADMIN_EMAILS.includes(user.email));
     if (maintenanceMode && !canBypass && location.pathname !== '/login') return <MaintenanceScreen branding={branding} />;
     return <>{children}</>;
+};
+
+// Zaehlt jeden Wechsel der oeffentlichen Seite.
+//
+// Eigene Komponente, weil sie INNERHALB des Routers stehen muss --
+// AppContent rendert den Router selbst und hat darum kein useLocation.
+// Sie gibt nichts aus; sie hoert nur zu.
+const Zaehlwache: React.FC = () => {
+  const ort = useLocation();
+  React.useEffect(() => { zaehlerStarten(); }, []);
+  React.useEffect(() => {
+    // Der Titel wird einen Augenblick spaeter gesetzt, wenn die Seite
+    // ihn selbst traegt. Ohne die kurze Verzoegerung stuende in der
+    // Auswertung der Titel der VORIGEN Seite.
+    const t = setTimeout(() => { void aufrufZaehlen(ort.pathname); }, 120);
+    return () => clearTimeout(t);
+  }, [ort.pathname]);
+  return null;
 };
 
 const AppContent: React.FC = () => {
@@ -506,6 +525,7 @@ const AppContent: React.FC = () => {
 
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <Zaehlwache />
       <MaintenanceGuard maintenanceMode={systemSettings?.maintenanceMode || false} user={user} branding={branding}>
         {/* Grund aus der Variablen: sie steht in index.html je Domain und
             ist schon vor dem ersten Rendern gesetzt. */}

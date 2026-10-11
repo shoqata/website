@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Loader2, Check, AlertTriangle, ArrowRight } from 'lucide-react';
 import { submitPlatformLead } from '@/services/supabase-bridge';
+import { zielErreicht } from '@/lib/zaehler';
 import { useTranslation } from '../../context/LanguageContext';
 
 // Anfrage von der Startseite der Plattform.
@@ -46,6 +47,10 @@ const Kontaktformular: React.FC<{ farben: { tinte: string; blau: string; nebel: 
         expectedMembers: form.expectedMembers.trim() ? Number(form.expectedMembers) : null,
         note: form.note.trim() || null,
       });
+      // Ziel erreicht. Ohne diesen Vermerk sagt die Auswertung, wie
+      // viele die Seite gesehen haben, aber nicht, wie viele sich
+      // gemeldet haben -- und das ist die Frage, die zaehlt.
+      void zielErreicht('ANFRAGE');
       setGesendet(true);
     } catch (err: any) {
       setFehler(err?.message || '?');

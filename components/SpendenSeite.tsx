@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { zielErreicht } from '@/lib/zaehler';
 import { motion } from 'framer-motion';
 import { Heart, Loader2, AlertTriangle, ArrowLeft, Printer } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -79,6 +80,11 @@ const SpendenSeite: React.FC = () => {
         await supabase.rpc('spende_aufruf_zuordnen', { p_spende: z.id, p_aufruf: aufruf });
       }
       setErgebnis({ referenz: z.referenz, betrag: Number(z.betrag), waehrung: z.waehrung });
+      // Ziel erreicht -- eine Spendenzusage mit Einzahlungsschein. Nicht
+      // der Eingang des Geldes: den sieht die Buchhaltung, nicht die
+      // Website. Die Auswertung soll sagen, wie viele Besucher bis
+      // hierher kommen, und das ist diese Stelle.
+      void zielErreicht('SPENDE');
     } catch (e: any) {
       setFehler(e?.message ?? String(e));
     } finally {
