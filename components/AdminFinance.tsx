@@ -34,6 +34,7 @@ import {
   LayoutTemplate
 } from 'lucide-react';
 import { db } from '../services/datenzugriff';
+import { supabase } from '@/services/supabase-bridge';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, writeBatch, setDoc, getDoc } from '@/services/supabase-bridge';
 import { Payment, UserProfile, GlobalPaymentSettings, Account, JournalEntry } from '../types';
 import { useFeedback } from '../context/FeedbackContext';
@@ -139,6 +140,16 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
     const [accounts, setAccounts] = useState<Account[]>([]); 
     // Vereinsname fuer Betreff und Beleg; stand bisher fest als "Shoqata Koretini".
     const [branding, setBranding] = useState<any>({});
+    // Zugangsdaten liegen nicht mehr in settings, sondern in einer
+    // Tabelle, die kein angemeldetes Konto lesen kann. Was hier steht,
+    // ist der STAND -- hinterlegt oder nicht, seit wann, letzte vier
+    // Zeichen -- und nie der Wert. Fuenf Vorstandsmitglieder konnten das
+    // Geheimnis vorher im Browser auslesen, und gebraucht hat es dort
+    // niemand.
+    const [ppStand, setPpStand] = useState<any>(null);
+    const [ppClient, setPpClient] = useState('');
+    const [ppSecret, setPpSecret] = useState('');
+    const [ppLaeuft, setPpLaeuft] = useState(false);
     const [budgetData, setBudgetData] = useState<Record<string, number>>({}); 
     // Das Journal fuer die Ist-Spalte. Das Budget zeigte bis zum 29.09.2026
     // ausschliesslich Planzahlen -- ein Verein mit CHF 9'144 Eingang sah
@@ -693,7 +704,43 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
 
     const handleDelete = async (id: string) => { if (await showConfirm({ title: t('admin.finance.delete_invoice'), message: t('admin.confirm_delete'), type: 'danger' })) await deleteDoc(doc(db, 'payments', id)); };
     const handleMarkPaid = async (payment: Payment) => { await updateDoc(doc(db, 'payments', payment.id), { status: 'PAID', paidAt: new Date().toISOString() }); showAlert({ type: 'success', message: t('admin.finance.marked_paid') }); };
-    const handleSaveSettings = async () => { try { await setDoc(doc(db, 'settings', 'payment'), paymentSettings); showAlert({ type: 'success', message: t('admin.finance.settings_saved') }); } catch (e) { showAlert({ type: 'error', message: t('admin.finance.settings_failed') }); } };
+    const ppStandLaden = async () => {
+        const { data, error } = await supabase.rpc('zahlungsgeheimnis_stand');
+        if (!error) setPpStand(data);
+    };
+    React.useEffect(() => { void ppStandLaden(); }, []);
+
+    const ppSpeichern = async () => {
+        if (!ppSecret.trim() && !ppClient.trim()) {
+            showAlert({ type: 'error', message: 'Bitte Client-ID oder Geheimnis eintragen.' });
+            return;
+        }
+        setPpLaeuft(true);
+        try {
+            const { data, error } = await supabase.rpc('zahlungsgeheimnis_setzen', {
+                p_client_id: ppClient.trim() || null,
+                p_secret: ppSecret.trim() || null,
+            });
+            if (error) throw error;
+            setPpStand(data);
+            // Die Felder leeren. Sie stehen leer da, weil der Wert nicht
+            // zurueckgelesen werden kann -- das ist kein Mangel, sondern
+            // der Zweck.
+            setPpClient(''); setPpSecret('');
+            showAlert({ type: 'success', message: 'Zugangsdaten gespeichert.' });
+        } catch (e: any) {
+            showAlert({ type: 'error', message: e?.message || '?' });
+        } finally { setPpLaeuft(false); }
+    };
+
+    const handleSaveSettings = async () => { try {
+        // Geheimnisse ausdruecklich herausnehmen. Ohne das schreibt der
+        // naechste Klick auf "Speichern" sie wieder in settings/payment --
+        // der Umzug waere nach einer Minute rueckgaengig, und niemand
+        // haette es gemerkt.
+        const { paypalSecret: _s, paypalClientId: _c, ...ohneGeheimnis } =
+            paymentSettings as any;
+        await setDoc(doc(db, 'settings', 'payment'), ohneGeheimnis); showAlert({ type: 'success', message: t('admin.finance.settings_saved') }); } catch (e) { showAlert({ type: 'error', message: t('admin.finance.settings_failed') }); } };
     // Die Mahnung verschickte bisher NICHTS. Sie setzte die Mahnstufe und
     // meldete "Reminder Level X sent." -- eine Erfolgsmeldung fuer etwas,
     // das nie passiert ist. Jetzt geht ein Brief hinaus, aus dem
@@ -1040,13 +1087,50 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
                                                 <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('admin.finance.paypal_email')}</label>
                                                 <input value={paymentSettings.paypalEmail || ''} onChange={e => setPaymentSettings({...paymentSettings, paypalEmail: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none" placeholder="zahlungen@verein.ch" />
                                             </div>
-                                            <div>
-                                                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('admin.finance.paypal_client')}</label>
-                                                <input value={paymentSettings.paypalClientId || ''} onChange={e => setPaymentSettings({...paymentSettings, paypalClientId: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none font-mono text-xs" placeholder="AdX..." />
-                                            </div>
-                                            <div>
-                                                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('admin.finance.paypal_secret')}</label>
-                                                <input type="password" value={paymentSettings.paypalSecret || ''} onChange={e => setPaymentSettings({...paymentSettings, paypalSecret: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none font-mono text-xs" placeholder="E..." />
+                                            {/* Client-ID und Geheimnis liegen getrennt,
+                                                in einer Tabelle, die kein angemeldetes
+                                                Konto lesen kann. Eintragen ja, nachlesen
+                                                nein -- dieselbe Regel wie beim
+                                                SMTP-Kennwort. */}
+                                            <div className="p-4 bg-stone-900 rounded-xl space-y-3">
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">
+                                                        {t('admin.finance.paypal_client')} &amp; {t('admin.finance.paypal_secret')}
+                                                    </p>
+                                                    {ppStand?.hinterlegt ? (
+                                                        <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 rounded text-[10px] font-bold uppercase shrink-0">
+                                                            hinterlegt
+                                                        </span>
+                                                    ) : (
+                                                        <span className="px-2 py-0.5 bg-white/10 text-stone-400 rounded text-[10px] font-bold uppercase shrink-0">
+                                                            nicht hinterlegt
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                {ppStand?.hinterlegt && (
+                                                    <p className="text-[11px] text-stone-400 leading-relaxed">
+                                                        Geheimnis endet auf <span className="font-mono text-stone-200">…{ppStand.endet_auf ?? '????'}</span>
+                                                        {ppStand.geaendert_am && <> · gesetzt am {new Date(ppStand.geaendert_am).toLocaleDateString('de-CH')}</>}
+                                                        {ppStand.geaendert_von && <> von {ppStand.geaendert_von}</>}
+                                                    </p>
+                                                )}
+
+                                                <input value={ppClient} onChange={e => setPpClient(e.target.value)}
+                                                    className="w-full p-3 bg-white/5 border border-white/10 rounded-xl outline-none font-mono text-xs text-white placeholder:text-stone-600"
+                                                    placeholder={ppStand?.client_id_hinterlegt ? 'Client-ID — neue eintragen, um sie zu ersetzen' : 'Client-ID (AdX…)'} />
+                                                <input type="password" value={ppSecret} onChange={e => setPpSecret(e.target.value)}
+                                                    className="w-full p-3 bg-white/5 border border-white/10 rounded-xl outline-none font-mono text-xs text-white placeholder:text-stone-600"
+                                                    placeholder={ppStand?.hinterlegt ? 'Geheimnis — neues eintragen, um es zu ersetzen' : 'Geheimnis (E…)'} />
+
+                                                <button onClick={ppSpeichern} disabled={ppLaeuft}
+                                                    className="w-full py-2.5 bg-white text-stone-900 rounded-xl font-bold text-xs disabled:opacity-50">
+                                                    {ppLaeuft ? 'Speichert …' : 'Zugangsdaten speichern'}
+                                                </button>
+                                                <p className="text-[10px] text-stone-500 leading-relaxed">
+                                                    Wird getrennt gespeichert und nicht zurückgelesen — auch nicht von
+                                                    der Administration. Die Felder bleiben darum nach dem Speichern leer.
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
