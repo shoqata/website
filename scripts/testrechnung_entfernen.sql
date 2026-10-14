@@ -6,19 +6,25 @@
 -- Aufruf:
 --   npx supabase db query --linked --file scripts/testrechnung_entfernen.sql
 --
--- Vier Dinge haengen daran, und sie muessen in dieser Reihenfolge weg,
--- weil jedes auf das vorige zeigt:
+-- Die Reihenfolge ist nicht beliebig, und sie ist nicht die naheliegende.
 --
---   die Buchungen der Zahlungseingaenge   (referenceId = Eingangs-Id)
---   die Buchung der Differenzentscheidung (referenceId = ...:differenz)
---   die Forderungsbuchung                 (referenceId = Rechnungs-Id)
---   die Meldungen und die Rechnung selbst
+-- Naheliegend waere: erst die Buchungen, dann die Rechnung. Genau das
+-- schlaegt fehl, und zwar still erst beim Selbsttest. Denn an der
+-- Rechnung und an den Eingaengen haengen Trigger, die BEIM LOESCHEN
+-- weiterbuchen:
 --
--- Die Eingaenge selbst verschwinden mit der Rechnung (ON DELETE
--- CASCADE); ihre Buchungen aber NICHT -- das Journal kennt keinen
--- Fremdschluessel auf die Eingaenge. Wer nur die Rechnung loescht, laesst
--- Buchungen ohne Bezug stehen, und die fallen erst beim Jahresabschluss
--- auf. Darum werden sie hier zuerst eingesammelt.
+--   zahlungseingaenge_stand  →  zahlung_stand_pflegen
+--        setzt bezahlt/Status der Rechnung zurueck
+--   payments_book_entries    →  book_payment_entries
+--        sieht eine Rechnung ohne Forderungsbuchung und legt sie neu an
+--
+-- Wer also zuerst das Journal raeumt, bekommt die Forderungsbuchung
+-- zurueck, sobald er die Eingaenge entfernt. Darum: zuerst alles, was
+-- Trigger ausloest, und erst danach das Journal.
+--
+-- Die Eingangs-Ids werden vorher eingesammelt: ihre Buchungen tragen die
+-- Eingangs-Id als Referenz, und das Journal kennt keinen Fremdschluessel
+-- darauf -- nach dem Loeschen waere der Bezug nicht mehr zu finden.
 
 CREATE TEMP TABLE _weg(was text, anzahl int);
 
@@ -31,6 +37,20 @@ BEGIN
   SELECT coalesce(array_agg(id::text), '{}') INTO v_eingaenge
     FROM public.zahlungseingaenge WHERE "paymentId" = v_id;
 
+  -- 1. Was Trigger ausloest.
+  DELETE FROM public.payment_reports WHERE "paymentId" = v_id;
+  GET DIAGNOSTICS v_n = ROW_COUNT;
+  INSERT INTO _weg VALUES ('Zahlungsmeldungen', v_n);
+
+  DELETE FROM public.zahlungseingaenge WHERE "paymentId" = v_id;
+  GET DIAGNOSTICS v_n = ROW_COUNT;
+  INSERT INTO _weg VALUES ('Zahlungseingaenge', v_n);
+
+  DELETE FROM public.payments WHERE id = v_id;
+  GET DIAGNOSTICS v_n = ROW_COUNT;
+  INSERT INTO _weg VALUES ('die Rechnung selbst', v_n);
+
+  -- 2. Erst jetzt das Journal. Jetzt kann niemand mehr nachbuchen.
   DELETE FROM public.accounting_journal
    WHERE "referenceId" = ANY (v_eingaenge);
   GET DIAGNOSTICS v_n = ROW_COUNT;
@@ -44,20 +64,8 @@ BEGIN
   GET DIAGNOSTICS v_n = ROW_COUNT;
   INSERT INTO _weg VALUES ('Forderungs- und Eingangsbuchung der Rechnung', v_n);
 
-  DELETE FROM public.payment_reports WHERE "paymentId" = v_id;
-  GET DIAGNOSTICS v_n = ROW_COUNT;
-  INSERT INTO _weg VALUES ('Zahlungsmeldungen', v_n);
-
-  DELETE FROM public.zahlungseingaenge WHERE "paymentId" = v_id;
-  GET DIAGNOSTICS v_n = ROW_COUNT;
-  INSERT INTO _weg VALUES ('Zahlungseingaenge', v_n);
-
-  DELETE FROM public.payments WHERE id = v_id;
-  GET DIAGNOSTICS v_n = ROW_COUNT;
-  INSERT INTO _weg VALUES ('die Rechnung selbst', v_n);
-
-  -- Nachweis statt Zuversicht: bleibt irgendwo etwas stehen, soll das
-  -- hier auffallen und nicht beim Abschluss.
+  -- Nachweis statt Zuversicht. Dieser Test hat die falsche Reihenfolge
+  -- gefunden; er bleibt stehen.
   SELECT count(*) INTO v_n FROM public.accounting_journal
    WHERE "referenceId" = v_id OR "referenceId" = v_id || ':differenz'
       OR "referenceId" = ANY (v_eingaenge);
@@ -65,6 +73,11 @@ BEGIN
     RAISE EXCEPTION '% Journalzeile(n) der Testrechnung blieben stehen.', v_n;
   END IF;
   INSERT INTO _weg VALUES ('Rueckstand im Journal', 0);
+
+  -- Und die Rechnung ist wirklich weg, nicht nur unsichtbar.
+  IF EXISTS (SELECT 1 FROM public.payments WHERE id = v_id) THEN
+    RAISE EXCEPTION 'Die Testrechnung steht noch.';
+  END IF;
 END $$;
 
 SELECT was, anzahl FROM _weg;

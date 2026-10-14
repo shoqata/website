@@ -256,9 +256,13 @@ const Hero: React.FC = () => {
                     {t('oeff.oeffentlich_titel', { jahr: beitragsstand.jahr })}
                 </p>
                 <p className="font-display text-5xl md:text-6xl font-bold text-stone-900 mb-3">
-                    {beitragsstand.stellung === 'NAMEN'
-                      ? (beitragsstand.namen || []).length
-                      : beitragsstand.anzahl}
+                    {/* Die ANZAHL steht hier, auch bei NAMEN und BETRAEGE.
+                        Sie benennt niemanden, und ein Widerspruch senkt sie
+                        nicht -- die Liste darunter ist kuerzer als die Zahl,
+                        wenn jemand widersprochen hat, und das ist richtig so:
+                        der Rueckhalt des Vereins soll nicht davon abhaengen,
+                        wer genannt werden moechte. */}
+                    {beitragsstand.anzahl}
                     <span className="text-stone-300 font-light"> / {beitragsstand.gesamt}</span>
                 </p>
                 <p className="text-stone-500 leading-relaxed">
@@ -272,6 +276,45 @@ const Hero: React.FC = () => {
                                 {n}
                             </span>
                         ))}
+                    </div>
+                )}
+
+                {/* Namen mit Betraegen.
+                    Als Liste und nicht als Wolke: Betraege nebeneinander
+                    wollen untereinander gelesen werden, und rechtsbuendig
+                    mit Tabellenziffern, damit die Spalte steht. Eine Wolke
+                    aus Zahlen laedt dazu ein, sie zu vergleichen, ohne sie
+                    lesen zu koennen. */}
+                {beitragsstand.stellung === 'BETRAEGE' && (beitragsstand.zeilen || []).length > 0 && (
+                    <div className="mt-10 max-w-md mx-auto text-left">
+                        <div className="bg-white border border-stone-100 rounded-2xl divide-y divide-stone-50 shadow-sm overflow-hidden">
+                            {(beitragsstand.zeilen as any[]).map((z, i) => (
+                                <div key={i} className="flex items-center justify-between gap-4 px-5 py-2.5">
+                                    <span className="text-sm text-stone-700 truncate">{z.name}</span>
+                                    <span className="text-sm font-mono text-stone-900 shrink-0"
+                                          style={{ fontVariantNumeric: 'tabular-nums' }}>
+                                        {beitragsstand.waehrung || 'CHF'} {Number(z.betrag || 0).toFixed(2)}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                        {Number(beitragsstand.summe) > 0 && (
+                            <p className="text-xs text-stone-400 mt-3 text-right"
+                               style={{ fontVariantNumeric: 'tabular-nums' }}>
+                                {t('oeff.zusammen')} {beitragsstand.waehrung || 'CHF'}{' '}
+                                {Number(beitragsstand.summe).toLocaleString('de-CH', { minimumFractionDigits: 2 })}
+                            </p>
+                        )}
+                        {/* Wenn jemand widersprochen hat, ist die Liste
+                            kuerzer als die Zahl oben. Das zu verschweigen
+                            liesse die beiden Zahlen widerspruechlich
+                            dastehen. */}
+                        {(beitragsstand.zeilen || []).length < Number(beitragsstand.anzahl) && (
+                            <p className="text-[11px] text-stone-400 mt-2 text-center">
+                                {t('oeff.nicht_alle', {
+                                  anzahl: Number(beitragsstand.anzahl) - (beitragsstand.zeilen || []).length })}
+                            </p>
+                        )}
                     </div>
                 )}
             </div>

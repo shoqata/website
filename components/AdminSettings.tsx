@@ -263,11 +263,12 @@ const AdminSettings: React.FC = () => {
                 <div className="bg-stone-50 p-6 rounded-3xl border border-stone-100 space-y-5">
                     <p className="text-xs text-stone-500 leading-relaxed max-w-2xl">{t('oeff.hinweis')}</p>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {([
-                            { wert: 'AUS',   titel: t('oeff.aus'),   text: t('oeff.aus_text') },
-                            { wert: 'ZAHL',  titel: t('oeff.zahl'),  text: t('oeff.zahl_text') },
-                            { wert: 'NAMEN', titel: t('oeff.namen'), text: t('oeff.namen_text') },
+                            { wert: 'AUS',      titel: t('oeff.aus'),      text: t('oeff.aus_text') },
+                            { wert: 'ZAHL',     titel: t('oeff.zahl'),     text: t('oeff.zahl_text') },
+                            { wert: 'NAMEN',    titel: t('oeff.namen'),    text: t('oeff.namen_text') },
+                            { wert: 'BETRAEGE', titel: t('oeff.betraege'), text: t('oeff.betraege_text') },
                         ]).map(o => {
                             const aktiv = (settings.beitraegeOeffentlich || 'AUS') === o.wert;
                             return (
@@ -293,6 +294,37 @@ const AdminSettings: React.FC = () => {
                             <p className="text-sm text-stone-800">
                                 <strong>{vorschau.anzahl}</strong> {t('oeff.vorschau_zahl', { jahr: vorschau.jahr, gesamt: vorschau.gesamt })}
                             </p>
+                        ) : vorschau.stellung === 'BETRAEGE' ? (
+                            <div className="space-y-2">
+                                <p className="text-sm text-stone-800">
+                                    <strong>{(vorschau.zeilen || []).length}</strong>{' '}
+                                    {t('oeff.vorschau_betraege', {
+                                      jahr: vorschau.jahr,
+                                      summe: `${vorschau.waehrung || 'CHF'} ${Number(vorschau.summe || 0).toLocaleString('de-CH', { minimumFractionDigits: 2 })}`,
+                                    })}
+                                </p>
+                                {/* Die Vorschau zeigt BETRAEGE -- und genau das ist
+                                    der Punkt: wer das einschaltet, soll vorher
+                                    sehen, was draussen steht. */}
+                                <div className="space-y-1">
+                                    {(vorschau.zeilen || []).slice(0, 8).map((z: any, i: number) => (
+                                        <div key={i} className="flex justify-between gap-3 text-xs">
+                                            <span className="text-stone-700 truncate">{z.name}</span>
+                                            <span className="font-mono text-stone-900 shrink-0">
+                                                {vorschau.waehrung || 'CHF'} {Number(z.betrag || 0).toFixed(2)}
+                                            </span>
+                                        </div>
+                                    ))}
+                                    {(vorschau.zeilen || []).length > 8 && (
+                                        <p className="text-[11px] text-stone-400">
+                                            … {t('oeff.vorschau_weitere', { anzahl: (vorschau.zeilen || []).length - 8 })}
+                                        </p>
+                                    )}
+                                </div>
+                                <p className="text-[11px] text-amber-700 leading-relaxed pt-2">
+                                    {t('oeff.betraege_warnung')}
+                                </p>
+                            </div>
                         ) : (
                             <div className="space-y-2">
                                 <p className="text-sm text-stone-800">

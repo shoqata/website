@@ -297,8 +297,13 @@ export interface GlobalPaymentSettings {
 }
 
 export interface SystemSettings {
-  /** 'AUS' | 'ZAHL' | 'NAMEN' -- was die Website ueber die Beitraege zeigt. */
-  beitraegeOeffentlich?: 'AUS' | 'ZAHL' | 'NAMEN';
+  /** Was die Website ueber die Beitraege zeigt.
+   *  AUS      nichts
+   *  ZAHL     nur die Anzahl der Zahlenden -- benennt niemanden
+   *  NAMEN    die Namen der Zahlenden
+   *  BETRAEGE Namen MIT Betraegen, je Jahr
+   *  Ein Widerspruch des Mitglieds gewinnt gegen jede dieser Stellungen. */
+  beitraegeOeffentlich?: 'AUS' | 'ZAHL' | 'NAMEN' | 'BETRAEGE';
   /** 'IMMER' | 'BEI_AUFRUF' | 'AUS' -- wann die Spendenseite erscheint.
       Entschieden wird das in spendenseite_sichtbar(), nicht im Browser. */
   spendenseite?: 'IMMER' | 'BEI_AUFRUF' | 'AUS';

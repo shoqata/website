@@ -269,7 +269,10 @@ const StartseitePremium: React.FC = () => {
             {beitraege && beitraege.stellung !== 'AUS' && Number(beitraege.anzahl) > 0 && (
               <div data-sc-cue="0.25 0.7">
                 <p className="sc-display sc-display--lg zahl"
-                   data-sc-count={`0 ${beitraege.stellung === 'NAMEN' ? (beitraege.namen || []).length : beitraege.anzahl}`}>0</p>
+                   /* Immer die Anzahl: sie benennt niemanden, und ein
+                      Widerspruch darf den Rueckhalt des Vereins nicht
+                      kleiner aussehen lassen. */
+                   data-sc-count={`0 ${beitraege.anzahl}`}>0</p>
                 <p className="sc-body">{t('prem.beitraege', { jahr: beitraege.jahr })}</p>
               </div>
             )}

@@ -7,6 +7,8 @@ import VorstandWizard from './VorstandWizard';
 import CountrySelect from './ui/CountrySelect';
 import { missingFieldKeys } from '../lib/memberQuality';
 import { markPaymentPaid, zahlungDifferenzSetzen } from '@/services/supabase-bridge';
+import { beitragFuer } from '../lib/beitrag';
+import { einstellungLaden } from '../lib/einstellungen';
 import { db } from '../services/datenzugriff';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc } from '@/services/supabase-bridge';
 import { 
@@ -66,6 +68,10 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
   const [editorOffen, setEditorOffen] = useState(false);
   // Mitgliedsangaben berichtigen
   const [memberForm, setMemberForm] = useState<any>(null);
+  // Die Beitragssaetze. Gebraucht, um zu zeigen, WOVON ein individueller
+  // Betrag abweicht -- eine Zahl ohne diesen Bezug laedt dazu ein, sie
+  // fuer den Gruppensatz zu halten.
+  const [saetze, setSaetze] = useState<any>(null);
   const [memberSaving, setMemberSaving] = useState(false);
   
   // New UI States
@@ -213,6 +219,13 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
       );
   };
 
+  React.useEffect(() => {
+    // Ueber einstellungLaden: die Saetze stehen in der Spalte payment,
+    // nicht in data. Genau diese Verwechslung hat heute dazu gefuehrt,
+    // dass Mahnungen ohne IBAN scheiterten.
+    einstellungLaden('payment').then(setSaetze).catch(() => setSaetze(null));
+  }, []);
+
   // Angaben eines Mitglieds berichtigen.
   //
   // Geschrieben werden nur die Felder dieser Maske. Rolle, Nachbarschaft und
@@ -233,6 +246,17 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
               // Die QR-Rechnung liest address vor street; beide muessen
               // uebereinstimmen, sonst steht auf der Rechnung die alte Strasse.
               address: memberForm.street?.trim() || '',
+              // Beitragsgruppe und eigener Beitrag. Der Server erlaubt dem
+              // Vorstand beides seit immer -- is_member_manager() schliesst
+              // BOARD ein --, es fehlte nur das Feld.
+              billingGroup: memberForm.billingGroup || null,
+              // Leer heisst KEIN eigener Beitrag, nicht null Franken. Mit
+              // einer 0 wuerde aus dem Leeren eine Beitragsbefreiung, und
+              // das Mitglied bekaeme nie wieder eine Rechnung.
+              customAnnualFee:
+                memberForm.customAnnualFee === '' || memberForm.customAnnualFee === undefined
+                  || memberForm.customAnnualFee === null
+                  ? null : Number(memberForm.customAnnualFee),
           } as any);
           setSelectedMember({ ...(selectedMember as any), ...memberForm });
           showAlert({ type: 'success', message: t('steward.saved') });
@@ -772,6 +796,64 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                                 <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('field.country')}</label>
                                 <CountrySelect value={memberForm?.country} onChange={v => setMemberForm({ ...(memberForm || {}), country: v })}
                                     className="w-full p-3 bg-white border border-stone-200 rounded-xl outline-none text-sm focus:border-[color:color-mix(in_srgb,var(--primary)_40%,transparent)]"/>
+                            </div>
+
+                            {/* Beitrag. Steht unten und abgesetzt, weil es die
+                                einzige Angabe hier ist, die Geld bewegt. */}
+                            <div className="p-4 bg-stone-900 rounded-xl space-y-3">
+                                <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">
+                                    {t('board.fee_title')}
+                                </p>
+
+                                <div>
+                                    <label className="text-[10px] font-bold text-stone-500 uppercase tracking-widest block mb-1">
+                                        {t('board.fee_group')}
+                                    </label>
+                                    <select value={memberForm?.billingGroup ?? ''}
+                                        onChange={e => setMemberForm({ ...(memberForm || {}), billingGroup: e.target.value })}
+                                        className="w-full p-3 bg-white/5 border border-white/10 rounded-xl outline-none text-sm text-white">
+                                        <option value="" className="text-stone-900">{t('board.fee_group_none')}</option>
+                                        {Object.entries((saetze?.fees ?? {}) as Record<string, any>)
+                                          .map(([k, v]) => (
+                                            <option key={k} value={k} className="text-stone-900">
+                                                {k} — {v?.amount} {v?.currency || ''}
+                                            </option>
+                                          ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="text-[10px] font-bold text-stone-500 uppercase tracking-widest block mb-1">
+                                        {t('board.fee_own')}
+                                    </label>
+                                    <div className="relative">
+                                        <input type="number" step="0.05" min="0"
+                                            value={memberForm?.customAnnualFee ?? ''}
+                                            onChange={e => setMemberForm({ ...(memberForm || {}), customAnnualFee: e.target.value })}
+                                            placeholder={t('board.fee_own_ph')}
+                                            className="w-full p-3 pr-14 bg-white/5 border border-white/10 rounded-xl outline-none text-sm font-mono font-bold text-white placeholder:text-stone-600"/>
+                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-stone-500">
+                                            {beitragFuer(memberForm, saetze).waehrung}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Was gilt, und wovon es abweicht. Ohne diesen
+                                    Satz ist eine Zahl im Feld nicht einzuordnen. */}
+                                {(() => {
+                                  const b = beitragFuer(memberForm, saetze);
+                                  return (
+                                    <p className="text-[11px] text-stone-400 leading-relaxed">
+                                      {b.quelle === 'EIGEN'
+                                        ? t('board.fee_own_hint', {
+                                            betrag: `${b.waehrung} ${b.betrag.toFixed(2)}`,
+                                            sonst: `${b.waehrung} ${b.ohne_eigenen.toFixed(2)}` })
+                                        : t('board.fee_group_hint', {
+                                            betrag: `${b.waehrung} ${b.betrag.toFixed(2)}` })}
+                                      {b.quelle === 'RUECKFALL' && ' ' + t('board.fee_no_rates')}
+                                    </p>
+                                  );
+                                })()}
                             </div>
                         </div>
 

@@ -38,6 +38,7 @@ import Papa from 'papaparse';
 import AdminAnalytics from './AdminAnalytics';
 import AdminWebsite from './AdminWebsite';
 import AdminSeo from './AdminSeo';
+import { beitragFuer } from '../lib/beitrag';
 import SocialAI from './SocialAI';
 import AdminFinance from './AdminFinance';
 import AdminPaymentReports from './AdminPaymentReports';
@@ -243,14 +244,13 @@ const AdminPanel: React.FC = () => {
   // Derselbe Vorrang wie im Sammellauf: eigener Beitrag, sonst Gruppensatz,
   // sonst Standard. Ein eigener Beitrag von 0 bleibt 0 -- er wird mit ?? statt
   // mit || geprueft, sonst wuerde eine Beitragsbefreiung still ueberschrieben.
-  const suggestedFeeFor = (u: UserProfile | null): number => {
-      if (u?.customAnnualFee !== undefined && u?.customAnnualFee !== null) return u.customAnnualFee;
-      const fees = feeSettings?.fees;
-      const groupFee = u?.billingGroup === 'KOSOVO' ? fees?.KOSOVO?.amount
-          : u?.billingGroup === 'REDUCED' ? fees?.REDUCED?.amount
-          : fees?.STANDARD?.amount;
-      return groupFee ?? feeSettings?.annualFeeAmount ?? 120;
-  };
+  // Ueber die gemeinsame Stelle. Hier stand dieselbe Rechnung ein
+  // zweites Mal, mit den Gruppen KOSOVO und REDUCED fest eingetippt --
+  // eine vierte Gruppe im Katalog waere hier stillschweigend zum
+  // Standardsatz geworden. Die gemeinsame Fassung liest die Saetze, wie
+  // sie dastehen.
+  const suggestedFeeFor = (u: UserProfile | null): number =>
+      beitragFuer(u, feeSettings).betrag;
 
   const handleSaveUser = async () => {
       if(!selectedUser) return;

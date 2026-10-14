@@ -416,6 +416,28 @@ const translations: Translations = {
     en: 'The surplus stays visible as an open item.',
     de: 'Der Mehrbetrag bleibt als offener Posten sichtbar.',
     sq: 'Shuma e tepërt mbetet e dukshme si zë i hapur.' },
+  // Beitrag im Vorstandsbereich. Der Server erlaubte dem Vorstand das
+  // seit immer -- is_member_manager() schliesst BOARD ein --, es fehlte
+  // nur das Feld.
+  'board.fee_title': { en: 'Annual fee', de: 'Jahresbeitrag', sq: 'Kontributi vjetor' },
+  'board.fee_group': { en: 'Fee group', de: 'Beitragsgruppe', sq: 'Grupi i kontributit' },
+  'board.fee_group_none': { en: 'standard rate', de: 'Standardsatz', sq: 'tarifa standarde' },
+  'board.fee_own': { en: 'Individual amount', de: 'Eigener Betrag', sq: 'Shuma individuale' },
+  'board.fee_own_ph': {
+    en: 'empty = by fee group', de: 'leer = nach Beitragsgruppe',
+    sq: 'bosh = sipas grupit' },
+  'board.fee_own_hint': {
+    en: 'This member pays {betrag} — instead of {sonst} by fee group.',
+    de: 'Dieses Mitglied zahlt {betrag} — statt {sonst} nach Beitragsgruppe.',
+    sq: 'Ky anëtar paguan {betrag} — në vend të {sonst} sipas grupit.' },
+  'board.fee_group_hint': {
+    en: 'This member pays {betrag} by fee group.',
+    de: 'Dieses Mitglied zahlt {betrag} nach Beitragsgruppe.',
+    sq: 'Ky anëtar paguan {betrag} sipas grupit.' },
+  'board.fee_no_rates': {
+    en: 'No rates are set up yet — this is a fallback value.',
+    de: 'Es sind noch keine Sätze hinterlegt — das ist ein Rückfallwert.',
+    sq: 'Nuk janë caktuar ende tarifa — kjo është një vlerë rezervë.' },
   'board.amount_received': { en: 'Amount received', de: 'Erhaltener Betrag',
     sq: 'Shuma e marrë' },
   'board.amount_invalid': {
@@ -912,6 +934,29 @@ const translations: Translations = {
   'oeff.oeffentlich_titel': { en: 'Membership contributions {jahr}', de: 'Mitgliederbeiträge {jahr}', sq: 'Kuotat e anëtarësisë {jahr}' },
   'oeff.oeffentlich_text': { en: 'members carried the association in {jahr} with their contribution.', de: 'Mitglieder haben den Verein {jahr} mit ihrem Beitrag getragen.', sq: 'anëtarë e mbajtën shoqatën në {jahr} me kuotën e tyre.' },
   'oeff.mitglied': { en: 'Do not show me on the public website', de: 'Nicht auf der öffentlichen Website zeigen', sq: 'Mos më shfaq në faqen publike' },
+  'oeff.zusammen': { en: 'Together', de: 'Zusammen', sq: 'Së bashku' },
+  'oeff.nicht_alle': {
+    en: '{anzahl} more contributors are not listed by their own wish.',
+    de: '{anzahl} weitere Zahler erscheinen auf eigenen Wunsch nicht namentlich.',
+    sq: '{anzahl} pagues të tjerë nuk shfaqen me emër me dëshirën e tyre.' },
+  'oeff.betraege': { en: 'Names with amounts', de: 'Namen mit Beträgen',
+    sq: 'Emrat me shuma' },
+  'oeff.betraege_text': {
+    en: 'For each contributor the amount actually received, per year.',
+    de: 'Je Zahler der tatsächlich erhaltene Betrag, nach Jahr.',
+    sq: 'Për secilin pagues shuma e marrë vërtet, sipas vitit.' },
+  // Die Warnung steht in der Vorschau und nicht im Beschreibungstext:
+  // dort liest sie, wer sich schon entschieden hat.
+  'oeff.betraege_warnung': {
+    en: 'These are financial details of named people. Members can object individually — nobody has so far, because nobody has been asked. Consider informing them before switching this on.',
+    de: 'Das sind Finanzangaben zu namentlich genannten Menschen. Mitglieder können einzeln widersprechen — bisher hat es niemand getan, weil niemand gefragt wurde. Erwägen Sie, sie vorher zu informieren.',
+    sq: 'Këto janë të dhëna financiare të personave të emëruar. Anëtarët mund të kundërshtojnë individualisht — deri tani nuk e ka bërë asnjë, sepse nuk është pyetur asnjë. Mendoni ta informoni para se ta ndizni.' },
+  'oeff.vorschau_betraege': {
+    en: 'contributors for {jahr}, together {summe}',
+    de: 'Zahler für {jahr}, zusammen {summe}',
+    sq: 'pagues për {jahr}, së bashku {summe}' },
+  'oeff.vorschau_weitere': {
+    en: '{anzahl} more', de: '{anzahl} weitere', sq: '{anzahl} më shumë' },
   'oeff.mitglied_text': { en: 'Neither in the member strip on the front page nor in any list of contributors.', de: 'Weder im Mitgliederband auf der Startseite noch in einer Liste der Beitragszahler.', sq: 'As në shiritin e anëtarëve në faqen kryesore, as në ndonjë listë paguesish.' },
   'markt.titel': { de: 'Marktplatz', en: 'Marketplace', sq: 'Tregu' },
   'markt.laedt': { de: 'Module werden geladen …', en: 'Loading modules …', sq: 'Duke ngarkuar modulet …' },
