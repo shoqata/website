@@ -6,10 +6,17 @@ import { db } from '../services/datenzugriff';
 import { doc, onSnapshot } from '@/services/supabase-bridge';
 import { useTranslation } from '../context/LanguageContext';
 
-// Der Verein kann Turnier und Anmeldelink spaeter im Branding hinterlegen.
-// Bis dahin gelten diese Werte, damit die Seite sofort steht.
-const DEFAULT_EMBED = 'https://www.turnierplanung.ch/veranstaltung/embed/758/';
-const DEFAULT_DETAIL = 'https://www.turnierplanung.ch/veranstaltung/detail/758';
+// Kein Rueckfall auf ein fremdes Turnier.
+//
+// Hier standen die Adressen von Koretinis Turnier (Nummer 758) als
+// Vorgabe, "damit die Seite sofort steht". Das Branding wurde gelesen,
+// war aber NIRGENDS einzugeben -- also griff die Vorgabe immer. Jeder
+// weitere Verein, der das Modul bucht, haette damit unter seiner eigenen
+// Adresse Koretinis Spielplan gezeigt und dessen Anmeldung verlinkt.
+//
+// Besser keine Angabe als eine fremde: ohne Adresse steht die Seite mit
+// Text und Sponsorenverweis und sagt, dass der Spielplan noch nicht
+// veroeffentlicht ist. Einzutragen ist er unter Website -> Turnier.
 
 const FutsalPage: React.FC = () => {
   const { t, loc } = useTranslation();
@@ -22,8 +29,8 @@ const FutsalPage: React.FC = () => {
     return () => unsub();
   }, []);
 
-  const embedUrl = loc(branding.tournamentEmbedUrl) || DEFAULT_EMBED;
-  const detailUrl = loc(branding.tournamentDetailUrl) || DEFAULT_DETAIL;
+  const embedUrl = loc(branding.tournamentEmbedUrl) || '';
+  const detailUrl = loc(branding.tournamentDetailUrl) || '';
 
   return (
     <div className="bg-[#faf9f6] min-h-screen pt-32 pb-20">
@@ -44,6 +51,7 @@ const FutsalPage: React.FC = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 mt-10">
+            {detailUrl && (
             <a
               href={detailUrl}
               target="_blank"
@@ -52,6 +60,7 @@ const FutsalPage: React.FC = () => {
             >
               <Trophy size={18} /> {t('futsal.register_team')} <ExternalLink size={14} />
             </a>
+            )}
             <Link
               to="/fussball/sponsoren"
               className="bg-white border border-stone-200 text-stone-800 px-8 py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 hover:border-[color:color-mix(in_srgb,var(--primary)_40%,transparent)] hover:text-primary transition-colors"
@@ -68,19 +77,27 @@ const FutsalPage: React.FC = () => {
         </div>
 
         <div className="bg-white rounded-[2rem] border border-stone-100 shadow-sm overflow-hidden mb-16">
-          <iframe
-            src={embedUrl}
-            title={t('futsal.plan_title')}
-            loading="lazy"
-            className="w-full block border-0"
-            style={{ height: '1500px' }}
-          />
+          {embedUrl ? (
+            <iframe
+              src={embedUrl}
+              title={t('futsal.plan_title')}
+              loading="lazy"
+              className="w-full block border-0"
+              style={{ height: '1500px' }}
+            />
+          ) : (
+            <p className="px-6 py-16 text-center text-sm text-stone-400 italic">
+              {t('futsal.kein_plan')}
+            </p>
+          )}
+          {detailUrl && (
           <div className="px-6 py-4 border-t border-stone-100 text-xs text-stone-400 flex flex-wrap items-center gap-2">
             {t('futsal.plan_fallback')}
             <a href={detailUrl} target="_blank" rel="noopener noreferrer" className="text-primary font-bold hover:underline inline-flex items-center gap-1">
               {detailUrl.replace(/^https?:\/\//, '')} <ExternalLink size={11} />
             </a>
           </div>
+          )}
         </div>
 
         {/* Sponsoren-Aufruf */}

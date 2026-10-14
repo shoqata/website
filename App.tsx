@@ -22,15 +22,12 @@ import { needsProfileSetup } from './lib/memberQuality';
 import { useIstPlattformDomain } from './lib/useIstPlattformDomain';
 import { useStartseitenVorlage } from './lib/useStartseitenVorlage';
 import { useOeffentlicheModule } from './lib/useOeffentlicheModule';
+import { seitenZustand } from './lib/modulgate';
 import { useSpendenseiteSichtbar } from './lib/useSpendenseiteSichtbar';
 import { useReiterKennzeichen } from './lib/useReiterKennzeichen';
 import { HashRouter as Router, Routes, Route, Link, useLocation, Navigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  LayoutDashboard, Settings, LogOut, Heart, Film, Menu, X, Globe, Sparkles, LogIn, Zap, ChevronDown, 
-  Mail, MapPin, ShieldCheck, Calendar, Newspaper, Info, QrCode, ArrowRight, Smartphone, 
-  Hammer, Maximize, UserPlus, Loader2, Building2
-} from 'lucide-react';
+import { ArrowRight, Building2, Calendar, ChevronDown, Film, Globe, Hammer, Heart, Info, LayoutDashboard, Loader2, LogIn, LogOut, Mail, MapPin, Maximize, Menu, Newspaper, QrCode, Settings, ShieldCheck, Smartphone, Sparkles, Trophy, UserPlus, X, Zap } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
 // Supabase Auth (replaces Firebase Auth)
@@ -441,6 +438,13 @@ const AppContent: React.FC = () => {
   }, [tenant]);
 
   const istPlattformDomain = useIstPlattformDomain();
+  // Welche Module hat der Verein dieser Adresse? Gebraucht fuer die
+  // Routen von Dorfleben und Turnier.
+  //
+  // Bisher war beides fuer JEDEN Verein offen -- und das Turnier war
+  // zusaetzlich fest auf das von Koretini verdrahtet. Ein anderer Verein
+  // haette unter seiner eigenen Adresse ein fremdes Turnier gezeigt.
+  const oeffentlicheModule = useOeffentlicheModule();
   const vorlage = useStartseitenVorlage();
   const spendenSeiteSichtbar = useSpendenseiteSichtbar();
   // Wer auf unityhub.li angemeldet ist, muss der Betreiber sein. Die Frage
@@ -579,7 +583,17 @@ const AppContent: React.FC = () => {
                         entscheidet die Datenbank. */}
                     <Route path="/drucksachen/:id" element={<TreffenDrucksachen />} />
                     <Route path="/about" element={istPlattformDomain ? <Navigate to="/" replace /> : <AboutUsPage />} />
-                    <Route path="/live" element={istPlattformDomain ? <Navigate to="/" replace /> : <VillageLive />} />
+                    {/* Dorfleben nur mit gebuchtem Modul. Ausgeblendet
+                        heisst auch nicht erreichbar: nur den Verweis
+                        wegzunehmen hiesse "schwerer zu finden", nicht "aus".
+                        Solange die Antwort aussteht, laedt die Seite --
+                        sofort umzuleiten wuerde einen Besucher
+                        hinauswerfen, dessen Verein das Modul hat. */}
+                    <Route path="/live" element={
+                      ((z) => z === 'LAEDT' ? <PageLoader />
+                            : z === 'ZEIGEN' ? <VillageLive />
+                            : <Navigate to="/" replace />)
+                      (seitenZustand(oeffentlicheModule, 'DORFLEBEN', istPlattformDomain))} />
                     <Route path="/events" element={istPlattformDomain ? <Navigate to="/" replace /> : <EventsPage />} />
                     <Route path="/news" element={istPlattformDomain ? <Navigate to="/" replace /> : <NewsPage />} />
                     {/* Turnier und Sponsoring. Die Adressen werden so geteilt
@@ -589,8 +603,16 @@ const AppContent: React.FC = () => {
                         Route mit Schraegstrich darf es nicht geben -- React
                         Router weist solche Pfade zurueck und legt damit die
                         gesamte Routentabelle lahm. */}
-                    <Route path="/fussball" element={istPlattformDomain ? <Navigate to="/" replace /> : <FutsalPage />} />
-                    <Route path="/fussball/sponsoren" element={istPlattformDomain ? <Navigate to="/" replace /> : <SponsorPage />} />
+                    <Route path="/fussball" element={
+                      ((z) => z === 'LAEDT' ? <PageLoader />
+                            : z === 'ZEIGEN' ? <FutsalPage />
+                            : <Navigate to="/" replace />)
+                      (seitenZustand(oeffentlicheModule, 'TURNIER', istPlattformDomain))} />
+                    <Route path="/fussball/sponsoren" element={
+                      ((z) => z === 'LAEDT' ? <PageLoader />
+                            : z === 'ZEIGEN' ? <SponsorPage />
+                            : <Navigate to="/" replace />)
+                      (seitenZustand(oeffentlicheModule, 'TURNIER', istPlattformDomain))} />
                     <Route path="/futsal" element={<Navigate to="/fussball" replace />} />
                     <Route path="/gdpr" element={<LegalPage type="GDPR" />} />
                     {/* Spenden. Die Zeilenregel sperrt die Daten ohnehin; die Route
@@ -737,9 +759,20 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings }) => {
             <Link to="/news" className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${isActive('/news') ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}>
                 <Newspaper size={16} className="text-blue-600"/><span className="font-bold text-sm">{t('nav.news.title')}</span>
             </Link>
+            {/* Beide nur mit gebuchtem Modul. Das Turnier stand bisher
+                in KEINER Leiste -- es war nur ueber die eingetippte
+                Adresse zu finden, und das bei einem Modul, das Sponsoren
+                gewinnen soll. */}
+            {hatModul('DORFLEBEN') && (
             <Link to="/live" className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${isActive('/live') ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}>
                 <Zap size={16} className="text-amber-600"/><span className="font-bold text-sm">{t('nav.live')}</span>
             </Link>
+            )}
+            {hatModul('TURNIER') && (
+            <Link to="/fussball" className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${isActive('/fussball') ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}>
+                <Trophy size={16} className="text-rose-600"/><span className="font-bold text-sm">{t('nav.turnier')}</span>
+            </Link>
+            )}
             {hatModul('VIDEOS') && (
               <Link to="/videos" className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${isActive('/videos') ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}>
                   <Film size={16} className="text-violet-600"/><span className="font-bold text-sm">{t('video.oeff_titel')}</span>
@@ -786,7 +819,12 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings }) => {
                     <Link to="/about" className="flex items-center gap-4 p-4 bg-stone-50 rounded-2xl"><Info size={20}/><span className="font-bold">{t('nav.about')}</span></Link>
                     <Link to="/events" className="flex items-center gap-4 p-4 bg-stone-50 rounded-2xl"><Calendar size={20}/><span className="font-bold">{t('nav.events.title')}</span></Link>
                     <Link to="/news" className="flex items-center gap-4 p-4 bg-stone-50 rounded-2xl"><Newspaper size={20}/><span className="font-bold">{t('nav.news.title')}</span></Link>
+                    {hatModul('DORFLEBEN') && (
                     <Link to="/live" className="flex items-center gap-4 p-4 bg-stone-50 rounded-2xl"><Zap size={20}/><span className="font-bold">{t('nav.live')}</span></Link>
+                    )}
+                    {hatModul('TURNIER') && (
+                    <Link to="/fussball" className="flex items-center gap-4 p-4 bg-stone-50 rounded-2xl"><Trophy size={20}/><span className="font-bold">{t('nav.turnier')}</span></Link>
+                    )}
                     <div className="h-px bg-stone-100 my-2" />
                     {user ? (
                         <>
@@ -824,6 +862,11 @@ const ConditionalNavigation = ({ user, branding, systemSettings }: any) => {
 
 const ConditionalFooter = ({ branding, user }: any) => {
   const { t, loc } = useTranslation();
+  // Dieselbe Frage wie in der Leiste: ohne gebuchtes Modul kein Verweis.
+  // Die Fusszeile ist die einzige durchgehende Navigation der Seite --
+  // ein Verweis, der nur hier stehenbliebe, fuehrte auf eine Umleitung.
+  const fussModule = useOeffentlicheModule();
+  const fussHatModul = (k: string) => !!fussModule?.has(k);
   // Eigene Seiten des Vereins, die ins Menue sollen. Die Fusszeile ist die
   // einzige durchgehende Navigation dieser Seite -- ohne sie waere der
   // Schalter "Im Menue zeigen" ein Schalter ohne Wirkung.
@@ -891,7 +934,12 @@ const ConditionalFooter = ({ branding, user }: any) => {
             <div className="flex flex-col gap-3 text-white/60">
               <Link to="/" className="hover:text-white transition-colors">{t('nav.home')}</Link>
               <Link to="/about" className="hover:text-white transition-colors">{t('nav.about')}</Link>
-              <Link to="/live" className="hover:text-white transition-colors">{t('nav.live')}</Link>
+              {fussHatModul('DORFLEBEN') && (
+                <Link to="/live" className="hover:text-white transition-colors">{t('nav.live')}</Link>
+              )}
+              {fussHatModul('TURNIER') && (
+                <Link to="/fussball" className="hover:text-white transition-colors">{t('nav.turnier')}</Link>
+              )}
               <Link to="/login" className="hover:text-white transition-colors">{t('nav.membership')}</Link>
               {eigene.map(seite => (
                 <Link key={seite.pfad} to={`/${seite.pfad}`} className="hover:text-white transition-colors">

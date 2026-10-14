@@ -3,36 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from '../context/LanguageContext';
 import MemberPicker from './ui/MemberPicker';
 import { AnimatePresence, motion } from 'framer-motion';
-import { 
-  Save, 
-  RefreshCw, 
-  Image as ImageIcon, 
-  Check, 
-  Palette, 
-  Trash2, 
-  Mail, 
-  MapPin, 
-  Heart, 
-  Monitor, 
-  Smartphone,
-  Plus,
-  Loader2,
-  X,
-  Milestone,
-  ShieldAlert,
-  Home,
-  Zap,
-  Activity,
-  Briefcase,
-  Upload,
-  Type,
-  ChevronDown,
-  ChevronUp,
-  Globe,
-  LayoutTemplate,
-  Link as LinkIcon,
-  Languages
-} from 'lucide-react';
+import { Activity, Briefcase, Check, ChevronDown, ChevronUp, Globe, Heart, Home, Image as ImageIcon, Languages, LayoutTemplate, Link as LinkIcon, Loader2, Mail, MapPin, Milestone, Monitor, Palette, Plus, RefreshCw, Save, ShieldAlert, Smartphone, Trash2, Trophy, Type, Upload, X, Zap } from 'lucide-react';
 import { db, storage } from '../services/datenzugriff';
 import { doc, setDoc, onSnapshot, serverTimestamp, collection, deleteDoc, addDoc } from '@/services/supabase-bridge';
 import { ref, uploadBytes, getDownloadURL } from '@/services/supabase-bridge';
@@ -41,6 +12,7 @@ import HyperTextParagraph from './ui/HyperText'; // Import for Preview
 import { useFeedback } from '../context/FeedbackContext';
 
 import { onImageError } from '../lib/imageFallback';
+import { useModule } from '../lib/useModule';
 import AdminVorlagen from './AdminVorlagen';
 import AdminSeiten from './AdminSeiten';
 // --- TYPES ---
@@ -83,13 +55,25 @@ interface BrandingSettings {
   privacyText: LocalizedString;
   whyJoinText: LocalizedString;
   whyJoinHighlightWords: string[];
+  // Das Turnier. Die Seite /fussball liest diese vier Felder seit immer
+  // -- nur gab es keine Stelle, sie zu setzen, und ohne Wert fiel sie auf
+  // das Turnier von Koretini zurueck. Ein anderer Verein zeigte damit
+  // unter seiner eigenen Adresse ein fremdes Turnier.
+  tournamentTitle?: LocalizedString;
+  tournamentIntro?: LocalizedString;
+  tournamentEmbedUrl?: string;
+  tournamentDetailUrl?: string;
 }
 
-type Tab = 'DESIGN' | 'GLOBAL' | 'HOME' | 'ABOUT' | 'SEITEN' | 'LIVE' | 'LEGAL';
+type Tab = 'DESIGN' | 'GLOBAL' | 'HOME' | 'ABOUT' | 'SEITEN' | 'LIVE' | 'TURNIER' | 'LEGAL';
 type LangCode = 'de' | 'en' | 'sq';
 
 const AdminWebsite: React.FC = () => {
   const { t } = useTranslation();
+  // Der Turnierreiter erscheint nur mit gebuchtem Modul -- ein Reiter
+  // fuer eine Seite, die der Verein nicht hat, ist eine Einladung zum
+  // Ausfuellen ins Leere.
+  const { aktiv: modulAktiv } = useModule();
   const { showAlert, showPrompt } = useFeedback();
   const [activeTab, setActiveTab] = useState<Tab>('DESIGN');
   const [editLang, setEditLang] = useState<LangCode>('de'); // Editor Language State
@@ -140,6 +124,10 @@ const AdminWebsite: React.FC = () => {
     heroSubtitle: '',
     heroBadge: '',
     heroImages: [],
+    tournamentTitle: '',
+    tournamentIntro: '',
+    tournamentEmbedUrl: '',
+    tournamentDetailUrl: '',
     roadmap: [],
     missions: [],
     liveSelectors: [],
@@ -384,9 +372,11 @@ const AdminWebsite: React.FC = () => {
           <div className="flex border-b border-stone-100 overflow-x-auto bg-stone-50/50 p-2 gap-1 shrink-0">
              {/* Die Reiter zeigten bisher ihren Schluessel: DESIGN, GLOBAL,
                  LIVE. Verstaendlich fuer den, der den Quelltext kennt. */}
-             {([['DESIGN','Design'], ['GLOBAL','Allgemein'], ['HOME','Startseite'],
-                ['ABOUT','Über uns'], ['SEITEN','Eigene Seiten'], ['LIVE','Dorfleben'],
-                ['LEGAL','Rechtliches']] as const).map(([k, name]) => (
+             {(([['DESIGN','Design'], ['GLOBAL','Allgemein'], ['HOME','Startseite'],
+                ['ABOUT','Über uns'], ['SEITEN','Eigene Seiten'],
+                ...(modulAktiv('DORFLEBEN') ? [['LIVE', t('nav.live')]] : []),
+                ...(modulAktiv('TURNIER') ? [['TURNIER', t('nav.turnier')]] : []),
+                ['LEGAL','Rechtliches']]) as [Tab, string][]).map(([k, name]) => (
                  <button key={k} onClick={() => { setActiveTab(k); setExpandedSection(null); }} className={`flex-1 px-4 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === k ? 'bg-white text-primary shadow-sm' : 'text-stone-400 hover:text-stone-900'}`}>
                      {name}
                  </button>
@@ -691,6 +681,69 @@ const AdminWebsite: React.FC = () => {
                         </div>
                     </BuilderSection>
                 </>
+            )}
+
+            {activeTab === 'TURNIER' && (
+                <BuilderSection id="turnier" title={t('nav.turnier')} icon={<Trophy size={18}/>}>
+                    <div className="space-y-4">
+                        <p className="text-xs text-stone-500 leading-relaxed">
+                            {t('web.turnier_hinweis')}
+                        </p>
+                        <div>
+                            <label className="text-[10px] font-bold text-stone-400 uppercase mb-1 flex items-center gap-1">
+                                {t('web.turnier_titel')} <Languages size={10} className="text-primary"/>
+                            </label>
+                            <input
+                                value={getLoc(branding.tournamentTitle)}
+                                onChange={e => updateField('tournamentTitle', e.target.value, true)}
+                                className="w-full p-3 bg-stone-50 rounded-xl text-sm border border-stone-100 font-display font-bold"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-bold text-stone-400 uppercase mb-1 flex items-center gap-1">
+                                {t('web.turnier_intro')} <Languages size={10} className="text-primary"/>
+                            </label>
+                            <textarea rows={3}
+                                value={getLoc(branding.tournamentIntro)}
+                                onChange={e => updateField('tournamentIntro', e.target.value, true)}
+                                className="w-full p-3 bg-stone-50 rounded-xl text-sm border border-stone-100"
+                            />
+                        </div>
+                        {/* Die zwei Adressen sind nicht uebersetzt: eine
+                            Turnierplanung hat eine Adresse, keine drei. */}
+                        <div>
+                            <label className="text-[10px] font-bold text-stone-400 uppercase mb-1 block">
+                                {t('web.turnier_embed')}
+                            </label>
+                            <input type="url" placeholder="https://www.turnierplanung.ch/veranstaltung/embed/000/"
+                                value={branding.tournamentEmbedUrl || ''}
+                                onChange={e => updateField('tournamentEmbedUrl', e.target.value)}
+                                className="w-full p-3 bg-stone-50 rounded-xl text-sm border border-stone-100 font-mono"
+                            />
+                            <p className="text-[11px] text-stone-400 mt-1">{t('web.turnier_embed_hinweis')}</p>
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-bold text-stone-400 uppercase mb-1 block">
+                                {t('web.turnier_detail')}
+                            </label>
+                            <input type="url" placeholder="https://www.turnierplanung.ch/veranstaltung/detail/000"
+                                value={branding.tournamentDetailUrl || ''}
+                                onChange={e => updateField('tournamentDetailUrl', e.target.value)}
+                                className="w-full p-3 bg-stone-50 rounded-xl text-sm border border-stone-100 font-mono"
+                            />
+                            <p className="text-[11px] text-stone-400 mt-1">{t('web.turnier_detail_hinweis')}</p>
+                        </div>
+                        {/* Ohne Spielplan steht die Seite trotzdem -- mit
+                            einem ehrlichen Hinweis statt mit einem leeren
+                            Rahmen. Das muss hier dastehen, sonst sucht
+                            jemand den Fehler auf der Website. */}
+                        {!branding.tournamentEmbedUrl && (
+                            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3 leading-relaxed">
+                                {t('web.turnier_ohne_plan')}
+                            </p>
+                        )}
+                    </div>
+                </BuilderSection>
             )}
 
             {activeTab === 'LIVE' && (
