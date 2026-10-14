@@ -34,6 +34,17 @@ export type RechnungDaten = {
     name: string; adresse?: string; plz?: string; ort?: string; land?: string;
   };
   referenz?: string;
+  // Den Zahlungsteil weglassen.
+  //
+  // Fuer den Postversand ueber Pingen: wenn Pingen den QR-Teil selbst
+  // anfuegt, darf er hier nicht schon stehen -- zwei Zahlungsteile auf
+  // einem Blatt sind schlimmer als keiner, weil beide gescannt werden
+  // koennen und einer davon zur falschen Referenz fuehrt.
+  //
+  // Die Zahlungsangaben bleiben in verein stehen: sie werden dann an
+  // Pingen uebergeben statt gezeichnet. Sie hier zu entfernen hiesse,
+  // sie zweimal zu fuehren.
+  ohneZahlungsteil?: boolean;
 };
 
 const geld = (n: number) =>
@@ -157,7 +168,7 @@ export async function erzeugeRechnungPdf(
   const iban = (schweiz ? (d.verein.qrIban || d.verein.iban) : d.verein.iban) || '';
   let mitQr = false;
 
-  if (schweiz && iban) {
+  if (schweiz && iban && !d.ohneZahlungsteil) {
     const ref = referenzBestimmen(iban, d.referenz);
     const inhalt = generateQrCodeContent({
       amount: d.betrag,
@@ -210,6 +221,18 @@ export async function erzeugeRechnungPdf(
       schrift(9, false, true);
       pdf.text(`TWINT: ${d.verein.twint}`, L, y); y += 5;
     }
+  } else if (d.ohneZahlungsteil) {
+    // Pingen fuegt den Zahlungsteil selbst an. Hier bleibt die Stelle
+    // bewusst LEER -- und zwar ganz: auch kein Klartext mit IBAN.
+    //
+    // Zwei Zahlungsangaben auf einem Blatt sind schlimmer als eine: der
+    // Empfaenger kann die falsche nehmen, und eine Zahlung ohne die
+    // richtige Referenz laesst sich keiner Rechnung zuordnen. Genau
+    // dieses Zuordnungsproblem war der Grund, Referenznummern
+    // ueberhaupt einzufuehren.
+    schrift(8.5, false, true);
+    pdf.text('Der Zahlungsteil folgt auf dem Einzahlungsschein.', L, y);
+    y += 6;
   } else {
     // Ausserhalb der Schweiz: eine QR-Rechnung kann die Bank dort nicht
     // lesen. Also Bankverbindung und PayPal.

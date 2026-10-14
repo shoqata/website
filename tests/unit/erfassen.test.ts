@@ -168,3 +168,32 @@ describe('Fehler in Klartext', () => {
       .toBe('permission denied for table users');
   });
 });
+
+describe('Rechnung ohne Zahlungsteil', () => {
+  it('der Schalter existiert und ist optional', async () => {
+    // Fuer den Postversand ueber Pingen: wenn Pingen den QR-Teil selbst
+    // anfuegt, darf er im PDF nicht schon stehen. Zwei Zahlungsteile auf
+    // einem Blatt sind schlimmer als keiner -- der Empfaenger kann die
+    // falsche Referenz nehmen, und die Zahlung laesst sich dann keiner
+    // Rechnung zuordnen.
+    //
+    // Geprueft wird am Quelltext, weil das Zeichnen jsPDF braucht und
+    // damit einen Browser. Was hier zaehlt, ist die Verzweigung: der
+    // Schalter muss BEIDE Zweige abschalten -- den QR UND den Klartext
+    // mit IBAN. Mein erster Versuch schaltete nur den QR ab, und der
+    // else-Zweig haette die Angaben als Text gedruckt.
+    const { readFileSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const quelle = readFileSync(join(__dirname, '../../lib/rechnungpdf.ts'), 'utf-8');
+
+    expect(quelle).toContain('ohneZahlungsteil?: boolean');
+    expect(quelle).toMatch(/if \(schweiz && iban && !d\.ohneZahlungsteil\)/);
+    expect(quelle).toMatch(/\} else if \(d\.ohneZahlungsteil\) \{/);
+
+    // Und der Klartextzweig darf nicht VOR der Abfrage stehen.
+    const qrZweig = quelle.indexOf('!d.ohneZahlungsteil');
+    const leerZweig = quelle.indexOf('} else if (d.ohneZahlungsteil)');
+    expect(qrZweig).toBeGreaterThan(0);
+    expect(leerZweig).toBeGreaterThan(qrZweig);
+  });
+});
