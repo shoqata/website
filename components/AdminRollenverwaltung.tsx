@@ -6,6 +6,7 @@ import { supabase } from '@/services/supabase-bridge';
 import AdminVorstandsrechte from './AdminVorstandsrechte';
 import AdminVertreterrechte from './AdminVertreterrechte';
 import AdminVerantwortliche from './AdminVerantwortliche';
+import AdminKontoVerbindungen from './AdminKontoVerbindungen';
 
 // Rollenverwaltung.
 //
@@ -203,6 +204,12 @@ const AdminRollenverwaltung: React.FC = () => {
           schoenste Rechteverwaltung wirkt auf niemanden, der nicht
           hereinkommt -- darum steht das hier direkt darunter. */}
       <AdminVerantwortliche />
+
+      {/* Und wer ein Konto hat, aber nicht hereinkommt.
+          Drei Personen waren das, und es war an keiner Stelle sichtbar --
+          gefunden habe ich es erst, als ich die Zuordnung in deren Namen
+          aufrief. Was man nicht sehen kann, repariert niemand. */}
+      <AdminKontoVerbindungen />
     </div>
   );
 };
