@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { UserProfile, Neighborhood, BillingGroup } from '../types';
 import { db } from '../services/datenzugriff';
 import { doc, setDoc, updateDoc, collection, getDocs, query, orderBy } from '@/services/supabase-bridge';
+import { PROFIL_PFLICHT } from '../lib/memberQuality';
 import { MapPin, User, Phone, CheckCircle2, ArrowRight, ArrowLeft, Loader2, Mail, Home, Heart, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../context/LanguageContext';
@@ -51,12 +52,53 @@ const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) =
   const handleNext = () => setStep(s => s + 1);
   const handlePrev = () => setStep(s => s - 1);
 
+  // Welche Pflichtangabe fehlt noch?
+  //
+  // Geprueft wird gegen PROFIL_PFLICHT -- dieselbe Liste, die auch die
+  // Schranke an der Tuer benutzt. Vorher fuehrte der Assistent keine
+  // Pflichtliste, und die Schranke verlangte zusaetzlich die
+  // Telefonnummer. Wer sie leer liess, schloss den Assistenten ab und
+  // landete sofort wieder darin -- endlos, ohne einen Hinweis darauf,
+  // was fehlt. Zwei Listen, die sich widersprechen, ergeben genau
+  // solche Schleifen.
+  const PFLICHT_NAME: Record<string, string> = {
+    displayName: t('field.name'),
+    street: t('admin.members.street_no'),
+    zip: t('field.zip'),
+    city: t('field.city'),
+    neighborhoodId: t('field.neighborhood'),
+  };
+
+  const fehlendePflicht = (): string[] => {
+    // Das Formular nennt den Namen 'name', die Zeile 'displayName'.
+    const wert: Record<string, string> = {
+      displayName: formData.name,
+      street: formData.street,
+      zip: formData.zip,
+      city: formData.city,
+      neighborhoodId: formData.neighborhoodId,
+    };
+    return PROFIL_PFLICHT
+      .filter(f => !String(wert[f] ?? '').trim())
+      .map(f => PFLICHT_NAME[f] ?? f);
+  };
+
   const handleSubmit = async () => {
     // Wer die Rechnung per E-Mail will, braucht eine E-Mail-Adresse.
     if (emailMissingForDelivery({ ...user, ...formData } as any)) {
       showAlert({ type: 'error', message: t('email.required_for_delivery') });
       return;
     }
+
+    // Erst pruefen, dann speichern. Ein gespeichertes, aber
+    // unvollstaendiges Profil ist der Anfang der Schleife.
+    const fehlt = fehlendePflicht();
+    if (fehlt.length > 0) {
+      showAlert({ type: 'error',
+                  message: t('profil.pflicht_fehlt', { felder: fehlt.join(', ') }) });
+      return;
+    }
+
     setIsLoading(true);
 
     // Auto-determine billing group based on country

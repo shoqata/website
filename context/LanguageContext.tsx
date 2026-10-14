@@ -448,6 +448,14 @@ const translations: Translations = {
     en: 'You have signed in, but your account is not yet linked to your membership record. That happens when a role was assigned before you registered — for safety, a privileged role cannot link itself. Please contact the association administration: they link it in one step under Members.',
     de: 'Sie sind angemeldet, aber Ihr Konto ist noch nicht mit Ihrem Mitgliedseintrag verbunden. Das kommt vor, wenn die Rolle vor Ihrer Registrierung vergeben wurde — eine bevorrechtigte Rolle darf sich aus Sicherheitsgründen nicht selbst verbinden. Bitte wenden Sie sich an die Vereinsadministration; sie verbindet es unter Mitglieder mit einem Schritt.',
     sq: 'Jeni i identifikuar, por llogaria juaj nuk është lidhur ende me regjistrimin tuaj të anëtarësisë. Kjo ndodh kur roli u caktua përpara regjistrimit — për sigurí, një rol i privilegjuar nuk mund të lidhet vetë. Kontaktoni administratën e shoqatës; ajo e lidh nën Anëtarët me një hap.' },
+  // Welche Pflichtangabe fehlt. Vorher speicherte der Assistent ein
+  // unvollstaendiges Profil und die Tuer schickte lautlos zurueck --
+  // endlos und ohne Hinweis.
+  'profil.pflicht_fehlt': {
+    en: 'Still missing: {felder}. Without these the association cannot send you an invoice.',
+    de: 'Es fehlt noch: {felder}. Ohne diese Angaben kann der Verein Ihnen keine Rechnung zustellen.',
+    sq: 'Mungon edhe: {felder}. Pa këto të dhëna shoqata nuk mund t\'ju dërgojë faturë.' },
+  'field.neighborhood': { en: 'Neighbourhood', de: 'Nachbarschaft', sq: 'Lagjja' },
   'dash.manage.loading': {
     en: 'Still checking which neighbourhoods you look after — one moment.',
     de: 'Es wird noch geprüft, welche Nachbarschaften Sie betreuen — einen Moment.',

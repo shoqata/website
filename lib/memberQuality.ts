@@ -62,17 +62,33 @@ export const feeStateFor = (userId: string, payments: any[], year: number): FeeS
 // Liste. Alle betroffenen Adressen sind schweizerisch (vierstellige
 // Postleitzahl, Schweizer Ort); der Assistent waehlt Schweiz vor. Dafuer
 // dreihundert Leute durch eine Maske zu schicken waere Aufwand ohne Ertrag.
+//
+// Die Telefonnummer ist aus dieser Liste ENTFERNT, und das war ein
+// echter Fall: ein Vorstandsmitglied schloss den Assistenten ab, liess
+// die Nummer leer -- der Assistent verlangt sie nicht -- und landete
+// danach wieder im Assistenten. Endlos, ohne Erklaerung.
+//
+// Gemessen, warum sie nicht hierher gehoert: 133 von 353 Mitgliedern
+// haben keine. Als Schranke an der Tuer waere das eine Sperre fuer ein
+// Drittel des Vereins, und zwar fuer eine Angabe, ohne die die Software
+// arbeiten kann -- Rechnungen gehen per Post oder Mail, nicht per
+// Telefon.
+//
+// Das Prinzip bleibt und wird nur genauer: geprueft werden darf, was der
+// Assistent erhebt UND VERLANGT. Was er nur anbietet, darf nicht
+// einlassen oder aussperren.
+//
+// Fehlende Nummern bleiben sichtbar -- in missingFieldKeys, in der
+// Betreuungsliste und im Datenqualitaets-Reiter. Dort gehoeren sie hin:
+// als Arbeitsliste, nicht als Tuerschloss.
+export const PROFIL_PFLICHT = [
+  'displayName', 'street', 'zip', 'city', 'neighborhoodId',
+] as const;
+
 export const needsProfileSetup = (u: Partial<UserProfile>): boolean => {
   if (!u) return true;
   const leer = (v: any) => !v || !String(v).trim();
-  return (
-    leer(u.displayName) ||
-    leer(u.phone) ||
-    leer(u.street) ||
-    leer(u.zip) ||
-    leer(u.city) ||
-    leer(u.neighborhoodId)
-  );
+  return PROFIL_PFLICHT.some(f => leer((u as any)[f]));
 };
 
 // Zu welchem Beitragsjahr gehoert eine Zahlung?
