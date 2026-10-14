@@ -52,6 +52,7 @@ import html2canvas from "html2canvas";
 import { sendEmail } from '../services/mailService';
 import { erzeugeRechnungPdf } from '../lib/rechnungpdf';
 import { briefEinreihen, zahlungsangabenPruefen, postArbeiterAnstossen } from '../lib/postversand';
+import { zustellweg } from '../lib/erfassen';
 import { istSchweiz } from '../services/qrBillService';
 import { textwerkLaden, sprachenFuer, textFuer, alsHtml, type Textwerk } from '../lib/textbaustein';
 import { QRCodeSVG } from 'qrcode.react';
@@ -734,8 +735,19 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
                     if (member) country = member.country || 'Switzerland';
                 }
                 const method = determinePaymentMethod(country);
+                // Der Zustellweg wurde hier fest auf EMAIL gesetzt. Damit
+                // konnte eine einzeln erfasste Rechnung NIE per Post gehen
+                // -- auch nicht fuer ein Mitglied ohne Mailadresse oder mit
+                // ausdruecklichem Wunsch nach Post. Sie landete im
+                // Mailversand, der sie wegen fehlender Adresse abwies, und
+                // niemand erfuhr davon. Jetzt gilt dieselbe Regel wie im
+                // Sammellauf, aus lib/erfassen.
+                const empfaenger: any = recipientMode === 'MEMBER'
+                  ? users.find(u => u.id === newInvoice.userId)
+                  : { email: customRecipient.email, invoiceDeliveryMethod: customRecipient.email ? 'EMAIL' : 'POST' };
+                const zustellung = zustellweg(empfaenger || {});
 
-                batch.set(docRef, { ...baseData, method, amount: newInvoice.amount, currency: newInvoice.currency, timestamp: serverTimestamp(), invoiceNumber: `INV-${Date.now().toString().slice(-6)}-${Math.floor(Math.random()*1000).toString().padStart(3, '0')}`, userId: recipientMode === 'MEMBER' ? newInvoice.userId : 'EXTERNAL', deliveryMethod: 'EMAIL', customRecipient: recipientMode === 'EXTERNAL' ? { ...customRecipient, address: `${customRecipient.street}, ${customRecipient.zip} ${customRecipient.city}` } : null });
+                batch.set(docRef, { ...baseData, method, amount: newInvoice.amount, currency: newInvoice.currency, timestamp: serverTimestamp(), invoiceNumber: `INV-${Date.now().toString().slice(-6)}-${Math.floor(Math.random()*1000).toString().padStart(3, '0')}`, userId: recipientMode === 'MEMBER' ? newInvoice.userId : 'EXTERNAL', deliveryMethod: zustellung, customRecipient: recipientMode === 'EXTERNAL' ? { ...customRecipient, address: `${customRecipient.street}, ${customRecipient.zip} ${customRecipient.city}` } : null });
             } else {
                 // Wer fuer dieses Jahr schon eine Beitragsrechnung hat, wird
                 // uebersprungen. Ohne diese Pruefung erzeugt ein zweiter Lauf des
@@ -782,7 +794,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
                     // sonst wartet der Vorstand auf einen Versand, der nie
                     // stattfindet. Deshalb wird es unten gemeldet.
                     if (!hasValidEmail && u.invoiceDeliveryMethod !== 'POST') downgradedCount++;
-                    let deliveryMethod = (!hasValidEmail || u.invoiceDeliveryMethod === 'POST') ? 'POST' : (u.invoiceDeliveryMethod === 'BOTH' ? 'BOTH' : 'EMAIL');
+                    let deliveryMethod = zustellweg(u as any);
                     const method = determinePaymentMethod(u.country);
                     
                     const docRef = doc(collection(db, 'payments'));
