@@ -42,6 +42,16 @@ const MODUL: Record<string, { name: string; farbe: string }> = {
 const fr = (n: number | null | undefined, w = 'CHF') =>
   n === null || n === undefined ? '—' : `${w} ${Number(n).toFixed(2)}`;
 
+// numeric kommt je nach Einstellung als Zahl ODER als Zeichenkette
+// zurueck. Ein Vergleich mit !== waere dann immer wahr, der Knopf immer
+// aktiv und die Vorschau immer gelb -- "geaendert" ohne Aenderung.
+// Darum beide Seiten durch dieselbe Form.
+const zahl = (v: any): number | null => {
+  if (v === null || v === undefined || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
+
 const Brieftarife: React.FC = () => {
   const [laedt, setLaedt] = useState(true);
   const [fehler, setFehler] = useState('');
@@ -196,12 +206,17 @@ const Brieftarife: React.FC = () => {
                 // Was nach dem Speichern dastehen wird. Der Festpreis
                 // schlaegt den Aufpreis -- das muss man sehen, bevor man
                 // tippt, nicht danach.
-                const vorschau = e.fest !== '' ? Number(e.fest)
-                  : t.r_einkauf !== null && e.aufpreis !== ''
-                    ? Math.round(Number(t.r_einkauf) * (1 + Number(e.aufpreis) / 100) * 100) / 100
+                const fest = zahl(e.fest);
+                const auf = zahl(e.aufpreis);
+                const ein = zahl(t.r_einkauf);
+                // Dieselbe Rechnung wie die gerechnete Spalte in der
+                // Datenbank: round(einkauf * (1 + aufpreis/100), 2).
+                const vorschau = fest !== null ? fest
+                  : ein !== null && auf !== null
+                    ? Math.round(ein * (1 + auf / 100) * 100) / 100
                     : null;
-                const geaendert = (e.aufpreis === '' ? null : Number(e.aufpreis)) !== t.r_aufpreis
-                               || (e.fest === '' ? null : Number(e.fest)) !== t.r_fest;
+                const geaendert = zahl(e.aufpreis) !== zahl(t.r_aufpreis)
+                               || zahl(e.fest) !== zahl(t.r_fest);
                 return (
                   <tr key={t.r_verein} className="hover:bg-white/5">
                     <td className="px-6 py-3">
@@ -239,7 +254,7 @@ const Brieftarife: React.FC = () => {
                       <span className={geaendert ? 'text-amber-300' : 'text-white'}>
                         {vorschau === null ? '—' : fr(vorschau, t.r_waehrung)}
                       </span>
-                      {e.fest !== '' && (
+                      {fest !== null && (
                         <span className="block text-[10px] text-stone-500 font-sans font-normal mt-0.5">
                           Festpreis, Aufpreis wirkt nicht
                         </span>
