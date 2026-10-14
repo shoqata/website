@@ -38,6 +38,7 @@ import Papa from 'papaparse';
 import AdminAnalytics from './AdminAnalytics';
 import AdminWebsite from './AdminWebsite';
 import AdminSeo from './AdminSeo';
+import AdminBriefversand from './AdminBriefversand';
 import { beitragFuer } from '../lib/beitrag';
 import SocialAI from './SocialAI';
 import AdminFinance from './AdminFinance';
@@ -65,7 +66,7 @@ import { missingFieldKeys, qualityScore, feeStateFor, hasDeliveryConflict } from
 import { isPlaceholderEmail, hasUsableEmail, emailMissingForDelivery, deliveryNeedsEmail } from '../lib/memberEmail';
 import AdminTreffen from './AdminTreffen';
 import SuperAdminTreffen from './SuperAdminTreffen';
-type AdminTabId = 'USERS' | 'NEIGHBORHOODS' | 'ANALYTICS' | 'STATISTICS' | 'WEBSITE' | 'SOCIAL_AI' | 'EVENTS' | 'NEWS' | 'FINANCE' | 'EXPENSES' | 'DATA' | 'ACCOUNTING' | 'SETTINGS' | 'BOARD' | 'COMMUNICATION' | 'DATA_QUALITY' | 'STAMMBAUM' | 'MARKTPLATZ' | 'SPENDEN' | 'VIDEOS' | 'PROZESSE' | 'TREFFEN' | 'SEO';
+type AdminTabId = 'USERS' | 'NEIGHBORHOODS' | 'ANALYTICS' | 'STATISTICS' | 'WEBSITE' | 'SOCIAL_AI' | 'EVENTS' | 'NEWS' | 'FINANCE' | 'EXPENSES' | 'DATA' | 'ACCOUNTING' | 'SETTINGS' | 'BOARD' | 'COMMUNICATION' | 'DATA_QUALITY' | 'STAMMBAUM' | 'MARKTPLATZ' | 'SPENDEN' | 'VIDEOS' | 'PROZESSE' | 'TREFFEN' | 'SEO' | 'BRIEFVERSAND';
 
 interface NavItem {
     id: AdminTabId;
@@ -211,6 +212,10 @@ const AdminPanel: React.FC = () => {
               { id: 'SPENDEN', label: t('admin.tab.spenden'), icon: <Heart size={18} /> },
               { id: 'EXPENSES', label: t('admin.tab.expenses'), icon: <Receipt size={18} /> },
               { id: 'ACCOUNTING', label: t('admin.tab.accounting'), icon: <BookOpen size={18} /> },
+              // Steht in den Finanzen und nicht im Marktplatz: freigeschaltet
+              // wird das Modul dort, benutzt wird es hier -- bei den
+              // Rechnungen, die per Post gehen sollen.
+              { id: 'BRIEFVERSAND', label: 'Briefversand', icon: <Mail size={18} /> },
               { id: 'STATISTICS', label: t('admin.tab.statistics'), icon: <BarChart2 size={18} /> },
           ]
       },
@@ -609,6 +614,7 @@ const AdminPanel: React.FC = () => {
                         {activeTab === 'STATISTICS' && <AdminStatistics users={users} payments={payments} neighborhoods={neighborhoods} selectedYear={selectedYear} />}
                         {activeTab === 'WEBSITE' && <AdminWebsite />}
                         {activeTab === 'SEO' && <AdminSeo />}
+                        {activeTab === 'BRIEFVERSAND' && <AdminBriefversand />}
                         {activeTab === 'SOCIAL_AI' && <SocialAI />}
                         {activeTab === 'DATA' && <AdminData />}
                         {activeTab === 'STAMMBAUM' && <AdminStammbaum />}
