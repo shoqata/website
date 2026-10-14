@@ -3,6 +3,7 @@ import {
   Loader2, AlertTriangle, Check, Mail, TrendingUp, Clock, RefreshCw, Lock,
 } from 'lucide-react';
 import { supabase } from '@/services/supabase-bridge';
+import { useTranslation } from '../../context/LanguageContext';
 
 // Brieftarife: was unityhub einkauft, was der Verein zahlt.
 //
@@ -33,10 +34,10 @@ type Marge = {
   r_preis: number | null;
 };
 
-const MODUL: Record<string, { name: string; farbe: string }> = {
-  AN:        { name: 'Aktiv',     farbe: 'bg-emerald-500/15 text-emerald-400' },
-  TESTPHASE: { name: 'Testphase', farbe: 'bg-sky-500/15 text-sky-400' },
-  AUS:       { name: 'Aus',       farbe: 'bg-stone-700 text-stone-400' },
+const MODUL_FARBE: Record<string, string> = {
+  AN:        'bg-emerald-500/15 text-emerald-400',
+  TESTPHASE: 'bg-sky-500/15 text-sky-400',
+  AUS:       'bg-stone-700 text-stone-400',
 };
 
 const fr = (n: number | null | undefined, w = 'CHF') =>
@@ -53,6 +54,7 @@ const zahl = (v: any): number | null => {
 };
 
 const Brieftarife: React.FC = () => {
+  const { t } = useTranslation();
   const [laedt, setLaedt] = useState(true);
   const [fehler, setFehler] = useState('');
   const [tarife, setTarife] = useState<Tarif[]>([]);
@@ -63,15 +65,20 @@ const Brieftarife: React.FC = () => {
   const [speichert, setSpeichert] = useState('');
   const [gesichert, setGesichert] = useState('');
 
+  const modulName = (m: string) => {
+    const n = t(`tarif.modul.${m}`);
+    return n === `tarif.modul.${m}` ? m : n;
+  };
+
   const laden = async () => {
     setLaedt(true); setFehler('');
-    const [t, m] = await Promise.all([
+    const [ta, m] = await Promise.all([
       supabase.rpc('post_tarife'),
       supabase.rpc('post_marge'),
     ]);
-    const err = [t, m].find(x => (x as any).error);
+    const err = [ta, m].find(x => (x as any).error);
     if (err) setFehler((err as any).error.message);
-    const reihen = (t.data as Tarif[]) ?? [];
+    const reihen = (ta.data as Tarif[]) ?? [];
     setTarife(reihen);
     setMargen((m.data as Marge[]) ?? []);
     setEingabe(Object.fromEntries(reihen.map(r => [r.r_verein, {
@@ -93,7 +100,7 @@ const Brieftarife: React.FC = () => {
     briefe: a.briefe + Number(m.r_verbraucht || 0),
   }), { erloes: 0, einkauf: 0, marge: 0, briefe: 0 }), [margen]);
 
-  const wartend = tarife.filter(t => t.r_verkauf === null && t.r_modul !== 'AUS');
+  const wartend = tarife.filter(x => x.r_verkauf === null && x.r_modul !== 'AUS');
 
   const setzen = async (verein: string) => {
     const e = eingabe[verein];
@@ -104,8 +111,8 @@ const Brieftarife: React.FC = () => {
     // schickte, liesse einen alten Festpreis fuer immer stehen.
     const { error } = await supabase.rpc('post_preis_setzen', {
       p_verein: verein,
-      p_aufpreis: e.aufpreis === '' ? null : Number(e.aufpreis),
-      p_fest: e.fest === '' ? null : Number(e.fest),
+      p_aufpreis: zahl(e.aufpreis),
+      p_fest: zahl(e.fest),
     });
     setSpeichert('');
     if (error) { setFehler(error.message); return; }
@@ -123,14 +130,12 @@ const Brieftarife: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-start gap-4 flex-wrap">
         <div>
-          <h2 className="text-2xl font-bold">Brieftarife</h2>
-          <p className="text-stone-400 text-sm mt-1">
-            Einkauf bei Pingen, Aufpreis fuer unityhub, Verkaufspreis je Verein
-          </p>
+          <h2 className="text-2xl font-bold">{t('tarif.titel')}</h2>
+          <p className="text-stone-400 text-sm mt-1">{t('tarif.untertitel')}</p>
         </div>
         <button onClick={laden}
           className="px-4 py-2 bg-white/5 text-stone-300 rounded-xl text-xs font-bold hover:bg-white/10 flex items-center gap-2">
-          <RefreshCw size={14} /> Neu laden
+          <RefreshCw size={14} /> {t('post.neu_laden')}
         </button>
       </div>
 
@@ -150,13 +155,11 @@ const Brieftarife: React.FC = () => {
             <Clock size={18} className="text-amber-400 shrink-0 mt-0.5" />
             <div>
               <p className="font-bold text-amber-200">
-                {wartend.length === 1 ? 'Ein Verein wartet auf einen Briefpreis'
-                                      : `${wartend.length} Vereine warten auf einen Briefpreis`}
+                {wartend.length === 1 ? t('tarif.wartet_einer')
+                                      : t('tarif.wartet_mehrere', { anzahl: wartend.length })}
               </p>
               <p className="text-xs text-amber-200/70 mt-1 leading-relaxed">
-                {wartend.map(w => w.r_name).join(', ')} — solange kein Verkaufspreis
-                steht, koennen diese Vereine kein Kontingent kaufen. Es braucht
-                entweder einen abgefragten Einkaufspreis oder einen Festpreis.
+                {t('tarif.wartet_text', { namen: wartend.map(w => w.r_name).join(', ') })}
               </p>
             </div>
           </div>
@@ -165,10 +168,10 @@ const Brieftarife: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[
-          { titel: 'Briefe verbraucht', wert: String(summe.briefe), hinweis: 'ueber alle Vereine' },
-          { titel: 'Erloes', wert: fr(summe.erloes), hinweis: 'was die Vereine gezahlt haben' },
-          { titel: 'Einkauf', wert: fr(summe.einkauf), hinweis: 'was Pingen gekostet hat' },
-          { titel: 'Marge', wert: fr(summe.marge), hinweis: 'Erloes minus Einkauf' },
+          { titel: t('tarif.briefe_verbraucht'), wert: String(summe.briefe), hinweis: t('tarif.ueber_alle') },
+          { titel: t('tarif.erloes'), wert: fr(summe.erloes), hinweis: t('tarif.erloes_hinweis') },
+          { titel: t('tarif.einkauf'), wert: fr(summe.einkauf), hinweis: t('tarif.einkauf_hinweis') },
+          { titel: t('tarif.marge'), wert: fr(summe.marge), hinweis: t('tarif.marge_hinweis') },
         ].map(k => (
           <div key={k.titel} className="p-5 bg-white/5 border border-white/10 rounded-2xl">
             <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mb-2">{k.titel}</p>
@@ -184,97 +187,92 @@ const Brieftarife: React.FC = () => {
           <table className="w-full text-sm">
             <thead className="bg-white/5 text-[10px] font-bold text-stone-500 uppercase tracking-widest">
               <tr>
-                <th className="text-left px-6 py-3">Verein</th>
-                <th className="text-right px-4 py-3">Einkauf</th>
-                <th className="text-right px-4 py-3">Aufpreis %</th>
-                <th className="text-right px-4 py-3">Festpreis</th>
-                <th className="text-right px-4 py-3">Verkauf</th>
-                <th className="text-right px-4 py-3">Marge bisher</th>
+                <th className="text-left px-6 py-3">{t('tarif.sp.verein')}</th>
+                <th className="text-right px-4 py-3">{t('tarif.einkauf')}</th>
+                <th className="text-right px-4 py-3">{t('tarif.sp.aufpreis')}</th>
+                <th className="text-right px-4 py-3">{t('tarif.sp.festpreis')}</th>
+                <th className="text-right px-4 py-3">{t('tarif.sp.verkauf')}</th>
+                <th className="text-right px-4 py-3">{t('tarif.sp.marge')}</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
               {tarife.length === 0 && (
                 <tr><td colSpan={7} className="px-6 py-8 text-center text-stone-500 text-sm">
-                  Noch kein Verein hat den Briefversand freigeschaltet.
+                  {t('tarif.keiner')}
                 </td></tr>
               )}
-              {tarife.map(t => {
-                const e = eingabe[t.r_verein] ?? { aufpreis: '', fest: '' };
-                const m = margeJeVerein[t.r_verein];
-                const mod = MODUL[t.r_modul] ?? MODUL.AUS;
-                // Was nach dem Speichern dastehen wird. Der Festpreis
-                // schlaegt den Aufpreis -- das muss man sehen, bevor man
-                // tippt, nicht danach.
+              {tarife.map(x => {
+                const e = eingabe[x.r_verein] ?? { aufpreis: '', fest: '' };
+                const m = margeJeVerein[x.r_verein];
                 const fest = zahl(e.fest);
                 const auf = zahl(e.aufpreis);
-                const ein = zahl(t.r_einkauf);
+                const ein = zahl(x.r_einkauf);
                 // Dieselbe Rechnung wie die gerechnete Spalte in der
                 // Datenbank: round(einkauf * (1 + aufpreis/100), 2).
                 const vorschau = fest !== null ? fest
                   : ein !== null && auf !== null
                     ? Math.round(ein * (1 + auf / 100) * 100) / 100
                     : null;
-                const geaendert = zahl(e.aufpreis) !== zahl(t.r_aufpreis)
-                               || zahl(e.fest) !== zahl(t.r_fest);
+                const geaendert = auf !== zahl(x.r_aufpreis) || fest !== zahl(x.r_fest);
                 return (
-                  <tr key={t.r_verein} className="hover:bg-white/5">
+                  <tr key={x.r_verein} className="hover:bg-white/5">
                     <td className="px-6 py-3">
-                      <p className="font-bold text-white">{t.r_name}</p>
+                      <p className="font-bold text-white">{x.r_name}</p>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${mod.farbe}`}>
-                          {mod.name}
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${MODUL_FARBE[x.r_modul] ?? MODUL_FARBE.AUS}`}>
+                          {modulName(x.r_modul)}
                         </span>
-                        {t.r_abgefragt && (
+                        {x.r_abgefragt && (
                           <span className="text-[10px] text-stone-500">
-                            Tarif vom {new Date(t.r_abgefragt).toLocaleDateString('de-CH')}
-                            {t.r_grundlage ? ` · ${t.r_grundlage}` : ''}
+                            {t('tarif.tarif_vom', { datum: new Date(x.r_abgefragt).toLocaleDateString('de-CH') })}
+                            {x.r_grundlage ? ` · ${x.r_grundlage}` : ''}
                           </span>
                         )}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-stone-300"
                         style={{ fontVariantNumeric: 'tabular-nums' }}>
-                      {t.r_einkauf === null
-                        ? <span className="text-stone-600">nicht abgefragt</span>
-                        : fr(t.r_einkauf, t.r_waehrung)}
+                      {ein === null
+                        ? <span className="text-stone-600">{t('tarif.nicht_abgefragt')}</span>
+                        : fr(ein, x.r_waehrung)}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <input type="number" step="0.5" min="0" max="200" value={e.aufpreis}
-                        onChange={ev => setEingabe({ ...eingabe, [t.r_verein]: { ...e, aufpreis: ev.target.value } })}
+                        onChange={ev => setEingabe({ ...eingabe, [x.r_verein]: { ...e, aufpreis: ev.target.value } })}
                         className="w-20 p-2 bg-white/5 border border-white/10 rounded-lg outline-none text-sm font-mono text-right text-white focus:border-white/30"/>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <input type="number" step="0.05" min="0" value={e.fest} placeholder="—"
-                        onChange={ev => setEingabe({ ...eingabe, [t.r_verein]: { ...e, fest: ev.target.value } })}
+                        onChange={ev => setEingabe({ ...eingabe, [x.r_verein]: { ...e, fest: ev.target.value } })}
                         className="w-24 p-2 bg-white/5 border border-white/10 rounded-lg outline-none text-sm font-mono text-right text-white placeholder:text-stone-600 focus:border-white/30"/>
                     </td>
                     <td className="px-4 py-3 text-right font-mono font-bold"
                         style={{ fontVariantNumeric: 'tabular-nums' }}>
                       <span className={geaendert ? 'text-amber-300' : 'text-white'}>
-                        {vorschau === null ? '—' : fr(vorschau, t.r_waehrung)}
+                        {vorschau === null ? '—' : fr(vorschau, x.r_waehrung)}
                       </span>
                       {fest !== null && (
                         <span className="block text-[10px] text-stone-500 font-sans font-normal mt-0.5">
-                          Festpreis, Aufpreis wirkt nicht
+                          {t('tarif.festpreis_gilt')}
                         </span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-stone-300"
                         style={{ fontVariantNumeric: 'tabular-nums' }}>
-                      {m ? fr(m.r_marge, t.r_waehrung) : '—'}
+                      {m ? fr(m.r_marge, x.r_waehrung) : '—'}
                       {m && m.r_verbraucht > 0 && (
                         <span className="block text-[10px] text-stone-500 font-sans font-normal mt-0.5">
-                          {m.r_verbraucht} Briefe · Stand {m.r_stand}
+                          {t('tarif.briefe_stand', { verbraucht: m.r_verbraucht, stand: m.r_stand })}
                         </span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button onClick={() => setzen(t.r_verein)} disabled={speichert === t.r_verein || !geaendert}
+                      <button onClick={() => setzen(x.r_verein)} disabled={speichert === x.r_verein || !geaendert}
                         className="px-4 py-2 bg-rose-600 text-white rounded-lg text-xs font-bold hover:bg-rose-700 disabled:opacity-30 disabled:hover:bg-rose-600 inline-flex items-center gap-1.5">
-                        {speichert === t.r_verein ? <Loader2 size={13} className="animate-spin" />
-                          : gesichert === t.r_verein && !geaendert ? <Check size={13} /> : null}
-                        {gesichert === t.r_verein && !geaendert ? 'Gesetzt' : 'Setzen'}
+                        {speichert === x.r_verein ? <Loader2 size={13} className="animate-spin" />
+                          : gesichert === x.r_verein && !geaendert ? <Check size={13} /> : null}
+                        {gesichert === x.r_verein && !geaendert ? t('tarif.gesetzt') : t('tarif.setzen')}
                       </button>
                     </td>
                   </tr>
@@ -286,28 +284,13 @@ const Brieftarife: React.FC = () => {
       </div>
 
       <div className="p-5 bg-white/5 border border-white/10 rounded-2xl text-xs text-stone-400 leading-relaxed space-y-2">
-        <p className="flex items-start gap-2">
-          <TrendingUp size={14} className="shrink-0 mt-0.5 text-stone-500" />
-          <span>
-            Die Vorgabe sind die offiziellen Pingen-Preise plus 10 Prozent. Der
-            Verkaufspreis wird nicht gespeichert, sondern gerechnet — er kann
-            darum nicht von Einkauf und Aufpreis abweichen.
-          </span>
-        </p>
-        <p className="flex items-start gap-2">
-          <Mail size={14} className="shrink-0 mt-0.5 text-stone-500" />
-          <span>
-            Ein Festpreis schlaegt den Aufpreis. Zum Entfernen das Feld leeren
-            und setzen; dann gilt wieder Einkauf plus Aufpreis.
-          </span>
-        </p>
-        <p className="flex items-start gap-2">
-          <Lock size={14} className="shrink-0 mt-0.5 text-stone-500" />
-          <span>
-            Den Aufpreis setzt nur der Betreiber. Ein Verein, der ihn selbst
-            setzen koennte, kaufte zum Selbstkostenpreis.
-          </span>
-        </p>
+        {[
+          { symbol: <TrendingUp size={14} className="shrink-0 mt-0.5 text-stone-500" />, text: t('tarif.hinweis_vorgabe') },
+          { symbol: <Mail size={14} className="shrink-0 mt-0.5 text-stone-500" />, text: t('tarif.hinweis_festpreis') },
+          { symbol: <Lock size={14} className="shrink-0 mt-0.5 text-stone-500" />, text: t('tarif.hinweis_betreiber') },
+        ].map((h, i) => (
+          <p key={i} className="flex items-start gap-2">{h.symbol}<span>{h.text}</span></p>
+        ))}
       </div>
     </div>
   );

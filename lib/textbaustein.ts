@@ -87,6 +87,27 @@ const einsetzen = (
   return text;
 };
 
+// Welche Platzhalter sind nach dem Einsetzen noch offen?
+//
+// Dass ein unbekannter Platzhalter STEHEN bleibt, ist Absicht (siehe
+// oben): eine still geloeschte Luecke bemerkt niemand. Nur bemerkt der
+// Empfaenger sie -- und der Absender erst, wenn jemand nachfragt.
+//
+// Darum diese Funktion: der Absender sieht vor dem Versand, was offen
+// ist. Bei EINLADUNG_GV sind das {{datum}}, {{ort}} und {{traktanden}} --
+// der Rundbrief liefert sie nicht, und ohne diesen Hinweis ginge eine
+// Einladung an alle Mitglieder hinaus, in der woertlich "{{datum}}"
+// steht.
+export function offenePlatzhalter(...texte: (string | null | undefined)[]): string[] {
+  const offen = new Set<string>();
+  for (const t of texte) {
+    for (const m of String(t ?? '').matchAll(/\{\{\s*([A-Za-z0-9_.]+)\s*\}\}/g)) {
+      offen.add(m[1]);
+    }
+  }
+  return [...offen].sort();
+}
+
 /**
  * Liefert Betreff und Text fuer einen Baustein, in den Sprachen der
  * Person. Fehlt der Baustein in einer Sprache, wird diese uebersprungen;

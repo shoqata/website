@@ -8,7 +8,8 @@ import { Poll, Inquiry } from '../types';
 import { packageByKey } from '../lib/sponsorPackages';
 import { useFeedback } from '../context/FeedbackContext';
 import { sendEmail, postausgangBereit } from '../services/mailService';
-import { textwerkLaden, sprachenFuer, textFuer, alsHtml, type Textwerk } from '../lib/textbaustein';
+import { textwerkLaden, sprachenFuer, textFuer, alsHtml, offenePlatzhalter, type Textwerk } from '../lib/textbaustein';
+import { einstellungLaden } from '../lib/einstellungen';
 import { supabase } from '@/services/supabase-bridge';
 import { useTranslation } from '../context/LanguageContext';
 
@@ -28,6 +29,19 @@ const AdminCommunication: React.FC = () => {
     const [emailSubject, setEmailSubject] = useState('');
     const [emailBody, setEmailBody] = useState('');
     const [werk, setWerk] = useState<Textwerk | null>(null);
+    const [marke, setMarke] = useState<any>(null);
+
+  // Der Vereinsname fuer {{verein}}. Er stand hier als leere
+  // Zeichenkette -- jeder mit einem Baustein verschickte Rundbrief ging
+  // also ohne Absendernamen hinaus. Dieselbe Klasse von Fehler wie bei
+  // der Mahnung, die die Spalte data statt payment las.
+  //
+  // Uebergeben wird das GANZE Sprachobjekt, nicht ein Text: textFuer
+  // waehlt daraus je Mitglied die richtige Sprache. Ein fester Text
+  // ergaebe einen albanischen Brief mit deutschem Vereinsnamen.
+  React.useEffect(() => {
+    einstellungLaden('branding').then(setMarke).catch(() => setMarke(null));
+  }, []);
     const [baustein, setBaustein] = useState('');
     const [empfaenger, setEmpfaenger] = useState<any[]>([]);
 
@@ -109,6 +123,30 @@ const AdminCommunication: React.FC = () => {
                 return;
             }
 
+            // Vor dem Versand an alle: bleibt ein Platzhalter offen?
+            //
+            // Dass ein unbekannter Platzhalter stehen bleibt, ist
+            // Absicht -- eine still geloeschte Luecke bemerkt niemand.
+            // Nur bemerkt sie dann der Empfaenger und nicht der
+            // Absender. EINLADUNG_GV braucht {{datum}}, {{ort}} und
+            // {{traktanden}}; der Rundbrief liefert keines davon. Ohne
+            // diese Pruefung ginge an alle Mitglieder eine Einladung
+            // hinaus, in der woertlich "{{datum}}" steht.
+            if (baustein && werk) {
+                const probe = textFuer(werk, baustein, sprachenFuer(empfaenger[0]), {
+                    anrede: empfaenger[0].displayName || '',
+                    verein: marke?.associationName ?? '',
+                });
+                const offen = probe ? offenePlatzhalter(probe.betreff, probe.text) : [];
+                if (offen.length) {
+                    showAlert({ type: 'error', message:
+                        `Diese Vorlage hat noch offene Platzhalter: ${offen.map(o => '{{' + o + '}}').join(', ')}. `
+                        + 'Der Rundbrief kann sie nicht fuellen — die Mitglieder wuerden sie woertlich lesen. '
+                        + 'Bitte die Vorlage unter Texte anpassen oder den Rundbrief als freien Text schreiben.' });
+                    return;
+                }
+            }
+
             let verschickt = 0;
             for (const m of empfaenger) {
                 let betreff = emailSubject;
@@ -119,7 +157,7 @@ const AdminCommunication: React.FC = () => {
                 if (baustein && werk) {
                     const g = textFuer(werk, baustein, sprachenFuer(m), {
                         anrede: m.displayName || '',
-                        verein: '',
+                        verein: marke?.associationName ?? '',
                     });
                     if (g) { betreff = g.betreff; html = alsHtml(g.text); }
                 }

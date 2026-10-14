@@ -581,7 +581,7 @@ const SuperAdminDashboard: React.FC<{ user?: any }> = ({ user }) => {
                         <TrendingUp size={18}/> Websites & SEO
                     </button>
                     <button onClick={() => setActiveTab('POST')} className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-3 transition-all ${activeTab === 'POST' ? 'bg-white/10 text-white' : 'text-stone-400 hover:text-white hover:bg-white/5'}`}>
-                        <Mail size={18}/> Brieftarife
+                        <Mail size={18}/> {t('tarif.titel')}
                     </button>
                     <button onClick={() => setActiveTab('CONFIG')} className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-3 transition-all ${activeTab === 'CONFIG' ? 'bg-white/10 text-white' : 'text-stone-400 hover:text-white hover:bg-white/5'}`}>
                         <Settings size={18} /> {t('sa.configuration')}

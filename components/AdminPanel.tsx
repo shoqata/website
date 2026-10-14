@@ -215,7 +215,7 @@ const AdminPanel: React.FC = () => {
               // Steht in den Finanzen und nicht im Marktplatz: freigeschaltet
               // wird das Modul dort, benutzt wird es hier -- bei den
               // Rechnungen, die per Post gehen sollen.
-              { id: 'BRIEFVERSAND', label: 'Briefversand', icon: <Mail size={18} /> },
+              { id: 'BRIEFVERSAND', label: t('admin.tab.briefversand'), icon: <Mail size={18} /> },
               { id: 'STATISTICS', label: t('admin.tab.statistics'), icon: <BarChart2 size={18} /> },
           ]
       },

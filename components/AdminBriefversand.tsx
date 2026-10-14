@@ -4,6 +4,7 @@ import {
   PackageX, ShoppingCart, Receipt, Ban, RefreshCw,
 } from 'lucide-react';
 import { supabase } from '@/services/supabase-bridge';
+import { useTranslation } from '../context/LanguageContext';
 import { postArbeiterAnstossen, pingenZugangPruefen } from '../lib/postversand';
 
 // Briefversand: Kontingent und Briefe.
@@ -41,27 +42,21 @@ type Buchung = {
   r_rechnung: string | null; r_am: string;
 };
 
-// Die Zustaende, wie sie in post_ausgang stehen -- nicht erfunden,
-// sondern aus dem CHECK der Tabelle. Ein Zustand, den die Maske nicht
-// kennt, faellt auf den Rohwert zurueck statt zu verschwinden.
-const ZUSTAND: Record<string, { name: string; farbe: string; symbol: React.ReactNode }> = {
-  WARTEND:      { name: 'Wartet',         farbe: 'bg-stone-100 text-stone-600',   symbol: <Clock size={13} /> },
-  UEBERGEBEN:   { name: 'Bei Pingen',     farbe: 'bg-sky-50 text-sky-700',        symbol: <Send size={13} /> },
-  VERSENDET:    { name: 'Versendet',      farbe: 'bg-indigo-50 text-indigo-700',  symbol: <Mail size={13} /> },
-  ZUGESTELLT:   { name: 'Zugestellt',     farbe: 'bg-emerald-50 text-emerald-700',symbol: <CheckCircle2 size={13} /> },
-  UNZUSTELLBAR: { name: 'Unzustellbar',   farbe: 'bg-amber-50 text-amber-700',    symbol: <PackageX size={13} /> },
-  PROBLEM:      { name: 'Problem',        farbe: 'bg-red-50 text-red-700',        symbol: <AlertTriangle size={13} /> },
-  ABGEBROCHEN:  { name: 'Abgebrochen',    farbe: 'bg-stone-100 text-stone-400',   symbol: <Ban size={13} /> },
+// Farbe und Symbol je Zustand. Die Namen stehen im Katalog unter
+// post.zustand.<WERT> -- ein Zustand, den die Uebersetzung nicht kennt,
+// zeigt den Rohwert statt zu verschwinden.
+const ZUSTAND: Record<string, { farbe: string; symbol: React.ReactNode }> = {
+  WARTEND:      { farbe: 'bg-stone-100 text-stone-600',    symbol: <Clock size={13} /> },
+  UEBERGEBEN:   { farbe: 'bg-sky-50 text-sky-700',         symbol: <Send size={13} /> },
+  VERSENDET:    { farbe: 'bg-indigo-50 text-indigo-700',   symbol: <Mail size={13} /> },
+  ZUGESTELLT:   { farbe: 'bg-emerald-50 text-emerald-700', symbol: <CheckCircle2 size={13} /> },
+  UNZUSTELLBAR: { farbe: 'bg-amber-50 text-amber-700',     symbol: <PackageX size={13} /> },
+  PROBLEM:      { farbe: 'bg-red-50 text-red-700',         symbol: <AlertTriangle size={13} /> },
+  ABGEBROCHEN:  { farbe: 'bg-stone-100 text-stone-400',    symbol: <Ban size={13} /> },
 };
-
-const ART_NAME: Record<string, string> = {
-  KAUF: 'Kauf', GUTSCHRIFT: 'Gutschrift', VERBRAUCH: 'Brief', STORNO: 'Storno',
-};
-
-const datum = (s: string | null) =>
-  s ? new Date(s).toLocaleString('de-CH', { dateStyle: 'short', timeStyle: 'short' }) : '—';
 
 const AdminBriefversand: React.FC = () => {
+  const { t } = useTranslation();
   const [laedt, setLaedt] = useState(true);
   const [fehler, setFehler] = useState('');
   const [stand, setStand] = useState<Stand | null>(null);
@@ -69,9 +64,23 @@ const AdminBriefversand: React.FC = () => {
   const [buch, setBuch] = useState<Buchung[]>([]);
   const [menge, setMenge] = useState('50');
   const [kauft, setKauft] = useState(false);
-  const [quittung, setQuittung] = useState<string>('');
+  const [quittung, setQuittung] = useState('');
   const [arbeitet, setArbeitet] = useState(false);
-  const [zugang, setZugang] = useState<string>('');
+  const [zugang, setZugang] = useState('');
+
+  // Ein unbekannter Zustand soll als Rohwert dastehen und nicht als
+  // leere Zelle: eine Luecke verschweigt, dass es den Zustand gibt.
+  const zustandName = (z: string) => {
+    const name = t(`post.zustand.${z}`);
+    return name === `post.zustand.${z}` ? z : name;
+  };
+  const artName = (a: string) => {
+    const name = t(`post.art.${a}`);
+    return name === `post.art.${a}` ? a : name;
+  };
+
+  const datum = (s: string | null) =>
+    s ? new Date(s).toLocaleString('de-CH', { dateStyle: 'short', timeStyle: 'short' }) : '—';
 
   const laden = async () => {
     setLaedt(true); setFehler('');
@@ -101,8 +110,10 @@ const AdminBriefversand: React.FC = () => {
     setKauft(false);
     if (error) { setFehler(error.message); return; }
     const d = data as any;
-    setQuittung(`${d.gekauft} Briefe gekauft, ${d.waehrung} ${Number(d.betrag).toFixed(2)} `
-              + `— Rechnung ${d.rechnungsnummer}. Neuer Stand: ${d.stand}.`);
+    setQuittung(t('post.gekauft_meldung', {
+      gekauft: d.gekauft, nummer: d.rechnungsnummer, stand: d.stand,
+      betrag: `${d.waehrung} ${Number(d.betrag).toFixed(2)}`,
+    }));
     laden();
   };
 
@@ -111,25 +122,25 @@ const AdminBriefversand: React.FC = () => {
     if (error) { setFehler(error.message); return; }
     // false heisst: der Brief war nicht mehr WARTEND. Das ist kein
     // Fehler, aber es muss dastehen -- sonst klickt man noch einmal.
-    if (data === false) setFehler('Der Brief ist schon bei Pingen und kann nicht mehr abgebrochen werden.');
+    if (data === false) setFehler(t('post.abbrechen_zu_spaet'));
     laden();
   };
 
   // Die wartenden Briefe jetzt uebergeben, statt auf den naechsten Lauf
   // zu warten. Was zurueckkommt, steht da -- auch eine Null: "0
-  // aufgegeben, 3 offen" ist eine Antwort, ein stilles Nichts nicht.
+  // uebergeben, 3 offen" ist eine Antwort, ein stilles Nichts nicht.
   const uebergeben = async () => {
     setArbeitet(true); setFehler(''); setQuittung('');
     try {
       const d: any = await postArbeiterAnstossen(25);
-      if (d?.error) { setFehler(String(d.error)); }
+      if (d?.error) setFehler(String(d.error));
       else setQuittung(
-        `${d?.aufgegeben ?? 0} Brief(e) an Pingen uebergeben`
-        + (d?.offen ? `, ${d.offen} noch offen` : '')
-        + (d?.ohne_kontingent ? `, ${d.ohne_kontingent} ohne Kontingent liegengeblieben` : '')
-        + (d?.umgebung === 'staging' ? ' — Testumgebung, es wird nichts gedruckt.' : '.'));
+        t('post.uebergeben_meldung', { anzahl: d?.aufgegeben ?? 0 })
+        + (d?.offen ? t('post.noch_offen', { anzahl: d.offen }) : '')
+        + (d?.ohne_kontingent ? t('post.ohne_kontingent', { anzahl: d.ohne_kontingent }) : '')
+        + (d?.umgebung === 'staging' ? t('post.staging') : '.'));
     } catch (e: any) {
-      setFehler(e?.message || 'Die Uebergabe ist nicht gelaufen.');
+      setFehler(e?.message || t('post.uebergabe_fehler'));
     }
     setArbeitet(false);
     laden();
@@ -143,7 +154,7 @@ const AdminBriefversand: React.FC = () => {
       const d: any = await pingenZugangPruefen();
       setZugang(d?.ergebnis || JSON.stringify(d));
     } catch (e: any) {
-      setZugang(e?.message || 'Der Zugang liess sich nicht pruefen.');
+      setZugang(e?.message || t('post.zugang_fehler'));
     }
   };
 
@@ -186,12 +197,8 @@ const AdminBriefversand: React.FC = () => {
           zum Marktplatz. */}
       {stand && !stand.modul_aktiv && (
         <div className="p-6 bg-stone-900 rounded-2xl text-stone-300 space-y-2">
-          <p className="font-display text-xl font-bold text-white">Briefversand ist nicht freigeschaltet</p>
-          <p className="text-sm leading-relaxed">
-            Rechnungen per Post gehen ueber das Modul <strong className="text-white">Briefversand</strong>.
-            Es steht im Marktplatz und wird dort freigeschaltet. Danach kann hier
-            ein Kontingent an Briefen gekauft werden.
-          </p>
+          <p className="font-display text-xl font-bold text-white">{t('post.nicht_frei_titel')}</p>
+          <p className="text-sm leading-relaxed">{t('post.nicht_frei_text')}</p>
         </div>
       )}
 
@@ -199,38 +206,33 @@ const AdminBriefversand: React.FC = () => {
         <>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className={`p-6 rounded-2xl border ${stand.stand <= 10 ? 'bg-amber-50 border-amber-200' : 'bg-white border-stone-200'}`}>
-              <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-2">Kontingent</p>
+              <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-2">{t('post.kontingent')}</p>
               <p className="font-display text-5xl font-bold text-stone-900"
                  style={{ fontVariantNumeric: 'tabular-nums' }}>{stand.stand}</p>
               <p className="text-xs text-stone-500 mt-2">
-                {stand.gekauft} gekauft · {stand.verbraucht} verbraucht
+                {t('post.gekauft_verbraucht', { gekauft: stand.gekauft, verbraucht: stand.verbraucht })}
               </p>
               {/* Ein Lauf ueber mehr Briefe als Kontingent bleibt in der
                   Mitte stehen. Besser hier warnen als dort. */}
               {stand.stand <= 10 && (
-                <p className="text-xs text-amber-800 mt-3 leading-relaxed">
-                  Wenig uebrig. Ein Rechnungslauf mit mehr Briefen als Kontingent
-                  bleibt stehen, sobald das Kontingent aufgebraucht ist.
-                </p>
+                <p className="text-xs text-amber-800 mt-3 leading-relaxed">{t('post.wenig_uebrig')}</p>
               )}
             </div>
 
             <div className="p-6 bg-white border border-stone-200 rounded-2xl">
-              <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-2">Preis je Brief</p>
+              <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-2">{t('post.preis_je_brief')}</p>
               <p className="font-display text-5xl font-bold text-stone-900"
                  style={{ fontVariantNumeric: 'tabular-nums' }}>
                 {stand.preis_je_brief ? Number(stand.preis_je_brief).toFixed(2) : '—'}
               </p>
-              <p className="text-xs text-stone-500 mt-2">{stand.waehrung} pro Brief, A4, inkl. Porto</p>
+              <p className="text-xs text-stone-500 mt-2">{t('post.preis_hinweis', { waehrung: stand.waehrung })}</p>
             </div>
 
             <div className="p-6 bg-white border border-stone-200 rounded-2xl">
-              <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-2">In Arbeit</p>
+              <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-2">{t('post.in_arbeit')}</p>
               <p className="font-display text-5xl font-bold text-stone-900"
                  style={{ fontVariantNumeric: 'tabular-nums' }}>{offen}</p>
-              <p className="text-xs text-stone-500 mt-2">
-                warten auf die Uebergabe an Pingen
-              </p>
+              <p className="text-xs text-stone-500 mt-2">{t('post.in_arbeit_hinweis')}</p>
             </div>
           </div>
 
@@ -238,37 +240,32 @@ const AdminBriefversand: React.FC = () => {
           <div className="p-6 bg-white border border-stone-200 rounded-2xl">
             <div className="flex items-center gap-2 mb-4">
               <ShoppingCart size={16} className="text-stone-400" />
-              <h3 className="font-display text-lg font-bold text-stone-900">Kontingent kaufen</h3>
+              <h3 className="font-display text-lg font-bold text-stone-900">{t('post.kaufen_titel')}</h3>
             </div>
             {!stand.kaufbar ? (
-              <p className="text-sm text-stone-600 leading-relaxed">
-                Fuer diesen Verein ist noch kein Briefpreis festgelegt. Der
-                Plattformbetreiber legt ihn fest; danach kann hier gekauft werden.
-              </p>
+              <p className="text-sm text-stone-600 leading-relaxed">{t('post.kein_preis')}</p>
             ) : (
               <div className="flex flex-wrap items-end gap-4">
                 <div>
                   <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">
-                    Anzahl Briefe
+                    {t('post.anzahl')}
                   </label>
                   <input type="number" min="1" max="10000" value={menge}
                     onChange={e => setMenge(e.target.value)}
                     className="w-32 p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none text-sm font-mono font-bold text-stone-900 focus:border-stone-400"/>
                 </div>
                 <div className="flex-1 min-w-[12rem]">
-                  <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-1">Kostet</p>
+                  <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-1">{t('post.kostet')}</p>
                   <p className="text-2xl font-bold text-stone-900 font-mono"
                      style={{ fontVariantNumeric: 'tabular-nums' }}>
                     {summe !== null ? `${stand.waehrung} ${summe.toFixed(2)}` : '—'}
                   </p>
-                  <p className="text-[11px] text-stone-400 mt-1">
-                    wird als Rechnung von unityhub gestellt
-                  </p>
+                  <p className="text-[11px] text-stone-400 mt-1">{t('post.kostet_hinweis')}</p>
                 </div>
                 <button onClick={kaufen} disabled={kauft || anzahl < 1 || anzahl > 10000}
                   className="px-6 py-3 bg-stone-900 text-white rounded-xl text-sm font-bold hover:bg-stone-800 disabled:opacity-40 flex items-center gap-2">
                   {kauft ? <Loader2 size={16} className="animate-spin" /> : <ShoppingCart size={16} />}
-                  {anzahl} Briefe kaufen
+                  {t('post.kaufen_knopf', { anzahl })}
                 </button>
               </div>
             )}
@@ -280,29 +277,29 @@ const AdminBriefversand: React.FC = () => {
       <div className="bg-white border border-stone-200 rounded-2xl overflow-hidden">
         <div className="p-6 flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <h3 className="font-display text-lg font-bold text-stone-900">Briefe</h3>
+            <h3 className="font-display text-lg font-bold text-stone-900">{t('post.briefe')}</h3>
             <p className="text-xs text-stone-500 mt-1">
-              {briefe.length === 0 ? 'Noch keine Briefe.' :
+              {briefe.length === 0 ? t('post.keine_briefe') :
                 Object.entries(nachZustand)
-                  .map(([z, n]) => `${n} ${(ZUSTAND[z]?.name ?? z).toLowerCase()}`)
+                  .map(([z, n]) => `${n} ${zustandName(z).toLowerCase()}`)
                   .join(' · ')}
             </p>
           </div>
           <div className="flex gap-2 flex-wrap">
             <button onClick={pruefen}
               className="px-4 py-2 bg-stone-100 text-stone-700 rounded-xl text-xs font-bold hover:bg-stone-200 flex items-center gap-2">
-              Zugang pruefen
+              {t('post.zugang_pruefen')}
             </button>
             {offen > 0 && (
               <button onClick={uebergeben} disabled={arbeitet}
                 className="px-4 py-2 bg-stone-900 text-white rounded-xl text-xs font-bold hover:bg-stone-800 disabled:opacity-40 flex items-center gap-2">
                 {arbeitet ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-                {offen} jetzt uebergeben
+                {t('post.jetzt_uebergeben', { anzahl: offen })}
               </button>
             )}
             <button onClick={laden}
               className="px-4 py-2 bg-stone-100 text-stone-700 rounded-xl text-xs font-bold hover:bg-stone-200 flex items-center gap-2">
-              <RefreshCw size={14} /> Neu laden
+              <RefreshCw size={14} /> {t('post.neu_laden')}
             </button>
           </div>
         </div>
@@ -311,12 +308,12 @@ const AdminBriefversand: React.FC = () => {
             <table className="w-full text-sm">
               <thead className="bg-stone-50 text-[10px] font-bold text-stone-400 uppercase tracking-widest">
                 <tr>
-                  <th className="text-left px-6 py-3">Rechnung</th>
-                  <th className="text-left px-4 py-3">Empfaenger</th>
-                  <th className="text-left px-4 py-3">Zustand</th>
-                  <th className="text-left px-4 py-3">Meldung</th>
-                  <th className="text-left px-4 py-3">Erstellt</th>
-                  <th className="text-left px-4 py-3">Erledigt</th>
+                  <th className="text-left px-6 py-3">{t('post.sp.rechnung')}</th>
+                  <th className="text-left px-4 py-3">{t('post.sp.empfaenger')}</th>
+                  <th className="text-left px-4 py-3">{t('post.sp.zustand')}</th>
+                  <th className="text-left px-4 py-3">{t('post.sp.meldung')}</th>
+                  <th className="text-left px-4 py-3">{t('post.sp.erstellt')}</th>
+                  <th className="text-left px-4 py-3">{t('post.sp.erledigt')}</th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
@@ -329,12 +326,12 @@ const AdminBriefversand: React.FC = () => {
                       <td className="px-4 py-3 text-stone-700 truncate max-w-[14rem]">{b.r_empfaenger ?? '—'}</td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${z?.farbe ?? 'bg-stone-100 text-stone-600'}`}>
-                          {z?.symbol}{z?.name ?? b.r_zustand}
+                          {z?.symbol}{zustandName(b.r_zustand)}
                         </span>
                         {/* Versuche nur dann, wenn es mehr als einer war --
                             sonst steht ueberall eine 1 und sagt nichts. */}
                         {b.r_versuche > 1 && (
-                          <span className="text-[10px] text-stone-400 ml-2">{b.r_versuche} Versuche</span>
+                          <span className="text-[10px] text-stone-400 ml-2">{t('post.versuche', { anzahl: b.r_versuche })}</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-xs text-stone-500 max-w-[18rem]">
@@ -350,7 +347,7 @@ const AdminBriefversand: React.FC = () => {
                         {b.r_zustand === 'WARTEND' && (
                           <button onClick={() => abbrechen(b.r_id)}
                             className="px-3 py-1.5 bg-stone-100 text-stone-600 rounded-lg text-xs font-bold hover:bg-red-50 hover:text-red-700 flex items-center gap-1.5 ml-auto">
-                            <XCircle size={13} /> Abbrechen
+                            <XCircle size={13} /> {t('post.abbrechen')}
                           </button>
                         )}
                       </td>
@@ -369,24 +366,24 @@ const AdminBriefversand: React.FC = () => {
       {buch.length > 0 && (
         <div className="bg-white border border-stone-200 rounded-2xl overflow-hidden">
           <div className="p-6">
-            <h3 className="font-display text-lg font-bold text-stone-900">Kontingentbuch</h3>
-            <p className="text-xs text-stone-500 mt-1">Jede Bewegung, neueste zuerst</p>
+            <h3 className="font-display text-lg font-bold text-stone-900">{t('post.buch_titel')}</h3>
+            <p className="text-xs text-stone-500 mt-1">{t('post.buch_hinweis')}</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-stone-50 text-[10px] font-bold text-stone-400 uppercase tracking-widest">
                 <tr>
-                  <th className="text-left px-6 py-3">Art</th>
-                  <th className="text-right px-4 py-3">Menge</th>
-                  <th className="text-right px-4 py-3">Betrag</th>
-                  <th className="text-left px-4 py-3">Grund</th>
-                  <th className="text-left px-4 py-3">Wann</th>
+                  <th className="text-left px-6 py-3">{t('post.sp.art')}</th>
+                  <th className="text-right px-4 py-3">{t('post.sp.menge')}</th>
+                  <th className="text-right px-4 py-3">{t('post.sp.betrag')}</th>
+                  <th className="text-left px-4 py-3">{t('post.sp.grund')}</th>
+                  <th className="text-left px-4 py-3">{t('post.sp.wann')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-50">
                 {buch.map((e, i) => (
                   <tr key={i} className="hover:bg-stone-50/50">
-                    <td className="px-6 py-3 font-bold text-xs text-stone-700">{ART_NAME[e.r_art] ?? e.r_art}</td>
+                    <td className="px-6 py-3 font-bold text-xs text-stone-700">{artName(e.r_art)}</td>
                     <td className="px-4 py-3 text-right font-mono text-stone-900"
                         style={{ fontVariantNumeric: 'tabular-nums' }}>
                       {e.r_menge > 0 ? `+${e.r_menge}` : e.r_menge}
