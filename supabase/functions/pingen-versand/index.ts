@@ -206,9 +206,36 @@ Deno.serve(async (req) => {
   let aufgegeben = 0, gescheitert = 0;
   const probleme: string[] = [];
 
+  // Kontingentstaende je Verein, einmal gelesen. Der Verbrauch wird
+  // danach je Brief abgebucht, aber die Pruefung VORHER verhindert, dass
+  // wir bei Pingen einen Brief kaufen, den niemand bezahlt hat.
+  const staende = new Map<string, number>();
+  for (const verein of new Set(offen.map((z: any) => z.tenantId as string))) {
+    const { data } = await admin.rpc("post_kontingent_stand", { p_verein: verein });
+    staende.set(verein, Number((data as any)?.stand ?? 0));
+  }
+
+  let ohneKontingent = 0;
+
   for (const z of offen) {
     try {
       if (!z.pdf) throw new Error("Das Dokument fehlt -- der Brief wurde wohl zurueckgezogen.");
+
+      // Kein Guthaben, kein Brief. Und zwar OHNE Versuchszaehler: das ist
+      // kein Fehler, der sich durch Warten behebt, sondern ein Zustand,
+      // den der Verein aufloesen muss. Ihn als Fehlversuch zu zaehlen
+      // wuerde den Brief nach vier Anlaeufen in zwoelf Stunden Abstand
+      // schicken und am Ende aussehen wie ein technisches Problem.
+      const stand = staende.get(z.tenantId) ?? 0;
+      if (stand < 1) {
+        await admin.rpc("post_zustand_melden", {
+          p_id: z.id, p_zustand: "PROBLEM",
+          p_meldung: "Kontingent aufgebraucht — der Verein muss Briefe nachkaufen. "
+            + "Der Brief bleibt liegen und geht hinaus, sobald Guthaben da ist.",
+        });
+        ohneKontingent++;
+        continue;
+      }
       const { url, sig } = await ablegen(tok, vonBase64(z.pdf));
       const pingenId = await briefAnlegen(tok, z, url, sig);
 
@@ -219,6 +246,19 @@ Deno.serve(async (req) => {
         p_status: "submitted",
         p_meldung: umgebung === "staging" ? "Testumgebung — nicht gedruckt" : null,
       });
+
+      // Abbuchen erst JETZT. Pingen hat den Brief angenommen; vorher
+      // abzubuchen hiesse, Guthaben fuer etwas zu verbrauchen, das
+      // vielleicht nie hinausgeht.
+      //
+      // In der Testumgebung wird ebenfalls abgebucht -- dort kostet der
+      // Brief nichts, aber ein Ablauf, der im Test anders rechnet als im
+      // Betrieb, prueft den Betrieb nicht.
+      const { data: vb } = await admin.rpc("post_kontingent_verbrauchen",
+                                           { p_post: z.id });
+      if ((vb as any)?.verbraucht) {
+        staende.set(z.tenantId, Number((vb as any).stand ?? 0));
+      }
       aufgegeben++;
     } catch (e) {
       const grund = e instanceof Error ? e.message : String(e);
@@ -229,7 +269,7 @@ Deno.serve(async (req) => {
   }
 
   return json({
-    ok: true, umgebung, aufgegeben, gescheitert,
+    ok: true, umgebung, aufgegeben, gescheitert, ohne_kontingent: ohneKontingent,
     probleme: probleme.slice(0, 10),
     hinweis: umgebung === "staging"
       ? "Testumgebung: aufgegebene Briefe werden als versendet simuliert, "
