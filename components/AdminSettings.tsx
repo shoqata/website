@@ -8,25 +8,7 @@ import AdminVereinsjahr from './AdminVereinsjahr';
 import { Link } from 'react-router-dom';
 import { useTranslation } from '../context/LanguageContext';
 import { motion } from 'framer-motion';
-import { 
-  Settings, 
-  Power, 
-  Shield, 
-  Globe, 
-  Save, 
-  Loader2, 
-  LayoutTemplate,
-  ToggleLeft,
-  ToggleRight,
-  Mail,
-  Server,
-  Banknote,
-  Eye,
-  Users,
-  Sparkles,
-  Heart,
-  ArrowRight
-} from 'lucide-react';
+import { ArrowRight, Banknote, Eye, Gauge, Globe, Heart, LayoutTemplate, Loader2, Mail, Power, Save, Server, Settings, Shield, Sparkles, ToggleLeft, ToggleRight, Users } from 'lucide-react';
 import { db } from '../services/datenzugriff';
 import { doc, onSnapshot, setDoc, serverTimestamp, supabase } from '@/services/supabase-bridge';
 import { SystemSettings, GlobalPaymentSettings } from '../types';
@@ -59,6 +41,10 @@ const AdminSettings: React.FC = () => {
     // ohne je etwas eingetippt zu haben.
     systemEmail: '',
     beitraegeOeffentlich: 'AUS',
+    // Vorgaben wie in mail_grenze_heute(). Sie hier zu verschweigen
+    // hiesse, dass die Maske leere Felder zeigt, wo eine Grenze gilt.
+    mailGrenzeVorstandTag: 150,
+    mailGrenzePersonTag: 60,
     startseiteVariante: 'STANDARD',
     spendenseite: 'IMMER'
   });
@@ -195,6 +181,47 @@ const AdminSettings: React.FC = () => {
                 Drei Stellungen statt ein/aus, weil eine allgemeine Spende
                 ohne Aufruf sinnvoll bleibt -- bis heute war das der
                 Normalfall. */}
+            {/* Die Tagesgrenze des Vorstandspostausgangs.
+                Steht hier und nicht in der Vorstandsmaske: wer eine
+                Grenze setzen darf, ist nicht derselbe, fuer den sie
+                gilt. */}
+            <section>
+                <div className="flex items-center gap-2 mb-4">
+                    <Gauge size={18} className="text-stone-400" />
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500">{t('mgrenze.titel')}</h3>
+                </div>
+                <div className="bg-stone-50 p-6 rounded-3xl border border-stone-100 space-y-4">
+                    <p className="text-xs text-stone-500 leading-relaxed max-w-2xl">{t('mgrenze.hinweis')}</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">
+                                {t('mgrenze.verein')}
+                            </label>
+                            <input type="number" min="0" max="400"
+                                value={settings.mailGrenzeVorstandTag ?? 150}
+                                onChange={e => setSettings({ ...settings, mailGrenzeVorstandTag: Number(e.target.value) })}
+                                className="w-32 p-3 bg-white border border-stone-200 rounded-xl text-sm font-mono font-bold outline-none focus:border-stone-400" />
+                            <p className="text-[11px] text-stone-400 mt-1">{t('mgrenze.verein_hinweis')}</p>
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">
+                                {t('mgrenze.person')}
+                            </label>
+                            <input type="number" min="0" max="400"
+                                value={settings.mailGrenzePersonTag ?? 60}
+                                onChange={e => setSettings({ ...settings, mailGrenzePersonTag: Number(e.target.value) })}
+                                className="w-32 p-3 bg-white border border-stone-200 rounded-xl text-sm font-mono font-bold outline-none focus:border-stone-400" />
+                            <p className="text-[11px] text-stone-400 mt-1">{t('mgrenze.person_hinweis')}</p>
+                        </div>
+                    </div>
+                    {/* Die Decke des Betreibers. Sie steht hier, damit
+                        niemand eine Zahl eintippt, die still gekappt wird. */}
+                    <p className="text-[11px] text-stone-400 leading-relaxed border-t border-stone-200 pt-3">
+                        {t('mgrenze.decke')}
+                    </p>
+                </div>
+            </section>
+
             {modulAktiv('SPENDEN') && (
             <section>
                 <div className="flex items-center gap-2 mb-4">

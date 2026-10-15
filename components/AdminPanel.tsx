@@ -8,21 +8,7 @@ import { useTenant } from '../context/TenantContext';
 import Marktplatz from './Marktplatz';
 import AdminStammbaum from './AdminStammbaum';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Users, Trash2, Search, Filter, Zap, Loader2, Database, RefreshCw, Globe, Plus, Layout, 
-  BarChart3, Mail, X, MapPin, Save, Calendar, Sparkles, Clock, ChevronRight, Bell, 
-  Phone, User as UserIcon, Tag, AlertCircle, Download, ListFilter, CheckCircle2, 
-  Newspaper, AlignLeft, Link as LinkIcon, ImageIcon, MoreHorizontal, 
-  CreditCard, ArrowLeft, Settings, LayoutGrid, LayoutList, Kanban, Upload, Map, 
-  Crown, BookOpen, Shield, Activity, DollarSign, FileText, Eye, Home, KeyRound, 
-  PieChart as LucidePieChart, Lock, Unlock, CalendarDays, Sliders, CheckSquare, Square, MousePointer2, 
-  FileInput, Briefcase, Megaphone, ClipboardList, Copy, Receipt, Menu, LogOut, 
-  Command, ChevronLeft, ArrowUp, ArrowDown, ArrowUpDown, TrendingUp, UserPlus, 
-  ClipboardCheck, Send, Ban, Coins, LayoutDashboard, MessageSquare, ToggleRight, 
-  ToggleLeft, Printer, Files, UserCog, MoreVertical, ExternalLink, Info, MapPinned, Target, UserCheck,
-  ShieldAlert, Activity as ActivityIcon, ArrowRight, Wallet, BarChart2, Hash, History, StickyNote, Image as LucideImage,
-  UserPlus2, UserMinus, UserCheck2, FileEdit, AlertTriangle, Users2, Blocks, Heart, Film
-, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Activity, Activity as ActivityIcon, AlertCircle, AlertTriangle, AlignLeft, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ArrowUpDown, AtSign, Ban, BarChart2, BarChart3, Bell, Blocks, BookOpen, Briefcase, Calendar, CalendarDays, CheckCircle2, CheckSquare, ChevronLeft, ChevronRight, ClipboardCheck, ClipboardList, Clock, Coins, Command, Copy, CreditCard, Crown, Database, DollarSign, Download, ExternalLink, Eye, FileEdit, FileInput, FileText, Files, Film, Filter, Globe, Hash, Heart, History, Home, Image as LucideImage, ImageIcon, Info, Kanban, KeyRound, Layout, LayoutDashboard, LayoutGrid, LayoutList, Link as LinkIcon, ListFilter, Loader2, Lock, LogOut, Mail, Map, MapPin, MapPinned, Megaphone, Menu, MessageSquare, MoreHorizontal, MoreVertical, MousePointer2, Newspaper, PanelLeftClose, PanelLeftOpen, Phone, PieChart as LucidePieChart, Plus, Printer, Receipt, RefreshCw, Save, Search, Send, Settings, Shield, ShieldAlert, Sliders, Sparkles, Square, StickyNote, Tag, Target, ToggleLeft, ToggleRight, Trash2, TrendingUp, Unlock, Upload, User as UserIcon, UserCheck, UserCheck2, UserCog, UserMinus, UserPlus, UserPlus2, Users, Users2, Wallet, X, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { UserProfile, UserRole, Neighborhood, SolidarityEvent, NewsArticle, Payment, FiscalYear, BillingGroup, GlobalPaymentSettings, EventRegistration, ContentStatus } from '../types';
 import { db, auth, storage } from '../services/datenzugriff';
@@ -39,6 +25,7 @@ import AdminAnalytics from './AdminAnalytics';
 import AdminWebsite from './AdminWebsite';
 import AdminSeo from './AdminSeo';
 import AdminBriefversand from './AdminBriefversand';
+import AdminVereinsadressen from './AdminVereinsadressen';
 import { beitragFuer } from '../lib/beitrag';
 import SocialAI from './SocialAI';
 import AdminFinance from './AdminFinance';
@@ -66,7 +53,7 @@ import { missingFieldKeys, qualityScore, feeStateFor, hasDeliveryConflict } from
 import { isPlaceholderEmail, hasUsableEmail, emailMissingForDelivery, deliveryNeedsEmail } from '../lib/memberEmail';
 import AdminTreffen from './AdminTreffen';
 import SuperAdminTreffen from './SuperAdminTreffen';
-type AdminTabId = 'USERS' | 'NEIGHBORHOODS' | 'ANALYTICS' | 'STATISTICS' | 'WEBSITE' | 'SOCIAL_AI' | 'EVENTS' | 'NEWS' | 'FINANCE' | 'EXPENSES' | 'DATA' | 'ACCOUNTING' | 'SETTINGS' | 'BOARD' | 'COMMUNICATION' | 'DATA_QUALITY' | 'STAMMBAUM' | 'MARKTPLATZ' | 'SPENDEN' | 'VIDEOS' | 'PROZESSE' | 'TREFFEN' | 'SEO' | 'BRIEFVERSAND';
+type AdminTabId = 'USERS' | 'NEIGHBORHOODS' | 'ANALYTICS' | 'STATISTICS' | 'WEBSITE' | 'SOCIAL_AI' | 'EVENTS' | 'NEWS' | 'FINANCE' | 'EXPENSES' | 'DATA' | 'ACCOUNTING' | 'SETTINGS' | 'BOARD' | 'COMMUNICATION' | 'DATA_QUALITY' | 'STAMMBAUM' | 'MARKTPLATZ' | 'SPENDEN' | 'VIDEOS' | 'PROZESSE' | 'TREFFEN' | 'SEO' | 'BRIEFVERSAND' | 'VEREINSADRESSEN';
 
 interface NavItem {
     id: AdminTabId;
@@ -241,6 +228,9 @@ const AdminPanel: React.FC = () => {
           items: [
               { id: 'DATA', label: t('admin.tab.data'), icon: <Database size={18} /> },
               { id: 'COMMUNICATION', label: t('admin.tab.communication'), icon: <MessageSquare size={18} /> },
+              // Direkt unter der Kommunikation: wer Nachrichten verschickt,
+              // entscheidet hier, welche Adresse darunter steht.
+              { id: 'VEREINSADRESSEN', label: t('vadr.titel'), icon: <AtSign size={18} /> },
               { id: 'SETTINGS', label: t('admin.tab.settings'), icon: <Settings size={18} /> },
           ]
       }
@@ -615,6 +605,7 @@ const AdminPanel: React.FC = () => {
                         {activeTab === 'WEBSITE' && <AdminWebsite />}
                         {activeTab === 'SEO' && <AdminSeo />}
                         {activeTab === 'BRIEFVERSAND' && <AdminBriefversand />}
+                        {activeTab === 'VEREINSADRESSEN' && <AdminVereinsadressen />}
                         {activeTab === 'SOCIAL_AI' && <SocialAI />}
                         {activeTab === 'DATA' && <AdminData />}
                         {activeTab === 'STAMMBAUM' && <AdminStammbaum />}

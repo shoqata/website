@@ -739,7 +739,17 @@ const brevoSmtpDa = !!brevoSmtpLogin && !!brevoSmtpKey;
     for (const m of nachrichten) {
       try {
         // Microsoft-Empfaenger ueber Brevo, alle uebrigen ueber Postal.
-        const zeigeName = info?.name ?? p.absendername ?? "unityhub";
+        //
+        // Name und Antwortadresse stehen zuerst an der NACHRICHT und nur
+        // sonst am Verein. Ein Brief des Vorstands tragt den Namen des
+        // Absenders, und die Antwort des Mitglieds muss bei IHM landen --
+        // nicht in der allgemeinen Vereinsadresse, wo sie niemandem
+        // zugeordnet ist. Der technische Absender bleibt in beiden
+        // Faellen unityhub: nur dessen Domain ist bei SPF und DKIM
+        // hinterlegt.
+        const zeigeName = (m as any).absender_name
+          ?? info?.name ?? p.absendername ?? "unityhub";
+        const antwortAn = (m as any).antwort_an ?? info?.antwortAn ?? null;
 
         // Einmal fragen, dann entscheiden. Die Abfrage ist
         // zwischengespeichert; zweimal zu fragen waere nur unordentlich.
@@ -753,7 +763,7 @@ const brevoSmtpDa = !!brevoSmtpLogin && !!brevoSmtpKey;
             von: p.absender ?? absender,
             vonName: zeigeName,
             an: String(m.recipient),
-            antwortAn: info?.antwortAn ?? null,
+            antwortAn,
             betreff: String(m.subject ?? ""),
             html: String(m.html ?? ""),
             text: m.text ?? null,
@@ -771,7 +781,7 @@ const brevoSmtpDa = !!brevoSmtpLogin && !!brevoSmtpKey;
             body: JSON.stringify({
               sender: { name: zeigeName, email: p.absender ?? absender },
               to: [{ email: m.recipient }],
-              ...(info?.antwortAn ? { replyTo: { email: info.antwortAn } } : {}),
+              ...(antwortAn ? { replyTo: { email: antwortAn } } : {}),
               subject: m.subject,
               htmlContent: m.html,
               ...(m.text ? { textContent: m.text } : {}),
@@ -797,7 +807,7 @@ const brevoSmtpDa = !!brevoSmtpLogin && !!brevoSmtpKey;
               to: [m.recipient],
               from: `${zeigeName} <${p.absender ?? absender}>`,
               sender: p.absender ?? absender,
-              reply_to: info?.antwortAn ?? undefined,
+              reply_to: antwortAn ?? undefined,
               subject: m.subject,
               html_body: m.html,
               plain_body: m.text ?? undefined,
@@ -820,7 +830,7 @@ const brevoSmtpDa = !!brevoSmtpLogin && !!brevoSmtpKey;
           // Anzeigename: der Verein, dem die Nachricht gehoert. Ohne
           // Vereinsbezug (Betreiber-Nachrichten) der Name des Postausgangs.
           from: `${zeigeName} <${p.absender}>`,
-          replyTo: info?.antwortAn ?? undefined,
+          replyTo: antwortAn ?? undefined,
           to: m.recipient,
           subject: m.subject,
           html: m.html,

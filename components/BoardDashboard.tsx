@@ -4,6 +4,7 @@ import { useTranslation } from '../context/LanguageContext';
 import { UserProfile, Payment, Neighborhood, Inquiry, BoardMeeting } from '../types';
 import BoardMinutesEditor from './BoardMinutesEditor';
 import VorstandWizard from './VorstandWizard';
+import VorstandPostausgang from './VorstandPostausgang';
 import CountrySelect from './ui/CountrySelect';
 import { missingFieldKeys } from '../lib/memberQuality';
 import { markPaymentPaid, zahlungDifferenzSetzen } from '@/services/supabase-bridge';
@@ -279,6 +280,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
   // Domain, Module und die Rollenvergabe -- zwei Formulare an der Stelle,
   // an der er ohnehin arbeitet.
   const [wizard, setWizard] = React.useState(false);
+  const [postausgang, setPostausgang] = useState(false);
 
   const [buchung, setBuchung] = React.useState<Payment | null>(null);
   const [buchBetrag, setBuchBetrag] = React.useState('');
@@ -451,6 +453,18 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                     className="px-4 py-3 bg-stone-900 text-white rounded-2xl shadow-sm hover:bg-stone-800 transition-colors flex items-center gap-2 font-bold text-xs"
                 >
                     <Plus size={16}/> <span className="hidden sm:inline">Erfassen</span>
+                </button>
+
+                {/* Schreiben. Steht neben dem Erfassen, weil es dieselbe
+                    Arbeit ist: der Vorstand kuemmert sich um Mitglieder.
+                    Bisher nahm dafuer jeder sein privates Postfach -- und
+                    damit stand seine private Adresse in der Nachricht und
+                    die Antwort ging dorthin. */}
+                <button
+                    onClick={() => setPostausgang(true)}
+                    className="px-4 py-3 bg-white border border-stone-100 text-stone-700 rounded-2xl shadow-sm hover:border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)] hover:text-primary transition-colors flex items-center gap-2 font-bold text-xs"
+                >
+                    <Mail size={16}/> <span className="hidden sm:inline">{t('vpost.knopf')}</span>
                 </button>
 
                 <button 
@@ -1162,6 +1176,14 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
             mitglieder={users}
             nachbarschaften={neighborhoods}
             onClose={() => setWizard(false)}
+          />
+        )}
+
+        {postausgang && (
+          <VorstandPostausgang
+            mitglieder={users}
+            nachbarschaften={neighborhoods}
+            onClose={() => setPostausgang(false)}
           />
         )}
 

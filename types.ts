@@ -307,6 +307,19 @@ export interface SystemSettings {
   /** 'IMMER' | 'BEI_AUFRUF' | 'AUS' -- wann die Spendenseite erscheint.
       Entschieden wird das in spendenseite_sichtbar(), nicht im Browser. */
   spendenseite?: 'IMMER' | 'BEI_AUFRUF' | 'AUS';
+  /** Wie viele freie Nachrichten der Vorstand hoechstens an EINEM Tag
+   *  hinausgeben darf -- je Verein und je Person.
+   *
+   *  Das ist keine Gaengelung. Alle Vereine gehen ueber denselben
+   *  Postausgang von unityhub; ein unbedachter Lauf an hunderte Adressen
+   *  ist von aussen nicht von einem Spamlauf zu unterscheiden und
+   *  verschlechtert die Zustellung fuer ALLE, ueber Wochen.
+   *
+   *  Was heute nicht mehr hineingeht, wird auf die Folgetage verteilt und
+   *  nicht verworfen. Ueber mail_decke_betreiber() hinaus geht es nicht,
+   *  auch nicht mit hoeherer Einstellung. */
+  mailGrenzeVorstandTag?: number;
+  mailGrenzePersonTag?: number;
   /** 'STANDARD' | 'PREMIUM' -- welche Startseite Besucher bekommen.
       PREMIUM wirkt nur mit gebuchtem Modul; entschieden wird das in
       startseite_variante(), nicht im Browser. */
