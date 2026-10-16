@@ -33,7 +33,8 @@ type Props = {
 type Absender = {
   darf: boolean; name?: string; verein?: string;
   adresse?: string | null; antwort_an?: string | null;
-  eigene_adresse?: boolean; darf_schreiben?: boolean;
+  eigene_adresse?: boolean; adresse_wartet?: boolean;
+  bestaetigt?: boolean; darf_schreiben?: boolean;
 };
 
 type Grenze = {
@@ -130,7 +131,14 @@ const VorstandPostausgang: React.FC<Props> = ({ mitglieder, nachbarschaften, onC
               <p className="text-xs text-stone-500 mt-1">
                 {absender.eigene_adresse
                   ? t('vpost.absender_mit', { name: absender.name, adresse: absender.antwort_an })
-                  : t('vpost.absender_ohne', { name: absender.name, adresse: absender.antwort_an })}
+                  : absender.adresse_wartet
+                    /* Eingetragen, aber die Weiterleitung ist nicht
+                       bestaetigt -- dann gilt die private Adresse, und
+                       das muss dastehen und nicht geraten werden. */
+                    ? t('vpost.absender_wartet', {
+                        name: absender.name, verein: absender.adresse,
+                        adresse: absender.antwort_an })
+                    : t('vpost.absender_ohne', { name: absender.name, adresse: absender.antwort_an })}
               </p>
             )}
           </div>

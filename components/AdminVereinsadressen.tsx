@@ -23,6 +23,10 @@ import { weiterleitungenLesen, zuordnen, absenderPruefen } from '../lib/vorstand
 type Zeile = {
   r_user: string; r_name: string; r_privat: string | null; r_rolle: string | null;
   r_adresse: string | null; r_weiterleitung: string | null; r_aktiv: boolean;
+  // Leer = die Adresse ist vorgesehen, wirkt aber NICHT als
+  // Antwortadresse. Sonst gingen Antworten an ein Postfach, das es beim
+  // Mailhost noch nicht gibt -- und das faellt niemandem auf.
+  r_bestaetigt: string | null;
 };
 
 const AdminVereinsadressen: React.FC = () => {
@@ -67,6 +71,16 @@ const AdminVereinsadressen: React.FC = () => {
     });
     setSpeichert('');
     if (error) { setFehler(error.message); return; }
+    laden();
+  };
+
+  const bestaetigen = async (user: string, an: boolean) => {
+    setSpeichert(user); setFehler(''); setMeldung('');
+    const { error } = await supabase.rpc('vorstand_adresse_bestaetigen',
+      { p_user: user, p_an: an });
+    setSpeichert('');
+    if (error) { setFehler(error.message); return; }
+    setMeldung(an ? t('vadr.bestaetigt_jetzt') : t('vadr.bestaetigung_weg'));
     laden();
   };
 
@@ -148,12 +162,13 @@ const AdminVereinsadressen: React.FC = () => {
                 <th className="text-left px-6 py-3">{t('vadr.sp.person')}</th>
                 <th className="text-left px-4 py-3">{t('vadr.sp.adresse')}</th>
                 <th className="text-left px-4 py-3">{t('vadr.sp.ziel')}</th>
+                <th className="text-left px-4 py-3">{t('vadr.sp.zustand')}</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-50">
               {zeilen.length === 0 && (
-                <tr><td colSpan={4} className="px-6 py-8 text-center text-stone-400 text-sm">
+                <tr><td colSpan={5} className="px-6 py-8 text-center text-stone-400 text-sm">
                   {t('vadr.niemand')}
                 </td></tr>
               )}
@@ -180,7 +195,37 @@ const AdminVereinsadressen: React.FC = () => {
                         onChange={ev => setEingabe({ ...eingabe, [z.r_user]: { ...e, ziel: ev.target.value } })}
                         className="w-full min-w-[14rem] p-2 bg-stone-50 border border-stone-200 rounded-lg text-xs font-mono outline-none focus:border-stone-400" />
                     </td>
+                    {/* Der Zustand. Ohne ihn saehe eine eingetragene
+                        Adresse aus wie eine wirkende -- und die Antworten
+                        der Mitglieder wuerden verschwinden. */}
+                    <td className="px-4 py-3">
+                      {!z.r_adresse ? (
+                        <span className="text-xs text-stone-400">—</span>
+                      ) : z.r_bestaetigt ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700">
+                          <Check size={12} /> {t('vadr.wirkt')}
+                        </span>
+                      ) : (
+                        <div className="space-y-1">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700">
+                            <AlertTriangle size={12} /> {t('vadr.wartet')}
+                          </span>
+                          <button onClick={() => bestaetigen(z.r_user, true)}
+                            disabled={speichert === z.r_user || !z.r_weiterleitung}
+                            title={!z.r_weiterleitung ? t('vadr.kein_ziel') : undefined}
+                            className="block text-[11px] font-bold text-stone-900 underline hover:no-underline disabled:text-stone-300 disabled:no-underline">
+                            {t('vadr.jetzt_bestaetigen')}
+                          </button>
+                        </div>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-right whitespace-nowrap">
+                      {z.r_bestaetigt && (
+                        <button onClick={() => bestaetigen(z.r_user, false)}
+                          className="px-3 py-1.5 bg-stone-100 text-stone-600 rounded-lg text-xs font-bold hover:bg-amber-50 hover:text-amber-700 mr-2">
+                          {t('vadr.zurueckziehen')}
+                        </button>
+                      )}
                       <button onClick={() => setzen(z.r_user)} disabled={speichert === z.r_user || !geaendert}
                         className="px-3 py-1.5 bg-stone-900 text-white rounded-lg text-xs font-bold hover:bg-stone-800 disabled:opacity-30 inline-flex items-center gap-1.5">
                         {speichert === z.r_user ? <Loader2 size={12} className="animate-spin" /> : null}
@@ -258,6 +303,8 @@ const AdminVereinsadressen: React.FC = () => {
           <h3 className="font-display text-lg font-bold text-white">{t('vadr.host_titel')}</h3>
         </div>
         <p className="text-xs leading-relaxed">{t('vadr.host_hinweis')}</p>
+        {/* Der wichtigste Satz der Maske. */}
+        <p className="text-xs leading-relaxed text-amber-300">{t('vadr.host_bis_dahin')}</p>
         {mitAdresse.length === 0 ? (
           <p className="text-xs text-stone-500 italic">{t('vadr.host_leer')}</p>
         ) : (
@@ -270,6 +317,9 @@ const AdminVereinsadressen: React.FC = () => {
                   <span className={z.r_weiterleitung ? 'text-emerald-400' : 'text-amber-400'}>
                     {z.r_weiterleitung || t('vadr.ziel_fehlt')}
                   </span>
+                  {!z.r_bestaetigt && (
+                    <span className="text-amber-400"> · {t('vadr.wartet')}</span>
+                  )}
                 </p>
               ))}
             </div>
