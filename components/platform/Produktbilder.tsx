@@ -186,6 +186,62 @@ const Stammbaumbild: React.FC = () => {
   );
 };
 
+// --- 4. Postversand ------------------------------------------------------
+//
+// Zeigt das, was den Verein daran interessiert: was aus einem Brief
+// geworden ist. Nicht den Weg dorthin -- wer den Druck besorgt, ist fuer
+// den Verein so wenig von Belang wie der Name der Druckerei auf einer
+// Rechnung.
+const Postbild: React.FC = () => {
+  const { t } = useTranslation();
+  const zeilen = [
+    ['plat.bild_m1', 'zugestellt', '14.10.'],
+    ['plat.bild_m2', 'zugestellt', '14.10.'],
+    ['plat.bild_m3', 'unterwegs',  '15.10.'],
+    ['plat.bild_m4', 'wartet',     '\u2014'],
+  ] as const;
+  const farbe = {
+    zugestellt: { grund: '#e8f5ec', schrift: '#1f7a3f' },
+    unterwegs:  { grund: '#e8edfd', schrift: '#2340a8' },
+    wartet:     { grund: '#f2f2f4', schrift: '#5c5f73' },
+  } as const;
+
+  return (
+    <div className="bg-white">
+      <div className="flex items-center justify-between px-5 py-3.5"
+           style={{ borderBottom: `1px solid ${LINIE}` }}>
+        <span className="uppercase"
+              style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.12em', color: SCHIEFER }}>
+          {t('plat.bild_post_kopf')}
+        </span>
+        <span style={{ fontFamily: MONO, fontSize: 10, color: '#8185a0' }}>
+          {t('plat.bild_post_kontingent')} 84
+        </span>
+      </div>
+      <table className="w-full" style={{ fontSize: 13 }}>
+        <tbody>
+          {zeilen.map(([name, stand, tag], i) => (
+            <tr key={i} style={{ borderBottom: i < zeilen.length - 1 ? '1px solid #f0efee' : 'none' }}>
+              <td className="px-5 py-3" style={{ color: TINTE }}>{t(name)}</td>
+              <td className="px-2 py-3">
+                <span className="inline-block px-2 py-0.5 rounded uppercase"
+                      style={{
+                        fontFamily: MONO, fontSize: 9, letterSpacing: '0.08em',
+                        background: farbe[stand].grund, color: farbe[stand].schrift,
+                      }}>
+                  {t(`plat.bild_post_${stand}`)}
+                </span>
+              </td>
+              <td className="px-5 py-3 text-right"
+                  style={{ fontFamily: MONO, fontSize: 11, color: '#8185a0' }}>{tag}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
 const Produktbilder: React.FC = () => {
   const { t } = useTranslation();
   return (
@@ -195,6 +251,9 @@ const Produktbilder: React.FC = () => {
       </Rahmen>
       <Rahmen marke={t('plat.bild2_marke')} titel={t('plat.bild2_titel')} text={t('plat.bild2_text')}>
         <Rechnungsbild />
+      </Rahmen>
+      <Rahmen marke={t('plat.bild4_marke')} titel={t('plat.bild4_titel')} text={t('plat.bild4_text')}>
+        <Postbild />
       </Rahmen>
       <Rahmen marke={t('plat.bild3_marke')} titel={t('plat.bild3_titel')} text={t('plat.bild3_text')}>
         <Stammbaumbild />

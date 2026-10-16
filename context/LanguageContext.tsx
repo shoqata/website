@@ -677,6 +677,19 @@ const translations: Translations = {
   'plat.bild3_marke': { de: 'Stammbaum', en: 'Family tree', sq: 'Pema familjare' },
   'plat.bild3_titel': { de: 'Familien, nicht nur Einzelpersonen.', en: 'Families, not just individuals.', sq: 'Familje, jo vetëm individë.' },
   'plat.bild3_text': { de: 'Eltern, Partner und Geschwister erfassen — Cousins, Onkel und Grosseltern ergeben sich daraus von selbst.', en: 'Record parents, partners and siblings — cousins, uncles and grandparents follow by themselves.', sq: 'Regjistroni prindërit, partnerët dhe vëllezërit — kushërinjtë, dajallarët dhe gjyshërit dalin vetvetiu.' },
+  // Postversand auf der Betreiberseite. Ohne Anbietername: wer den Druck
+  // besorgt, ist fuer den Verein so wenig von Belang wie der Name der
+  // Druckerei auf einer Rechnung -- und ein Name, der auf der
+  // Landingpage steht, muss dort auch stehen bleiben, wenn der Anbieter
+  // einmal wechselt.
+  'plat.bild4_marke': { en: 'Letters', de: 'Postversand', sq: 'Dërgimi me postë' },
+  'plat.bild4_titel': { en: 'Also the ones without email.', de: 'Auch die, die keine E-Mail haben.', sq: 'Edhe ata pa email.' },
+  'plat.bild4_text': { en: 'Members without an email address get their bill as a letter — printed, enveloped and stamped, without anyone in the association doing it by hand. And what became of it comes back: in transit, delivered, or undeliverable. A bookable module with a quota of letters.', de: 'Mitglieder ohne E-Mail-Adresse bekommen ihre Rechnung als Brief — gedruckt, kuvertiert und frankiert, ohne dass jemand im Verein das von Hand macht. Und es kommt zurück, was daraus geworden ist: unterwegs, zugestellt oder nicht zustellbar. Zubuchbares Modul mit einem Kontingent an Briefen.', sq: 'Anëtarët pa adresë emaili e marrin faturën si letër — e shtypur, në zarf dhe me pullë, pa që ndonjë në shoqatë ta bëjë me dorë. Dhe kthehet çfarë u bë me të: në rrugë, e dorëzuar ose e padorëzueshme. Modul i zgjedhshëm me një kuotë letrash.' },
+  'plat.bild_post_kopf': { en: 'Outgoing letters', de: 'Postausgang', sq: 'Postë në dalje' },
+  'plat.bild_post_kontingent': { en: 'Quota', de: 'Kontingent', sq: 'Kuota' },
+  'plat.bild_post_zugestellt': { en: 'delivered', de: 'zugestellt', sq: 'dorëzuar' },
+  'plat.bild_post_unterwegs': { en: 'in transit', de: 'unterwegs', sq: 'në rrugë' },
+  'plat.bild_post_wartet': { en: 'waiting', de: 'wartet', sq: 'në pritje' },
   'plat.bild_mitglieder_kopf': { de: 'Mitglieder', en: 'Members', sq: 'Anëtarët' },
   'plat.bild_bezahlt': { de: 'bezahlt', en: 'paid', sq: 'paguar' },
   'plat.bild_offen': { de: 'offen', en: 'open', sq: 'hapur' },
@@ -2412,7 +2425,7 @@ const translations: Translations = {
   // --- BRIEFVERSAND (Verein) ---
   'admin.tab.briefversand': { en: 'Letters', de: 'Briefversand', sq: 'Dërgimi me postë' },
   'post.zustand.WARTEND': { en: 'Waiting', de: 'Wartet', sq: 'Në pritje' },
-  'post.zustand.UEBERGEBEN': { en: 'With Pingen', de: 'Bei Pingen', sq: 'Te Pingen' },
+  'post.zustand.UEBERGEBEN': { en: 'In transit', de: 'Unterwegs', sq: 'Në rrugë' },
   'post.zustand.VERSENDET': { en: 'Sent', de: 'Versendet', sq: 'Dërguar' },
   'post.zustand.ZUGESTELLT': { en: 'Delivered', de: 'Zugestellt', sq: 'Dorëzuar' },
   'post.zustand.UNZUSTELLBAR': { en: 'Undeliverable', de: 'Unzustellbar', sq: 'E padorëzueshme' },
@@ -2430,7 +2443,7 @@ const translations: Translations = {
   'post.preis_je_brief': { en: 'Price per letter', de: 'Preis je Brief', sq: 'Çmimi për letër' },
   'post.preis_hinweis': { en: '{waehrung} per letter, A4, postage included', de: '{waehrung} pro Brief, A4, inkl. Porto', sq: '{waehrung} për letër, A4, me pullë postare' },
   'post.in_arbeit': { en: 'In progress', de: 'In Arbeit', sq: 'Në punë' },
-  'post.in_arbeit_hinweis': { en: 'waiting to be handed over to Pingen', de: 'warten auf die Übergabe an Pingen', sq: 'presin dorëzimin te Pingen' },
+  'post.in_arbeit_hinweis': { en: 'waiting to be handed over to the post', de: 'warten auf die Übergabe an die Post', sq: 'presin dorëzimin në postë' },
   'post.kaufen_titel': { en: 'Buy quota', de: 'Kontingent kaufen', sq: 'Blini kuotë' },
   'post.kein_preis': { en: 'No letter price has been set for this association yet. The platform operator sets it; after that you can buy here.', de: 'Für diesen Verein ist noch kein Briefpreis festgelegt. Der Plattformbetreiber legt ihn fest; danach kann hier gekauft werden.', sq: 'Për këtë shoqatë nuk është caktuar ende një çmim letre. Operatori i platformës e cakton; pastaj mund të blini këtu.' },
   'post.anzahl': { en: 'Number of letters', de: 'Anzahl Briefe', sq: 'Numri i letrave' },
@@ -2443,7 +2456,7 @@ const translations: Translations = {
   'post.neu_laden': { en: 'Reload', de: 'Neu laden', sq: 'Ringarko' },
   'post.zugang_pruefen': { en: 'Check access', de: 'Zugang prüfen', sq: 'Kontrollo aksesin' },
   'post.jetzt_uebergeben': { en: 'Hand over {anzahl} now', de: '{anzahl} jetzt übergeben', sq: 'Dorëzo {anzahl} tani' },
-  'post.uebergeben_meldung': { en: '{anzahl} letter(s) handed over to Pingen', de: '{anzahl} Brief(e) an Pingen übergeben', sq: '{anzahl} letër/a dorëzuar te Pingen' },
+  'post.uebergeben_meldung': { en: '{anzahl} letter(s) handed over for posting', de: '{anzahl} Brief(e) zur Post gegeben', sq: '{anzahl} letër/a dorëzuar për postë' },
   'post.noch_offen': { en: ', {anzahl} still waiting', de: ', {anzahl} noch offen', sq: ', {anzahl} ende në pritje' },
   'post.ohne_kontingent': { en: ', {anzahl} left behind for lack of quota', de: ', {anzahl} ohne Kontingent liegengeblieben', sq: ', {anzahl} mbetën pa kuotë' },
   'post.staging': { en: ' — test environment, nothing is printed.', de: ' — Testumgebung, es wird nichts gedruckt.', sq: ' — mjedis testimi, nuk printohet asgjë.' },
@@ -2457,7 +2470,7 @@ const translations: Translations = {
   'post.sp.erledigt': { en: 'Completed', de: 'Erledigt', sq: 'Kryer' },
   'post.versuche': { en: '{anzahl} attempts', de: '{anzahl} Versuche', sq: '{anzahl} përpjekje' },
   'post.abbrechen': { en: 'Cancel', de: 'Abbrechen', sq: 'Anulo' },
-  'post.abbrechen_zu_spaet': { en: 'The letter is already with Pingen and can no longer be cancelled.', de: 'Der Brief ist schon bei Pingen und kann nicht mehr abgebrochen werden.', sq: 'Letra është tashmë te Pingen dhe nuk mund të anulohet më.' },
+  'post.abbrechen_zu_spaet': { en: 'The letter has already been handed over for printing and can no longer be cancelled.', de: 'Der Brief ist schon zum Druck übergeben und kann nicht mehr abgebrochen werden.', sq: 'Letra është dorëzuar tashmë për shtyp dhe nuk mund të anulohet më.' },
   'post.buch_titel': { en: 'Quota ledger', de: 'Kontingentbuch', sq: 'Libri i kuotës' },
   'post.buch_hinweis': { en: 'Every movement, newest first', de: 'Jede Bewegung, neueste zuerst', sq: 'Çdo lëvizje, më e reja në fillim' },
   'post.sp.art': { en: 'Type', de: 'Art', sq: 'Lloji' },
