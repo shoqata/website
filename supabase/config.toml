@@ -6,3 +6,17 @@
 # Zeitplan gar nicht erst bis zu dieser Kontrolle: pg_cron schickt kein JWT.
 [functions.send-mail-queue]
 verify_jwt = false
+
+# Pingen ruft den Webhook ohne Supabase-Token auf -- es kennt keines. Die
+# Pruefung macht die Funktion selbst: hex-HMAC-SHA256 ueber den ROHEN
+# Koerper gegen PINGEN_WEBHOOK_SECRET, in konstanter Zeit verglichen.
+# Ohne dieses Geheimnis nimmt sie gar nichts an (503) -- sie ist also
+# nicht offen, sondern anders verschlossen.
+[functions.pingen-webhook]
+verify_jwt = false
+
+# Der Arbeiter wird aus der Anwendung gerufen, mit dem Token des
+# Anwenders. Hier bleibt die Pruefung AN: er gibt Briefe auf, und das
+# soll niemand ohne Anmeldung anstossen koennen.
+[functions.pingen-versand]
+verify_jwt = true
