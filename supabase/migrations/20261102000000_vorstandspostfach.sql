@@ -508,11 +508,19 @@ DO $$
 DECLARE
   v_verein text := '_postprobe_' || substr(replace(gen_random_uuid()::text,'-',''),1,8);
   v_dom    text;
-  v_chef   text := v_verein || '_chef';
+  -- Zwei Handelnde mit FESTEN Rollen. Der erste Entwurf hatte einen und
+  -- schrieb dessen Rolle zur Laufzeit hoch -- und scheiterte am
+  -- Rollentrigger aus 20261015000000, zu Recht: dort steht, dass ein
+  -- Vorstandsmitglied sich nicht selbst zur Administration macht, und
+  -- dass auch ein Admin die EIGENE Rolle nicht aendert. Ein Test, der
+  -- einen Waechter umgehen muss, prueft das Falsche.
+  v_adm    text := v_verein || '_adm';     -- setzt Adressen
+  v_chef   text := v_verein || '_chef';    -- schreibt, ist nur BOARD
   v_mit    text := v_verein || '_mit';
   v_ohne   text := v_verein || '_ohne';
   v_fremd  text;
-  v_uid    uuid := gen_random_uuid();
+  v_uid    uuid := gen_random_uuid();      -- der Vorstand
+  v_uida   uuid := gen_random_uuid();      -- die Administration
   v_j      jsonb;
   v_n      int;
 BEGIN
@@ -521,10 +529,14 @@ BEGIN
   INSERT INTO public.tenant_domains (domain, "tenantId", "isPrimary")
     VALUES (v_dom, v_verein, true);
 
+  -- Die Rollen stehen beim INSERT. Der Trigger greift nur bei
+  -- UPDATE OF role, und das ist hier auch nicht noetig.
   INSERT INTO public.users (id, "tenantId", "displayName", email, role,
                             "membershipStatus", "authUserId")
     VALUES (v_chef, v_verein, 'Probe Chef', 'chef@' || v_dom, 'BOARD',
-            'ACTIVE', v_uid::text);
+            'ACTIVE', v_uid::text),
+           (v_adm, v_verein, 'Probe Verwaltung', 'adm@' || v_dom, 'ADMIN',
+            'ACTIVE', v_uida::text);
   INSERT INTO public.users (id, "tenantId", "displayName", email, role, "membershipStatus")
     VALUES (v_mit, v_verein, 'Probe Mitglied', 'mitglied@' || v_dom, 'MEMBER', 'ACTIVE');
   -- Ein Mitglied OHNE Adresse: es muss gezaehlt und nicht verschwiegen werden.
@@ -578,8 +590,15 @@ BEGIN
     WHEN insufficient_privilege THEN NULL;
   END;
 
-  -- Als Verwaltung setzen (Rolle kurz heraufsetzen, wie es der Admin waere).
-  UPDATE public.users SET role = 'ADMIN' WHERE id = v_chef;
+  -- Jetzt die Verwaltung verkoerpern -- eine ANDERE Person, kein
+  -- Rollenwechsel.
+  PERFORM set_config('request.jwt.claims',
+    json_build_object('sub', v_uida::text, 'role', 'authenticated')::text, true);
+  IF public.current_user_row_id() IS DISTINCT FROM v_adm THEN
+    RAISE EXCEPTION 'Die Verwaltung wird nicht verkoerpert: %',
+      coalesce(public.current_user_row_id(),'(null)');
+  END IF;
+
   -- Eine fremde Domain muss abgelehnt werden.
   BEGIN
     PERFORM public.vorstand_adresse_setzen(v_chef, 'chef@gmail.com');
@@ -594,7 +613,14 @@ BEGIN
   IF v_j ->> 'adresse' IS NULL THEN
     RAISE EXCEPTION 'Die Vereinsadresse wurde nicht gesetzt.';
   END IF;
-  UPDATE public.users SET role = 'BOARD' WHERE id = v_chef;
+
+  -- Und zurueck zum Vorstandsmitglied: es schreibt, nicht die Verwaltung.
+  PERFORM set_config('request.jwt.claims',
+    json_build_object('sub', v_uid::text, 'role', 'authenticated')::text, true);
+  IF public.current_user_row_id() IS DISTINCT FROM v_chef THEN
+    RAISE EXCEPTION 'Zurueck zum Vorstand misslungen: %',
+      coalesce(public.current_user_row_id(),'(null)');
+  END IF;
 
   -- 3. Einreihen: eigenes Mitglied, eines ohne Adresse, und eine fremde Id.
   v_j := public.vorstand_mail_einreihen(
