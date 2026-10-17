@@ -637,6 +637,17 @@ const translations: Translations = {
   'nb.search': { en: 'Search by name or town...', de: 'Nach Name oder Ort suchen...', sq: 'Kërko sipas emrit ose vendit...' },
 
   'cookie.body': { en: 'We use cookies to improve your experience. By continuing, you accept our terms.', de: 'Wir verwenden Cookies, um Ihr Erlebnis zu verbessern. Wenn Sie fortfahren, akzeptieren Sie unsere Bedingungen.', sq: 'Ne përdorim cookies për të përmirësuar përvojën tuaj. Duke vazhduar, ju pranoni kushtet tona.' },
+  // Zwei Texte statt einem. Auf der Betreiberseite werden mit
+  // Zustimmung Zaehlpixel geladen, auf der Vereinsseite nicht -- ein
+  // gemeinsamer Satz muesste fuer beide gelten und waere darum fuer
+  // beide unwahr.
+  //
+  // Der alte Satz lautete "Wenn Sie fortfahren, akzeptieren Sie unsere
+  // Bedingungen". Das ist keine Zustimmung, sondern eine Unterstellung
+  // -- und seit die Antwort wirklich etwas bewirkt, waere sie auch
+  // sachlich falsch: geladen wird erst nach einem Klick auf Annehmen.
+  'cookie.body_plattform': { en: 'With your consent we load counting pixels from Meta and Google, so we can see which advert leads to an enquiry. If you decline, none of them is loaded — the site works the same.', de: 'Mit Ihrer Zustimmung laden wir Zählpixel von Meta und Google, damit wir sehen, welche Anzeige zu einer Anfrage führt. Lehnen Sie ab, wird nichts davon geladen — die Seite funktioniert gleich.', sq: 'Me pëlqimin tuaj ngarkojmë pikselë matëse të Meta dhe Google, që të shohim cila reklamë çon te një kërkesë. Nëse refuzoni, nuk ngarkohet asnjë — faqja funksionon njësoj.' },
+  'cookie.body_verein': { en: 'For signing in we store data in your browser. Visits are counted without cookies and without passing anything to third parties.', de: 'Für die Anmeldung speichern wir Daten in Ihrem Browser. Besuche zählen wir ohne Cookies und ohne Weitergabe an Dritte.', sq: 'Për identifikimin ruajmë të dhëna në shfletuesin tuaj. Vizitat i numërojmë pa cookie dhe pa i kaluar te të tretë.' },
   'cookie.more': { en: 'Read more at', de: 'Mehr dazu unter', sq: 'Lexoni më shumë te' },
   'cookie.accept': { en: 'Accept', de: 'Annehmen', sq: 'Pranoj' },
   'cookie.decline': { en: 'Decline', de: 'Ablehnen', sq: 'Refuzoj' },

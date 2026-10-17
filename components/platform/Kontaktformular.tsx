@@ -3,6 +3,7 @@ import { Loader2, Check, AlertTriangle, ArrowRight } from 'lucide-react';
 import { submitPlatformLead } from '@/services/supabase-bridge';
 import { zielErreicht } from '@/lib/zaehler';
 import { useTranslation } from '../../context/LanguageContext';
+import { anfrageMelden } from '../../lib/werbemessung';
 
 // Anfrage von der Startseite der Plattform.
 //
@@ -51,6 +52,11 @@ const Kontaktformular: React.FC<{ farben: { tinte: string; blau: string; nebel: 
       // viele die Seite gesehen haben, aber nicht, wie viele sich
       // gemeldet haben -- und das ist die Frage, die zaehlt.
       void zielErreicht('ANFRAGE');
+      // Dasselbe Ziel an die Werbekonten, falls gemessen wird. Ohne
+      // diese Meldung sagt eine Anzeige, wie viele geklickt haben, aber
+      // nicht, wie viele sich gemeldet haben -- und nach der zweiten
+      // Zahl wird ausgesteuert.
+      try { anfrageMelden(import.meta.env.VITE_GOOGLE_CONVERSION_LABEL); } catch { /* Messung darf die Anfrage nicht gefaehrden */ }
       setGesendet(true);
     } catch (err: any) {
       setFehler(err?.message || '?');

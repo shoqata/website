@@ -23,6 +23,7 @@ import { useIstPlattformDomain } from './lib/useIstPlattformDomain';
 import { useStartseitenVorlage } from './lib/useStartseitenVorlage';
 import { useOeffentlicheModule } from './lib/useOeffentlicheModule';
 import { seitenZustand } from './lib/modulgate';
+import { useWerbemessung } from './lib/useWerbemessung';
 import { useSpendenseiteSichtbar } from './lib/useSpendenseiteSichtbar';
 import { useReiterKennzeichen } from './lib/useReiterKennzeichen';
 import { HashRouter as Router, Routes, Route, Link, useLocation, Navigate, useSearchParams } from 'react-router-dom';
@@ -445,6 +446,10 @@ const AppContent: React.FC = () => {
   // zusaetzlich fest auf das von Koretini verdrahtet. Ein anderer Verein
   // haette unter seiner eigenen Adresse ein fremdes Turnier gezeigt.
   const oeffentlicheModule = useOeffentlicheModule();
+  // Werbemessung. Laedt nur auf der Betreiberseite, nur mit Zustimmung
+  // und nur mit eingetragener ID -- die Entscheidung steckt in
+  // darfMessen(), nicht hier.
+  useWerbemessung(istPlattformDomain);
   const vorlage = useStartseitenVorlage();
   const spendenSeiteSichtbar = useSpendenseiteSichtbar();
   // Wer auf unityhub.li angemeldet ist, muss der Betreiber sein. Die Frage

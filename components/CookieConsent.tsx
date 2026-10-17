@@ -6,6 +6,8 @@ import { Link } from 'react-router-dom';
 
 import { useTranslation } from '../context/LanguageContext';
 import { useIstPlattformDomain } from '../lib/useIstPlattformDomain';
+import { zustimmungSchluessel } from '../lib/werbemessung';
+import { ZUSTIMMUNG_EREIGNIS } from '../lib/useWerbemessung';
 import { TINTE, BLAU, NEBEL, SCHIEFER, MONO } from './platform/farben';
 
 // Der Hinweis erscheint auf beiden Domains, aber nicht in derselben Sprache
@@ -22,7 +24,11 @@ const CookieConsent: React.FC = () => {
   // Eigener Schluessel je Darstellung. localStorage ist ohnehin pro Herkunft
   // getrennt, die Trennung ist also nicht noetig, aber ehrlich: ein Eintrag
   // namens "koretini" auf unityhub.li waere schlicht falsch beschriftet.
-  const schluessel = istPlattform ? 'cookie-consent-unityhub' : 'cookie-consent-koretini';
+  // Der Schluessel steht in lib/werbemessung -- dort wird er auch
+  // gelesen. Zwei Schreibweisen derselben Zeichenkette heisst: eine
+  // wird irgendwann geaendert und die andere nicht, und dann fragt der
+  // Hinweis ewig weiter oder die Messung laeuft trotz Ablehnung.
+  const schluessel = zustimmungSchluessel(istPlattform === true);
 
   useEffect(() => {
     // Solange nicht feststeht, wem die Adresse gehoert, wird nichts gezeigt --
@@ -38,6 +44,10 @@ const CookieConsent: React.FC = () => {
   const entscheide = (wert: 'accepted' | 'declined') => {
     localStorage.setItem(schluessel, wert);
     setIsVisible(false);
+    // Damit die Zustimmung SOFORT wirkt und nicht erst beim naechsten
+    // Besuch: sonst fehlte genau der Besuch in der Auswertung, in dem
+    // sich jemand meldet.
+    window.dispatchEvent(new Event(ZUSTIMMUNG_EREIGNIS));
   };
 
   if (istPlattform === null) return null;
@@ -62,7 +72,7 @@ const CookieConsent: React.FC = () => {
                 {t('cookie.title')}
               </p>
               <p className="mb-5" style={{ fontSize: 14, lineHeight: 1.65, color: '#c9cad4' }}>
-                {t('cookie.body')}
+                {t('cookie.body_plattform')}
               </p>
               <div className="flex items-center gap-3">
                 <button
@@ -98,7 +108,7 @@ const CookieConsent: React.FC = () => {
                   <div>
                       <h4 className="font-bold text-lg mb-1 italic">{t('cookie.title')}</h4>
                       <p className="text-stone-400 text-xs leading-relaxed">
-                          {t('cookie.body')}{' '}
+                          {t('cookie.body_verein')}{' '}
                           {t('cookie.more')} <Link to="/privacy" onClick={() => setIsVisible(false)} className="text-white underline hover:text-primary transition-colors">{t('cookie.privacy_link')}</Link>.
                       </p>
                   </div>
