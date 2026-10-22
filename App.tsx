@@ -166,9 +166,36 @@ const AuthRedirectHandler: React.FC<{ user: UserProfile | null, children: React.
     // Nicht das Haekchen entscheidet, sondern die Daten selbst -- sonst
     // landen laengst vollstaendige Mitglieder immer wieder im Assistenten.
     const shouldGoToDashboard = isAdmin || !needsProfileSetup(user);
-    return <Navigate to={shouldGoToDashboard ? "/dashboard" : "/setup-profile"} replace />;
+    if (!shouldGoToDashboard) return <Navigate to="/setup-profile" replace />;
+    // Verwaltung und Vorstand haben ihre eigene Startseite.
+    if (isAdmin || user.role === UserRole.BOARD) return <Navigate to="/dashboard" replace />;
+    return <AnmeldeZiel />;
   }
   return <>{children}</>;
+};
+
+// Wer eine Nachbarschaft betreut, landet nach der Anmeldung in deren
+// Ansicht und nicht auf dem Mitglieder-Dashboard. Ob jemand betreut, steht
+// nicht an seiner Rolle -- die Vertreter bei Koretini sind gewoehnliche
+// Mitglieder --, sondern in der Nachbarschaft selbst. Darum fragt diese
+// Weiche die Datenbank (my_neighborhoods) und nicht user.role. Schlaegt die
+// Frage fehl, geht es aufs Dashboard: von dort fuehrt ein Verweis weiter.
+const AnmeldeZiel: React.FC = () => {
+  const [ziel, setZiel] = useState<string | null>(null);
+  useEffect(() => {
+    let vorbei = false;
+    (async () => {
+      try {
+        const { supabase } = await import('./services/supabase-bridge');
+        const { data, error } = await supabase.rpc('my_neighborhoods');
+        if (!vorbei) setZiel(!error && Array.isArray(data) && data.length > 0 ? '/nachbarschaft' : '/dashboard');
+      } catch {
+        if (!vorbei) setZiel('/dashboard');
+      }
+    })();
+    return () => { vorbei = true; };
+  }, []);
+  return ziel ? <Navigate to={ziel} replace /> : <PageLoader />;
 };
 
 // Wer sich auf der Betreiber-Domain anmeldet, aber zu einem Verein

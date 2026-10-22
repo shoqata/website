@@ -44,8 +44,8 @@ export const DEMO_ROLLEN: {
   { wert: 'MEMBER', name: 'Mitglied',
     was: 'Eigenes Profil, eigene Beiträge, Anlässe, Neuigkeiten.',
     ziel: '/dashboard', ueberschreibtRolle: true },
-  { wert: 'VERTRETER', name: 'Vertreter vor Ort',
-    was: 'Seine Nachbarschaft in Koretin: wer offen ist, Barzahlung melden. Die Verwaltung entscheidet darüber.',
+  { wert: 'VERTRETER', name: 'Nachbarschaftsvertreter',
+    was: 'Seine Nachbarschaft: wer offen ist, Rechnungen weiterleiten, Barzahlung melden. Die Verwaltung entscheidet darüber.',
     ziel: '/nachbarschaft', ueberschreibtRolle: false },
 ];
 
