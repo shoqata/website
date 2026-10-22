@@ -24,6 +24,7 @@ import { supabase } from '@/services/supabase-bridge';
 // "Vorname" ankreuzen, und in der Maske erschien nichts. Eine
 // Einstellung, die nichts bewirkt, ist schlechter als keine.
 import { VERTRETER_GRUPPEN as GRUPPEN } from '../lib/vertreterfelder';
+import AdminVertreterRechnungen from './AdminVertreterRechnungen';
 
 const GESPERRT = [
   { name: 'Rolle', warum: 'Wer sich selbst befördern kann, ist nicht gebunden.' },
@@ -79,6 +80,8 @@ const AdminVertreterrechte: React.FC = () => {
   const marke = 'text-[10px] font-bold text-stone-400 uppercase tracking-widest';
 
   return (
+    <div className="space-y-5">
+    <AdminVertreterRechnungen darf={darf} />
     <div className="bg-stone-50 p-6 rounded-3xl border border-stone-100 space-y-5">
       {fehler && (
         <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-xl p-3 flex gap-2">
@@ -158,6 +161,7 @@ const AdminVertreterrechte: React.FC = () => {
           nur die Vereinsadministration
         </span>
       )}
+    </div>
     </div>
   );
 };

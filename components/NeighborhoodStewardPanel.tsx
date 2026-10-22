@@ -3,7 +3,7 @@ import { VERTRETER_FELD_KEYS } from '../lib/vertreterfelder';
 import { motion } from 'framer-motion';
 import {
   Home, Users, Receipt, Search, Save, Loader2, CheckCircle2, Clock, Pencil,
-  AlertTriangle, Phone, Mail, MapPin, Send, X, ShieldAlert,
+  AlertTriangle, Phone, Mail, MapPin, Send, X, ShieldAlert, Download,
 } from 'lucide-react';
 import { db } from '../services/datenzugriff';
 import {
@@ -16,6 +16,9 @@ import { UserProfile, Payment, Neighborhood } from '../types';
 import CountrySelect from './ui/CountrySelect';
 import { missingFieldKeys, feeStateFor } from '../lib/memberQuality';
 import { hasUsableEmail } from '../lib/memberEmail';
+import { rechnungsmailBauen } from '../lib/rechnungsmail';
+import { zahlungsangabenPruefen } from '../lib/postversand';
+import { versandsatz } from '../services/mailService';
 
 interface Props { user: UserProfile; }
 
@@ -35,6 +38,11 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
   const [nachbarschaften, setNachbarschaften] = useState<Neighborhood[]>([]);
   const [mitglieder, setMitglieder] = useState<UserProfile[]>([]);
   const [rechnungen, setRechnungen] = useState<Payment[]>([]);
+  // Was die Administration dieser Person bei Rechnungen freigegeben hat.
+  // Bis die Antwort da ist: nichts -- lieber einen Reiter eine Sekunde
+  // spaeter zeigen als einen, der gleich wieder verschwindet.
+  const [rechte, setRechte] = useState<{ sehen: boolean; senden: boolean }>({ sehen: false, senden: false });
+  const [rechnungLaeuft, setRechnungLaeuft] = useState<string | null>(null);
   const [familien, setFamilien] = useState<{ id: string; name: string }[]>([]);
   // Was dieser Verein seinen Verantwortlichen erlaubt. Ein Feld
   // anzuzeigen, das die Datenbank hinterher zurueckweist, waere eine
@@ -77,7 +85,12 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
         getDocs(query(collection(db, 'families'))),
       ]);
       setFamilien(fa.docs.map(d => ({ id: d.id, name: (d.data() as any).name ?? d.id })));
-      const { data: t } = await supabase.from('tenants').select('vertreter_felder').maybeSingle();
+      const [{ data: t }, { data: r }] = await Promise.all([
+        supabase.from('tenants').select('vertreter_felder').maybeSingle(),
+        supabase.rpc('meine_vertreter_rechte'),
+      ]);
+      const rr: any = Array.isArray(r) ? r[0] : r;
+      setRechte({ sehen: !!rr?.sehen, senden: !!rr?.senden });
       setErlaubt(new Set(((t as any)?.vertreter_felder as string[]) ?? []));
       setNachbarschaften(nb.docs.map(d => ({ id: d.id, ...d.data() } as Neighborhood)).filter(n => ids.includes(n.id)));
       // Entfernte Mitglieder erscheinen gar nicht erst. Der Datensatz bleibt
@@ -161,6 +174,61 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
   const nameVon = (id?: string) => mitglieder.find(m => m.id === id)?.displayName || '-';
   const offen = rechnungen.filter(r => r.status !== 'PAID');
   const bezahlt = rechnungen.filter(r => r.status === 'PAID');
+
+  // Die Rechnung so bauen, wie der Vorstand sie verschickt -- dieselbe
+  // Mail, dasselbe PDF. Die Angaben dazu liefert die Datenbank fuer genau
+  // diese eine Rechnung; die Einstellungen des Vereins selbst bleiben
+  // dem Vorstand vorbehalten.
+  const rechnungBauen = async (r: Payment) => {
+    const { data, error } = await supabase.rpc('vertreter_rechnung_daten', { p_payment: r.id });
+    if (error) throw error;
+    const d: any = data;
+    const z = zahlungsangabenPruefen({
+      name: d.zahlung?.accountHolder, iban: d.zahlung?.iban, qrIban: d.zahlung?.qrIban,
+      paypal: d.zahlung?.paypalEmail, twint: d.zahlung?.twintNumber,
+    });
+    if (!z.ok) throw new Error(`${z.grund || 'Es fehlt eine Zahlungsverbindung'} — bitte dem Vorstand melden.`);
+    const gebaut = await rechnungsmailBauen({
+      payment: { ...r, ...d.payment } as Payment,
+      recipientName: d.mitglied?.name || nameVon(r.userId),
+      anschrift: { adresse: d.mitglied?.adresse, plz: d.mitglied?.plz,
+                   ort: d.mitglied?.ort, land: d.mitglied?.land },
+      paymentSettings: d.zahlung, association: d.verein || '', t,
+    });
+    return gebaut;
+  };
+
+  const rechnungAlsPdf = async (r: Payment) => {
+    setRechnungLaeuft(r.id!);
+    try {
+      const { anhaenge } = await rechnungBauen(r);
+      const a = anhaenge[0];
+      if (!a) throw new Error('Das PDF liess sich nicht erzeugen.');
+      const bytes = Uint8Array.from(atob(a.content), c => c.charCodeAt(0));
+      const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url; link.download = a.filename; link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    } catch (e: any) {
+      showAlert({ type: 'error', message: e?.message || '?' });
+    } finally { setRechnungLaeuft(null); }
+  };
+
+  // Der Empfaenger wird in der Datenbank bestimmt -- die hinterlegte
+  // Adresse des Mitglieds, nie eine aus dem Browser.
+  const rechnungSenden = async (r: Payment) => {
+    setRechnungLaeuft(r.id!);
+    try {
+      const { subject, html, anhaenge } = await rechnungBauen(r);
+      const { data: an, error } = await supabase.rpc('vertreter_rechnung_senden', {
+        p_payment: r.id, p_betreff: subject, p_html: html, p_anhaenge: anhaenge,
+      });
+      if (error) throw error;
+      showAlert({ type: 'success', message: await versandsatz(String(an)) });
+    } catch (e: any) {
+      showAlert({ type: 'error', message: e?.message || '?' });
+    } finally { setRechnungLaeuft(null); }
+  };
 
   const speichern = async () => {
     if (!bearbeitet?.id) return;
@@ -328,6 +396,10 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
             <p className="text-2xl font-bold">{zaehler.mitglieder}</p>
             <p className="text-stone-400 text-[10px] font-bold uppercase tracking-widest mt-1">{t('steward.members')}</p>
           </div>
+          {/* Ohne Freigabe sind die Rechnungen nicht sichtbar -- die Zahlen
+              zeigten dann alle als nicht verrechnet. Lieber keine Zahl als
+              eine falsche. */}
+          {rechte.sehen && (<>
           <div className="bg-white/5 rounded-2xl p-4">
             <p className="text-2xl font-bold text-emerald-400">{zaehler.bezahlt}</p>
             <p className="text-stone-400 text-[10px] font-bold uppercase tracking-widest mt-1">{t('steward.fee_paid', { year: jahr })}</p>
@@ -336,12 +408,13 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
             <p className="text-2xl font-bold text-amber-400">{zaehler.offen}</p>
             <p className="text-stone-400 text-[10px] font-bold uppercase tracking-widest mt-1">{t('steward.fee_open')}</p>
           </div>
+          </>)}
           <div className="bg-white/5 rounded-2xl p-4">
             <p className="text-2xl font-bold text-rose-300">{zaehler.luecken}</p>
             <p className="text-stone-400 text-[10px] font-bold uppercase tracking-widest mt-1">{t('steward.data_gaps')}</p>
           </div>
         </div>
-        {zaehler.nichtVerrechnet > 0 && (
+        {rechte.sehen && zaehler.nichtVerrechnet > 0 && (
           <p className="text-stone-400 text-xs mt-4">
             {t('steward.not_billed', { count: zaehler.nichtVerrechnet, year: jahr })}
           </p>
@@ -349,7 +422,7 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
       </div>
 
       <div className="flex gap-2 border-b border-stone-100">
-        {(['MEMBERS', 'INVOICES'] as const).map(k => (
+        {(rechte.sehen ? (['MEMBERS', 'INVOICES'] as const) : (['MEMBERS'] as const)).map(k => (
           <button key={k} onClick={() => setTab(k)}
             className={`px-5 py-3 font-bold text-xs uppercase tracking-widest border-b-2 transition-colors ${
               tab === k ? 'border-primary text-primary' : 'border-transparent text-stone-400 hover:text-stone-600'}`}>
@@ -373,7 +446,7 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
               ['ALLE', t('steward.filter_all'), bewertet.length],
               ['OFFEN', t('steward.filter_open'), zaehler.offen + zaehler.nichtVerrechnet],
               ['UNVOLLSTAENDIG', t('steward.filter_gaps'), zaehler.luecken],
-            ] as const).map(([k, label, n]) => (
+            ] as const).filter(([k]) => rechte.sehen || k !== 'OFFEN').map(([k, label, n]) => (
               <button key={k} onClick={() => setFilter(k as any)}
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors border ${
                   filter === k ? 'bg-stone-900 text-white border-stone-900'
@@ -423,17 +496,17 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
                     bleibt von "offen" getrennt -- das eine liegt beim Mitglied,
                     das andere beim Verein. */}
                 <div className="flex flex-col items-end gap-2 shrink-0">
-                  {beitrag === 'PAID' && (
+                  {rechte.sehen && beitrag === 'PAID' && (
                     <span className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5">
                       <CheckCircle2 size={12} /> {t('steward.fee_paid', { year: jahr })}
                     </span>
                   )}
-                  {beitrag === 'OPEN' && (
+                  {rechte.sehen && beitrag === 'OPEN' && (
                     <span className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1.5">
                       <Clock size={12} /> {t('steward.fee_open')}
                     </span>
                   )}
-                  {beitrag === 'NONE' && (
+                  {rechte.sehen && beitrag === 'NONE' && (
                     <span className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase bg-stone-100 text-stone-500 border border-stone-200 flex items-center gap-1.5">
                       <Receipt size={12} /> {t('steward.fee_none')}
                     </span>
@@ -467,7 +540,7 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
         </div>
       )}
 
-      {tab === 'INVOICES' && (
+      {tab === 'INVOICES' && rechte.sehen && (
         <div className="space-y-3">
           <div className="p-4 bg-stone-50 border border-stone-200 rounded-2xl text-xs text-stone-600 leading-relaxed">
             {t('steward.invoice_hint')}
@@ -491,6 +564,24 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
                     <span className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase bg-amber-50 text-amber-700 flex items-center gap-1.5">
                       <Clock size={12} /> {t('steward.open')}
                     </span>
+                    <button onClick={() => rechnungAlsPdf(r)} disabled={rechnungLaeuft === r.id}
+                      title={t('steward.invoice_pdf_hint')}
+                      className="px-3 py-2 border border-stone-200 text-stone-600 rounded-xl font-bold text-xs flex items-center gap-1.5 hover:border-stone-400 transition-colors disabled:opacity-50">
+                      {rechnungLaeuft === r.id ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />} PDF
+                    </button>
+                    {/* Nur wer weiterleiten darf, und nur an jemanden mit Adresse.
+                        Wer keine hat, bekommt das PDF auf anderem Weg. */}
+                    {rechte.senden && (() => {
+                      const mg = mitglieder.find(m => m.id === r.userId);
+                      if (!mg || mg.id === user.id || !hasUsableEmail(mg)) return null;
+                      return (
+                        <button onClick={() => rechnungSenden(r)} disabled={rechnungLaeuft === r.id}
+                          title={t('steward.invoice_send_hint', { email: mg.email || '' })}
+                          className="px-3 py-2 border border-stone-200 text-stone-600 rounded-xl font-bold text-xs flex items-center gap-1.5 hover:border-stone-400 transition-colors disabled:opacity-50">
+                          <Mail size={12} /> {t('steward.invoice_send')}
+                        </button>
+                      );
+                    })()}
                     <button onClick={() => oeffneMeldung(r)}
                       className="px-4 py-2 bg-stone-900 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 hover:bg-stone-700 transition-colors">
                       <Send size={12} /> {t('steward.report')}
