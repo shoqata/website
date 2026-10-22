@@ -12,11 +12,27 @@ import { supabase } from '@/services/supabase-bridge';
 // vertreter_rechnung_senden), nicht nur in der Maske. Weitergeleitet wird
 // immer an die beim Mitglied hinterlegte Adresse -- der Vertreter kann
 // keine andere angeben.
+//
+// Dazu die Werkzeuge des Vertreters vor Ort: bar kassieren (die Rechnung
+// gilt sofort als bezahlt, das Geld liegt in seiner Handkasse), Ausgaben aus
+// der Handkasse, Neuerfassung von Mitgliedern und eigene Aufgaben.
 
 type Zeile = {
   person: string; name: string; email: string | null; zugang: boolean;
   nachbarschaften: string[]; sehen: boolean; senden: boolean;
+  kassieren: boolean; ausgaben: boolean; erfassen: boolean; aufgaben: boolean;
 };
+
+type Recht = 'sehen' | 'senden' | 'kassieren' | 'ausgaben' | 'erfassen' | 'aufgaben';
+
+const SCHALTER: { k: Recht; name: string; was: string }[] = [
+  { k: 'sehen', name: 'Sehen', was: 'Rechnungen seiner Nachbarschaft mit Stand und PDF' },
+  { k: 'senden', name: 'Weiterleiten', was: 'Rechnung per E-Mail an das Mitglied, an die hinterlegte Adresse' },
+  { k: 'kassieren', name: 'Kassieren', was: 'Beitrag bar entgegennehmen; gilt sofort als bezahlt, Geld in seiner Handkasse' },
+  { k: 'ausgaben', name: 'Ausgaben', was: 'Ausgaben bar aus der Handkasse, mit Belegfoto; der Vorstand genehmigt' },
+  { k: 'erfassen', name: 'Erfassen', was: 'neue Mitglieder in seiner Nachbarschaft aufnehmen, auch ohne E-Mail' },
+  { k: 'aufgaben', name: 'Aufgaben', was: 'eigene Aufgaben vor Ort anlegen und abhaken' },
+];
 
 const AdminVertreterRechnungen: React.FC<{ darf: boolean }> = ({ darf }) => {
   const [zeilen, setZeilen] = useState<Zeile[] | null>(null);
@@ -41,6 +57,8 @@ const AdminVertreterRechnungen: React.FC<{ darf: boolean }> = ({ darf }) => {
           person: s.r_person, name: s.r_person_name, email: s.r_email,
           zugang: !!s.r_hat_zugang, nachbarschaften: [],
           sehen: !!r.get(s.r_person)?.sehen, senden: !!r.get(s.r_person)?.senden,
+          kassieren: !!r.get(s.r_person)?.kassieren, ausgaben: !!r.get(s.r_person)?.ausgaben,
+          erfassen: !!r.get(s.r_person)?.erfassen, aufgaben: !!r.get(s.r_person)?.aufgaben,
         };
         z.nachbarschaften.push(s.r_name);
         je.set(s.r_person, z);
@@ -50,16 +68,23 @@ const AdminVertreterRechnungen: React.FC<{ darf: boolean }> = ({ darf }) => {
     return () => { lebt = false; };
   }, []);
 
-  const setzen = async (z: Zeile, sehen: boolean, senden: boolean) => {
+  const setzen = async (z: Zeile, recht: Recht, an: boolean) => {
+    const neu = { ...z, [recht]: an };
+    // Weiterleiten und Kassieren setzen Sehen voraus. Wer Sehen wegnimmt,
+    // nimmt beides mit -- sonst setzte die Datenbank Sehen gleich wieder.
+    if (recht === 'sehen' && !an) { neu.senden = false; neu.kassieren = false; }
     setLaeuft(z.person); setFehler(null);
-    const { data, error } = await supabase.rpc('vertreter_rechte_setzen',
-      { p_person: z.person, p_sehen: sehen, p_senden: senden });
+    const { data, error } = await supabase.rpc('vertreter_rechte_setzen', {
+      p_person: z.person, p_sehen: neu.sehen, p_senden: neu.senden, p_kassieren: neu.kassieren,
+      p_ausgaben: neu.ausgaben, p_erfassen: neu.erfassen, p_aufgaben: neu.aufgaben,
+    });
     setLaeuft(null);
     if (error) { setFehler(error.message); return; }
-    // Die Datenbank entscheidet, was gilt (Weiterleiten schliesst Sehen ein).
+    // Die Datenbank entscheidet, was gilt.
     const d: any = Array.isArray(data) ? data[0] : data;
     setZeilen(zs => zs!.map(x => x.person === z.person
-      ? { ...x, sehen: !!d?.sehen, senden: !!d?.senden } : x));
+      ? { ...x, sehen: !!d?.sehen, senden: !!d?.senden, kassieren: !!d?.kassieren,
+          ausgaben: !!d?.ausgaben, erfassen: !!d?.erfassen, aufgaben: !!d?.aufgaben } : x));
   };
 
   const marke = 'text-[10px] font-bold text-stone-400 uppercase tracking-widest';
@@ -68,14 +93,13 @@ const AdminVertreterRechnungen: React.FC<{ darf: boolean }> = ({ darf }) => {
     <div className="bg-stone-50 p-6 rounded-3xl border border-stone-100 space-y-4">
       <div>
         <p className={`${marke} flex items-center gap-2`}>
-          <Receipt size={13} /> Rechnungen — je Verantwortlichem
+          <Receipt size={13} /> Rechte je Nachbarschaftsvertreter
         </p>
-        <p className="text-[11px] text-stone-500 leading-relaxed mt-2 max-w-2xl">
-          <span className="font-bold text-stone-700">Sehen</span>: die Rechnungen der Mitglieder
-          seiner Nachbarschaft, mit Stand und PDF. <span className="font-bold text-stone-700">Weiterleiten</span>:
-          zusätzlich per E-Mail an das Mitglied senden — immer an die hinterlegte Adresse,
-          eine andere kann er nicht angeben. Die Mail nennt ihn als Absender.
-        </p>
+        <ul className="text-[11px] text-stone-500 leading-relaxed mt-2 max-w-2xl space-y-0.5">
+          {SCHALTER.map(s => (
+            <li key={s.k}><span className="font-bold text-stone-700">{s.name}</span>: {s.was}</li>
+          ))}
+        </ul>
       </div>
 
       {fehler && (
@@ -105,20 +129,17 @@ const AdminVertreterRechnungen: React.FC<{ darf: boolean }> = ({ darf }) => {
                   </p>
                 )}
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                 {laeuft === z.person && <Loader2 size={14} className="animate-spin text-stone-400" />}
-                <label className={`flex items-center gap-2 text-xs ${darf ? 'cursor-pointer' : 'opacity-60'}`}>
-                  <input type="checkbox" className="w-4 h-4 accent-stone-900"
-                    disabled={!darf || laeuft === z.person} checked={z.sehen}
-                    onChange={e => setzen(z, e.target.checked, e.target.checked && z.senden)} />
-                  Sehen
-                </label>
-                <label className={`flex items-center gap-2 text-xs ${darf ? 'cursor-pointer' : 'opacity-60'}`}>
-                  <input type="checkbox" className="w-4 h-4 accent-stone-900"
-                    disabled={!darf || laeuft === z.person} checked={z.senden}
-                    onChange={e => setzen(z, z.sehen || e.target.checked, e.target.checked)} />
-                  Weiterleiten
-                </label>
+                {SCHALTER.map(s => (
+                  <label key={s.k} title={s.was}
+                    className={`flex items-center gap-2 text-xs ${darf ? 'cursor-pointer' : 'opacity-60'}`}>
+                    <input type="checkbox" className="w-4 h-4 accent-stone-900"
+                      disabled={!darf || laeuft === z.person} checked={z[s.k]}
+                      onChange={e => setzen(z, s.k, e.target.checked)} />
+                    {s.name}
+                  </label>
+                ))}
               </div>
             </div>
           ))}

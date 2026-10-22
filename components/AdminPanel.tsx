@@ -40,6 +40,7 @@ import AdminBoard from './AdminBoard';
 import AdminTasks from './AdminTasks';
 import AdminCommunication from './AdminCommunication';
 import AdminExpenses from './AdminExpenses'; 
+import AdminHandkassen from './AdminHandkassen';
 
 import { neighborhoodPlace } from '../lib/neighborhood';
 import { onImageError } from '../lib/imageFallback';
@@ -599,7 +600,7 @@ const AdminPanel: React.FC = () => {
                                 <AdminFinance viewMode="GRID" selectedYear={selectedYear} />
                             </div>
                         )}
-                        {activeTab === 'EXPENSES' && <AdminExpenses />}
+                        {activeTab === 'EXPENSES' && <><AdminHandkassen /><AdminExpenses /></>}
                         {activeTab === 'ACCOUNTING' && <AdminAccounting selectedYear={selectedYear} />}
                         {activeTab === 'STATISTICS' && <AdminStatistics users={users} payments={payments} neighborhoods={neighborhoods} selectedYear={selectedYear} />}
                         {activeTab === 'WEBSITE' && <AdminWebsite />}

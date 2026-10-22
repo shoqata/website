@@ -3,7 +3,7 @@ import { VERTRETER_FELD_KEYS } from '../lib/vertreterfelder';
 import { motion } from 'framer-motion';
 import {
   Home, Users, Receipt, Search, Save, Loader2, CheckCircle2, Clock, Pencil,
-  AlertTriangle, Phone, Mail, MapPin, Send, X, ShieldAlert, Download,
+  AlertTriangle, Phone, Mail, MapPin, Send, X, ShieldAlert, Download, Banknote, UserPlus,
 } from 'lucide-react';
 import { db } from '../services/datenzugriff';
 import {
@@ -19,6 +19,7 @@ import { hasUsableEmail } from '../lib/memberEmail';
 import { rechnungsmailBauen } from '../lib/rechnungsmail';
 import { zahlungsangabenPruefen } from '../lib/postversand';
 import { versandsatz } from '../services/mailService';
+import { KassierenDialog, MitgliedErfassenDialog, KasseTab, AufgabenTab } from './VertreterVorOrt';
 
 interface Props { user: UserProfile; }
 
@@ -33,7 +34,7 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
   const { t } = useTranslation();
   const { showAlert } = useFeedback();
 
-  const [tab, setTab] = useState<'MEMBERS' | 'INVOICES'>('MEMBERS');
+  const [tab, setTab] = useState<'MEMBERS' | 'INVOICES' | 'KASSE' | 'AUFGABEN'>('MEMBERS');
   const [meine, setMeine] = useState<string[]>([]);
   const [nachbarschaften, setNachbarschaften] = useState<Neighborhood[]>([]);
   const [mitglieder, setMitglieder] = useState<UserProfile[]>([]);
@@ -41,7 +42,12 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
   // Was die Administration dieser Person bei Rechnungen freigegeben hat.
   // Bis die Antwort da ist: nichts -- lieber einen Reiter eine Sekunde
   // spaeter zeigen als einen, der gleich wieder verschwindet.
-  const [rechte, setRechte] = useState<{ sehen: boolean; senden: boolean }>({ sehen: false, senden: false });
+  const [rechte, setRechte] = useState({
+    sehen: false, senden: false, kassieren: false, ausgaben: false, erfassen: false, aufgaben: false,
+  });
+  // Vertreter vor Ort: wen er gerade kassiert, und ob die Neuerfassung offen ist.
+  const [kassiert, setKassiert] = useState<UserProfile | null>(null);
+  const [erfasst, setErfasst] = useState(false);
   const [rechnungLaeuft, setRechnungLaeuft] = useState<string | null>(null);
   const [familien, setFamilien] = useState<{ id: string; name: string }[]>([]);
   // Was dieser Verein seinen Verantwortlichen erlaubt. Ein Feld
@@ -90,7 +96,10 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
         supabase.rpc('meine_vertreter_rechte'),
       ]);
       const rr: any = Array.isArray(r) ? r[0] : r;
-      setRechte({ sehen: !!rr?.sehen, senden: !!rr?.senden });
+      setRechte({
+        sehen: !!rr?.sehen, senden: !!rr?.senden, kassieren: !!rr?.kassieren,
+        ausgaben: !!rr?.ausgaben, erfassen: !!rr?.erfassen, aufgaben: !!rr?.aufgaben,
+      });
       setErlaubt(new Set(((t as any)?.vertreter_felder as string[]) ?? []));
       setNachbarschaften(nb.docs.map(d => ({ id: d.id, ...d.data() } as Neighborhood)).filter(n => ids.includes(n.id)));
       // Entfernte Mitglieder erscheinen gar nicht erst. Der Datensatz bleibt
@@ -421,22 +430,35 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
         )}
       </div>
 
-      <div className="flex gap-2 border-b border-stone-100">
-        {(rechte.sehen ? (['MEMBERS', 'INVOICES'] as const) : (['MEMBERS'] as const)).map(k => (
+      <div className="flex gap-2 border-b border-stone-100 overflow-x-auto">
+        {([
+          ['MEMBERS', t('steward.tab_members'), true],
+          ['INVOICES', t('steward.tab_invoices'), rechte.sehen],
+          ['KASSE', t('steward.tab_cash'), rechte.kassieren || rechte.ausgaben],
+          ['AUFGABEN', t('steward.tab_tasks'), rechte.aufgaben],
+        ] as const).filter(([, , zeigen]) => zeigen).map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)}
-            className={`px-5 py-3 font-bold text-xs uppercase tracking-widest border-b-2 transition-colors ${
+            className={`px-5 py-3 font-bold text-xs uppercase tracking-widest border-b-2 transition-colors whitespace-nowrap ${
               tab === k ? 'border-primary text-primary' : 'border-transparent text-stone-400 hover:text-stone-600'}`}>
-            {k === 'MEMBERS' ? t('steward.tab_members') : t('steward.tab_invoices')}
+            {label}
           </button>
         ))}
       </div>
 
       {tab === 'MEMBERS' && (
         <div className="space-y-4">
-          <div className="relative">
-            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" />
-            <input value={suche} onChange={e => setSuche(e.target.value)} placeholder={t('common.search')}
-              className="w-full pl-11 pr-4 py-3.5 bg-stone-50 border border-stone-200 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_40%,transparent)] transition-colors" />
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" />
+              <input value={suche} onChange={e => setSuche(e.target.value)} placeholder={t('common.search')}
+                className="w-full pl-11 pr-4 py-3.5 bg-stone-50 border border-stone-200 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_40%,transparent)] transition-colors" />
+            </div>
+            {rechte.erfassen && (
+              <button onClick={() => setErfasst(true)}
+                className="px-4 py-3 bg-stone-900 text-white rounded-2xl font-bold text-xs flex items-center gap-2 shrink-0">
+                <UserPlus size={15} /> <span className="hidden sm:inline">{t('vorort.new_member')}</span>
+              </button>
+            )}
           </div>
 
           {/* Filter statt blosser Warnungen: bei 35 offenen Beitraegen unter 46
@@ -467,8 +489,10 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
 
           <div className="grid gap-3">
             {gefiltert.map(({ m, beitrag, fehlt, bearbeitbar }) => (
-              <button key={m.id} onClick={() => setBearbeitet({ ...m })}
-                disabled={!bearbeitbar}
+              <div key={m.id} role="button" tabIndex={bearbeitbar ? 0 : -1}
+                onClick={() => bearbeitbar && setBearbeitet({ ...m })}
+                onKeyDown={e => { if (bearbeitbar && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setBearbeitet({ ...m }); } }}
+                aria-disabled={!bearbeitbar}
                 className={`text-left bg-white border rounded-2xl p-5 flex flex-wrap items-start justify-between gap-4 transition-colors ${
                   bearbeitbar
                     ? 'border-stone-200 hover:border-stone-400 hover:bg-stone-50 cursor-pointer'
@@ -496,6 +520,17 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
                     bleibt von "offen" getrennt -- das eine liegt beim Mitglied,
                     das andere beim Verein. */}
                 <div className="flex flex-col items-end gap-2 shrink-0">
+                  {/* Kassieren an der Tuer: wer noch nicht bezahlt hat. Die
+                      Zeile selbst oeffnet die Bearbeitung, der Knopf darf
+                      den Klick deshalb nicht weiterreichen. */}
+                  {rechte.kassieren && beitrag !== 'PAID' && (
+                    <span role="button" tabIndex={0}
+                      onClick={e => { e.stopPropagation(); setKassiert(m); }}
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setKassiert(m); } }}
+                      className="px-4 py-2 rounded-xl text-xs font-bold bg-stone-900 text-white flex items-center gap-1.5 hover:bg-stone-700 cursor-pointer">
+                      <Banknote size={13} /> {t('vorort.collect')}
+                    </span>
+                  )}
                   {rechte.sehen && beitrag === 'PAID' && (
                     <span className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5">
                       <CheckCircle2 size={12} /> {t('steward.fee_paid', { year: jahr })}
@@ -534,10 +569,24 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
                     </span>
                   )}
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         </div>
+      )}
+
+      {tab === 'KASSE' && (rechte.kassieren || rechte.ausgaben) && (
+        <KasseTab rechte={rechte} onGeaendert={laden} />
+      )}
+      {tab === 'AUFGABEN' && rechte.aufgaben && <AufgabenTab />}
+
+      {kassiert && (
+        <KassierenDialog mitglied={kassiert} onClose={() => setKassiert(null)}
+          onDone={() => { setKassiert(null); laden(); }} />
+      )}
+      {erfasst && (
+        <MitgliedErfassenDialog nachbarschaften={nachbarschaften} onClose={() => setErfasst(false)}
+          onDone={() => { setErfasst(false); laden(); }} />
       )}
 
       {tab === 'INVOICES' && rechte.sehen && (
