@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="unityhub">
   <title>unityhub — Knotenpunkt</title>
   <!-- Ein Mittelpunkt, an dem Vereine haengen. Die Linien sind duenn genug,
-       um bei 16 Pixeln zu verschwinden, ohne dass das Zeichen zerfaellt --
+       um bei 16 Pixeln zu verschwinden, ohne dass das Zeichen zerfaellt:
        die Knoten allein tragen es dann. -->
   <g stroke="#0428cb" stroke-width="1.4" fill="none" opacity="0.55">
     <path d="M24 24 L24 10"/>
