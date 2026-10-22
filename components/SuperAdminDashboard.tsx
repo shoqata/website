@@ -38,6 +38,7 @@ import { useNavigate } from 'react-router-dom';
 import SuperAdminTreffen from './SuperAdminTreffen';
 import AdminSeo from './AdminSeo';
 import Brieftarife from './platform/Brieftarife';
+import SuperAdminDemo from './SuperAdminDemo';
 
 const SuperAdminDashboard: React.FC<{ user?: any }> = ({ user }) => {
   const { t } = useTranslation();
@@ -497,6 +498,8 @@ const SuperAdminDashboard: React.FC<{ user?: any }> = ({ user }) => {
                             />
                         </div>
                     </div>
+
+                    <SuperAdminDemo />
 
                     {/* Tenant List */}
                     <div className="bg-white/5 border border-white/10 rounded-3xl overflow-hidden">
