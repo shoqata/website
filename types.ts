@@ -324,6 +324,11 @@ export interface SystemSettings {
       PREMIUM wirkt nur mit gebuchtem Modul; entschieden wird das in
       startseite_variante(), nicht im Browser. */
   startseiteVariante?: 'STANDARD' | 'PREMIUM';
+  /** Kopfzeile: Reihenfolge und An/Aus je Eintrag (siehe kopfzeile.tsx).
+      Ob ein Eintrag erscheinen KANN, entscheidet weiterhin das Modul. */
+  navigation?: { schluessel: string; an: boolean }[];
+  /** Zahlerliste /beitraege. Entschieden wird in zahlerliste(). */
+  zahlerliste?: { sichtbar: 'AUS' | 'MITGLIEDER' | 'OEFFENTLICH'; inhalt: 'STATISTIK' | 'NAMEN'; nachbarschaften: boolean };
   maintenanceMode: boolean;
   allowRegistration: boolean;
   modules: {

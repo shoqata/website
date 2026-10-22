@@ -375,6 +375,57 @@ const AdminSettings: React.FC = () => {
                 </div>
             </section>
 
+            {/* Zahlerliste mit Statistik je Nachbarschaft -- eine eigene Seite
+                (/beitraege). Ob oeffentlich oder nur fuer Mitglieder, prueft
+                zahlerliste() in der Datenbank; ein Besucher bekommt bei
+                "Nur Mitglieder" weder Zahl noch Namen. */}
+            <section>
+                <div className="flex items-center gap-2 mb-4">
+                    <Users size={18} className="text-stone-400" />
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500">{t('zl.admin_titel')}</h3>
+                </div>
+                <div className="bg-stone-50 p-6 rounded-3xl border border-stone-100 space-y-5">
+                    <p className="text-xs text-stone-500 leading-relaxed max-w-2xl">{t('zl.admin_hinweis')}</p>
+                    {(() => {
+                        const zl = { sichtbar: 'AUS', inhalt: 'STATISTIK', nachbarschaften: true, ...((settings as any).zahlerliste || {}) };
+                        const setz = (k: string, v: any) => setSettings({ ...settings, zahlerliste: { ...zl, [k]: v } } as any);
+                        const knopf = (aktiv: boolean) => `text-left p-4 rounded-2xl border transition-all ${aktiv ? 'bg-white border-primary shadow-sm' : 'bg-white/60 border-stone-200 hover:border-stone-300'}`;
+                        return (<>
+                            <div>
+                                <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-2">{t('zl.wer')}</p>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    {(['AUS', 'MITGLIEDER', 'OEFFENTLICH'] as const).map(w => (
+                                        <button key={w} type="button" onClick={() => setz('sichtbar', w)} className={knopf(zl.sichtbar === w)}>
+                                            <p className={`font-bold text-sm mb-1 ${zl.sichtbar === w ? 'text-primary' : 'text-stone-900'}`}>{t(`zl.wer_${w}`)}</p>
+                                            <p className="text-[11px] text-stone-500 leading-relaxed">{t(`zl.wer_${w}_text`)}</p>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            {zl.sichtbar !== 'AUS' && (<>
+                                <div>
+                                    <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-2">{t('zl.inhalt')}</p>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {(['STATISTIK', 'NAMEN'] as const).map(w => (
+                                            <button key={w} type="button" onClick={() => setz('inhalt', w)} className={knopf(zl.inhalt === w)}>
+                                                <p className={`font-bold text-sm mb-1 ${zl.inhalt === w ? 'text-primary' : 'text-stone-900'}`}>{t(`zl.inhalt_${w}`)}</p>
+                                                <p className="text-[11px] text-stone-500 leading-relaxed">{t(`zl.inhalt_${w}_text`)}</p>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <Toggle checked={!!zl.nachbarschaften} onChange={v => setz('nachbarschaften', v)}
+                                    label={t('zl.nb_label')} description={t('zl.nb_text')} />
+                                <p className="text-[11px] text-stone-500">
+                                    {t('zl.seite')} <Link to="/beitraege" target="_blank" className="font-bold text-primary hover:underline">/beitraege</Link>
+                                    {' · '}{t('zl.nav_hinweis')}
+                                </p>
+                            </>)}
+                        </>);
+                    })()}
+                </div>
+            </section>
+
             {/* Die frueheren Modulschalter sind entfallen.
                 Gemessen: sie wurden gespeichert und an keiner einzigen Stelle
                 ausgewertet -- "Events aus" liess die Seite erreichbar und die

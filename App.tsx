@@ -25,6 +25,7 @@ import { useOeffentlicheModule } from './lib/useOeffentlicheModule';
 import { seitenZustand } from './lib/modulgate';
 import { useWerbemessung } from './lib/useWerbemessung';
 import { useSpendenseiteSichtbar } from './lib/useSpendenseiteSichtbar';
+import { useKopfzeile } from './components/kopfzeile';
 import { useReiterKennzeichen } from './lib/useReiterKennzeichen';
 import { HashRouter as Router, Routes, Route, Link, useLocation, Navigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -80,6 +81,7 @@ const NeighborhoodStewardPanel = React.lazy(() => import('./components/Neighborh
 const SocialAI = React.lazy(() => import('./components/SocialAI'));
 const LoginPage = React.lazy(() => import('./components/LoginPage'));
 const RegistrationWizard = React.lazy(() => import('./components/RegistrationWizard'));
+const ZahlerSeite = React.lazy(() => import('./components/ZahlerSeite'));
 const VillageLive = React.lazy(() => import('./components/VillageLive'));
 const ProfileSetup = React.lazy(() => import('./components/ProfileSetup'));
 const EventsPage = React.lazy(() => import('./components/EventsPage'));
@@ -327,6 +329,9 @@ const AppContent: React.FC = () => {
   // Person etwas Lesbares braucht.
   const [profilFehler, setProfilFehler] = useState<string | null>(null);
   const [systemSettings, setSystemSettings] = useState<SystemSettings | null>(null);
+  // Ob die Antwort da ist -- auch wenn der Verein keine Zeile hat. Sonst
+  // bliebe die Kopfzeile eines neuen Vereins leer.
+  const [systemGeladen, setSystemGeladen] = useState(false);
   const { tenant } = useTenant();
 
   useSecurity();
@@ -353,6 +358,7 @@ const AppContent: React.FC = () => {
 
     const settingsUnsubscribe = onSnapshot(doc(db, 'public_settings', 'system'), (doc) => {
         if (doc.exists()) setSystemSettings(doc.data() as SystemSettings);
+        setSystemGeladen(true);
     });
 
     let userUnsubscribe: (() => void) | null = null;
@@ -566,7 +572,7 @@ const AppContent: React.FC = () => {
         {/* Grund aus der Variablen: sie steht in index.html je Domain und
             ist schon vor dem ersten Rendern gesetzt. */}
         <div className="min-h-screen flex flex-col" style={{ background: 'var(--accent)' }}>
-            <ConditionalNavigation user={user} branding={branding} systemSettings={systemSettings} />
+            <ConditionalNavigation user={user} branding={branding} systemSettings={systemSettings} systemGeladen={systemGeladen} />
             <main className="flex-grow">
             <AnimatePresence mode="wait">
                 <ErrorBoundary>
@@ -663,6 +669,9 @@ const AppContent: React.FC = () => {
                         bleibt sie leer statt zu fehlen -- eine Adresse, die
                         ins Leere laeuft, verwirrt mehr als eine leere Seite. */}
                     <Route path="/videos" element={istPlattformDomain ? <Navigate to="/" replace /> : <VideoSeite />} />
+                    {/* Zahlerliste: ob oeffentlich, nur fuer Mitglieder oder aus,
+                        entscheidet zahlerliste() -- die Seite sagt es dann. */}
+                    <Route path="/beitraege" element={istPlattformDomain ? <Navigate to="/" replace /> : <ZahlerSeite />} />
                     <Route path="/privacy" element={<LegalPage type="PRIVACY" />} />
                     <Route path="/login" element={<AuthRedirectHandler user={user}><LoginPage /></AuthRedirectHandler>} />
                     <Route path="/register" element={<AuthRedirectHandler user={user}><RegistrationWizard /></AuthRedirectHandler>} />
@@ -743,7 +752,7 @@ const AppContent: React.FC = () => {
   );
 };
 
-const Navigation: React.FC<any> = ({ user, branding, systemSettings }) => {
+const Navigation: React.FC<any> = ({ user, branding, systemSettings, systemGeladen }) => {
   // Derselbe Massstab wie bei der Route: nur wer laut Datenbank Betreiber
   // ist, bekommt den Verweis. Ihn jedem Vereins-SUPER_ADMIN anzubieten
   // fuehrte auf eine Seite, die ihm nichts zeigt.
@@ -751,12 +760,15 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings }) => {
   // Ohne gebuchtes Modul gehoert kein Verweis in die Leiste, mit gebuchtem
   // gehoert er hinein. Bisher fehlte er in beiden Faellen -- die
   // Spendenseite war nur ueber die eingetippte Adresse erreichbar.
-  const oeffentlicheModule = useOeffentlicheModule();
-  const hatModul = (k: string) => !!oeffentlicheModule?.has(k);
-  // Fuer Spenden genuegt das gebuchte Modul nicht: der Verein kann die Seite
-  // ganz abschalten oder nur waehrend eines laufenden Aufrufs zeigen.
-  const spendenSichtbar = useSpendenseiteSichtbar();
   const { t, loc, setLanguage, language } = useTranslation();
+  // Solange die Einstellungen fehlen, keine Eintraege: sonst stuenden sie
+  // eine Sekunde in der Grundreihenfolge und sprangen dann um.
+  const kopfAlle = useKopfzeile({
+    einstellung: (systemSettings as any)?.navigation,
+    zahlerliste: (systemSettings as any)?.zahlerliste,
+    angemeldet: !!user, loc,
+  });
+  const kopf = systemGeladen ? kopfAlle : null;
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isActive = (path: string) => location.pathname === path;
@@ -781,40 +793,17 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings }) => {
           <span className="font-display font-bold text-xl italic hidden xl:block text-stone-800">{loc((branding as any).associationName) || ''}</span>
         </Link>
 
+        {/* Die Eintraege kommen aus kopfzeile.tsx: Reihenfolge und An/Aus
+            bestimmt der Verein, ob ein Eintrag erscheinen kann, das
+            gebuchte Modul. Leiste und Handymenue lesen dieselbe Liste --
+            vorher waren es zwei Abschriften, und im Handymenue fehlten
+            Videos und Spenden. */}
         <div className="hidden md:flex items-center gap-1 lg:gap-2">
-            <Link to="/about" className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${isActive('/about') ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}>
-                <Info size={16} className="text-emerald-600"/><span className="font-bold text-sm">{t('nav.about')}</span>
-            </Link>
-            <Link to="/events" className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${isActive('/events') ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}>
-                <Calendar size={16} className="text-primary"/><span className="font-bold text-sm">{t('nav.events.title')}</span>
-            </Link>
-            <Link to="/news" className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${isActive('/news') ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}>
-                <Newspaper size={16} className="text-blue-600"/><span className="font-bold text-sm">{t('nav.news.title')}</span>
-            </Link>
-            {/* Beide nur mit gebuchtem Modul. Das Turnier stand bisher
-                in KEINER Leiste -- es war nur ueber die eingetippte
-                Adresse zu finden, und das bei einem Modul, das Sponsoren
-                gewinnen soll. */}
-            {hatModul('DORFLEBEN') && (
-            <Link to="/live" className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${isActive('/live') ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}>
-                <Zap size={16} className="text-amber-600"/><span className="font-bold text-sm">{t('nav.live')}</span>
-            </Link>
-            )}
-            {hatModul('TURNIER') && (
-            <Link to="/fussball" className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${isActive('/fussball') ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}>
-                <Trophy size={16} className="text-rose-600"/><span className="font-bold text-sm">{t('nav.turnier')}</span>
-            </Link>
-            )}
-            {hatModul('VIDEOS') && (
-              <Link to="/videos" className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${isActive('/videos') ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}>
-                  <Film size={16} className="text-violet-600"/><span className="font-bold text-sm">{t('video.oeff_titel')}</span>
+            {(kopf || []).map(e => (
+              <Link key={e.schluessel} to={e.pfad} className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${isActive(e.pfad) ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}>
+                  {e.icon}<span className="font-bold text-sm">{e.uebersetzen ? t(e.label) : e.label}</span>
               </Link>
-            )}
-            {spendenSichtbar && (
-              <Link to="/spenden" className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${isActive('/spenden') ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}>
-                  <Heart size={16} className="text-primary"/><span className="font-bold text-sm">{t('nav.spenden')}</span>
-              </Link>
-            )}
+            ))}
         </div>
 
         <div className="flex items-center gap-2 md:gap-4 z-50">
@@ -848,15 +837,9 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings }) => {
         <AnimatePresence>
             {isMenuOpen && (
                 <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute top-full left-0 right-0 mt-3 mx-2 p-4 bg-white/95 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-white/20 md:hidden flex flex-col gap-2 z-40">
-                    <Link to="/about" className="flex items-center gap-4 p-4 bg-stone-50 rounded-2xl"><Info size={20}/><span className="font-bold">{t('nav.about')}</span></Link>
-                    <Link to="/events" className="flex items-center gap-4 p-4 bg-stone-50 rounded-2xl"><Calendar size={20}/><span className="font-bold">{t('nav.events.title')}</span></Link>
-                    <Link to="/news" className="flex items-center gap-4 p-4 bg-stone-50 rounded-2xl"><Newspaper size={20}/><span className="font-bold">{t('nav.news.title')}</span></Link>
-                    {hatModul('DORFLEBEN') && (
-                    <Link to="/live" className="flex items-center gap-4 p-4 bg-stone-50 rounded-2xl"><Zap size={20}/><span className="font-bold">{t('nav.live')}</span></Link>
-                    )}
-                    {hatModul('TURNIER') && (
-                    <Link to="/fussball" className="flex items-center gap-4 p-4 bg-stone-50 rounded-2xl"><Trophy size={20}/><span className="font-bold">{t('nav.turnier')}</span></Link>
-                    )}
+                    {(kopf || []).map(e => (
+                      <Link key={e.schluessel} to={e.pfad} onClick={() => setIsMenuOpen(false)} className="flex items-center gap-4 p-4 bg-stone-50 rounded-2xl">{e.iconKlein}<span className="font-bold">{e.uebersetzen ? t(e.label) : e.label}</span></Link>
+                    ))}
                     <div className="h-px bg-stone-100 my-2" />
                     {user ? (
                         <>
@@ -877,7 +860,7 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings }) => {
   );
 };
 
-const ConditionalNavigation = ({ user, branding, systemSettings }: any) => {
+const ConditionalNavigation = ({ user, branding, systemSettings, systemGeladen }: any) => {
   const routeLoc = useLocation();
   // Auf der Betreiber-Domain gibt es ueberhaupt keine Vereinsnavigation.
   //
@@ -889,7 +872,7 @@ const ConditionalNavigation = ({ user, branding, systemSettings }: any) => {
   const hidePaths = ['/setup-profile', '/super-admin', '/admin'];
   if (istPlattform) return null;
   if (hidePaths.some(path => routeLoc.pathname.startsWith(path))) return null;
-  return <Navigation user={user} branding={branding} systemSettings={systemSettings} />;
+  return <Navigation user={user} branding={branding} systemSettings={systemSettings} systemGeladen={systemGeladen} />;
 };
 
 const ConditionalFooter = ({ branding, user }: any) => {
