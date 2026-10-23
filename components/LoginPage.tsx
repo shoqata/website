@@ -5,6 +5,7 @@ import { Mail, ArrowRight, ShieldCheck, Heart, ArrowLeft, AlertCircle, Lock, Eye
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from '../context/LanguageContext';
 import { useIstPlattformDomain } from '../lib/useIstPlattformDomain';
+import { usePaket } from '../lib/usePaket';
 import Konstellation from './platform/Konstellation';
 import Wortmarke from './platform/Wortmarke';
 
@@ -21,6 +22,7 @@ import {
 
 const LoginPage: React.FC = () => {
   const { t } = useTranslation();
+  const paket = usePaket();
   const istPlattform = useIstPlattformDomain();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -71,7 +73,11 @@ const LoginPage: React.FC = () => {
 
   const handleAuthError = (err: any) => {
     const msg = err?.message || '';
-    if (msg.includes('Invalid login credentials') || msg.includes('invalid_credentials')) {
+    if (msg.includes('banned') || err?.code === 'user_banned') {
+      // Paket Light: nur die Administration meldet sich an. Die Sperre
+      // steht im Anmeldesystem, hier nur der verstaendliche Satz dazu.
+      setError(t('light.nur_admin'));
+    } else if (msg.includes('Invalid login credentials') || msg.includes('invalid_credentials')) {
       setError("E-Mail oder Passwort falsch.");
     } else if (msg.includes('Email not confirmed')) {
       setError("Bitte bestätige zuerst deine E-Mail-Adresse.");
@@ -227,6 +233,11 @@ const LoginPage: React.FC = () => {
                 )}
 
                 <div className="space-y-4 mb-8">
+                  {paket === 'LIGHT' && (
+                    <div className="p-4 rounded-2xl bg-amber-50 border border-amber-100 text-xs text-amber-900 leading-relaxed">
+                      {t('light.hinweis')}
+                    </div>
+                  )}
                   <div className="flex bg-stone-100 p-1 rounded-2xl mb-6">
                     <button 
                       onClick={() => setLoginMethod('PASSWORD')}

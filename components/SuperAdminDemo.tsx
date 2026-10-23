@@ -111,8 +111,8 @@ const SuperAdminDemo: React.FC = () => {
           {' · '}zuletzt zurückgesetzt {zeit(stand?.zurueckgesetzt_am ?? null)}
         </p>
         <p className="text-xs text-stone-500 mt-1 leading-relaxed">
-          Paket {paket === 'LIGHT' ? 'Light: Mitglieder & Nachbarschaften, Rechnungen, Vorstand. Alles andere ist ausgegraut, auch die öffentliche Website.'
-                 : paket === 'VOLL' ? 'Voll: alle Funktionen.' : '…'} Das Zurücksetzen behält das gewählte Paket.
+          Paket {paket === 'LIGHT' ? 'Light: Mitglieder & Nachbarschaften, Rechnungen, Vorstand. Alles andere ist ausgegraut, auch die öffentliche Website. Anmelden kann sich nur die Administration (Drita); die übrigen Demo-Zugänge sind gesperrt.'
+                 : paket === 'VOLL' ? 'Voll: alle Funktionen und alle Rollen-Zugänge.' : '…'} Das Zurücksetzen behält das gewählte Paket.
         </p>
         {stand && !stand.passwort_gesetzt && (
           <p className="text-xs text-amber-400 mt-1">

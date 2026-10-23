@@ -1181,6 +1181,8 @@ const translations: Translations = {
 
   // --- POSTAUSGANG DES VORSTANDS ---
   'vpost.knopf': { en: 'Write', de: 'Schreiben', sq: 'Shkruaj' },
+  'light.nur_admin': { en: 'In the Light package only the administration can sign in.', de: 'Im Paket Light kann sich nur die Administration anmelden.', sq: 'Në paketën Light mund të identifikohet vetëm administrata.' },
+  'light.hinweis': { en: 'Light package: sign-in is for the administration only. Board, representatives and members get their own access in the Full package.', de: 'Paket Light: Anmeldung nur für die Administration. Vorstand, Vertreter und Mitglieder haben eigene Zugänge im Paket Voll.', sq: 'Paketa Light: identifikimi vetëm për administratën. Kryesia, përfaqësuesit dhe anëtarët kanë qasje vetjake në paketën e plotë.' },
   'ow.text': { en: 'Members area of the association. Please sign in.', de: 'Mitgliederbereich des Vereins. Bitte melden Sie sich an.', sq: 'Zona e anëtarëve të shoqatës. Ju lutemi identifikohuni.' },
   'vpost.extern': { en: 'External recipients (not members)', de: 'Externe Empfänger (keine Mitglieder)', sq: 'Marrës të jashtëm (jo anëtarë)' },
   'vpost.extern_ph': { en: 'e.g. office@municipality.ch, anna@example.com', de: 'z. B. kanzlei@gemeinde.ch, anna@beispiel.ch', sq: 'p.sh. zyra@komuna.ch, ana@shembull.ch' },

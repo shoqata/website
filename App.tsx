@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useWerBinIch, type WerBinIch } from './lib/useWerBinIch';
 import { useDemoRolle } from './lib/useDemoRolle';
+import { usePaket } from './lib/usePaket';
 const DemoRollenschalter = React.lazy(() => import('./components/DemoRollenschalter'));
 const SpendenSeite = React.lazy(() => import('./components/SpendenSeite'));
 // Die sechs Startseiten-Vorlagen. Alle nachgeladen: ein Verein zeigt genau
@@ -515,6 +516,9 @@ const AppContent: React.FC = () => {
 
   const werHier = useWerBinIch(!!user);
   const demo = useDemoRolle(!!werHier?.ist_betreiber, werHier?.verein ?? null);
+  // Paket Light: keine Rollen-Zugaenge -- weder Anmeldung (gesperrt im
+  // Anmeldesystem) noch Rollenschalter noch Registrierung.
+  const paket = usePaket();
   // Die App entscheidet ueberall anhand von user.role, welche Oberflaeche
   // jemand bekommt. Genau dort setzt der Schalter an: eine ueberschriebene
   // Rolle, sonst der echte Nutzer unveraendert.
@@ -700,7 +704,7 @@ const AppContent: React.FC = () => {
                     <Route path="/beitraege" element={istPlattformDomain ? <Navigate to="/" replace /> : <ZahlerSeite />} />
                     <Route path="/privacy" element={<LegalPage type="PRIVACY" />} />
                     <Route path="/login" element={<AuthRedirectHandler user={user}><LoginPage /></AuthRedirectHandler>} />
-                    <Route path="/register" element={<AuthRedirectHandler user={user}><RegistrationWizard /></AuthRedirectHandler>} />
+                    <Route path="/register" element={paket === 'LIGHT' ? <Navigate to="/login" replace /> : <AuthRedirectHandler user={user}><RegistrationWizard /></AuthRedirectHandler>} />
                     {/* Betreuung einer Nachbarschaft. Wer dafuer nicht
                         zustaendig ist, bekommt in der Ansicht selbst den
                         Hinweis -- die Zugriffsregeln geben ihm ohnehin
@@ -760,7 +764,7 @@ const AppContent: React.FC = () => {
                 erlaubt nur im Demo-Verein und nur dem Betreiber zurueck --
                 in einer echten Vereinsoberflaeche kann die Leiste damit
                 nicht auftauchen. */}
-            {demo.erlaubt && (
+            {demo.erlaubt && paket !== 'LIGHT' && (
               <React.Suspense fallback={null}>
                 <DemoRollenschalter rolle={demo.rolle} setRolle={demo.setRolle} />
               </React.Suspense>
