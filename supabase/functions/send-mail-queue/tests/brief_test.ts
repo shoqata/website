@@ -112,3 +112,12 @@ Deno.test("der Umlaut kommt am Ende wieder heil heraus", () => {
   const roh = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
   assertStringIncludes(new TextDecoder().decode(roh), "Grüezi · Përshëndetje");
 });
+
+Deno.test("Kopie steht als Cc im Kopf", () => {
+  const b = briefBauen(brief({ cc: ["x@y.ch", "z@w.ch"] }), "g1");
+  assertStringIncludes(b, "\r\nCc: x@y.ch, z@w.ch\r\n");
+});
+
+Deno.test("ohne Kopie kein Cc-Kopf", () => {
+  assert(!briefBauen(brief(), "g1").includes("Cc:"));
+});

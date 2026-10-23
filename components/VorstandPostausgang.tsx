@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   X, Mail, Send, Loader2, AlertTriangle, Search, Users, CheckCircle2,
-  Clock, Gauge, UserX,
+  Clock, Gauge, UserX, AtSign, Copy,
 } from 'lucide-react';
 import { supabase } from '@/services/supabase-bridge';
 import { useTranslation } from '../context/LanguageContext';
@@ -44,6 +44,22 @@ type Grenze = {
   rest?: number;
 };
 
+// Adressen aus einem Freitext: durch Komma, Strichpunkt, Leerzeichen oder
+// Zeilen getrennt. Was keine Adresse ist, wird gemeldet und nicht
+// verschluckt -- sonst fehlt still ein Empfaenger.
+const MUSTER = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+export function adressenLesen(text: string): { gut: string[]; falsch: string[] } {
+  const gut: string[] = [], falsch: string[] = [];
+  for (const roh of String(text ?? '').split(/[\s,;]+/)) {
+    const a = roh.trim().replace(/^<|>$/g, '').toLowerCase();
+    if (!a) continue;
+    if (!MUSTER.test(a)) { falsch.push(roh.trim()); continue; }
+    if (!gut.includes(a)) gut.push(a);
+  }
+  return { gut, falsch };
+}
+const CC_HOECHSTENS = 10;
+
 const VorstandPostausgang: React.FC<Props> = ({ mitglieder, nachbarschaften, onClose }) => {
   const { t } = useTranslation();
   const [absender, setAbsender] = useState<Absender | null>(null);
@@ -57,6 +73,10 @@ const VorstandPostausgang: React.FC<Props> = ({ mitglieder, nachbarschaften, onC
   const [sendet, setSendet] = useState(false);
   const [fehler, setFehler] = useState('');
   const [ergebnis, setErgebnis] = useState<any>(null);
+  // Externe Empfaenger und Kopien
+  const [externText, setExternText] = useState('');
+  const [ccText, setCcText] = useState('');
+  const [kopie, setKopie] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -87,7 +107,13 @@ const VorstandPostausgang: React.FC<Props> = ({ mitglieder, nachbarschaften, onC
     () => empfaengerAufbereiten(mitglieder, alle ? null : gewaehlt),
     [mitglieder, alle, gewaehlt]);
 
-  const anzahl = aufbereitet.erreichbar.length;
+  const extern = useMemo(() => adressenLesen(externText), [externText]);
+  const cc = useMemo(() => adressenLesen(ccText), [ccText]);
+  const anzahl = aufbereitet.erreichbar.length + extern.gut.length;
+  const mitKopie = cc.gut.length > 0 || kopie;
+  const kopieZuViele = mitKopie && anzahl > CC_HOECHSTENS;
+  const eingabeFalsch = extern.falsch.length > 0 || cc.falsch.length > 0
+    || extern.gut.length > 10 || cc.gut.length > 5;
   const rest = grenze?.rest ?? 0;
   const proTag = Math.min(grenze?.grenze_verein ?? 0, grenze?.grenze_person ?? 0);
   const heute = Math.min(anzahl, rest);
@@ -105,11 +131,15 @@ const VorstandPostausgang: React.FC<Props> = ({ mitglieder, nachbarschaften, onC
     setFehler(''); setErgebnis(null);
     if (!betreff.trim() || !text.trim()) { setFehler(t('vpost.fehlt_text')); return; }
     if (anzahl === 0) { setFehler(t('vpost.fehlt_empfaenger')); return; }
+    if (eingabeFalsch || kopieZuViele) return;
     setSendet(true);
     const { data, error } = await supabase.rpc('vorstand_mail_einreihen', {
       p_mitglieder: aufbereitet.erreichbar.map(e => e.id),
       p_betreff: betreff.trim(),
       p_html: alsHtml(text),
+      p_extern: extern.gut,
+      p_cc: cc.gut,
+      p_kopie: kopie,
     });
     setSendet(false);
     if (error) { setFehler(error.message); return; }
@@ -229,6 +259,38 @@ const VorstandPostausgang: React.FC<Props> = ({ mitglieder, nachbarschaften, onC
               </>
             )}
 
+            {/* Externe Empfaenger: wer nicht Mitglied ist -- Gemeinde,
+                Vermieter, Sponsor. Jeder bekommt einen eigenen Brief. */}
+            <div className="mt-4">
+              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest flex items-center gap-1 mb-1">
+                <AtSign size={11} /> {t('vpost.extern')}
+              </label>
+              <input value={externText} onChange={e => setExternText(e.target.value)}
+                placeholder={t('vpost.extern_ph')}
+                className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-stone-400" />
+              <AdressZeile liste={extern} max={10} />
+            </div>
+
+            {/* Kopie (CC) */}
+            <div className="mt-4">
+              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest flex items-center gap-1 mb-1">
+                <Copy size={11} /> {t('vpost.cc')}
+              </label>
+              <input value={ccText} onChange={e => setCcText(e.target.value)}
+                placeholder={t('vpost.cc_ph')}
+                className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-stone-400" />
+              <AdressZeile liste={cc} max={5} />
+              {absender?.antwort_an && (
+                <label className="flex items-center gap-2 mt-2 text-xs text-stone-600 cursor-pointer">
+                  <input type="checkbox" checked={kopie} onChange={e => setKopie(e.target.checked)} />
+                  {t('vpost.kopie_an_mich', { adresse: absender.antwort_an })}
+                </label>
+              )}
+              {kopieZuViele && (
+                <p className="mt-2 text-xs text-amber-700 font-bold">{t('vpost.cc_zu_viele', { max: CC_HOECHSTENS, anzahl })}</p>
+              )}
+            </div>
+
             {/* Was jetzt wirklich passiert. Diese Zeile ist der Grund,
                 dass es die Maske gibt: "verschickt" nach einem Lauf, der
                 56 Mitglieder uebersprungen hat, ist eine Falschmeldung. */}
@@ -294,6 +356,9 @@ const VorstandPostausgang: React.FC<Props> = ({ mitglieder, nachbarschaften, onC
               {Number(ergebnis.ohne_adresse) > 0 && (
                 <p className="text-xs">{t('vpost.fertig_ohne', { anzahl: ergebnis.ohne_adresse })}</p>
               )}
+              {Array.isArray(ergebnis.cc) && ergebnis.cc.length > 0 && (
+                <p className="text-xs">{t('vpost.fertig_cc', { adressen: ergebnis.cc.join(', ') })}</p>
+              )}
               {Number(ergebnis.schon_offen) > 0 && (
                 <p className="text-xs">{t('vpost.fertig_doppelt', { anzahl: ergebnis.schon_offen })}</p>
               )}
@@ -315,6 +380,7 @@ const VorstandPostausgang: React.FC<Props> = ({ mitglieder, nachbarschaften, onC
             </button>
             <button onClick={senden}
               disabled={sendet || anzahl === 0 || !betreff.trim() || !text.trim()
+                        || eingabeFalsch || kopieZuViele
                         || absender?.darf_schreiben === false}
               className="px-8 py-3 bg-primary text-white rounded-xl font-bold shadow-lg hover:scale-105 transition-all text-sm flex items-center gap-2 disabled:opacity-40 disabled:hover:scale-100">
               {sendet ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
@@ -323,6 +389,24 @@ const VorstandPostausgang: React.FC<Props> = ({ mitglieder, nachbarschaften, onC
           </div>
         </div>
       </motion.div>
+    </div>
+  );
+};
+
+// Unter einem Adressfeld: was erkannt ist, und was nicht.
+const AdressZeile: React.FC<{ liste: { gut: string[]; falsch: string[] }; max: number }> = ({ liste, max }) => {
+  const { t } = useTranslation();
+  if (!liste.gut.length && !liste.falsch.length) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5 mt-2">
+      {liste.gut.map(a => (
+        <span key={a} className="px-2 py-0.5 rounded-lg bg-stone-100 text-stone-700 text-[11px] font-bold">{a}</span>
+      ))}
+      {liste.falsch.map(a => (
+        <span key={a} className="px-2 py-0.5 rounded-lg bg-rose-50 text-rose-700 text-[11px] font-bold line-through">{a}</span>
+      ))}
+      {liste.falsch.length > 0 && <span className="text-[11px] text-rose-700">{t('vpost.adresse_falsch')}</span>}
+      {liste.gut.length > max && <span className="text-[11px] text-rose-700 font-bold">{t('vpost.zu_viele', { max })}</span>}
     </div>
   );
 };

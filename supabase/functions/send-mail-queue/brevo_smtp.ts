@@ -219,6 +219,7 @@ const alsB64 = (text: string): string => {
 
 export type Brief = {
   von: string; vonName: string; an: string; antwortAn?: string | null;
+  cc?: string[] | null;
   betreff: string; html: string; text?: string | null;
   anhaenge?: { filename: string; content: string }[];
 };
@@ -229,6 +230,7 @@ export function briefBauen(b: Brief, grenze: string): string {
 
   z.push(`From: ${b.vonName ? `${kopfwert(b.vonName)} <${b.von}>` : b.von}`);
   z.push(`To: ${b.an}`);
+  if (b.cc?.length) z.push(`Cc: ${b.cc.join(", ")}`);
   if (b.antwortAn) z.push(`Reply-To: ${b.antwortAn}`);
   z.push(`Subject: ${kopfwert(b.betreff)}`);
   z.push("MIME-Version: 1.0");
@@ -320,10 +322,14 @@ export async function brevoSmtpSenden(
     await d.schreiben(`MAIL FROM:<${b.von}>`);
     const mf = await d.lesen();
     if (!mf.startsWith("250")) throw new Error(`Absender: ${mf.slice(0, 140)}`);
-    await d.schreiben(`RCPT TO:<${b.an}>`);
-    const rc = await d.lesen();
-    if (!rc.startsWith("250") && !rc.startsWith("251")) {
-      throw new Error(`Empfänger: ${rc.slice(0, 140)}`);
+    // Die Kopien sind eigene Empfaenger im Umschlag. Im Kopf "Cc:" zu
+    // stehen reicht nicht -- dort steht nur, was angezeigt wird.
+    for (const an of [b.an, ...(b.cc ?? [])]) {
+      await d.schreiben(`RCPT TO:<${an}>`);
+      const rc = await d.lesen();
+      if (!rc.startsWith("250") && !rc.startsWith("251")) {
+        throw new Error(`Empfänger ${an}: ${rc.slice(0, 140)}`);
+      }
     }
     await d.schreiben("DATA");
     const da = await d.lesen();

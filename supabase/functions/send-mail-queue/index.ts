@@ -750,6 +750,10 @@ const brevoSmtpDa = !!brevoSmtpLogin && !!brevoSmtpKey;
         const zeigeName = (m as any).absender_name
           ?? info?.name ?? p.absendername ?? "unityhub";
         const antwortAn = (m as any).antwort_an ?? info?.antwortAn ?? null;
+        // Kopien (Postausgang des Vorstands). Die Datenbank hat sie
+        // geprueft und begrenzt; hier werden sie nur weitergereicht.
+        const cc: string[] = Array.isArray((m as any).cc)
+          ? (m as any).cc.filter((x: any) => typeof x === "string" && x.includes("@")) : [];
 
         // Einmal fragen, dann entscheiden. Die Abfrage ist
         // zwischengespeichert; zweimal zu fragen waere nur unordentlich.
@@ -764,6 +768,7 @@ const brevoSmtpDa = !!brevoSmtpLogin && !!brevoSmtpKey;
             vonName: zeigeName,
             an: String(m.recipient),
             antwortAn,
+            cc,
             betreff: String(m.subject ?? ""),
             html: String(m.html ?? ""),
             text: m.text ?? null,
@@ -781,6 +786,7 @@ const brevoSmtpDa = !!brevoSmtpLogin && !!brevoSmtpKey;
             body: JSON.stringify({
               sender: { name: zeigeName, email: p.absender ?? absender },
               to: [{ email: m.recipient }],
+              ...(cc.length ? { cc: cc.map(email => ({ email })) } : {}),
               ...(antwortAn ? { replyTo: { email: antwortAn } } : {}),
               subject: m.subject,
               htmlContent: m.html,
@@ -805,6 +811,7 @@ const brevoSmtpDa = !!brevoSmtpLogin && !!brevoSmtpKey;
             headers: { "Content-Type": "application/json", "X-Server-API-Key": postalKey },
             body: JSON.stringify({
               to: [m.recipient],
+              ...(cc.length ? { cc } : {}),
               from: `${zeigeName} <${p.absender ?? absender}>`,
               sender: p.absender ?? absender,
               reply_to: antwortAn ?? undefined,
@@ -832,6 +839,7 @@ const brevoSmtpDa = !!brevoSmtpLogin && !!brevoSmtpKey;
           from: `${zeigeName} <${p.absender}>`,
           replyTo: antwortAn ?? undefined,
           to: m.recipient,
+          ...(cc.length ? { cc } : {}),
           subject: m.subject,
           html: m.html,
           content: m.text ?? undefined,
