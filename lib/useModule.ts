@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/services/supabase-bridge';
+import { useIstPlattformDomain } from './useIstPlattformDomain';
 
 // Welche Module hat dieser Verein?
 //
@@ -12,6 +13,7 @@ import { supabase } from '@/services/supabase-bridge';
 // (marktplatz_uebersicht rechnet mit derselben Regel wie modul_aktiv). Die
 // Oberflaeche bekommt so keine eigene Vorstellung davon, was laeuft.
 export function useModule() {
+  const plattform = useIstPlattformDomain();
   const [aktive, setAktive] = useState<Set<string> | null>(null);
   const [liste, setListe] = useState<{ schluessel: string; name: string; beschreibung: string; ist_kern: boolean }[]>([]);
 
@@ -42,7 +44,13 @@ export function useModule() {
     geladen: aktive !== null,
     // Sicher NICHT gebucht -- erst wenn die Antwort da ist. Dafuer graut die
     // Verwaltung einen Eintrag aus, statt ihn zu verstecken.
-    gesperrt: (schluessel: string) => aktive !== null && !aktive.has(schluessel),
+    //
+    // Nur auf der Domain eines Vereins (demo.unityhub.li, koretini.me) und
+    // nur mit einer echten Antwort fuer einen Verein. Auf unityhub.li ist
+    // die Verwaltung die des Betreibers: dort gilt das alte Verhalten
+    // (nicht gebucht = nicht angezeigt), und es erscheint keine Paketmarke.
+    gesperrt: (schluessel: string) =>
+      plattform === false && liste.length > 0 && aktive !== null && !aktive.has(schluessel),
     modul: (schluessel: string) => liste.find(z => z.schluessel === schluessel) ?? null,
   };
 }

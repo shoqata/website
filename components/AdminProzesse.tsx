@@ -42,11 +42,12 @@ const KARTEN: Karte[] = [
 
 const AdminProzesse: React.FC = () => {
   const { t } = useTranslation();
-  const { gesperrt: modulGesperrt } = useModule();
-  // Alle Karten stehen da; nicht gebuchte ausgegraut und nicht zu oeffnen.
+  const { aktiv: modulAktiv, gesperrt: modulGesperrt } = useModule();
+  // Auf einer Vereinsdomain: nicht gebuchte Karten ausgegraut und nicht zu
+  // oeffnen. Sonst (Betreiberdomain) fehlen sie wie bisher.
   const zu = (k: Karte) => !!k.modul && modulGesperrt(k.modul);
-  const sichtbar = KARTEN;
-  const [offen, setOffen] = useState<Karte | null>(KARTEN[0] ?? null);
+  const sichtbar = KARTEN.filter(k => !k.modul || modulAktiv(k.modul) || zu(k));
+  const [offen, setOffen] = useState<Karte | null>(sichtbar[0] ?? null);
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 p-2">

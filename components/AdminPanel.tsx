@@ -445,6 +445,9 @@ const AdminPanel: React.FC = () => {
                             .map(item => {
                               const m = modulVonReiter[item.id];
                               const zu = !!m && modulGesperrt(m);
+                              // Nicht gebucht und nicht als Paketmarke zu zeigen
+                              // (Betreiberdomain): weg wie bisher.
+                              if (m && !zu && !modulAktiv(m)) return null;
                               return (
                               <button key={item.id} onClick={() => { setActiveTab(item.id); setSelectedNeighborhoodId(null); setIsSidebarOpen(false); }}
                                 title={leisteSchmal ? String(item.label) : undefined}
