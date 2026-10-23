@@ -182,9 +182,19 @@ const AdminPanel: React.FC = () => {
     SEO: 'WEBSITE',
     BRIEFVERSAND: 'POSTVERSAND',
   };
+  // Reiter, die nur zum Paket Voll gehoeren, aber nicht erst seit heute an
+  // einem Modul haengen. Sie werden NUR ausgegraut (Vereinsdomain, Paket
+  // Light) und nie ausgeblendet -- auf unityhub.li, wo kein Verein im Spiel
+  // ist, bleiben sie, wie sie waren. Das Treffen-Einladen etwa braucht der
+  // Betreiber dort.
+  const paketVonReiter: Partial<Record<AdminTabId, string>> = {
+    TREFFEN: 'TREFFEN',
+    COMMUNICATION: 'KOMMUNIKATION',
+    VEREINSADRESSEN: 'KOMMUNIKATION',
+  };
   // Der offene Reiter gehoert zu einem nicht gebuchten Modul?
-  const reiterGesperrt = modulVonReiter[activeTab] && modulGesperrt(modulVonReiter[activeTab]!)
-    ? modulVonReiter[activeTab]! : null;
+  const reiterModul = modulVonReiter[activeTab] ?? paketVonReiter[activeTab];
+  const reiterGesperrt = reiterModul && modulGesperrt(reiterModul) ? reiterModul : null;
 
   const navGroups: NavGroup[] = [
       {
@@ -444,7 +454,8 @@ const AdminPanel: React.FC = () => {
                           {group.items
                             .map(item => {
                               const m = modulVonReiter[item.id];
-                              const zu = !!m && modulGesperrt(m);
+                              const p = paketVonReiter[item.id];
+                              const zu = (!!m && modulGesperrt(m)) || (!!p && modulGesperrt(p));
                               // Nicht gebucht und nicht als Paketmarke zu zeigen
                               // (Betreiberdomain): weg wie bisher.
                               if (m && !zu && !modulAktiv(m)) return null;
