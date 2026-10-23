@@ -440,8 +440,14 @@ export interface Inquiry {
   type: 'DONATION' | 'PROJECT' | 'GENERAL';
   subject: string;
   message: string;
-  status: 'OPEN' | 'IN_PROGRESS' | 'DONE' | 'REJECTED';
+  status: 'OPEN' | 'IN_PROGRESS' | 'WAITING' | 'APPROVED' | 'DONE' | 'REJECTED';
   adminNote?: string;
+  zustaendig?: string | null;
+  wartenAuf?: string | null;
+  wartenBis?: string | null;
+  entscheid?: string | null;
+  entscheidVon?: string | null;
+  entscheidAm?: string | null;
   createdAt: any;
   updatedAt?: any;
 }

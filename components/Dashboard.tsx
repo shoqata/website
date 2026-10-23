@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from '../context/LanguageContext';
 import { UserProfile, Payment, GlobalPaymentSettings, Neighborhood, Inquiry } from '../types';
+import { STATUS_FARBE } from './AnfragenBearbeiten';
 import { db } from '../services/datenzugriff';
 import { collection, query, where, orderBy, onSnapshot, doc, getDoc, updateDoc, addDoc, serverTimestamp, myNeighborhoodContacts, myNeighborhoods, getDocs } from '@/services/supabase-bridge';
 import { 
@@ -894,22 +895,33 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                         </div>
                     ) : (
                         inquiries.map(req => (
-                            <div key={req.id} className="p-4 bg-stone-50 rounded-2xl border border-stone-100 flex justify-between items-center group hover:bg-white hover:shadow-md transition-all">
-                                <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide ${req.type === 'DONATION' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
-                                            {t(`req.type.${req.type}`)}
-                                        </span>
-                                        <span className="text-xs text-stone-400 flex items-center gap-1"><Clock size={10}/> {req.createdAt?.toDate().toLocaleDateString()}</span>
+                            <div key={req.id} className="p-4 bg-stone-50 rounded-2xl border border-stone-100 hover:bg-white hover:shadow-md transition-all">
+                                <div className="flex justify-between items-start gap-3">
+                                    <div className="min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide ${req.type === 'DONATION' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                {t(`req.type.${req.type}`)}
+                                            </span>
+                                            <span className="text-xs text-stone-400 flex items-center gap-1"><Clock size={10}/> {req.createdAt ? new Date(req.createdAt?.toDate ? req.createdAt.toDate() : req.createdAt).toLocaleDateString() : ''}</span>
+                                        </div>
+                                        <h5 className="font-bold text-stone-800 text-sm">{req.subject}</h5>
                                     </div>
-                                    <h5 className="font-bold text-stone-800 text-sm">{req.subject}</h5>
-                                    {req.adminNote && (
-                                        <p className="text-xs text-stone-500 mt-1 italic border-l-2 border-primary pl-2">Admin: {req.adminNote}</p>
-                                    )}
+                                    {/* Vorher weisse Schrift auf fast weissem Grund -- der Status war nicht lesbar. */}
+                                    <span className={`text-xs font-bold px-3 py-1 rounded-full shrink-0 ${STATUS_FARBE[req.status] || 'bg-stone-200 text-stone-500'}`}>
+                                        {t(`req.status.${req.status}`)}
+                                    </span>
                                 </div>
-                                <span className={`text-xs font-bold px-3 py-1 rounded-full ${req.status === 'DONE' ? 'bg-green-50 text-white' : req.status === 'IN_PROGRESS' ? 'bg-blue-50 text-white' : req.status === 'REJECTED' ? 'bg-red-50 text-white' : 'bg-stone-200 text-stone-500'}`}>
-                                    {t(`req.status.${req.status}`)}
-                                </span>
+                                {req.status === 'WAITING' && req.wartenAuf && (
+                                    <p className="text-xs text-amber-800 mt-2"><span className="font-bold">{t('dash.req.waiting')}:</span> {req.wartenAuf}</p>
+                                )}
+                                {(req.status === 'APPROVED' || req.status === 'REJECTED') && req.entscheid && (
+                                    <p className={`text-xs mt-2 border-l-2 pl-2 ${req.status === 'REJECTED' ? 'border-rose-300 text-stone-600' : 'border-emerald-400 text-stone-600'}`}>
+                                        <span className="font-bold">{t('dash.req.decision')}:</span> {req.entscheid}
+                                    </p>
+                                )}
+                                {req.adminNote && (
+                                    <p className="text-xs text-stone-500 mt-2 italic border-l-2 border-primary pl-2">{t('dash.req.reply')}: {req.adminNote}</p>
+                                )}
                             </div>
                         ))
                     )}

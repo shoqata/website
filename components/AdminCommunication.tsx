@@ -5,6 +5,7 @@ import { Mail, Plus, BarChart2, Trash2, Send, HelpCircle, CheckCircle2, MessageS
 import { db, auth } from '../services/datenzugriff';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc, updateDoc } from '@/services/supabase-bridge';
 import { Poll, Inquiry } from '../types';
+import AnfragenBearbeiten from './AnfragenBearbeiten';
 import { packageByKey } from '../lib/sponsorPackages';
 import { useFeedback } from '../context/FeedbackContext';
 import { sendEmail, postausgangBereit } from '../services/mailService';
@@ -177,22 +178,6 @@ const AdminCommunication: React.FC = () => {
         }
     };
 
-    // --- REQUESTS LOGIC ---
-    const updateRequestStatus = async (inquiry: Inquiry, status: Inquiry['status']) => {
-        await updateDoc(doc(db, 'inquiries', inquiry.id), { status });
-    };
-
-    const addAdminNote = async (inquiry: Inquiry) => {
-        const note = await showPrompt({
-            title: t('comm.note_title'),
-            message: t('comm.note_text'),
-            placeholder: "e.g. We will discuss this in the next meeting."
-        });
-        if (note) {
-            await updateDoc(doc(db, 'inquiries', inquiry.id), { adminNote: note });
-        }
-    };
-
     const updateSponsorStatus = async (id: string, status: string) => {
         try {
             await updateDoc(doc(db, 'sponsors', id), { status, updatedAt: new Date().toISOString() } as any);
@@ -210,7 +195,7 @@ const AdminCommunication: React.FC = () => {
     return (
         <div className="bg-white rounded-[2.5rem] border border-stone-100 shadow-sm min-h-[600px] overflow-hidden flex flex-col">
             <div className="flex border-b border-stone-100">
-                <button onClick={() => setActiveTab('REQUESTS')} className={`flex-1 py-4 text-sm font-bold flex items-center justify-center gap-2 ${activeTab === 'REQUESTS' ? 'bg-stone-50 text-primary' : 'text-stone-400'}`}><HelpCircle size={16}/> Requests ({inquiries.filter(i => i.status === 'OPEN').length})</button>
+                <button onClick={() => setActiveTab('REQUESTS')} className={`flex-1 py-4 text-sm font-bold flex items-center justify-center gap-2 ${activeTab === 'REQUESTS' ? 'bg-stone-50 text-primary' : 'text-stone-400'}`}><HelpCircle size={16}/> {t('board.inquiries')} ({inquiries.filter(i => i.status === 'OPEN').length})</button>
                 <button onClick={() => setActiveTab('SPONSORS')} className={`flex-1 py-4 text-sm font-bold flex items-center justify-center gap-2 ${activeTab === 'SPONSORS' ? 'bg-stone-50 text-primary' : 'text-stone-400'}`}><Handshake size={16}/> {t('admin.tab.sponsors')}{sponsors.length > 0 && <span className="text-[10px] bg-primary text-white rounded-full px-1.5 py-0.5">{sponsors.length}</span>}</button>
                 <button onClick={() => setActiveTab('POLLS')} className={`flex-1 py-4 text-sm font-bold flex items-center justify-center gap-2 ${activeTab === 'POLLS' ? 'bg-stone-50 text-primary' : 'text-stone-400'}`}><BarChart2 size={16}/> {t('comm.polls')}</button>
                 <button onClick={() => setActiveTab('EMAIL')} className={`flex-1 py-4 text-sm font-bold flex items-center justify-center gap-2 ${activeTab === 'EMAIL' ? 'bg-stone-50 text-primary' : 'text-stone-400'}`}><Mail size={16}/> {t('comm.newsletter')}</button>
@@ -283,50 +268,9 @@ const AdminCommunication: React.FC = () => {
                 )}
 
                 {activeTab === 'REQUESTS' && (
-                    <div className="space-y-4">
-                        {inquiries.map(req => (
-                            <div key={req.id} className="bg-white p-6 rounded-2xl border border-stone-100 shadow-sm">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`p-2 rounded-xl ${req.type === 'DONATION' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
-                                            <MessageSquare size={18} />
-                                        </div>
-                                        <div>
-                                            <h4 className="font-bold text-stone-900">{req.subject}</h4>
-                                            <p className="text-xs text-stone-500">{req.userName} • {req.createdAt?.toDate().toLocaleDateString()}</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <select 
-                                            value={req.status} 
-                                            onChange={(e) => updateRequestStatus(req, e.target.value as any)}
-                                            className={`text-xs font-bold rounded-lg py-1 px-2 outline-none border cursor-pointer ${req.status === 'DONE' ? 'bg-green-50 border-green-200 text-green-700' : req.status === 'REJECTED' ? 'bg-red-50 border-red-200 text-red-700' : 'bg-white border-stone-200 text-stone-600'}`}
-                                        >
-                                            <option value="OPEN">{t('inq.open')}</option>
-                                            <option value="IN_PROGRESS">{t('inq.in_progress')}</option>
-                                            <option value="DONE">{t('inq.done')}</option>
-                                            <option value="REJECTED">{t('inq.rejected')}</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div className="bg-stone-50 p-4 rounded-xl text-sm text-stone-600 leading-relaxed mb-4">
-                                    {req.message}
-                                </div>
-                                {req.adminNote && (
-                                    <div className="mb-4 pl-3 border-l-2 border-primary">
-                                        <p className="text-xs text-stone-400 font-bold uppercase tracking-wide">{t('comm.admin_response')}</p>
-                                        <p className="text-sm text-stone-600 italic">{req.adminNote}</p>
-                                    </div>
-                                )}
-                                <div className="flex justify-end">
-                                    <button onClick={() => addAdminNote(req)} className="text-xs font-bold text-stone-400 hover:text-primary transition-colors">
-                                        {req.adminNote ? t('comm.edit_response') : t('comm.add_response')}
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                        {inquiries.length === 0 && <p className="text-center text-stone-400 italic">{t('comm.no_inquiries')}</p>}
-                    </div>
+                    // Dieselbe Bearbeitung wie im Vorstandsbereich -- zwei
+                    // Masken fuer dieselbe Anfrage liefen sonst auseinander.
+                    <AnfragenBearbeiten breit />
                 )}
 
                 {activeTab === 'POLLS' && (

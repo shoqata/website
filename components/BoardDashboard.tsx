@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from '../context/LanguageContext';
-import { UserProfile, Payment, Neighborhood, Inquiry, BoardMeeting } from '../types';
+import { UserProfile, Payment, Neighborhood, BoardMeeting } from '../types';
 import BoardMinutesEditor from './BoardMinutesEditor';
 import VorstandWizard from './VorstandWizard';
 import VorstandPostausgang from './VorstandPostausgang';
+import AnfragenBearbeiten from './AnfragenBearbeiten';
 import CountrySelect from './ui/CountrySelect';
 import { missingFieldKeys } from '../lib/memberQuality';
 import { markPaymentPaid, zahlungDifferenzSetzen } from '@/services/supabase-bridge';
@@ -20,7 +21,6 @@ import {
   CheckCircle2, 
   AlertCircle, 
   FileText, 
-  MessageSquare, 
   Users, 
   MapPin, 
   X,
@@ -56,7 +56,6 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([]);
-  const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [meetings, setMeetings] = useState<BoardMeeting[]>([]);
   
   // UI State
@@ -101,19 +100,13 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
         setNeighborhoods(snap.docs.map(d => ({ id: d.id, ...d.data() } as Neighborhood)));
     });
 
-    // 4. Inquiries (Requests)
-    const qInquiries = query(collection(db, 'inquiries'), orderBy('createdAt', 'desc'));
-    const unsubInquiries = onSnapshot(qInquiries, (snap) => {
-        setInquiries(snap.docs.map(d => ({ id: d.id, ...d.data() } as Inquiry)));
-    });
-
     // 5. Board Meetings (Protocols)
     const qMeetings = query(collection(db, 'board_meetings'), orderBy('date', 'desc'));
     const unsubMeetings = onSnapshot(qMeetings, (snap) => {
         setMeetings(snap.docs.map(d => ({ id: d.id, ...d.data() } as BoardMeeting)));
     });
 
-    return () => { unsubPayments(); unsubUsers(); unsubNeighborhoods(); unsubInquiries(); unsubMeetings(); };
+    return () => { unsubPayments(); unsubUsers(); unsubNeighborhoods(); unsubMeetings(); };
   }, []);
 
   // DERIVED STATS & ANALYTICS
@@ -477,6 +470,13 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
             </div>
         </div>
 
+
+        {/* Anfragen & Feedback zuerst: das ist, was nach der Anmeldung zu
+            tun ist. Kennzahlen und Auswertungen folgen darunter. */}
+        <div className="mb-10">
+            <AnfragenBearbeiten breit />
+        </div>
+
         {/* --- STATS & ANALYTICS SECTION --- */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             
@@ -673,10 +673,10 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
 
         </div>
 
-        {/* MAIN CONTENT GRID (Protocols & Inquiries) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            
-            {/* LEFT: Protocols */}
+        {/* Protokolle */}
+        <div className="grid grid-cols-1 gap-8">
+
+            {/* Protocols */}
             <div className="bg-white p-8 rounded-[2.5rem] border border-stone-100 shadow-sm h-[600px] flex flex-col">
                 <div className="flex items-center justify-between mb-6">
                     <h3 className="text-xl font-bold flex items-center gap-2"><FileText size={20} className="text-primary"/> {t('board.minutes')}</h3>
@@ -714,33 +714,6 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                 </div>
             </div>
 
-            {/* RIGHT: Inquiries */}
-            <div className="bg-white p-8 rounded-[2.5rem] border border-stone-100 shadow-sm h-[600px] flex flex-col">
-                <h3 className="text-xl font-bold flex items-center gap-2 mb-6"><MessageSquare size={20} className="text-blue-500"/> {t('board.inquiries')}</h3>
-                
-                <div className="overflow-y-auto custom-scrollbar flex-1 space-y-3">
-                    {inquiries.map(req => (
-                        <div key={req.id} className="p-4 rounded-2xl bg-stone-50 border border-stone-100">
-                            <div className="flex justify-between items-start mb-2">
-                                <div className="flex items-center gap-2">
-                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${req.type === 'DONATION' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>{t(`req.type.${req.type}`)}</span>
-                                    <span className="text-xs font-bold text-stone-600">{req.userName}</span>
-                                </div>
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${req.status === 'DONE' ? 'bg-green-200 text-green-800' : req.status === 'OPEN' ? 'bg-red-100 text-red-600' : 'bg-stone-200'}`}>{t(`req.status.${req.status}`)}</span>
-                            </div>
-                            <h5 className="font-bold text-sm mb-1">{req.subject}</h5>
-                            <p className="text-xs text-stone-500 leading-relaxed line-clamp-3">{req.message}</p>
-                            {req.adminNote && (
-                                <div className="mt-3 pl-3 border-l-2 border-stone-300">
-                                    <p className="text-[10px] text-stone-400 uppercase font-bold">{t('board.admin_note')}</p>
-                                    <p className="text-xs text-stone-600 italic">{req.adminNote}</p>
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                    {inquiries.length === 0 && <p className="text-stone-400 italic text-center py-10">{t('board.no_inquiries')}</p>}
-                </div>
-            </div>
         </div>
 
         {/* MODALS */}
