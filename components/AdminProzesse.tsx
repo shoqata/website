@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Map, Maximize2, ExternalLink } from 'lucide-react';
 import { useTranslation } from '../context/LanguageContext';
 import { useModule } from '../lib/useModule';
+import { VollMarke } from './PaketSperre';
 
 // Die Prozesslandkarte des Vereins.
 //
@@ -41,9 +42,11 @@ const KARTEN: Karte[] = [
 
 const AdminProzesse: React.FC = () => {
   const { t } = useTranslation();
-  const { aktiv: modulAktiv } = useModule();
-  const sichtbar = KARTEN.filter(k => !k.modul || modulAktiv(k.modul));
-  const [offen, setOffen] = useState<Karte | null>(sichtbar[0] ?? null);
+  const { gesperrt: modulGesperrt } = useModule();
+  // Alle Karten stehen da; nicht gebuchte ausgegraut und nicht zu oeffnen.
+  const zu = (k: Karte) => !!k.modul && modulGesperrt(k.modul);
+  const sichtbar = KARTEN;
+  const [offen, setOffen] = useState<Karte | null>(KARTEN[0] ?? null);
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 p-2">
@@ -58,6 +61,12 @@ const AdminProzesse: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {sichtbar.map(k => {
           const gewaehlt = offen?.schluessel === k.schluessel;
+          if (zu(k)) return (
+            <div key={k.schluessel} className="text-left p-5 rounded-2xl border border-dashed border-stone-200 bg-white/40 opacity-60 cursor-not-allowed">
+              <p className="font-bold text-sm mb-1 text-stone-700 flex items-center gap-2">{k.titel} <VollMarke /></p>
+              <p className="text-[11px] text-stone-500 leading-relaxed">{k.zeile}</p>
+            </div>
+          );
           return (
             <button key={k.schluessel} onClick={() => setOffen(k)}
               className={`text-left p-5 rounded-2xl border transition-all ${gewaehlt
@@ -70,7 +79,7 @@ const AdminProzesse: React.FC = () => {
         })}
       </div>
 
-      {offen && (
+      {offen && !zu(offen) && (
         <div className="bg-white rounded-[2rem] border border-stone-100 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-stone-100 flex items-center justify-between gap-3">
             <p className="text-xs font-bold text-stone-500 uppercase tracking-widest">{offen.titel}</p>

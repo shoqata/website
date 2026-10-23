@@ -14,6 +14,7 @@ import { doc, onSnapshot, setDoc, serverTimestamp, supabase } from '@/services/s
 import { SystemSettings, GlobalPaymentSettings } from '../types';
 import { useFeedback } from '../context/FeedbackContext';
 import { useModule } from '../lib/useModule';
+import { VollMarke } from './PaketSperre';
 
 const AdminSettings: React.FC = () => {
   const { t } = useTranslation();
@@ -25,7 +26,7 @@ const AdminSettings: React.FC = () => {
   // Sicht direkt abfragen und den Schalter umgehen.
   const [vorschau, setVorschau] = useState<any>(null);
   const [widersprueche, setWidersprueche] = useState(0);
-  const { aktiv: modulAktiv } = useModule();
+  const { aktiv: modulAktiv, gesperrt: modulGesperrt } = useModule();
   
   // System Settings
   const [settings, setSettings] = useState<SystemSettings>({
@@ -222,7 +223,21 @@ const AdminSettings: React.FC = () => {
                 </div>
             </section>
 
-            {modulAktiv('SPENDEN') && (
+            {/* Nicht gebucht: ausgegraut statt verschwunden (Paket Light). */}
+            {modulGesperrt('SPENDEN') && (
+            <section className="opacity-50">
+                <div className="flex items-center gap-2 mb-4">
+                    <Heart size={18} className="text-stone-400" />
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500">{t('spseite.titel')}</h3>
+                    <VollMarke />
+                </div>
+                <div className="bg-stone-50 p-6 rounded-3xl border border-dashed border-stone-200 text-sm text-stone-500">
+                    Spendenseite, Spendenaufrufe und Spendenbescheinigungen sind im Paket Voll enthalten.
+                </div>
+            </section>
+            )}
+
+            {modulAktiv('SPENDEN') && !modulGesperrt('SPENDEN') && (
             <section>
                 <div className="flex items-center gap-2 mb-4">
                     <Heart size={18} className="text-stone-400" />
