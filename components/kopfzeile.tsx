@@ -71,7 +71,13 @@ export function useKopfzeile(opts: {
   if (module === null || seiten === null) return null;
 
   const zl = (opts.zahlerliste?.sichtbar || 'AUS').toUpperCase();
+  // Leere Liste = Abfrage gescheitert (die Kernmodule fehlen nie). Dann
+  // bleiben Website, Anlaesse und Neuigkeiten in der Leiste wie bisher.
+  const hat = (m: string) => module.size === 0 && ['WEBSITE', 'ANLAESSE', 'NEUIGKEITEN'].includes(m) || module.has(m);
   const moeglich: Record<string, [boolean, string?]> = {
+    about: [hat('WEBSITE'), 'Modul Website ist nicht gebucht'],
+    events: [hat('ANLAESSE'), 'Modul Anlässe ist nicht gebucht'],
+    news: [hat('NEUIGKEITEN'), 'Modul Neuigkeiten ist nicht gebucht'],
     live: [module.has('DORFLEBEN'), 'Modul Dorfleben ist nicht gebucht'],
     fussball: [module.has('TURNIER'), 'Modul Turnier ist nicht gebucht'],
     videos: [module.has('VIDEOS'), 'Modul Videos ist nicht gebucht'],
@@ -92,7 +98,8 @@ export function useKopfzeile(opts: {
     ...seiten.map(s => ({
       schluessel: `seite:${s.pfad}`, pfad: `/${s.pfad}`, label: opts.loc(s.titel) || s.pfad, uebersetzen: false,
       icon: <FileText size={16} className="text-stone-500" />, iconKlein: <FileText size={20} />,
-      moeglich: true, an: false, eigeneSeite: true,
+      moeglich: hat('WEBSITE'), grund: hat('WEBSITE') ? undefined : 'Modul Website ist nicht gebucht',
+      an: false, eigeneSeite: true,
     })),
   ];
 

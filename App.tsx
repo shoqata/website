@@ -72,6 +72,7 @@ const Dashboard = React.lazy(() => import('./components/Dashboard'));
 const AdminPanel = React.lazy(() => import('./components/AdminPanel'));
 const Floky = React.lazy(() => import('./components/Floky'));
 const EigeneSeite = React.lazy(() => import('./components/EigeneSeite'));
+const OhneWebsite = React.lazy(() => import('./components/OhneWebsite'));
 const BoardDashboard = React.lazy(() => import('./components/BoardDashboard'));
 // Die Kassen-Ansicht der Vertreter ist derzeit nicht verlinkt, siehe die
 // Begruendung an der Dashboard-Weiche weiter unten. Die Datei bleibt liegen,
@@ -479,6 +480,14 @@ const AppContent: React.FC = () => {
   // zusaetzlich fest auf das von Koretini verdrahtet. Ein anderer Verein
   // haette unter seiner eigenen Adresse ein fremdes Turnier gezeigt.
   const oeffentlicheModule = useOeffentlicheModule();
+  // Fuer Website, Anlaesse und Neuigkeiten: scheitert die Abfrage, kommt eine
+  // leere Liste -- dann gilt die Website als vorhanden. Eine echte Antwort
+  // enthaelt immer die drei Kernmodule; ohne diesen Fallback stuende ein
+  // Verein bei einer Stoerung ohne Startseite da.
+  const websiteModule = React.useMemo(
+    () => oeffentlicheModule && oeffentlicheModule.size === 0
+      ? new Set(['WEBSITE', 'ANLAESSE', 'NEUIGKEITEN']) : oeffentlicheModule,
+    [oeffentlicheModule]);
   // Werbemessung. Laedt nur auf der Betreiberseite, nur mit Zustimmung
   // und nur mit eingetragener ID -- die Entscheidung steckt in
   // darfMessen(), nicht hier.
@@ -591,9 +600,14 @@ const AppContent: React.FC = () => {
                         dadurch zuerst Koretini. Dieselbe Falle gilt fuer die
                         Startseiten-Vorlage: wer sich zu frueh festlegt, zeigt
                         die Standardseite und springt dann weg. */}
+                    {/* Ohne Website-Modul (Paket Light) gibt es keine
+                        oeffentliche Startseite: Besucher sehen den Weg zur
+                        Anmeldung, Angemeldete kommen in ihren Bereich. */}
                     <Route path="/" element={
                       istPlattformDomain === null ? <PageLoader />
                         : istPlattformDomain ? <PlatformHome user={user} />
+                        : websiteModule === null ? <PageLoader />
+                        : !websiteModule.has('WEBSITE') ? (user ? <Navigate to="/dashboard" replace /> : <OhneWebsite />)
                         : vorlage === null ? <PageLoader />
                         : vorlage === 'MAGAZIN' ? <Magazin />
                         : vorlage === 'KOMPAKT' ? <Kompakt />
@@ -620,7 +634,11 @@ const AppContent: React.FC = () => {
                         Verwaltung drumherum. Wer das Treffen lesen darf,
                         entscheidet die Datenbank. */}
                     <Route path="/drucksachen/:id" element={<TreffenDrucksachen />} />
-                    <Route path="/about" element={istPlattformDomain ? <Navigate to="/" replace /> : <AboutUsPage />} />
+                    <Route path="/about" element={
+                      ((z) => z === 'LAEDT' ? <PageLoader />
+                            : z === 'ZEIGEN' ? <AboutUsPage />
+                            : <Navigate to="/" replace />)
+                      (seitenZustand(websiteModule, 'WEBSITE', istPlattformDomain))} />
                     {/* Dorfleben nur mit gebuchtem Modul. Ausgeblendet
                         heisst auch nicht erreichbar: nur den Verweis
                         wegzunehmen hiesse "schwerer zu finden", nicht "aus".
@@ -632,8 +650,16 @@ const AppContent: React.FC = () => {
                             : z === 'ZEIGEN' ? <VillageLive />
                             : <Navigate to="/" replace />)
                       (seitenZustand(oeffentlicheModule, 'DORFLEBEN', istPlattformDomain))} />
-                    <Route path="/events" element={istPlattformDomain ? <Navigate to="/" replace /> : <EventsPage />} />
-                    <Route path="/news" element={istPlattformDomain ? <Navigate to="/" replace /> : <NewsPage />} />
+                    <Route path="/events" element={
+                      ((z) => z === 'LAEDT' ? <PageLoader />
+                            : z === 'ZEIGEN' ? <EventsPage />
+                            : <Navigate to="/" replace />)
+                      (seitenZustand(websiteModule, 'ANLAESSE', istPlattformDomain))} />
+                    <Route path="/news" element={
+                      ((z) => z === 'LAEDT' ? <PageLoader />
+                            : z === 'ZEIGEN' ? <NewsPage />
+                            : <Navigate to="/" replace />)
+                      (seitenZustand(websiteModule, 'NEUIGKEITEN', istPlattformDomain))} />
                     {/* Turnier und Sponsoring. Die Adressen werden so geteilt
                         (koretini.me/fussball/sponsoren); index.html schreibt
                         einen Pfad ohne Raute auf die Rauten-Form um und
@@ -712,7 +738,11 @@ const AppContent: React.FC = () => {
                         also weiterhin gegen /:pfad. Auf der Betreiberdomain
                         gibt es keine Vereinsseiten. */}
                     {!istPlattformDomain && (
-                      <Route path="/:pfad" element={<EigeneSeite />} />
+                      <Route path="/:pfad" element={
+                        ((z) => z === 'LAEDT' ? <PageLoader />
+                              : z === 'ZEIGEN' ? <EigeneSeite />
+                              : <Navigate to="/" replace />)
+                        (seitenZustand(websiteModule, 'WEBSITE', istPlattformDomain))} />
                     )}
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>

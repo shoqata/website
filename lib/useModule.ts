@@ -13,6 +13,7 @@ import { supabase } from '@/services/supabase-bridge';
 // Oberflaeche bekommt so keine eigene Vorstellung davon, was laeuft.
 export function useModule() {
   const [aktive, setAktive] = useState<Set<string> | null>(null);
+  const [liste, setListe] = useState<{ schluessel: string; name: string; beschreibung: string; ist_kern: boolean }[]>([]);
 
   useEffect(() => {
     let lebt = true;
@@ -22,6 +23,7 @@ export function useModule() {
         if (!lebt) return;
         if (error) throw error;
         setAktive(new Set((data ?? []).filter((z: any) => z.aktiv).map((z: any) => z.schluessel)));
+        setListe((data ?? []) as any[]);
       } catch {
         // Wer den Marktplatz nicht abfragen darf -- etwa ein gewoehnliches
         // Mitglied -- bekommt hier nichts. Dann wird nichts ausgeblendet:
@@ -38,5 +40,9 @@ export function useModule() {
     // flackerten beim Laden die halben Menuepunkte weg.
     aktiv: (schluessel: string) => aktive === null || aktive.has(schluessel),
     geladen: aktive !== null,
+    // Sicher NICHT gebucht -- erst wenn die Antwort da ist. Dafuer graut die
+    // Verwaltung einen Eintrag aus, statt ihn zu verstecken.
+    gesperrt: (schluessel: string) => aktive !== null && !aktive.has(schluessel),
+    modul: (schluessel: string) => liste.find(z => z.schluessel === schluessel) ?? null,
   };
 }

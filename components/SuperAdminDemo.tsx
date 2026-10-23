@@ -26,12 +26,28 @@ const zeit = (s: string | null) =>
 const SuperAdminDemo: React.FC = () => {
   const { showAlert, showConfirm } = useFeedback();
   const [stand, setStand] = useState<Stand | null>(null);
-  const [laeuft, setLaeuft] = useState<'RESET' | 'SPEICHERN' | null>(null);
+  const [laeuft, setLaeuft] = useState<'RESET' | 'SPEICHERN' | 'PAKET' | null>(null);
+  const [paket, setPaket] = useState<'LIGHT' | 'VOLL' | null>(null);
 
   const laden = useCallback(async () => {
-    const { data, error } = await supabase.rpc('demo_stand_lesen');
+    const [{ data, error }, p] = await Promise.all([
+      supabase.rpc('demo_stand_lesen'), supabase.rpc('demo_paket_lesen')]);
     if (!error) setStand((data as Stand[] | null)?.[0] ?? null);
+    if (!p.error) setPaket(p.data as 'LIGHT' | 'VOLL');
   }, []);
+
+  // Light: nur die Kernmodule (Mitglieder & Nachbarschaften, Rechnungen,
+  // Vorstand). Alles andere erscheint in der Verwaltung ausgegraut.
+  // Gesperrt wird ueber die Modulschalter des Demovereins -- dieselben, die
+  // auch die Zeilenregeln lesen. Andere Vereine beruehrt der Schalter nicht.
+  const paketSetzen = async (p: 'LIGHT' | 'VOLL') => {
+    if (p === paket) return;
+    setLaeuft('PAKET');
+    const { error } = await supabase.rpc('demo_paket_setzen', { p_paket: p });
+    setLaeuft(null);
+    if (error) { await showAlert({ title: 'Nicht umgestellt', message: error.message, type: 'error' }); return; }
+    setPaket(p);
+  };
 
   useEffect(() => { laden(); }, [laden]);
 
@@ -94,13 +110,25 @@ const SuperAdminDemo: React.FC = () => {
           {stand?.vorlage_zeilen ? ` (${stand.vorlage_zeilen} Datensätze)` : ''}
           {' · '}zuletzt zurückgesetzt {zeit(stand?.zurueckgesetzt_am ?? null)}
         </p>
+        <p className="text-xs text-stone-500 mt-1 leading-relaxed">
+          Paket {paket === 'LIGHT' ? 'Light: Mitglieder & Nachbarschaften, Rechnungen, Vorstand. Alles andere ist ausgegraut, auch die öffentliche Website.'
+                 : paket === 'VOLL' ? 'Voll: alle Funktionen.' : '…'} Das Zurücksetzen behält das gewählte Paket.
+        </p>
         {stand && !stand.passwort_gesetzt && (
           <p className="text-xs text-amber-400 mt-1">
             Kein gemeinsames Passwort hinterlegt: Die Zugänge behalten beim Zurücksetzen ihr Passwort.
           </p>
         )}
       </div>
-      <div className="flex gap-2 shrink-0">
+      <div className="flex gap-2 shrink-0 flex-wrap items-center">
+        <div className="flex bg-white/10 p-1 rounded-xl" title="Paket des Demovereins">
+          {(['LIGHT', 'VOLL'] as const).map(p => (
+            <button key={p} onClick={() => paketSetzen(p)} disabled={!!laeuft || paket === null}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold disabled:opacity-50 ${paket === p ? 'bg-white text-stone-900' : 'text-stone-300 hover:text-white'}`}>
+              {p === 'LIGHT' ? 'Light' : 'Voll'}
+            </button>
+          ))}
+        </div>
         <button onClick={vorlageSpeichern} disabled={!!laeuft}
                 className="bg-white/10 hover:bg-white/20 px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 disabled:opacity-50">
           <Save size={14} /> {laeuft === 'SPEICHERN' ? 'Speichert …' : 'Stand als Vorlage'}

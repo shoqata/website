@@ -1181,6 +1181,7 @@ const translations: Translations = {
 
   // --- POSTAUSGANG DES VORSTANDS ---
   'vpost.knopf': { en: 'Write', de: 'Schreiben', sq: 'Shkruaj' },
+  'ow.text': { en: 'Members area of the association. Please sign in.', de: 'Mitgliederbereich des Vereins. Bitte melden Sie sich an.', sq: 'Zona e anëtarëve të shoqatës. Ju lutemi identifikohuni.' },
   'vpost.extern': { en: 'External recipients (not members)', de: 'Externe Empfänger (keine Mitglieder)', sq: 'Marrës të jashtëm (jo anëtarë)' },
   'vpost.extern_ph': { en: 'e.g. office@municipality.ch, anna@example.com', de: 'z. B. kanzlei@gemeinde.ch, anna@beispiel.ch', sq: 'p.sh. zyra@komuna.ch, ana@shembull.ch' },
   'vpost.cc': { en: 'Copy (CC)', de: 'Kopie (CC)', sq: 'Kopje (CC)' },

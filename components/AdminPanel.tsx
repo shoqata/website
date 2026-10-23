@@ -4,6 +4,7 @@ import AdminSpenden from './AdminSpenden';
 import AdminVideos from './AdminVideos';
 import AdminProzesse from './AdminProzesse';
 import { useModule } from '../lib/useModule';
+import PaketSperre, { VollMarke } from './PaketSperre';
 import { useTenant } from '../context/TenantContext';
 import Marktplatz from './Marktplatz';
 import AdminStammbaum from './AdminStammbaum';
@@ -73,7 +74,7 @@ const AdminPanel: React.FC = () => {
   const { showConfirm, showAlert, showPrompt } = useFeedback();
   
   const [activeTab, setActiveTab] = useState<AdminTabId>('ANALYTICS');
-  const { aktiv: modulAktiv } = useModule();
+  const { aktiv: modulAktiv, gesperrt: modulGesperrt } = useModule();
   const { tenant } = useTenant();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   // Am Rechner einklappbar. Vorher waren die 288 px fest -- auf einem
@@ -177,7 +178,13 @@ const AdminPanel: React.FC = () => {
     SOCIAL_AI: 'SOCIAL',
     SPENDEN: 'SPENDEN',
     VIDEOS: 'VIDEOS',
+    WEBSITE: 'WEBSITE',
+    SEO: 'WEBSITE',
+    BRIEFVERSAND: 'POSTVERSAND',
   };
+  // Der offene Reiter gehoert zu einem nicht gebuchten Modul?
+  const reiterGesperrt = modulVonReiter[activeTab] && modulGesperrt(modulVonReiter[activeTab]!)
+    ? modulVonReiter[activeTab]! : null;
 
   const navGroups: NavGroup[] = [
       {
@@ -432,15 +439,16 @@ const AdminPanel: React.FC = () => {
                   <div key={idx}>
                       {!leisteSchmal && <h3 className="px-4 text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-2">{group.title}</h3>}
                       <div className="space-y-1">
+                          {/* Nicht gebuchte Module stehen ausgegraut da, statt zu
+                              fehlen -- im Paket Light sieht man so, was Voll bringt. */}
                           {group.items
-                            .filter(item => {
+                            .map(item => {
                               const m = modulVonReiter[item.id];
-                              return !m || modulAktiv(m);
-                            })
-                            .map(item => (
+                              const zu = !!m && modulGesperrt(m);
+                              return (
                               <button key={item.id} onClick={() => { setActiveTab(item.id); setSelectedNeighborhoodId(null); setIsSidebarOpen(false); }}
                                 title={leisteSchmal ? String(item.label) : undefined}
-                                className={`w-full flex items-center rounded-xl text-sm font-bold transition-all ${leisteSchmal ? 'justify-center px-0 py-3' : 'gap-3 px-4 py-3'} ${activeTab === item.id ? 'bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)] text-primary border-r-4 border-primary shadow-sm' : 'text-stone-500 hover:bg-stone-50 hover:text-stone-900'}`}>
+                                className={`w-full flex items-center rounded-xl text-sm font-bold transition-all ${leisteSchmal ? 'justify-center px-0 py-3' : 'gap-3 px-4 py-3'} ${zu ? 'opacity-45' : ''} ${activeTab === item.id ? 'bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)] text-primary border-r-4 border-primary shadow-sm' : 'text-stone-500 hover:bg-stone-50 hover:text-stone-900'}`}>
                                   <span className="relative flex items-center">
                                     {item.icon}
                                     {/* Bei schmaler Leiste bleibt die Zahl sichtbar -- sie ist
@@ -450,9 +458,11 @@ const AdminPanel: React.FC = () => {
                                     )}
                                   </span>
                                   {!leisteSchmal && <span className="flex-1 text-left">{item.label}</span>}
-                                  {!leisteSchmal && item.badge !== undefined && <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${item.id === 'DATA_QUALITY' ? 'bg-amber-500 text-white' : 'bg-red-500 text-white'}`}>{item.badge}</span>}
+                                  {!leisteSchmal && item.badge !== undefined && !zu && <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${item.id === 'DATA_QUALITY' ? 'bg-amber-500 text-white' : 'bg-red-500 text-white'}`}>{item.badge}</span>}
+                                  {!leisteSchmal && zu && <VollMarke />}
                               </button>
-                          ))}
+                              );
+                          })}
                       </div>
                   </div>
               ))}
@@ -487,7 +497,11 @@ const AdminPanel: React.FC = () => {
 
           <div className="p-6 md:p-10 flex-1">
               <AnimatePresence mode="wait">
-                  {activeTab === 'NEIGHBORHOODS' && selectedNeighborhoodId ? (
+                  {reiterGesperrt ? (
+                      <motion.div key={`gesperrt-${activeTab}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                        <PaketSperre modul={reiterGesperrt} />
+                      </motion.div>
+                  ) : activeTab === 'NEIGHBORHOODS' && selectedNeighborhoodId ? (
                       <AdminNeighborhoodDetail 
                         neighborhoodId={selectedNeighborhoodId} 
                         neighborhoods={neighborhoods} 
@@ -601,6 +615,10 @@ const AdminPanel: React.FC = () => {
                             </div>
                         )}
                         {activeTab === 'EXPENSES' && <><AdminHandkassen /><AdminExpenses /></>}
+                        {/* Ohne Buchhaltung (Paket Light) fehlt der Ausgaben-Reiter --
+                            die Handkassen der Vertreter gehoeren aber zu den
+                            Nachbarschaften und muessen pruefbar bleiben. */}
+                        {activeTab === 'FINANCE' && modulGesperrt('BUCHHALTUNG') && <AdminHandkassen />}
                         {activeTab === 'ACCOUNTING' && <AdminAccounting selectedYear={selectedYear} />}
                         {activeTab === 'STATISTICS' && <AdminStatistics users={users} payments={payments} neighborhoods={neighborhoods} selectedYear={selectedYear} />}
                         {activeTab === 'WEBSITE' && <AdminWebsite />}
