@@ -31,6 +31,9 @@ const BetreuungHinweis: React.FC<{ user: any }> = ({ user }) => {
   const [verein, setVerein] = useState<string | null>(null);
   const [betreuung, setBetreuung] = useState<any | null>(null);
   const [arbeitet, setArbeitet] = useState(false);
+  // Ob die Liste der Betreuungen schon da ist -- "keine" und "noch nicht
+  // geladen" sind sonst nicht zu unterscheiden.
+  const [geladen, setGeladen] = useState(false);
 
   useEffect(() => {
     resolveTenantId().then((id) => setVerein(id ?? null)).catch(() => setVerein(null));
@@ -53,21 +56,15 @@ const BetreuungHinweis: React.FC<{ user: any }> = ({ user }) => {
           && new Date(r.startedAt).getTime() > grenze)
         .sort((a: any, b: any) => String(b.startedAt).localeCompare(String(a.startedAt)));
       setBetreuung(offen[0] || null);
+      setGeladen(true);
     }, () => { /* ohne Leserecht kein Hinweis -- dann gilt der Normalfall */ });
     return () => ab();
   }, [user, user?.email, wer?.ist_betreiber]);
 
-  // Nur fuer den Betreiber, nur auf der Domain eines Vereins, und nur wenn
-  // er selbst zu keinem Verein gehoert. Ein Vereinsadministrator sieht das
-  // hier nie.
-  if (!user || istPlattform !== false || !wer?.ist_betreiber || wer.verein) return null;
-  if (!verein) return null;
-
-  const betreutDiesen = betreuung?.tenantId === verein;
-
   const starten = async () => {
     setArbeitet(true);
     try {
+      if (!verein) return;
       await startTenantSupport(verein, 'Zugriff über die Vereinsdomain');
       // Neu laden, weil die halbe Anwendung ihre Daten beim Aufbau holt und
       // sonst leer bliebe, bis jemand von Hand neu laedt.
@@ -77,6 +74,30 @@ const BetreuungHinweis: React.FC<{ user: any }> = ({ user }) => {
       setArbeitet(false);
     }
   };
+
+  // Im Demoverein startet die Betreuung von selbst: dort stehen nur
+  // erfundene Daten, und vor Publikum soll /admin nicht erst leer sein.
+  // Protokolliert wird sie wie jede andere. Einmal je Browsersitzung --
+  // wer sie beendet, bekommt sie nicht ungefragt zurueck, und ein
+  // Fehlschlag fuehrt nicht in eine Schleife.
+  useEffect(() => {
+    if (!user || istPlattform !== false || !wer?.ist_betreiber || wer.verein) return;
+    if (verein !== 'demo' || !geladen || betreuung?.tenantId === 'demo' || arbeitet) return;
+    try {
+      if (sessionStorage.getItem('demo-betreuung-auto')) return;
+      sessionStorage.setItem('demo-betreuung-auto', '1');
+    } catch { return; }
+    starten();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, istPlattform, wer?.ist_betreiber, wer?.verein, verein, geladen, betreuung?.tenantId]);
+
+  // Nur fuer den Betreiber, nur auf der Domain eines Vereins, und nur wenn
+  // er selbst zu keinem Verein gehoert. Ein Vereinsadministrator sieht das
+  // hier nie.
+  if (!user || istPlattform !== false || !wer?.ist_betreiber || wer.verein) return null;
+  if (!verein) return null;
+
+  const betreutDiesen = betreuung?.tenantId === verein;
 
   const beenden = async () => {
     setArbeitet(true);
