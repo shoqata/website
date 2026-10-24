@@ -1,5 +1,7 @@
 
 import { useJahresauswahl } from '../lib/useVereinsjahre';
+import NachrichtenVerwaltung from './NachrichtenVerwaltung';
+import { useModule } from '../lib/useModule';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from '../context/LanguageContext';
 import { UserProfile, Payment, Neighborhood, BoardMeeting } from '../types';
@@ -50,6 +52,7 @@ interface BoardDashboardProps {
 }
 
 const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
+  const { aktiv: modulAktiv } = useModule();
   const { t } = useTranslation();
   const { showAlert, showConfirm } = useFeedback();
   
@@ -717,6 +720,11 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
             </div>
 
         </div>
+
+        {/* Neuigkeiten. Der Vorstand durfte sie laut Datenbank schon immer
+            schreiben, hatte aber keine Maske: die liegt unter /admin, und
+            von dort leitet die App den Vorstand hierher. */}
+        {modulAktiv('NEUIGKEITEN') && <NachrichtenVerwaltung karte />}
 
         {/* MODALS */}
 

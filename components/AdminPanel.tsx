@@ -47,8 +47,7 @@ import AdminHandkassen from './AdminHandkassen';
 
 import { neighborhoodPlace } from '../lib/neighborhood';
 import { onImageError } from '../lib/imageFallback';
-import { inhaltAlsText } from '../lib/news';
-import { bildHochladen } from '../lib/bildHochladen';
+import NachrichtenVerwaltung from './NachrichtenVerwaltung';
 import AdminNeighborhoodEditor from './AdminNeighborhoodEditor';
 import CountrySelect from './ui/CountrySelect';
 import AdminPasswordReset from './AdminPasswordReset';
@@ -132,9 +131,6 @@ const AdminPanel: React.FC = () => {
   // Content Modals & Drawers
   const [showEventModal, setShowEventModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Partial<SolidarityEvent> | null>(null);
-  const [showNewsModal, setShowNewsModal] = useState(false);
-  const [editingNews, setEditingNews] = useState<Partial<NewsArticle> | null>(null);
-  const [newsBildLaedt, setNewsBildLaedt] = useState(false);
   
   const [managingEventRegistrations, setManagingEventRegistrations] = useState<SolidarityEvent | null>(null);
 
@@ -352,28 +348,6 @@ const AdminPanel: React.FC = () => {
         }
         setShowEventModal(false);
         showAlert({ type: 'success', message: t('admin.events.saved') });
-    } catch (e: any) {
-        console.error('[AdminPanel] Speichern fehlgeschlagen:', e);
-        showAlert({ type: 'error', message: `Dështoi ruajtja: ${e?.message || e?.code || ''}` });
-    }
-  };
-
-  const handleSaveNews = async () => {
-    if (!editingNews?.title) return;
-    try {
-        const data = {
-            ...editingNews,
-            content: inhaltAlsText(editingNews.content),
-            publishAt: editingNews.publishAt ? (typeof editingNews.publishAt === 'string' ? Timestamp.fromDate(new Date(editingNews.publishAt)) : editingNews.publishAt) : null
-        };
-
-        if (editingNews.id) {
-            await updateDoc(doc(db, 'news', editingNews.id), data as any);
-        } else {
-            await addDoc(collection(db, 'news'), { ...data, timestamp: serverTimestamp() });
-        }
-        setShowNewsModal(false);
-        showAlert({ type: 'success', message: t('admin.news.saved') });
     } catch (e: any) {
         console.error('[AdminPanel] Speichern fehlgeschlagen:', e);
         showAlert({ type: 'error', message: `Dështoi ruajtja: ${e?.message || e?.code || ''}` });
@@ -749,56 +723,8 @@ const AdminPanel: React.FC = () => {
                             </div>
                         )}
 
-                        {activeTab === 'NEWS' && (
-                            <div className="space-y-6">
-                                <div className="flex justify-between items-center bg-white p-6 rounded-3xl border border-stone-100 shadow-sm">
-                                    <h3 className="font-bold text-stone-900 text-xl flex items-center gap-2"><Newspaper size={20} className="text-blue-600"/> {t('admin.news.title')}</h3>
-                                    <button onClick={() => { setEditingNews({ title: '', category: 'DIASPORA', subcategory: 'Updates', location: '', content: '' as any, image: '', status: 'DRAFT' }); setShowNewsModal(true); }} className="bg-stone-900 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-black transition-all shadow-lg"><Plus size={16}/> {t('admin.news.add')}</button>
-                                </div>
-                                <div className="bg-white rounded-[2.5rem] border border-stone-100 shadow-sm overflow-hidden">
-                                    <table className="w-full text-left">
-                                        <thead className="bg-stone-50 text-[10px] font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100">
-                                            <tr><th className="px-6 py-4">{t('admin.tab.news')}</th><th className="px-6 py-4">{t('field.status')}</th><th className="px-6 py-4">{t('field.category')}</th><th className="px-6 py-4">{t('admin.news.date_scheduled')}</th><th className="px-6 py-4 text-right">{t('common.actions')}</th></tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-stone-50">
-                                            {news.map(item => (
-                                                <tr key={item.id} className={`hover:bg-stone-50/50 transition-colors group ${item.status === 'ARCHIVED' ? 'opacity-50' : ''}`}>
-                                                    <td className="px-6 py-4">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-12 h-12 rounded-xl bg-stone-100 overflow-hidden shrink-0 border border-stone-200">
-                                                                {item.image ? <img src={item.image} className="w-full h-full object-cover"  onError={onImageError}/> : <LucideImage className="m-auto text-stone-300" size={20}/>}
-                                                            </div>
-                                                            <div><p className="font-bold text-stone-900 line-clamp-1">{item.title}</p><p className="text-[10px] text-stone-400 uppercase">{item.location}</p></div>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <span className={`text-[9px] font-bold px-2 py-1 rounded uppercase tracking-widest ${item.status === 'PUBLISHED' ? 'bg-emerald-100 text-emerald-700' : item.status === 'DRAFT' ? 'bg-amber-100 text-amber-700' : 'bg-stone-100 text-stone-500'}`}>
-                                                            {item.status}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4"><span className="text-xs font-bold text-stone-500 bg-stone-100 px-2 py-1 rounded uppercase">{item.category}</span></td>
-                                                    <td className="px-6 py-4">
-                                                        <div className="flex flex-col">
-                                                            <p className="text-xs text-stone-900 font-medium">{item.timestamp?.toDate().toLocaleDateString()}</p>
-                                                            {item.publishAt && (
-                                                                <p className="text-[10px] text-primary font-bold flex items-center gap-1"><Clock size={10}/> {item.publishAt.toDate().toLocaleString()}</p>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        <div className="flex justify-end gap-2">
-                                                            <button onClick={() => { setEditingNews(item); setShowNewsModal(true); }} className="p-2 text-stone-400 hover:text-stone-900 bg-white border border-stone-200 rounded-lg shadow-sm"><FileEdit size={14}/></button>
-                                                            <button onClick={() => handleDeleteContent('news', item.id)} className="p-2 text-stone-400 hover:text-red-500 bg-white border border-stone-200 rounded-lg shadow-sm"><Trash2 size={14}/></button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                            {news.length === 0 && <tr><td colSpan={5} className="py-10 text-center text-stone-400 italic">{t('admin.news.none')}</td></tr>}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        )}
+                        {/* Eigene Komponente: dieselbe Maske hat jetzt auch der Vorstand auf seinem Dashboard. */}
+                        {activeTab === 'NEWS' && <NachrichtenVerwaltung />}
                       </motion.div>
                   )}
               </AnimatePresence>
@@ -965,74 +891,6 @@ const AdminPanel: React.FC = () => {
                   </motion.div>
               </div>
           )}
-      </AnimatePresence>
-
-      {/* MODAL: NEWS EDITOR */}
-      <AnimatePresence>
-        {showNewsModal && editingNews && (
-            <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-stone-900/60 backdrop-blur-sm">
-                <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white w-full max-w-xl rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh]">
-                    <div className="p-6 border-b border-stone-100 flex justify-between items-center bg-stone-50">
-                        <h3 className="font-bold text-xl text-stone-900 flex items-center gap-2"><Newspaper className="text-blue-600"/> {t('admin.news.details')}</h3>
-                        <button onClick={() => setShowNewsModal(false)} className="p-2 hover:bg-stone-200 rounded-full text-stone-500 transition-colors"><X size={20}/></button>
-                    </div>
-                    <div className="p-8 space-y-4 overflow-y-auto custom-scrollbar">
-                        <div className="grid grid-cols-2 gap-4 mb-2">
-                            <div>
-                                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('field.status')}</label>
-                                <select 
-                                    value={editingNews.status} 
-                                    onChange={e => setEditingNews({...editingNews, status: e.target.value as ContentStatus})} 
-                                    className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none text-xs font-bold"
-                                >
-                                    <option value="DRAFT">{t('admin.publish.draft')}</option>
-                                    <option value="PUBLISHED">{t('admin.publish.published')}</option>
-                                    <option value="ARCHIVED">{t('admin.publish.archived')}</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('admin.news.schedule')}</label>
-                                <input 
-                                    type="datetime-local"
-                                    value={editingNews.publishAt ? (typeof editingNews.publishAt === 'string' ? editingNews.publishAt : editingNews.publishAt.toDate().toISOString().slice(0, 16)) : ''}
-                                    onChange={e => setEditingNews({...editingNews, publishAt: e.target.value})}
-                                    className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none text-xs font-bold"
-                                />
-                            </div>
-                        </div>
-
-                        <div><label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('field.title')}</label><input value={editingNews.title} onChange={e => setEditingNews({...editingNews, title: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none font-bold" /></div>
-                        {/* Der ganze Text. Hier stand content?.[0] -- bei einem Text ist das
-                            der erste BUCHSTABE; wer eine Nachricht bearbeitete und
-                            speicherte, haette sie auf ein Zeichen gekuerzt. */}
-                        <div><label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('admin.news.text')}</label><textarea value={inhaltAlsText(editingNews.content)} onChange={e => setEditingNews({...editingNews, content: e.target.value as any})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none h-64 text-sm leading-relaxed" /><p className="text-[10px] text-stone-400 mt-1">{t('admin.news.text_hinweis')}</p></div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div><label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('admin.news.location')}</label><input value={editingNews.location} onChange={e => setEditingNews({...editingNews, location: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none" /></div>
-                            <div><label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('field.category')}</label><select value={editingNews.category} onChange={e => setEditingNews({...editingNews, category: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none text-xs font-bold"><option value="DIASPORA">{t('cat.diaspora')}</option><option value="LOCAL">{t('cat.local')}</option><option value="PROJECT">{t('cat.project')}</option></select></div>
-                        </div>
-                        <div>
-                            <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('field.image_url')}</label>
-                            <div className="flex gap-2">
-                                <input value={editingNews.image || ''} onChange={e => setEditingNews({...editingNews, image: e.target.value})} placeholder="https://..." className="flex-1 p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none text-xs font-mono" />
-                                <label className={`shrink-0 px-4 bg-stone-100 hover:bg-stone-200 rounded-xl text-xs font-bold text-stone-600 flex items-center gap-1.5 cursor-pointer ${newsBildLaedt ? 'opacity-50 pointer-events-none' : ''}`}>
-                                    {newsBildLaedt ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />} {t('web.upload')}
-                                    <input type="file" accept="image/*" hidden onChange={async e => {
-                                        const d = e.target.files?.[0]; e.target.value = '';
-                                        if (!d) return;
-                                        setNewsBildLaedt(true);
-                                        try { const url = await bildHochladen(d, 'news'); setEditingNews(n => n ? { ...n, image: url } : n); }
-                                        catch (err: any) { showAlert({ type: 'error', message: err?.message || t('web.upload_failed') }); }
-                                        finally { setNewsBildLaedt(false); }
-                                    }} />
-                                </label>
-                            </div>
-                            {editingNews.image && <img src={editingNews.image} alt="" className="mt-3 w-full h-40 object-cover rounded-xl border border-stone-100" onError={onImageError} />}
-                        </div>
-                    </div>
-                    <div className="p-6 border-t border-stone-100 bg-stone-50 flex gap-3"><button onClick={() => setShowNewsModal(false)} className="flex-1 py-3 bg-stone-200 text-stone-600 rounded-xl font-bold">{t('common.cancel')}</button><button onClick={handleSaveNews} className="flex-[2] py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg">{t('admin.news.save')}</button></div>
-                </motion.div>
-            </div>
-        )}
       </AnimatePresence>
 
       {/* DETAILED USER DRAWER */}

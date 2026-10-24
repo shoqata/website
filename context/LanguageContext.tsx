@@ -1715,6 +1715,8 @@ const translations: Translations = {
   'navb.beitraege': { en: "Who has paid this year", de: "Wer dieses Jahr bezahlt hat", sq: "Kush ka paguar këtë vit" },
   'navb.kontakt': { en: "Write to us", de: "Schreiben Sie uns", sq: "Na shkruani" },
   'navv.mega_hinweis': { en: "The mega menu opens the sub-menus below as panels with descriptions. Without own sub-menus, “Association”, “News” and “Get involved” apply.", de: "Das Megamenü öffnet die Untermenüs unten als Feld mit Beschreibungen. Ohne eigene Untermenüs gelten „Verein“, „Aktuell“ und „Mitmachen“.", sq: "Megamenuja i hap nënmenutë më poshtë si panel me përshkrime. Pa nënmenu të veta vlejnë „Shoqata“, „Aktuale“ dhe „Merr pjesë“." },
+  'news.titel_fehlt': { en: "The news item needs a title.", de: "Die Nachricht braucht einen Titel.", sq: "Lajmi ka nevojë për një titull." },
+  'news.ansehen': { en: "View on the website", de: "Auf der Website ansehen", sq: "Shiko në faqe" },
   'about.badge': { en: 'Global network', de: 'Globales Netzwerk', sq: 'Rrjet global' },
   'about.title': { en: 'About us', de: 'Über uns', sq: 'Rreth Nesh' },
   'about.intro': { en: 'The association is a bridge between the home village and the diaspora. We are committed to developing our community through concrete projects and solidarity.', de: 'Der Verein ist die Brücke zwischen der Heimat und der Diaspora. Wir setzen uns mit konkreten Projekten und Solidarität für die Entwicklung unserer Gemeinschaft ein.', sq: 'Shoqata është urë lidhëse mes vendlindjes dhe diasporës. Ne jemi të përkushtuar për zhvillimin e komunitetit tonë përmes projekteve konkrete dhe solidaritetit.' },
