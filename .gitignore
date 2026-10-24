@@ -37,3 +37,6 @@ supabase/.temp
 # liegt weiter im Ordner, wird aber nicht mehr mitverfolgt: jeder Klon des
 # Projekts hat sie sonst herunterzuladen.
 migrated_prompt_history/
+
+# Mitgliederlisten mit Personendaten, nur lokal
+*.local.csv
