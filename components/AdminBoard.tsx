@@ -9,6 +9,9 @@ import { BoardMeeting, UserProfile, BoardMember, ProtocolAttendee, ProtocolAgend
 import { useFeedback } from '../context/FeedbackContext';
 import { useTranslation } from '../context/LanguageContext';
 import MemberPicker from './ui/MemberPicker';
+import ProtokollGaeste from './ProtokollGaeste';
+import ProtokollTeilen from './ProtokollTeilen';
+import { gaesteLaden, gaesteSpeichern, mitGaesten, gueltigeGaeste, gastMailFalsch, gastName, type Gast } from '../lib/protokollGaeste';
 
 import { onImageError } from '../lib/imageFallback';
 interface AdminBoardProps {
@@ -90,6 +93,14 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
 
     // Preview / Export State
     const [showPreview, setShowPreview] = useState(false);
+    // Gaeste der offenen Sitzung (lib/protokollGaeste): Name im Protokoll,
+    // E-Mail nur in der Vorstandstabelle.
+    const [gaeste, setGaeste] = useState<Gast[]>([]);
+    const offeneSitzung = selectedMeeting?.id;
+    useEffect(() => {
+        setGaeste([]);
+        if (offeneSitzung) gaesteLaden(offeneSitzung).then(setGaeste);
+    }, [offeneSitzung]);
 
     useEffect(() => {
         const qMeetings = query(collection(db, 'board_meetings'), orderBy('date', 'desc'));
@@ -142,8 +153,18 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
 
     const saveProtocol = async () => {
         if (!selectedMeeting) return;
-        await updateDoc(doc(db, 'board_meetings', selectedMeeting.id), selectedMeeting as any);
-        showAlert({ type: 'success', message: t('minutes.saved') });
+        const g = gueltigeGaeste(gaeste);
+        const falsch = g.find(gastMailFalsch);
+        if (falsch) { showAlert({ type: 'error', message: t('minutes.guest_bad_mail', { name: gastName(falsch) }) }); return; }
+        try {
+            const neu = { ...selectedMeeting, attendees: mitGaesten(selectedMeeting.attendees, g) };
+            await updateDoc(doc(db, 'board_meetings', selectedMeeting.id), neu as any);
+            await gaesteSpeichern(selectedMeeting.id, g);
+            setSelectedMeeting(neu as BoardMeeting);
+            showAlert({ type: 'success', message: t('minutes.saved') });
+        } catch (e: any) {
+            showAlert({ type: 'error', message: t('admin.save_failed', { reason: e?.message || '?' }) });
+        }
     };
 
     const deleteMeeting = async (id: string) => {
@@ -512,8 +533,21 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                                     className="bg-transparent outline-none text-sm font-medium text-stone-600"
                                                 />
                                             </div>
+                                            <select value={(selectedMeeting as any).protokollfuehrer?.userId || ''}
+                                                onChange={e => {
+                                                    const u = users.find(x => x.id === e.target.value);
+                                                    setSelectedMeeting({ ...selectedMeeting, protokollfuehrer: u ? { userId: u.id, name: u.displayName || '' } : null } as any);
+                                                }}
+                                                className="bg-white px-3 py-1.5 rounded-lg border border-stone-200 text-sm text-stone-600 outline-none">
+                                                <option value="">{t('minutes.minute_taker')}: {t('minutes.minute_taker_none')}</option>
+                                                {users.filter(u => ['BOARD', 'ADMIN', 'SUPER_ADMIN'].includes(u.role || '') || boardMembers.some(b => b.userId === u.id))
+                                                    .map(u => <option key={u.id} value={u.id}>{t('minutes.minute_taker')}: {u.displayName}</option>)}
+                                            </select>
                                         </div>
-                                        <div className="flex gap-2">
+                                        <div className="flex gap-2 flex-wrap justify-end items-start">
+                                            {/* Teilen nimmt den gespeicherten Stand mit den aktuellen Gaesten. */}
+                                            <ProtokollTeilen meeting={{ ...selectedMeeting, attendees: mitGaesten(selectedMeeting.attendees, gaeste) }}
+                                                boardUsers={users.filter(u => ['BOARD', 'ADMIN', 'SUPER_ADMIN'].includes(u.role || ''))} />
                                             <button onClick={() => setShowPreview(true)} className="bg-white border border-stone-200 text-stone-600 px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-stone-50 transition-all">
                                                 <Eye size={18} /> {t('minutes.preview_pdf')}
                                             </button>
@@ -556,7 +590,7 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-stone-50">
-                                                    {selectedMeeting.attendees?.map((att, idx) => (
+                                                    {selectedMeeting.attendees?.map((att, idx) => (att as any).guest ? null : (
                                                         <tr key={`${att.userId}_${idx}`} className="hover:bg-stone-50 group">
                                                             <td className="px-4 py-3 font-bold text-stone-800">{att.name}</td>
                                                             <td className="px-4 py-3 text-stone-500">{att.role}</td>
@@ -577,6 +611,10 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                                     ))}
                                                 </tbody>
                                             </table>
+                                        </div>
+                                        {/* Gaeste, die an der Sitzung teilgenommen haben -- keine Mitglieder. */}
+                                        <div className="mt-5 pt-5 border-t border-stone-100">
+                                            <ProtokollGaeste value={gaeste} onChange={setGaeste} />
                                         </div>
                                     </div>
 
@@ -741,7 +779,7 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                     <div className="mb-8">
                                         <h3 className="text-sm font-bold uppercase tracking-widest border-b border-stone-200 pb-2 mb-4 text-stone-500">{t('board.attendees')}</h3>
                                         <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
-                                            {selectedMeeting.attendees.map((att, i) => (
+                                            {mitGaesten(selectedMeeting.attendees, gaeste).map((att: any, i: number) => (
                                                 <div key={i} className="flex justify-between border-b border-stone-100 py-1">
                                                     <span>{att.name} <span className="text-stone-400 text-xs">({att.role})</span></span>
                                                     <span className={att.present ? 'text-stone-900 font-bold' : 'text-stone-400 italic'}>{att.present ? t('minutes.present') : t('minutes.absent')}</span>

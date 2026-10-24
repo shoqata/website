@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   FileText, X, Save, Loader2, Plus, Trash2, History, ChevronDown, ChevronRight, Users,
-  Eye, EyeOff, Download, UserPlus, PenLine,
+  Eye, EyeOff, Download, PenLine,
 } from 'lucide-react';
 import { db } from '../services/datenzugriff';
-import { doc, updateDoc, setDoc, collection, getDocs, query, supabase } from '@/services/supabase-bridge';
+import { doc, updateDoc, setDoc, collection, getDocs, query } from '@/services/supabase-bridge';
 import { protokollPdf } from '../lib/protokollPdf';
+import { gaesteLaden, gaesteSpeichern, mitGaesten, gueltigeGaeste, gastMailFalsch, gastName, type Gast } from '../lib/protokollGaeste';
+import ProtokollGaeste from './ProtokollGaeste';
 import { useTranslation } from '../context/LanguageContext';
 import { useFeedback } from '../context/FeedbackContext';
 import { BoardMeeting, UserProfile } from '../types';
@@ -50,7 +52,7 @@ const BoardMinutesEditor: React.FC<Props> = ({ meeting, open, boardUsers, onClos
   const [pdfLaeuft, setPdfLaeuft] = useState(false);
   // Gaeste: Name im Protokoll, E-Mail nur in board_meeting_guests (die Tabelle
   // liest nur der Vorstand -- ein freigegebenes Protokoll lesen alle Mitglieder).
-  const [gaeste, setGaeste] = useState<{ vorname: string; nachname: string; email: string }[]>([]);
+  const [gaeste, setGaeste] = useState<Gast[]>([]);
 
   const istNeu = !meeting?.id;
 
@@ -62,8 +64,7 @@ const BoardMinutesEditor: React.FC<Props> = ({ meeting, open, boardUsers, onClos
     setVerlauf([]);
     setGaeste([]);
     if (meeting?.id) {
-      supabase.from('board_meeting_guests').select('vorname,nachname,email').eq('meetingId', meeting.id).order('erstellt_am')
-        .then(({ data }) => setGaeste(((data as any[]) || []).map(g => ({ vorname: g.vorname || '', nachname: g.nachname || '', email: g.email || '' }))));
+      gaesteLaden(meeting.id).then(setGaeste);
       (async () => {
         try {
           const snap = await getDocs(query(collection(db, 'board_meeting_versions')));
@@ -112,25 +113,13 @@ const BoardMinutesEditor: React.FC<Props> = ({ meeting, open, boardUsers, onClos
   const istAnwesend = (userId: string) =>
     !!(form.attendees || []).find((a: any) => a.userId === userId)?.present;
 
-  // Die Gaesteliste ersetzen -- sie ist kurz, und Ersetzen laesst keinen
-  // Gast zurueck, der in der Maske entfernt wurde.
-  const gaesteSpeichern = async (meetingId: string, liste: typeof gaeste) => {
-    const weg = await supabase.from('board_meeting_guests').delete().eq('meetingId', meetingId);
-    if (weg.error) throw weg.error;
-    if (!liste.length) return;
-    const neu = await supabase.from('board_meeting_guests').insert(liste.map(g => ({
-      meetingId, vorname: g.vorname.trim(), nachname: g.nachname.trim(), email: g.email.trim() || null,
-    })));
-    if (neu.error) throw neu.error;
-  };
-
   const speichern = async () => {
     if (!form.title?.trim()) { showAlert({ type: 'error', message: t('minutes.title_required') }); return; }
     if (!form.date) { showAlert({ type: 'error', message: t('minutes.date_required') }); return; }
 
-    const gaesteGueltig = gaeste.filter(g => g.vorname.trim() || g.nachname.trim());
-    const falsch = gaesteGueltig.find(g => g.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(g.email.trim()));
-    if (falsch) { showAlert({ type: 'error', message: t('minutes.guest_bad_mail', { name: `${falsch.vorname} ${falsch.nachname}`.trim() }) }); return; }
+    const gaesteGueltig = gueltigeGaeste(gaeste);
+    const falsch = gaesteGueltig.find(gastMailFalsch);
+    if (falsch) { showAlert({ type: 'error', message: t('minutes.guest_bad_mail', { name: gastName(falsch) }) }); return; }
 
     setSpeichert(true);
     try {
@@ -139,13 +128,8 @@ const BoardMinutesEditor: React.FC<Props> = ({ meeting, open, boardUsers, onClos
         date: form.date,
         location: form.location?.trim() || null,
         status: form.status || 'PLANNED',
-        // Gaeste stehen mit Namen unter den Anwesenden; die Liste wird aus
-        // dem Gaesteabschnitt neu gebildet, damit kein Gast doppelt steht.
-        attendees: [
-          ...(form.attendees || []).filter((a: any) => !a.guest),
-          ...gaesteGueltig.map(g => ({ userId: null, guest: true, role: 'Gast', present: true,
-                                      name: `${g.vorname.trim()} ${g.nachname.trim()}`.trim() })),
-        ],
+        // Gaeste stehen mit Namen unter den Anwesenden (lib/protokollGaeste).
+        attendees: mitGaesten(form.attendees, gaesteGueltig),
         protokollfuehrer: form.protokollfuehrer || null,
         agendaItems: form.agendaItems || [],
         decisions: form.decisions || [],
@@ -306,27 +290,7 @@ const BoardMinutesEditor: React.FC<Props> = ({ meeting, open, boardUsers, onClos
             </select>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className={marke + ' mb-0'}><UserPlus size={11} className="inline mr-1" /> {t('minutes.guests')}</label>
-              <button type="button" onClick={() => setGaeste(g => [...g, { vorname: '', nachname: '', email: '' }])}
-                className="text-xs font-bold text-primary flex items-center gap-1 hover:opacity-70"><Plus size={13} /> {t('minutes.add_guest')}</button>
-            </div>
-            {gaeste.length === 0 && <p className="text-xs text-stone-400 italic">{t('minutes.no_guests')}</p>}
-            {gaeste.map((g, i) => (
-              <div key={i} className="grid grid-cols-[1fr_1fr_1.4fr_auto] gap-2">
-                <input value={g.vorname} placeholder={t('field.firstName')} className={feld}
-                  onChange={e => setGaeste(l => l.map((x, j) => j === i ? { ...x, vorname: e.target.value } : x))} />
-                <input value={g.nachname} placeholder={t('field.lastName')} className={feld}
-                  onChange={e => setGaeste(l => l.map((x, j) => j === i ? { ...x, nachname: e.target.value } : x))} />
-                <input value={g.email} type="email" placeholder={t('field.email')} className={feld}
-                  onChange={e => setGaeste(l => l.map((x, j) => j === i ? { ...x, email: e.target.value } : x))} />
-                <button type="button" onClick={() => setGaeste(l => l.filter((_, j) => j !== i))}
-                  className="p-2 text-stone-400 hover:text-red-600"><Trash2 size={15} /></button>
-              </div>
-            ))}
-            {gaeste.length > 0 && <p className="text-[11px] text-stone-400">{t('minutes.guest_hint')}</p>}
-          </div>
+          <ProtokollGaeste value={gaeste} onChange={setGaeste} feld={feld} />
 
           {abschnitt('agendaItems', t('minutes.agenda'))}
           {abschnitt('decisions', t('minutes.decisions'))}
