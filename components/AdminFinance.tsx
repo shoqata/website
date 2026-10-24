@@ -59,6 +59,7 @@ import { textwerkLaden, sprachenFuer, textFuer, alsHtml, type Textwerk } from '.
 import { QRCodeSVG } from 'qrcode.react';
 import AdminRechnungsdesigner from './AdminRechnungsdesigner';
 import PostGuthabenDialog from './PostGuthabenDialog';
+import RechnungsAssistent from './RechnungsAssistent';
 import Rechnungsblatt from './Rechnungsblatt';
 import { layoutLesen, VORGABE, type Rechnungslayout } from '../lib/rechnungslayout';
 
@@ -299,7 +300,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
             
             let matchesFilter = true;
             if (filterStatus === 'TO_PRINT') {
-                matchesFilter = p.deliveryMethod === 'POST' && p.status !== 'PAID';
+                matchesFilter = perPost(p) && p.status !== 'PAID';
             } else if (filterStatus !== 'ALL') {
                 matchesFilter = p.status === filterStatus;
             }
@@ -393,7 +394,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
     }, [users, memberSearchTerm, multiSelectFilter, payments]);
 
     const pendingEmailPayments = useMemo(() => {
-        return filteredPayments.filter(p => p.deliveryMethod === 'EMAIL' && p.status !== 'PAID');
+        return filteredPayments.filter(p => perMail(p) && p.status !== 'PAID');
     }, [filteredPayments]);
 
     const handleBudgetChange = (code: string, value: string) => {
@@ -423,7 +424,16 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
     // Gibt zurueck, ob die Nachricht wirklich eingereiht wurde. Vorher gab
     // sie nichts zurueck, und der Sammelversand meldete deshalb Erfolg fuer
     // alles -- auch fuer das, was er gerade abgewiesen hatte.
-    const handleSendInvoiceEmail = async (payment: Payment): Promise<boolean> => {
+    // Zustellweg einer Rechnung. "BOTH" heisst beides -- E-Mail UND Brief.
+    // Vorher wurde nur auf 'POST' bzw. 'EMAIL' geprueft: eine Rechnung mit
+    // BOTH bekam weder den Mail- noch den Postknopf und stand in der Liste
+    // als "E-Mail".
+    const perPost = (p: Payment) => p.deliveryMethod === 'POST' || (p.deliveryMethod as string) === 'BOTH';
+    const perMail = (p: Payment) => p.deliveryMethod === 'EMAIL' || (p.deliveryMethod as string) === 'BOTH';
+
+    // melde: im Assistenten werden Fehler gesammelt statt einzeln gemeldet.
+    const handleSendInvoiceEmail = async (payment: Payment, melde?: (grund: string) => void): Promise<boolean> => {
+        const fehlerMelden = (m: string) => melde ? melde(m) : showAlert({ type: 'error', message: m });
         let email = '';
         let recipientName = '';
         let anschrift: { adresse?: string; plz?: string; ort?: string; land?: string } = {};
@@ -436,18 +446,19 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
             const u = users.find(user => user.id === payment.userId);
             email = u?.email || '';
             recipientName = u?.displayName || 'Member';
-            anschrift = { adresse: (u as any)?.address, plz: (u as any)?.zip,
+            // address vor street wie beim Brief -- vorher nur address: wer
+            // nur eine Strasse hatte, bekam eine Rechnung ohne Strasse.
+            anschrift = { adresse: (u as any)?.address || (u as any)?.street, plz: (u as any)?.zip,
                           ort: (u as any)?.city, land: (u as any)?.country };
         }
         if (!hasUsableEmail({ email } as any)) {
-            showAlert({ type: 'error', message: t('mail.no_address') });
+            fehlerMelden(t('mail.no_address'));
             return false;
         }
         const fehlt = zahlwegFehlt();
         if (fehlt) {
-            showAlert({ type: 'error', message:
-                `${fehlt}. Eine Rechnung ohne Zahlungsverbindung kann niemand bezahlen — `
-                + 'bitte zuerst unter Finanzen → Einstellungen eintragen.' });
+            fehlerMelden(`${fehlt}. Eine Rechnung ohne Zahlungsverbindung kann niemand bezahlen — `
+                + 'bitte zuerst unter Finanzen → Einstellungen eintragen.');
             return false;
         }
         try {
@@ -455,10 +466,10 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
             const { subject, html, anhaenge } = await rechnungsmailBauen({
                 payment, recipientName, anschrift, paymentSettings, association, t });
             await sendEmail({ to: email, subject, html, attachments: anhaenge });
-            showAlert({ type: 'success', message: t('mail.sent_to', { email }) });
+            if (!melde) showAlert({ type: 'success', message: t('mail.sent_to', { email }) });
             return true;
         } catch (error) {
-            showAlert({ type: 'error', message: t('mail.send_failed') });
+            fehlerMelden(t('mail.send_failed'));
             return false;
         }
     };
@@ -474,6 +485,21 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
     const [postLaeuft, setPostLaeuft] = useState<string>('');
     // Vor dem Aufgeben: Guthaben zeigen und gleich kaufen koennen.
     const [postDialog, setPostDialog] = useState<Payment[] | null>(null);
+    const [assistent, setAssistent] = useState(false);
+    // Der Assistent braucht die neuen Rechnungen so, wie die Datenbank sie
+    // gespeichert hat. Sie kommen ueber den laufenden Abgleich herein;
+    // gewartet wird, bis alle da sind (hoechstens 20 Sekunden).
+    const paymentsRef = React.useRef<Payment[]>([]);
+    React.useEffect(() => { paymentsRef.current = payments; }, [payments]);
+    const rechnungenHolen = async (ids: string[]): Promise<Payment[]> => {
+        const ende = Date.now() + 20000;
+        while (Date.now() < ende) {
+            const da = ids.map(id => paymentsRef.current.find(p => p.id === id));
+            if (da.every(Boolean)) return da as Payment[];
+            await new Promise(r => setTimeout(r, 400));
+        }
+        return ids.map(id => paymentsRef.current.find(p => p.id === id)).filter(Boolean) as Payment[];
+    };
 
     const postDatenBauen = (payment: Payment) => {
         let empfaengerName = '';
@@ -516,14 +542,14 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
         };
     };
 
-    const handlePostAufgeben = async (payment: Payment, still = false): Promise<boolean> => {
+    const handlePostAufgeben = async (payment: Payment, still = false, melde?: (grund: string) => void): Promise<boolean> => {
         const { empfaengerName, anschrift, daten } = postDatenBauen(payment);
         // Ohne Anschrift kein Brief. Pingen liest den Empfaenger aus dem
         // PDF; eine leere Adresse gaebe ein gedrucktes Blatt ohne
         // Zustellziel -- bezahlt und weggeworfen.
         if (!empfaengerName || !anschrift.adresse || !anschrift.ort) {
-            showAlert({ type: 'error', message:
-                t('post.keine_adresse', { name: empfaengerName || t('field.recipient') }) });
+            const m = t('post.keine_adresse', { name: empfaengerName || t('field.recipient') });
+            melde ? melde(m) : showAlert({ type: 'error', message: m });
             return false;
         }
         if (!still) setPostLaeuft(payment.id);
@@ -540,9 +566,8 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
         } catch (err: any) {
             // Fehler werden auch im Sammellauf gemeldet: eine Zahl am
             // Ende sagt nicht, WARUM zwölf Briefe liegengeblieben sind.
-            showAlert({ type: 'error', message:
-                (still ? `${empfaengerName}: ` : '')
-                + (err?.message || t('post.nicht_eingereiht')) });
+            const m = (still ? `${empfaengerName}: ` : '') + (err?.message || t('post.nicht_eingereiht'));
+            melde ? melde(err?.message || t('post.nicht_eingereiht')) : showAlert({ type: 'error', message: m });
             return false;
         } finally {
             if (!still) setPostLaeuft('');
@@ -550,7 +575,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
     };
 
     const handlePostAlleAufgeben = async (liste?: Payment[]) => {
-        const offen = liste ?? filteredPayments.filter(p => p.deliveryMethod === 'POST' && p.status !== 'PAID');
+        const offen = liste ?? filteredPayments.filter(p => perPost(p) && p.status !== 'PAID');
         if (!offen.length) return;
         setPostLaeuft('ALLE');
         let gut = 0, schlecht = 0;
@@ -620,6 +645,28 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
         return 'PAYPAL';
     };
 
+    // Der Jahresbeitrag eines Mitglieds -- fuer den Sammellauf und den
+    // Rechnungsassistenten, damit beide dieselbe Zahl rechnen.
+    //
+    // Der hinterlegte Eigenbeitrag wird mit ?? geprueft, nicht mit ||.
+    // Ein Betrag von 0 -- Ehrenmitglied, Beitragsbefreiung -- ist eine
+    // Aussage und kein fehlender Wert; mit || waere daraus still der
+    // volle Standardbeitrag geworden.
+    const beitragVon = (u: UserProfile): { amount: number; currency: string } => {
+        const standardFee = paymentSettings.fees?.STANDARD?.amount ?? 120;
+        const standardCurr = paymentSettings.fees?.STANDARD?.currency ?? 'CHF';
+        const groupFee = u.billingGroup === 'KOSOVO' ? paymentSettings.fees?.KOSOVO?.amount
+            : u.billingGroup === 'REDUCED' ? paymentSettings.fees?.REDUCED?.amount
+            : standardFee;
+        const groupCurr = u.billingGroup === 'KOSOVO' ? paymentSettings.fees?.KOSOVO?.currency
+            : u.billingGroup === 'REDUCED' ? paymentSettings.fees?.REDUCED?.currency
+            : standardCurr;
+        const hasOwnFee = u.customAnnualFee !== undefined && u.customAnnualFee !== null;
+        const amount = hasOwnFee ? (u.customAnnualFee as number) : (groupFee ?? standardFee);
+        const currency = (hasOwnFee ? u.currency : groupCurr) || standardCurr;
+        return { amount, currency };
+    };
+
     const handleCreateInvoice = async () => {
         if (invoiceMode === 'SINGLE' && (!newInvoice.amount || !newInvoice.description)) { showAlert({ type: 'error', message: t('admin.finance.fill_amount_desc') }); return; }
         if (invoiceMode === 'SINGLE') {
@@ -676,24 +723,10 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
                     showAlert({ type: 'error', message: t('admin.finance.all_invoiced', { count: candidateIds.length, year: selectedYear }) });
                     return;
                 }
-                const standardFee = paymentSettings.fees?.STANDARD?.amount ?? 120;
-                const standardCurr = paymentSettings.fees?.STANDARD?.currency ?? 'CHF';
                 targetUserIds.forEach((uid, index) => {
                     const u = users.find(user => user.id === uid);
                     if (!u) return;
-                    // Der hinterlegte Eigenbeitrag wird mit ?? geprueft, nicht mit ||.
-                    // Ein Betrag von 0 -- Ehrenmitglied, Beitragsbefreiung -- ist eine
-                    // Aussage und kein fehlender Wert; mit || waere daraus still der
-                    // volle Standardbeitrag geworden.
-                    const groupFee = u.billingGroup === 'KOSOVO' ? paymentSettings.fees?.KOSOVO?.amount
-                        : u.billingGroup === 'REDUCED' ? paymentSettings.fees?.REDUCED?.amount
-                        : standardFee;
-                    const groupCurr = u.billingGroup === 'KOSOVO' ? paymentSettings.fees?.KOSOVO?.currency
-                        : u.billingGroup === 'REDUCED' ? paymentSettings.fees?.REDUCED?.currency
-                        : standardCurr;
-                    const hasOwnFee = u.customAnnualFee !== undefined && u.customAnnualFee !== null;
-                    let amount = hasOwnFee ? u.customAnnualFee : (groupFee ?? standardFee);
-                    let currency = (hasOwnFee ? u.currency : groupCurr) || standardCurr;
+                    const { amount, currency } = beitragVon(u);
                     const hasValidEmail = hasUsableEmail(u);
                     // Wer E-Mail-Versand gewaehlt hat, aber keine brauchbare
                     // Adresse hat, bekommt die Rechnung per Post. Das ist
@@ -864,6 +897,14 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
 
     return (
         <div className="bg-white rounded-[2.5rem] border border-stone-100 shadow-sm overflow-hidden min-h-[600px] flex flex-col">
+            {assistent && (
+                <RechnungsAssistent users={users} payments={payments} jahr={selectedYear}
+                    beitragVon={beitragVon} zahlart={determinePaymentMethod}
+                    mailen={(p, melde) => handleSendInvoiceEmail(p, melde)}
+                    aufgeben={(p, melde) => handlePostAufgeben(p, true, melde)}
+                    holen={rechnungenHolen}
+                    onClose={() => setAssistent(false)} />
+            )}
             {postDialog && (
                 <PostGuthabenDialog anzahl={postDialog.length}
                     onAbbrechen={() => setPostDialog(null)}
@@ -900,10 +941,10 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
                 {activeTab === 'INVOICES' && (
                     <div className="space-y-6">
                         <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-4 rounded-3xl border border-stone-100 shadow-sm">
-                            <div className="flex gap-2 w-full md:w-auto"><div className="relative flex-1 md:w-64"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={16} /><input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t('common.search')} className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)]"/></div><div className="flex bg-stone-50 p-1 rounded-xl border border-stone-200">{(['ALL', 'TO_PRINT', 'PAID', 'PENDING', 'OVERDUE'] as const).map(s => (<button key={s} onClick={() => setFilterStatus(s)} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${filterStatus === s ? 'bg-white shadow-sm text-stone-900' : 'text-stone-400 hover:text-stone-600'}`}>{s === 'TO_PRINT' ? <><Printer size={12}/> {t('admin.finance.to_print')}</> : s === 'ALL' ? t('status.all') : s === 'PAID' ? t('board.paid') : s === 'PENDING' ? t('status.pending') : t('admin.finance.overdue')}</button>))}</div>{filterStatus === 'TO_PRINT' && filteredPayments.some(p => p.deliveryMethod === 'POST' && p.status !== 'PAID') && (<button onClick={() => setPostDialog(filteredPayments.filter(p => p.deliveryMethod === 'POST' && p.status !== 'PAID'))} disabled={postLaeuft !== ''} className="px-4 py-2.5 bg-stone-900 text-white rounded-xl text-xs font-bold hover:bg-stone-800 disabled:opacity-40 flex items-center gap-2 whitespace-nowrap">{postLaeuft === 'ALLE' ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}{t('post.alle_als_brief')}</button>)}</div>
+                            <div className="flex gap-2 w-full md:w-auto"><div className="relative flex-1 md:w-64"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={16} /><input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t('common.search')} className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)]"/></div><div className="flex bg-stone-50 p-1 rounded-xl border border-stone-200">{(['ALL', 'TO_PRINT', 'PAID', 'PENDING', 'OVERDUE'] as const).map(s => (<button key={s} onClick={() => setFilterStatus(s)} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${filterStatus === s ? 'bg-white shadow-sm text-stone-900' : 'text-stone-400 hover:text-stone-600'}`}>{s === 'TO_PRINT' ? <><Printer size={12}/> {t('admin.finance.to_print')}</> : s === 'ALL' ? t('status.all') : s === 'PAID' ? t('board.paid') : s === 'PENDING' ? t('status.pending') : t('admin.finance.overdue')}</button>))}</div>{filterStatus === 'TO_PRINT' && filteredPayments.some(p => perPost(p) && p.status !== 'PAID') && (<button onClick={() => setPostDialog(filteredPayments.filter(p => perPost(p) && p.status !== 'PAID'))} disabled={postLaeuft !== ''} className="px-4 py-2.5 bg-stone-900 text-white rounded-xl text-xs font-bold hover:bg-stone-800 disabled:opacity-40 flex items-center gap-2 whitespace-nowrap">{postLaeuft === 'ALLE' ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}{t('post.alle_als_brief')}</button>)}</div>
                             <div className="flex gap-2">{pendingEmailPayments.length > 0 && (<button onClick={handleSendBulkEmails} disabled={isSendingEmails} className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-blue-700 transition-all shadow-lg disabled:opacity-50">{isSendingEmails ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />} Send All Emails ({pendingEmailPayments.length})</button>)}<button onClick={() => setShowCreateModal(true)} className="bg-stone-900 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-black transition-all shadow-lg"><Plus size={16} /> {t('admin.finance.create')}</button></div>
                         </div>
-                        <div className="bg-white rounded-[2.5rem] border border-stone-100 shadow-sm overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-stone-50 text-stone-400 font-bold uppercase text-[10px] tracking-widest border-b border-stone-100 sticky top-0 z-10"><tr><th className="px-6 py-4">{t('admin.finance.invoiceNum')}</th><th className="px-6 py-4">{t('field.recipient')}</th><th className="px-6 py-4">{t('field.description')}</th><th className="px-6 py-4">{t('field.date')}</th><th className="px-6 py-4">{t('field.amount')}</th><th className="px-6 py-4">{t('admin.finance.method_via')}</th><th className="px-6 py-4">{t('field.status')}</th><th className="px-6 py-4 text-right">{t('common.actions')}</th></tr></thead><tbody className="divide-y divide-stone-50">{filteredPayments.map(p => { const recipientUser = users.find(u => u.id === p.userId); const recipientName = recipientUser?.displayName || p.customRecipient?.name || 'Unknown'; return (<tr key={p.id} className="hover:bg-stone-50 transition-colors group"><td className="px-6 py-4 font-mono text-xs text-stone-500">{p.invoiceNumber}</td><td className="px-6 py-4 font-bold text-stone-800">{recipientName}</td><td className="px-6 py-4 text-stone-600">{p.description}</td><td className="px-6 py-4 text-stone-500 text-xs">{p.timestamp?.toDate().toLocaleDateString()}</td><td className="px-6 py-4 font-mono font-bold">{p.amount.toFixed(2)} {p.currency}</td><td className="px-6 py-4"><div className="flex flex-col gap-1"><span className="text-[10px] font-bold text-stone-600 uppercase tracking-widest">{p.method === 'QR_BILL' ? 'Swiss QR' : p.method === 'GIRO_CODE' ? 'GiroCode' : p.method === 'PAYPAL' ? 'PayPal' : p.method}</span>{p.deliveryMethod === 'POST' ? (<span className="flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded w-fit"><Printer size={10}/> {t('admin.finance.post')}</span>) : (<span className="flex items-center gap-1 text-[10px] font-bold text-stone-400 bg-stone-50 px-2 py-1 rounded w-fit"><Mail size={10}/> {t('field.email')}</span>)}</div></td><td className="px-6 py-4"><span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${p.status === 'PAID' ? 'bg-green-100 text-green-700' : p.status === 'OVERDUE' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>{p.status}</span></td><td className="px-6 py-4 text-right"><div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">{p.deliveryMethod === 'EMAIL' && p.status !== 'PAID' && (<button onClick={() => handleSendInvoiceEmail(p)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"><Send size={14} /></button>)}{p.deliveryMethod === 'POST' && p.status !== 'PAID' && (<button onClick={() => setPostDialog([p])} disabled={postLaeuft === p.id} title={t('post.als_brief')} className="p-2 bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100 disabled:opacity-40">{postLaeuft === p.id ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}</button>)}<button onClick={() => setViewInvoice(p)} className="p-2 bg-stone-100 text-stone-600 rounded-lg hover:bg-stone-200"><Eye size={14} /></button>{p.status !== 'PAID' && (<button onClick={() => handleMarkPaid(p)} className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100"><CheckCircle2 size={14} /></button>)}<button onClick={() => handleDelete(p.id)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100"><Trash2 size={14} /></button></div></td></tr>); })}</tbody></table></div>
+                        <div className="bg-white rounded-[2.5rem] border border-stone-100 shadow-sm overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-stone-50 text-stone-400 font-bold uppercase text-[10px] tracking-widest border-b border-stone-100 sticky top-0 z-10"><tr><th className="px-6 py-4">{t('admin.finance.invoiceNum')}</th><th className="px-6 py-4">{t('field.recipient')}</th><th className="px-6 py-4">{t('field.description')}</th><th className="px-6 py-4">{t('field.date')}</th><th className="px-6 py-4">{t('field.amount')}</th><th className="px-6 py-4">{t('admin.finance.method_via')}</th><th className="px-6 py-4">{t('field.status')}</th><th className="px-6 py-4 text-right">{t('common.actions')}</th></tr></thead><tbody className="divide-y divide-stone-50">{filteredPayments.map(p => { const recipientUser = users.find(u => u.id === p.userId); const recipientName = recipientUser?.displayName || p.customRecipient?.name || 'Unknown'; return (<tr key={p.id} className="hover:bg-stone-50 transition-colors group"><td className="px-6 py-4 font-mono text-xs text-stone-500">{p.invoiceNumber}</td><td className="px-6 py-4 font-bold text-stone-800">{recipientName}</td><td className="px-6 py-4 text-stone-600">{p.description}</td><td className="px-6 py-4 text-stone-500 text-xs">{p.timestamp?.toDate().toLocaleDateString()}</td><td className="px-6 py-4 font-mono font-bold">{p.amount.toFixed(2)} {p.currency}</td><td className="px-6 py-4"><div className="flex flex-col gap-1"><span className="text-[10px] font-bold text-stone-600 uppercase tracking-widest">{p.method === 'QR_BILL' ? 'Swiss QR' : p.method === 'GIRO_CODE' ? 'GiroCode' : p.method === 'PAYPAL' ? 'PayPal' : p.method}</span>{perPost(p) && (<span className="flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded w-fit"><Printer size={10}/> {t('admin.finance.post')}</span>)}{perMail(p) && (<span className="flex items-center gap-1 text-[10px] font-bold text-sky-700 bg-sky-50 px-2 py-1 rounded w-fit"><Mail size={10}/> {t('field.email')}</span>)}</div></td><td className="px-6 py-4"><span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${p.status === 'PAID' ? 'bg-green-100 text-green-700' : p.status === 'OVERDUE' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>{p.status}</span></td><td className="px-6 py-4 text-right"><div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">{perMail(p) && p.status !== 'PAID' && (<button onClick={() => handleSendInvoiceEmail(p)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"><Send size={14} /></button>)}{perPost(p) && p.status !== 'PAID' && (<button onClick={() => setPostDialog([p])} disabled={postLaeuft === p.id} title={t('post.als_brief')} className="p-2 bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100 disabled:opacity-40">{postLaeuft === p.id ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}</button>)}<button onClick={() => setViewInvoice(p)} className="p-2 bg-stone-100 text-stone-600 rounded-lg hover:bg-stone-200"><Eye size={14} /></button>{p.status !== 'PAID' && (<button onClick={() => handleMarkPaid(p)} className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100"><CheckCircle2 size={14} /></button>)}<button onClick={() => handleDelete(p.id)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100"><Trash2 size={14} /></button></div></td></tr>); })}</tbody></table></div>
                     </div>
                 )}
 
@@ -1191,7 +1232,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
                             <div className="p-6 overflow-y-auto">
                                 <div className="flex gap-2 mb-6 bg-stone-50 p-1 rounded-xl w-fit">
                                     <button onClick={() => setInvoiceMode('SINGLE')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${invoiceMode === 'SINGLE' ? 'bg-white shadow-sm text-stone-900' : 'text-stone-400 hover:text-stone-600'}`}>{t('admin.finance.single_invoice')}</button>
-                                    <button onClick={() => setInvoiceMode('MULTI')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${invoiceMode === 'MULTI' ? 'bg-white shadow-sm text-stone-900' : 'text-stone-400 hover:text-stone-600'}`}>{t('admin.finance.bulk_invoice')}</button>
+                                    <button onClick={() => { setShowCreateModal(false); setAssistent(true); }} className="px-4 py-2 rounded-lg text-sm font-bold transition-all text-stone-400 hover:text-stone-600">{t('admin.finance.bulk_invoice')}</button>
                                 </div>
 
                                 {invoiceMode === 'SINGLE' && (

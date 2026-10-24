@@ -1251,7 +1251,7 @@ const AdminPanel: React.FC = () => {
                                                           billingYear: new Date(due).getFullYear(),
                                                         });
                                                       showAlert({ type: 'success',
-                                                        message: `${invoiceNumber} — ${deliveryMethod === 'POST' ? 'Zustellung per Post' : 'Zustellung per E-Mail'}` });
+                                                        message: `${invoiceNumber} — ${deliveryMethod === 'POST' ? 'Zustellung per Post' : deliveryMethod === 'BOTH' ? 'Zustellung per E-Mail und Post' : 'Zustellung per E-Mail'}` });
                                                       setUserDrawerTab('HISTORY');
                                                   } catch (e: any) {
                                                       showAlert({ type: 'error', message: t('admin.invoice.failed', { reason: e.message }) });

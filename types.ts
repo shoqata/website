@@ -157,7 +157,7 @@ export interface Payment {
 
   method: 'PAYPAL' | 'BANK_TRANSFER' | 'QR_BILL' | 'CASH' | 'TWINT' | 'GIRO_CODE'; // Added CASH, TWINT, GIRO_CODE
   status: 'DRAFT' | 'SCHEDULED' | 'SENT' | 'PAID' | 'PENDING' | 'OVERDUE' | 'CANCELLED' | 'WRITTEN_OFF';
-  deliveryMethod?: 'EMAIL' | 'POST';
+  deliveryMethod?: 'EMAIL' | 'POST' | 'BOTH';
   scheduledDate?: string; // ISO Date when it should be sent
   dunningLevel?: 0 | 1 | 2 | 3;
   lastDunningDate?: string;

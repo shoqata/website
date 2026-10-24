@@ -700,9 +700,29 @@ const brevoSmtpDa = !!brevoSmtpLogin && !!brevoSmtpKey;
   const vollstaendig = (p: typeof ausSecrets | undefined) =>
     !!(p && p.aktiv && p.host && p.benutzer && p.kennwort && p.absender);
 
+  // Demoverein: nur simulieren. Seine Mitglieder sind erfunden, ihre
+  // Adressen liegen auf demo.unityhub.li (ohne Mailserver) oder auf fremden
+  // Domains (admin@demo.ch). Echte Mails dorthin kaemen als Rueckweisung
+  // zurueck oder bei Unbeteiligten an -- und Rueckweisungen verschlechtern
+  // die Zustellung fuer alle Vereine. Echt beliefert wird nur, was auf
+  // @unityhub.li liegt (die Testkonten des Betreibers).
+  let simuliert = 0;
+  const echt: any[] = [];
+  for (const m of offen) {
+    const an = String(m.recipient ?? "").trim().toLowerCase();
+    if (m.tenantId === "demo" && !an.endsWith("@unityhub.li")) {
+      await admin.from("mail_queue")
+        .update({ status: "SENT", sentAt: new Date().toISOString(),
+                  attempts: (m.attempts ?? 0) + 1,
+                  lastError: "Demo — simuliert, nicht verschickt" })
+        .eq("id", m.id);
+      simuliert++;
+    } else echt.push(m);
+  }
+
   // Nach Verein gruppieren.
   const nachVerein = new Map<string, any[]>();
-  for (const m of offen) {
+  for (const m of echt) {
     const v = m.tenantId ?? "";
     if (!nachVerein.has(v)) nachVerein.set(v, []);
     nachVerein.get(v)!.push(m);
@@ -905,7 +925,7 @@ const brevoSmtpDa = !!brevoSmtpLogin && !!brevoSmtpKey;
 
   // Aufgeschluesselt nach Weg: ohne das sieht man nicht, ob die
   // Umleitung fuer Microsoft ueberhaupt greift.
-  return json({ ok: true, configured: true, sent: gesendet, failed: gescheitert,
+  return json({ ok: true, configured: true, sent: gesendet, failed: gescheitert, demo_simuliert: simuliert,
                 davon_brevo: ueberBrevoGesendet,
                 davon_postal: gesendet - ueberBrevoGesendet,
                 pending: liegengeblieben, ohnePostausgang, by: aufrufer });

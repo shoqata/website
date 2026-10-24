@@ -157,7 +157,9 @@ const VorstandWizard: React.FC<Props> = ({ mitglieder, nachbarschaften, onClose,
         type: 'success',
         message: deliveryMethod === 'POST'
           ? `${invoiceNumber} erstellt. Sie geht per Post — es liegt keine brauchbare E-Mail-Adresse vor oder das Mitglied möchte Post.`
-          : `${invoiceNumber} erstellt, Zustellung per E-Mail. Verschickt wird erst im Postausgang.`,
+          : deliveryMethod === 'BOTH'
+            ? `${invoiceNumber} erstellt, Zustellung per E-Mail und per Post (Wunsch des Mitglieds).`
+            : `${invoiceNumber} erstellt, Zustellung per E-Mail. Verschickt wird erst im Postausgang.`,
       });
       onFertig?.();
       onClose();
