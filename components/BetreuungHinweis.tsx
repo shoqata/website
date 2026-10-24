@@ -34,6 +34,14 @@ const BetreuungHinweis: React.FC<{ user: any }> = ({ user }) => {
   // Ob die Liste der Betreuungen schon da ist -- "keine" und "noch nicht
   // geladen" sind sonst nicht zu unterscheiden.
   const [geladen, setGeladen] = useState(false);
+  const [abgelaufen, setAbgelaufen] = useState(false);
+  // Laesst die Pruefung unten alle fuenf Minuten neu laufen: eine
+  // Betreuung laeuft auch ab, waehrend die Seite still offen steht.
+  const [takt, setTakt] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setTakt(t => t + 1), 5 * 60 * 1000);
+    return () => window.clearInterval(id);
+  }, []);
 
   useEffect(() => {
     resolveTenantId().then((id) => setVerein(id ?? null)).catch(() => setVerein(null));
@@ -56,10 +64,17 @@ const BetreuungHinweis: React.FC<{ user: any }> = ({ user }) => {
           && new Date(r.startedAt).getTime() > grenze)
         .sort((a: any, b: any) => String(b.startedAt).localeCompare(String(a.startedAt)));
       setBetreuung(offen[0] || null);
+      // Eine eigene Betreuung, die nie beendet wurde, aber ueber die acht
+      // Stunden ist. Die Datenbank laesst damit nichts mehr schreiben --
+      // im Demoverein lief so eine Vorlagenwahl ins Leere, weil der Tab
+      // seit dem Vortag offen stand.
+      setAbgelaufen(snap.docs.map((d: any) => d.data()).some((r: any) =>
+        !r.endedAt && String(r.email || '').toLowerCase() === meine
+        && r.tenantId === 'demo' && new Date(r.startedAt).getTime() <= grenze));
       setGeladen(true);
     }, () => { /* ohne Leserecht kein Hinweis -- dann gilt der Normalfall */ });
     return () => ab();
-  }, [user, user?.email, wer?.ist_betreiber]);
+  }, [user, user?.email, wer?.ist_betreiber, takt]);
 
   const starten = async () => {
     setArbeitet(true);
@@ -83,13 +98,16 @@ const BetreuungHinweis: React.FC<{ user: any }> = ({ user }) => {
   useEffect(() => {
     if (!user || istPlattform !== false || !wer?.ist_betreiber || wer.verein) return;
     if (verein !== 'demo' || !geladen || betreuung?.tenantId === 'demo' || arbeitet) return;
+    // Abgelaufen ist nicht beendet: wer sie selbst beendet hat, hat eine
+    // endedAt-Zeile und bekommt sie nicht ungefragt zurueck. Eine nur
+    // abgelaufene wird erneuert, sonst scheitert jedes Speichern still.
     try {
-      if (sessionStorage.getItem('demo-betreuung-auto')) return;
+      if (sessionStorage.getItem('demo-betreuung-auto') && !abgelaufen) return;
       sessionStorage.setItem('demo-betreuung-auto', '1');
     } catch { return; }
     starten();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, istPlattform, wer?.ist_betreiber, wer?.verein, verein, geladen, betreuung?.tenantId]);
+  }, [user, istPlattform, wer?.ist_betreiber, wer?.verein, verein, geladen, betreuung?.tenantId, abgelaufen]);
 
   // Nur fuer den Betreiber, nur auf der Domain eines Vereins, und nur wenn
   // er selbst zu keinem Verein gehoert. Ein Vereinsadministrator sieht das
