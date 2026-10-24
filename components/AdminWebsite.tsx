@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from '../context/LanguageContext';
 import MemberPicker from './ui/MemberPicker';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Activity, Briefcase, Check, ChevronDown, ChevronUp, Globe, Heart, Home, Image as ImageIcon, Languages, LayoutTemplate, Link as LinkIcon, Loader2, Mail, MapPin, Milestone, Monitor, Palette, Plus, RefreshCw, Save, ShieldAlert, Smartphone, Trash2, Trophy, Type, Upload, X, Zap } from 'lucide-react';
+import { Activity, Briefcase, Check, ChevronDown, ChevronUp, Globe, Heart, History, Home, Image as ImageIcon, Languages, LayoutTemplate, Link as LinkIcon, Loader2, Mail, MapPin, Milestone, Monitor, Palette, Plus, RefreshCw, Save, ShieldAlert, Smartphone, Trash2, Trophy, Type, Upload, X, Zap } from 'lucide-react';
 import { db, storage } from '../services/datenzugriff';
 import { doc, setDoc, onSnapshot, serverTimestamp, collection, deleteDoc, addDoc } from '@/services/supabase-bridge';
 import { ref, uploadBytes, getDownloadURL } from '@/services/supabase-bridge';
@@ -16,6 +16,8 @@ import { useModule } from '../lib/useModule';
 import AdminVorlagen from './AdminVorlagen';
 import AdminSeiten from './AdminSeiten';
 import AdminNavigation from './AdminNavigation';
+import AdminUeberUns from './AdminUeberUns';
+import AdminChronik from './AdminChronik';
 // --- TYPES ---
 // Helper type for localized strings
 type LocalizedString = string | { [key: string]: string };
@@ -66,8 +68,47 @@ interface BrandingSettings {
   tournamentDetailUrl?: string;
 }
 
-type Tab = 'DESIGN' | 'GLOBAL' | 'NAVIGATION' | 'HOME' | 'ABOUT' | 'SEITEN' | 'LIVE' | 'TURNIER' | 'LEGAL';
+type Tab = 'DESIGN' | 'GLOBAL' | 'NAVIGATION' | 'HOME' | 'ABOUT' | 'CHRONIK' | 'SEITEN' | 'LIVE' | 'TURNIER' | 'LEGAL';
 type LangCode = 'de' | 'en' | 'sq';
+
+// Aufklappbarer Bereich im Editor. Auf Modulebene, nicht innerhalb von
+// AdminWebsite: dort definiert, war er bei jedem Tastendruck eine neue
+// Komponente -- React baute ihn neu auf, und das Eingabefeld verlor nach
+// jedem Buchstaben den Fokus.
+const BuilderSection = ({ id, title, icon, children, offen, setOffen }: {
+  id: string, title: string, icon: React.ReactNode, children?: React.ReactNode,
+  offen: string | null, setOffen: (id: string | null) => void }) => (
+      <div className={`bg-stone-50 rounded-3xl border transition-all duration-300 ${offen === id ? 'border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)] shadow-lg bg-white' : 'border-stone-200'}`}>
+          <button 
+              onClick={() => setOffen(offen === id ? null : id)}
+              className="w-full flex items-center justify-between p-6 text-left"
+          >
+              <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-xl transition-colors ${offen === id ? 'bg-primary text-white' : 'bg-white text-stone-400'}`}>
+                      {icon}
+                  </div>
+                  <span className={`font-bold text-sm uppercase tracking-wider ${offen === id ? 'text-stone-900' : 'text-stone-500'}`}>{title}</span>
+              </div>
+              {offen === id ? <ChevronUp size={18} className="text-primary"/> : <ChevronDown size={18} className="text-stone-300"/>}
+          </button>
+          <AnimatePresence>
+              {offen === id && (
+                  <motion.div 
+                      initial={{ height: 0, opacity: 0 }} 
+                      animate={{ height: 'auto', opacity: 1 }} 
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                  >
+                      <div className="p-6 pt-0 border-t border-stone-100">
+                          <div className="pt-6 space-y-6">
+                              {children}
+                          </div>
+                      </div>
+                  </motion.div>
+              )}
+          </AnimatePresence>
+      </div>
+);
 
 const AdminWebsite: React.FC = () => {
   const { t } = useTranslation();
@@ -174,6 +215,7 @@ const AdminWebsite: React.FC = () => {
       const dataToSave = { ...branding, updatedAt: serverTimestamp() };
       await setDoc(doc(db, 'settings', 'branding'), dataToSave, { merge: true });
       setIsSaved(true);
+      setVorschauSchluessel(k => k + 1);
       setTimeout(() => setIsSaved(false), 3000);
     } catch (error) {
       console.error(error);
@@ -327,40 +369,6 @@ const AdminWebsite: React.FC = () => {
       setBranding(prev => ({ ...prev, [key]: (prev[key] as any[]).filter((_, i) => i !== index) }));
   };
 
-  // Reusable Section Component
-  const BuilderSection = ({ id, title, icon, children }: { id: string, title: string, icon: React.ReactNode, children?: React.ReactNode }) => (
-      <div className={`bg-stone-50 rounded-3xl border transition-all duration-300 ${expandedSection === id ? 'border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)] shadow-lg bg-white' : 'border-stone-200'}`}>
-          <button 
-              onClick={() => setExpandedSection(expandedSection === id ? null : id)}
-              className="w-full flex items-center justify-between p-6 text-left"
-          >
-              <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-xl transition-colors ${expandedSection === id ? 'bg-primary text-white' : 'bg-white text-stone-400'}`}>
-                      {icon}
-                  </div>
-                  <span className={`font-bold text-sm uppercase tracking-wider ${expandedSection === id ? 'text-stone-900' : 'text-stone-500'}`}>{title}</span>
-              </div>
-              {expandedSection === id ? <ChevronUp size={18} className="text-primary"/> : <ChevronDown size={18} className="text-stone-300"/>}
-          </button>
-          <AnimatePresence>
-              {expandedSection === id && (
-                  <motion.div 
-                      initial={{ height: 0, opacity: 0 }} 
-                      animate={{ height: 'auto', opacity: 1 }} 
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden"
-                  >
-                      <div className="p-6 pt-0 border-t border-stone-100">
-                          <div className="pt-6 space-y-6">
-                              {children}
-                          </div>
-                      </div>
-                  </motion.div>
-              )}
-          </AnimatePresence>
-      </div>
-  );
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[calc(100vh-140px)]">
       {/* CMS Sidebar */}
@@ -374,7 +382,7 @@ const AdminWebsite: React.FC = () => {
              {/* Die Reiter zeigten bisher ihren Schluessel: DESIGN, GLOBAL,
                  LIVE. Verstaendlich fuer den, der den Quelltext kennt. */}
              {(([['DESIGN','Design'], ['GLOBAL','Allgemein'], ['NAVIGATION','Navigation'], ['HOME','Startseite'],
-                ['ABOUT','Über uns'], ['SEITEN','Eigene Seiten'],
+                ['ABOUT','Über uns'], ['CHRONIK','Chronik'], ['SEITEN','Eigene Seiten'],
                 ...(modulAktiv('DORFLEBEN') ? [['LIVE', t('nav.live')]] : []),
                 ...(modulAktiv('TURNIER') ? [['TURNIER', t('nav.turnier')]] : []),
                 ['LEGAL','Rechtliches']]) as [Tab, string][]).map(([k, name]) => (
@@ -417,7 +425,7 @@ const AdminWebsite: React.FC = () => {
 
             {activeTab === 'GLOBAL' && (
                 <>
-                    <BuilderSection id="branding" title={t('web.identity')} icon={<Palette size={18}/>}>
+                    <BuilderSection offen={expandedSection} setOffen={setExpandedSection} id="branding" title={t('web.identity')} icon={<Palette size={18}/>}>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="text-[10px] font-bold text-stone-400 uppercase mb-2 block">{t('web.primary_color')}</label>
@@ -462,7 +470,7 @@ const AdminWebsite: React.FC = () => {
                         </div>
                     </BuilderSection>
 
-                    <BuilderSection id="footer" title={t('web.footer_contact')} icon={<Mail size={18}/>}>
+                    <BuilderSection offen={expandedSection} setOffen={setExpandedSection} id="footer" title={t('web.footer_contact')} icon={<Mail size={18}/>}>
                         <div className="space-y-4">
                             <div>
                                 <label className="text-[10px] font-bold text-stone-400 uppercase mb-1 block">{t('field.address')}</label>
@@ -487,7 +495,7 @@ const AdminWebsite: React.FC = () => {
 
             {activeTab === 'HOME' && (
                 <>
-                    <BuilderSection id="hero" title={t('web.hero')} icon={<LayoutTemplate size={18}/>}>
+                    <BuilderSection offen={expandedSection} setOffen={setExpandedSection} id="hero" title={t('web.hero')} icon={<LayoutTemplate size={18}/>}>
                         <div className="space-y-4">
                             <div>
                                 <label className="text-[10px] font-bold text-stone-400 uppercase mb-1 flex items-center gap-1">{t('web.top_badge')} <Languages size={10} className="text-primary"/></label>
@@ -537,7 +545,7 @@ const AdminWebsite: React.FC = () => {
                         </div>
                     </BuilderSection>
 
-                    <BuilderSection id="hypertext" title={t('web.mission_interactive')} icon={<Type size={18}/>}>
+                    <BuilderSection offen={expandedSection} setOffen={setExpandedSection} id="hypertext" title={t('web.mission_interactive')} icon={<Type size={18}/>}>
                         <div className="space-y-6">
                             <div className="p-4 bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)] border border-[color:color-mix(in_srgb,var(--primary)_10%,transparent)] rounded-2xl">
                                 <p className="text-xs text-[color:color-mix(in_srgb,var(--primary)_80%,transparent)] italic">{t('web.highlights_hint')}</p>
@@ -580,7 +588,11 @@ const AdminWebsite: React.FC = () => {
 
             {activeTab === 'ABOUT' && (
                 <>
-                    <BuilderSection id="board" title={t('web.board')} icon={<Briefcase size={18}/>}>
+                    {/* Aufbau und Inhalte der Seite. Hier standen nur Werte-Karten
+                        (fest drei, nicht erweiterbar) und eine Zeitleiste;
+                        Titel und Einleitung liessen sich gar nicht setzen. */}
+                    <AdminUeberUns branding={branding} setBranding={setBranding as any} sprache={editLang} />
+                    <BuilderSection offen={expandedSection} setOffen={setExpandedSection} id="board" title={t('web.board')} icon={<Briefcase size={18}/>}>
                         <div className="space-y-6">
                             <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 space-y-3">
                                 <h5 className="text-[10px] font-bold uppercase tracking-widest text-stone-500">{t('web.new_entry')}</h5>
@@ -634,59 +646,30 @@ const AdminWebsite: React.FC = () => {
                         </div>
                     </BuilderSection>
 
-                    <BuilderSection id="missions" title={t('web.mission_cards')} icon={<Activity size={18}/>}>
-                        <div className="space-y-4">
-                            {branding.missions.map((m, idx) => (
-                                <div key={idx} className="p-4 bg-stone-50 rounded-2xl border border-stone-200">
-                                    <div className="flex justify-between mb-2">
-                                        <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400">{m.type}</span>
-                                    </div>
-                                    <input 
-                                        value={getLoc(m.title)} 
-                                        onChange={e => updateArrayField('missions', idx, 'title', e.target.value, true)} 
-                                        className="w-full p-2 mb-2 bg-white rounded-lg text-sm font-bold border border-stone-100 outline-none" 
-                                        placeholder={`Title (${editLang})`} 
-                                    />
-                                    <textarea 
-                                        value={getLoc(m.description)} 
-                                        onChange={e => updateArrayField('missions', idx, 'description', e.target.value, true)} 
-                                        className="w-full p-2 bg-white rounded-lg text-xs border border-stone-100 outline-none h-16" 
-                                        placeholder={`Description (${editLang})`} 
-                                    />
-                                </div>
-                            ))}
-                        </div>
-                    </BuilderSection>
+                </>
+            )}
 
-                    <BuilderSection id="roadmap" title={t('web.timeline')} icon={<Milestone size={18}/>}>
-                        <div className="space-y-4">
-                            {branding.roadmap.map((r, idx) => (
-                                <div key={idx} className="flex gap-2">
-                                    <div className="flex-1 space-y-2">
-                                        <input 
-                                            value={getLoc(r.title)} 
-                                            onChange={e => updateArrayField('roadmap', idx, 'title', e.target.value, true)} 
-                                            className="w-full p-2 bg-stone-50 rounded-lg text-sm font-bold outline-none" 
-                                            placeholder={`Year / Milestone (${editLang})`} 
-                                        />
-                                        <textarea 
-                                            value={getLoc(r.description)} 
-                                            onChange={e => updateArrayField('roadmap', idx, 'description', e.target.value, true)} 
-                                            className="w-full p-2 bg-stone-50 rounded-lg text-xs outline-none" 
-                                            placeholder={`Description (${editLang})`} 
-                                        />
-                                    </div>
-                                    <button onClick={() => removeArrayItem('roadmap', idx)} className="text-stone-300 hover:text-red-500 self-start mt-2"><X size={16}/></button>
-                                </div>
-                            ))}
-                            <button onClick={() => addArrayItem('roadmap', { title: '', description: '' })} className="w-full py-2 border-2 border-dashed border-stone-200 rounded-xl text-stone-400 text-xs font-bold hover:text-primary hover:border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)] transition-colors">+ Add Milestone</button>
+            {activeTab === 'CHRONIK' && (
+                <>
+                    <BuilderSection offen={expandedSection} setOffen={setExpandedSection} id="chronik-kopf" title="Titel und Einleitung" icon={<History size={18}/>}>
+                        <div className="space-y-3">
+                            <input value={getLoc((branding as any).chronikTitel)}
+                                onChange={e => updateField('chronikTitel', e.target.value, true)}
+                                placeholder={`${t('chronik.titel')} (${editLang})`}
+                                className="w-full p-3 bg-stone-50 rounded-xl text-sm border border-stone-100 font-display font-bold" />
+                            <textarea rows={3} value={getLoc((branding as any).chronikIntro)}
+                                onChange={e => updateField('chronikIntro', e.target.value, true)}
+                                placeholder={`${t('chronik.intro')} (${editLang})`}
+                                className="w-full p-3 bg-stone-50 rounded-xl text-sm border border-stone-100" />
+                            <p className="text-[10px] text-stone-400">Wird mit „Veröffentlichen“ unten gespeichert.</p>
                         </div>
                     </BuilderSection>
+                    <AdminChronik sprache={editLang} onGespeichert={() => setVorschauSchluessel(k => k + 1)} />
                 </>
             )}
 
             {activeTab === 'TURNIER' && (
-                <BuilderSection id="turnier" title={t('nav.turnier')} icon={<Trophy size={18}/>}>
+                <BuilderSection offen={expandedSection} setOffen={setExpandedSection} id="turnier" title={t('nav.turnier')} icon={<Trophy size={18}/>}>
                     <div className="space-y-4">
                         <p className="text-xs text-stone-500 leading-relaxed">
                             {t('web.turnier_hinweis')}
@@ -749,7 +732,7 @@ const AdminWebsite: React.FC = () => {
             )}
 
             {activeTab === 'LIVE' && (
-                <BuilderSection id="selectors" title={t('web.live_features')} icon={<Zap size={18}/>}>
+                <BuilderSection offen={expandedSection} setOffen={setExpandedSection} id="selectors" title={t('web.live_features')} icon={<Zap size={18}/>}>
                     <div className="space-y-4">
                         {branding.liveSelectors.map((s, idx) => (
                             <div key={idx} className="p-4 bg-stone-50 rounded-2xl border border-stone-200 flex gap-4">
@@ -811,7 +794,7 @@ const AdminWebsite: React.FC = () => {
             )}
 
             {activeTab === 'LEGAL' && (
-                <BuilderSection id="legal" title={t('web.privacy')} icon={<ShieldAlert size={18}/>}>
+                <BuilderSection offen={expandedSection} setOffen={setExpandedSection} id="legal" title={t('web.privacy')} icon={<ShieldAlert size={18}/>}>
                     <div className="space-y-4">
                         <div>
                             <label className="text-[10px] font-bold text-stone-400 uppercase mb-1 flex items-center gap-1">{t('web.gdpr_text')} <Languages size={10} className="text-primary"/></label>
@@ -868,7 +851,7 @@ const AdminWebsite: React.FC = () => {
             Nachteil, bewusst in Kauf genommen: der Rahmen zeigt den
             gespeicherten Stand, keine ungesicherten Textaenderungen. Im
             Design-Reiter aendert man aber keine Texte. */}
-        {activeTab === 'DESIGN' ? (
+        {activeTab === 'DESIGN' || activeTab === 'ABOUT' || activeTab === 'CHRONIK' ? (
           <div className="sticky top-12 h-full flex flex-col">
             <div className="flex items-center justify-between mb-4 shrink-0 px-1">
               <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400">
@@ -880,7 +863,7 @@ const AdminWebsite: React.FC = () => {
               </button>
             </div>
             <div className="bg-stone-900 rounded-[2.5rem] p-3 shadow-2xl border-[10px] border-stone-800 flex-1 max-h-[800px]">
-              <iframe key={vorschauSchluessel} src="/" title={t('web.echte_seite')}
+              <iframe key={vorschauSchluessel} src={activeTab === 'ABOUT' ? '/#/about' : activeTab === 'CHRONIK' ? '/#/chronik' : '/'} title={t('web.echte_seite')}
                       className="w-full h-full rounded-[1.6rem] bg-white border-0" />
             </div>
             <p className="text-[11px] text-stone-400 mt-3 text-center">{t('web.vorschau_hinweis')}</p>

@@ -167,3 +167,7 @@ html:is([data-design="ERZAEHLUNG"], [data-design="BUEHNE"], [data-design="JOURNA
 /* Sprachwahl: die aktive Sprache behaelt die Hausfarbe. */
 html[data-design]:not([data-design="KLASSISCH"]) :is(nav, aside) .bg-stone-100\/50 button.text-primary { color: var(--primary); }
 html[data-design]:not([data-design="KLASSISCH"]) :is(nav, aside) .bg-stone-100\/50 button.text-stone-400 { color: var(--d-leiste-tinte); opacity: .5; }
+
+/* Chronik: der Rand um den Punkt auf der Linie hat die Farbe des Grundes. */
+html[data-design-seite] main .border-\[\#faf9f6\] { border-color: var(--d-grund); }
+html[data-design-seite] main .bg-stone-200.w-px { background-color: var(--d-linie); }

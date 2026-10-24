@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Loader2, Plus, Save, Check, AlertTriangle, Trash2, Eye, EyeOff,
-  Type, AlignLeft, Image as BildIcon, Link2, Minus, Quote, ArrowUp, ArrowDown, FileText,
+  Loader2, Plus, Save, Check, AlertTriangle, Eye, EyeOff, FileText,
 } from 'lucide-react';
 import { supabase } from '@/services/supabase-bridge';
 import { useTranslation } from '../context/LanguageContext';
+import BausteinEditor, { type Baustein } from './BausteinEditor';
 import { SeitenInhalt } from './EigeneSeite';
 
 // Eigene Seiten bauen.
@@ -20,14 +20,6 @@ import { SeitenInhalt } from './EigeneSeite';
 // Anzeige auf die gefuellte zurueck -- loc() macht das.
 
 type Sprachfeld = { de?: string; sq?: string; en?: string };
-type Baustein =
-  | { art: 'ueberschrift'; text: Sprachfeld }
-  | { art: 'text'; text: Sprachfeld }
-  | { art: 'zitat'; text: Sprachfeld; wer?: Sprachfeld }
-  | { art: 'bild'; url: string; alt?: Sprachfeld }
-  | { art: 'knopf'; text: Sprachfeld; ziel: string }
-  | { art: 'trenner' };
-
 type Seite = {
   id: string | null; pfad: string; titel: Sprachfeld; bloecke: Baustein[];
   status: 'ENTWURF' | 'OEFFENTLICH'; im_menue: boolean; reihenfolge: number;
@@ -38,15 +30,6 @@ const LEER: Seite = {
   id: null, pfad: '', titel: {}, bloecke: [],
   status: 'ENTWURF', im_menue: false, reihenfolge: 100,
 };
-
-const ARTEN: { art: Baustein['art']; name: string; icon: React.ReactNode }[] = [
-  { art: 'ueberschrift', name: 'Überschrift', icon: <Type size={13} /> },
-  { art: 'text',         name: 'Text',        icon: <AlignLeft size={13} /> },
-  { art: 'bild',         name: 'Bild',        icon: <BildIcon size={13} /> },
-  { art: 'knopf',        name: 'Knopf',       icon: <Link2 size={13} /> },
-  { art: 'zitat',        name: 'Zitat',       icon: <Quote size={13} /> },
-  { art: 'trenner',      name: 'Trennlinie',  icon: <Minus size={13} /> },
-];
 
 const SPRACHEN = [['de', 'Deutsch'], ['sq', 'Shqip'], ['en', 'English']] as const;
 
@@ -91,18 +74,6 @@ const AdminSeiten: React.FC = () => {
     setOffen(null); await laden();
   };
 
-  const setzeBaustein = (i: number, teil: any) =>
-    setOffen(o => o ? { ...o, bloecke: o.bloecke.map((b, n) =>
-      n === i ? { ...b, ...teil } : b) } : o);
-  const schieben = (i: number, um: number) =>
-    setOffen(o => {
-      if (!o) return o;
-      const n = [...o.bloecke]; const z = i + um;
-      if (z < 0 || z >= n.length) return o;
-      [n[i], n[z]] = [n[z], n[i]];
-      return { ...o, bloecke: n };
-    });
-
   if (seiten === null) return (
     <div className="bg-stone-50 p-6 rounded-3xl border border-stone-100 flex items-center gap-3 text-stone-400">
       <Loader2 className="animate-spin" size={18} /> <span className="text-sm">Lädt …</span>
@@ -111,7 +82,6 @@ const AdminSeiten: React.FC = () => {
 
   const feld = 'w-full p-3 bg-white border border-stone-200 rounded-xl text-sm outline-none focus:border-stone-300';
   const marke = 'text-[10px] font-bold text-stone-400 uppercase tracking-widest';
-  const sf = (b: any, k: string) => (b[k] ?? {})[sprache] ?? '';
 
   // ------------------------------------------------------------ Liste
   if (!offen) return (
@@ -239,82 +209,8 @@ const AdminSeiten: React.FC = () => {
             </div>
           </div>
 
-          <div className="space-y-3">
-            {offen.bloecke.map((b, i) => (
-              <div key={i} className="bg-white rounded-2xl border border-stone-100 p-4">
-                <div className="flex items-center justify-between gap-2 mb-3">
-                  <span className={marke}>
-                    {ARTEN.find(a => a.art === b.art)?.name ?? b.art}
-                  </span>
-                  <div className="flex gap-1">
-                    <button onClick={() => schieben(i, -1)} disabled={i === 0}
-                      className="p-1 text-stone-300 hover:text-stone-700 disabled:opacity-30">
-                      <ArrowUp size={13} />
-                    </button>
-                    <button onClick={() => schieben(i, 1)} disabled={i === offen.bloecke.length - 1}
-                      className="p-1 text-stone-300 hover:text-stone-700 disabled:opacity-30">
-                      <ArrowDown size={13} />
-                    </button>
-                    <button onClick={() => setOffen({ ...offen,
-                        bloecke: offen.bloecke.filter((_, n) => n !== i) })}
-                      className="p-1 text-stone-300 hover:text-red-600">
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                </div>
-
-                {b.art === 'trenner' ? (
-                  <hr className="border-stone-200" />
-                ) : b.art === 'bild' ? (
-                  <div className="space-y-2">
-                    <input className={feld} value={(b as any).url ?? ''}
-                      onChange={e => setzeBaustein(i, { url: e.target.value })}
-                      placeholder="https://… oder /bilder/fest.jpg" />
-                    <input className={feld} value={sf(b, 'alt')}
-                      onChange={e => setzeBaustein(i, { alt: { ...(b as any).alt, [sprache]: e.target.value } })}
-                      placeholder="Bildbeschreibung (für Blinde und Suchmaschinen)" />
-                  </div>
-                ) : b.art === 'knopf' ? (
-                  <div className="space-y-2">
-                    <input className={feld} value={sf(b, 'text')}
-                      onChange={e => setzeBaustein(i, { text: { ...(b as any).text, [sprache]: e.target.value } })}
-                      placeholder="Jetzt anmelden" />
-                    <input className={feld} value={(b as any).ziel ?? ''}
-                      onChange={e => setzeBaustein(i, { ziel: e.target.value })}
-                      placeholder="/events oder https://…" />
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <textarea className={`${feld} leading-relaxed`}
-                      rows={b.art === 'text' ? 6 : 2} value={sf(b, 'text')}
-                      onChange={e => setzeBaustein(i, { text: { ...(b as any).text, [sprache]: e.target.value } })}
-                      placeholder={b.art === 'ueberschrift' ? 'Seit 1998' : 'Schreiben Sie hier …'} />
-                    {b.art === 'zitat' && (
-                      <input className={feld} value={sf(b, 'wer')}
-                        onChange={e => setzeBaustein(i, { wer: { ...(b as any).wer, [sprache]: e.target.value } })}
-                        placeholder="Wer hat das gesagt?" />
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-
-            <div className="flex flex-wrap gap-2">
-              {ARTEN.map(a => (
-                <button key={a.art}
-                  onClick={() => setOffen({ ...offen, bloecke: [...offen.bloecke,
-                    a.art === 'trenner' ? { art: 'trenner' }
-                      : a.art === 'bild' ? { art: 'bild', url: '', alt: {} }
-                      : a.art === 'knopf' ? { art: 'knopf', text: {}, ziel: '' }
-                      : { art: a.art, text: {} } as any] })}
-                  className="flex items-center gap-1.5 bg-white border border-stone-200 px-3 py-2
-                             rounded-xl text-[10px] font-bold uppercase tracking-widest
-                             text-stone-500 hover:text-stone-900 hover:border-stone-300">
-                  {a.icon} {a.name}
-                </button>
-              ))}
-            </div>
-          </div>
+          <BausteinEditor bloecke={offen.bloecke} sprache={sprache}
+            onChange={bloecke => setOffen({ ...offen, bloecke })} />
 
           <div className="flex items-center gap-3 flex-wrap">
             <button onClick={sichern} disabled={speichert}

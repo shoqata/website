@@ -90,6 +90,7 @@ const ProfileSetup = React.lazy(() => import('./components/ProfileSetup'));
 const EventsPage = React.lazy(() => import('./components/EventsPage'));
 const NewsPage = React.lazy(() => import('./components/NewsPage'));
 const AboutUsPage = React.lazy(() => import('./components/AboutUsPage'));
+const ChronikSeite = React.lazy(() => import('./components/ChronikSeite'));
 const FutsalPage = React.lazy(() => import('./components/FutsalPage'));
 const SponsorPage = React.lazy(() => import('./components/SponsorPage'));
 const LegalPage = React.lazy(() => import('./components/LegalPage'));
@@ -643,6 +644,11 @@ const AppContent: React.FC = () => {
                     <Route path="/about" element={
                       ((z) => z === 'LAEDT' ? <PageLoader />
                             : z === 'ZEIGEN' ? <AboutUsPage />
+                            : <Navigate to="/" replace />)
+                      (seitenZustand(websiteModule, 'WEBSITE', istPlattformDomain))} />
+                    <Route path="/chronik" element={
+                      ((z) => z === 'LAEDT' ? <PageLoader />
+                            : z === 'ZEIGEN' ? <ChronikSeite />
                             : <Navigate to="/" replace />)
                       (seitenZustand(websiteModule, 'WEBSITE', istPlattformDomain))} />
                     {/* Dorfleben nur mit gebuchtem Modul. Ausgeblendet

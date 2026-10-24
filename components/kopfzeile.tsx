@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Info, Calendar, Newspaper, Zap, Trophy, Film, Heart, BadgeCheck, FileText } from 'lucide-react';
+import { Info, Calendar, Newspaper, Zap, Trophy, Film, Heart, BadgeCheck, FileText, History } from 'lucide-react';
 import { supabase } from '@/services/supabase-bridge';
 import { useOeffentlicheModule } from '../lib/useOeffentlicheModule';
 import { useSpendenseiteSichtbar } from '../lib/useSpendenseiteSichtbar';
@@ -52,6 +52,7 @@ export type NavEintrag = {
 type Fest = { schluessel: string; pfad: string; label: string; I: any; farbe: string };
 const FEST: Fest[] = [
   { schluessel: 'about',     pfad: '/about',     label: 'nav.about',        I: Info,       farbe: 'text-emerald-600' },
+  { schluessel: 'chronik',   pfad: '/chronik',   label: 'nav.chronik',      I: History,    farbe: 'text-amber-700' },
   { schluessel: 'events',    pfad: '/events',    label: 'nav.events.title', I: Calendar,   farbe: 'text-primary' },
   { schluessel: 'news',      pfad: '/news',      label: 'nav.news.title',   I: Newspaper,  farbe: 'text-blue-600' },
   { schluessel: 'live',      pfad: '/live',      label: 'nav.live',         I: Zap,        farbe: 'text-amber-600' },
@@ -75,6 +76,19 @@ export function useEigeneSeiten() {
   return seiten;
 }
 
+// Gibt es veroeffentlichte Chronik-Eintraege? Ohne sie fuehrte der
+// Menueeintrag auf eine leere Seite.
+export function useChronikVorhanden() {
+  const [da, setDa] = useState<boolean | null>(null);
+  useEffect(() => {
+    let lebt = true;
+    supabase.from('chronik').select('id').eq('status', 'OEFFENTLICH').limit(1)
+      .then(({ data }) => { if (lebt) setDa(((data as any[]) ?? []).length > 0); }, () => { if (lebt) setDa(false); });
+    return () => { lebt = false; };
+  }, []);
+  return da;
+}
+
 export function useKopfzeile(opts: {
   einstellung?: NavEinstellung;
   zahlerliste?: { sichtbar?: string };
@@ -86,6 +100,7 @@ export function useKopfzeile(opts: {
   const module = useOeffentlicheModule();
   const spenden = useSpendenseiteSichtbar();
   const seiten = useEigeneSeiten();
+  const chronik = useChronikVorhanden();
   if (module === null || seiten === null) return null;
 
   const zl = (opts.zahlerliste?.sichtbar || 'AUS').toUpperCase();
@@ -94,6 +109,7 @@ export function useKopfzeile(opts: {
   const hat = (m: string) => module.size === 0 && ['WEBSITE', 'ANLAESSE', 'NEUIGKEITEN'].includes(m) || module.has(m);
   const moeglich: Record<string, [boolean, string?]> = {
     about: [hat('WEBSITE'), 'Modul Website ist nicht gebucht'],
+    chronik: [hat('WEBSITE') && !!chronik, hat('WEBSITE') ? 'Noch keine veröffentlichten Einträge (Website → Chronik)' : 'Modul Website ist nicht gebucht'],
     events: [hat('ANLAESSE'), 'Modul Anlässe ist nicht gebucht'],
     news: [hat('NEUIGKEITEN'), 'Modul Neuigkeiten ist nicht gebucht'],
     live: [module.has('DORFLEBEN'), 'Modul Dorfleben ist nicht gebucht'],
