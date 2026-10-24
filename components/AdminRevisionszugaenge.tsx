@@ -32,8 +32,9 @@ const AdminRevisionszugaenge: React.FC = () => {
   // Vorgabe und Obergrenze: ein Monat. Dieselbe Grenze prueft die
   // Datenbank noch einmal -- die Oberflaeche kann man umgehen, die
   // Funktion nicht.
+  // 30 Tage -- dieselbe Grenze wie in revisionszugang_erstellen().
   const inEinemMonat = (() => {
-    const d = new Date(); d.setMonth(d.getMonth() + 1);
+    const d = new Date(); d.setDate(d.getDate() + 30);
     return d.toISOString().slice(0, 10);
   })();
   const morgen = (() => {
@@ -46,6 +47,26 @@ const AdminRevisionszugaenge: React.FC = () => {
   const [frisch, setFrisch] = useState<{ token: string } | null>(null);
   const [kopiert, setKopiert] = useState(false);
   const [fehler, setFehler] = useState('');
+  // Zugriffsprotokoll je Zugang, aufgeklappt auf Wunsch.
+  const [protokollFuer, setProtokollFuer] = useState<string | null>(null);
+  const [protokoll, setProtokoll] = useState<any[] | null>(null);
+  const protokollZeigen = async (id: string) => {
+    if (protokollFuer === id) { setProtokollFuer(null); return; }
+    setProtokollFuer(id); setProtokoll(null);
+    const { data } = await supabase.from('revisionszugriffe').select('am,jahr,ergebnis,ip,browser')
+      .eq('zugang', id).order('am', { ascending: false }).limit(200);
+    setProtokoll((data as any[]) || []);
+  };
+  const ergebnisText: Record<string, string> = {
+    OK: 'Bericht geöffnet', ABGELAUFEN: 'abgewiesen: abgelaufen',
+    WIDERRUFEN: 'abgewiesen: widerrufen', FALSCHES_JAHR: 'abgewiesen: anderes Jahr',
+  };
+  const browserKurz = (ua?: string | null) => {
+    const u = String(ua || '');
+    const b = /Edg\//.test(u) ? 'Edge' : /Chrome\//.test(u) ? 'Chrome' : /Firefox\//.test(u) ? 'Firefox' : /Safari\//.test(u) ? 'Safari' : '';
+    const os = /iPhone|iPad/.test(u) ? 'iOS' : /Android/.test(u) ? 'Android' : /Mac OS X/.test(u) ? 'macOS' : /Windows/.test(u) ? 'Windows' : /Linux/.test(u) ? 'Linux' : '';
+    return [b, os].filter(Boolean).join(' · ') || (u ? u.slice(0, 40) : '—');
+  };
 
   const laden = async () => {
     const { data, error } = await supabase
@@ -179,7 +200,8 @@ const AdminRevisionszugaenge: React.FC = () => {
           {liste.map(z => {
             const s = stand(z);
             return (
-              <div key={z.id} className="py-3 flex items-center justify-between gap-4 flex-wrap">
+              <div key={z.id} className="py-3">
+              <div className="flex items-center justify-between gap-4 flex-wrap">
                 <div className="min-w-0">
                   <p className="font-bold text-sm text-stone-900 truncate">{z.bezeichnung}</p>
                   <p className="text-[11px] text-stone-400">
@@ -194,6 +216,10 @@ const AdminRevisionszugaenge: React.FC = () => {
                   <span className={`text-[10px] font-bold uppercase tracking-widest ${s.farbe}`}>
                     {s.wort}
                   </span>
+                  <button onClick={() => protokollZeigen(z.id)}
+                    className="text-[10px] font-bold uppercase tracking-widest text-stone-400 hover:text-stone-900">
+                    {protokollFuer === z.id ? 'Protokoll schliessen' : 'Zugriffe'}
+                  </button>
                   {!z.widerrufen_am && (
                     <button onClick={() => widerrufen(z)} disabled={arbeitet}
                       className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest
@@ -202,6 +228,33 @@ const AdminRevisionszugaenge: React.FC = () => {
                     </button>
                   )}
                 </div>
+              </div>
+              {/* Jeder Abruf einzeln: wann, welches Jahr, von wo, mit welchem
+                  Ergebnis. Abgewiesene Versuche mit diesem Link stehen mit drin. */}
+              {protokollFuer === z.id && (
+                <div className="mt-3 bg-stone-50 border border-stone-100 rounded-xl p-3 text-[11px]">
+                  {protokoll === null ? <Loader2 size={13} className="animate-spin text-stone-400" />
+                    : protokoll.length === 0 ? <p className="text-stone-400">Noch kein Zugriff.</p>
+                    : (
+                      <table className="w-full text-left">
+                        <thead className="text-stone-400 uppercase tracking-widest text-[9px]">
+                          <tr><th className="py-1">Zeitpunkt</th><th>Jahr</th><th>Ergebnis</th><th>IP-Adresse</th><th>Browser</th></tr>
+                        </thead>
+                        <tbody className="divide-y divide-stone-100">
+                          {protokoll.map((p, i) => (
+                            <tr key={i}>
+                              <td className="py-1.5 font-mono">{new Date(p.am).toLocaleString('de-CH', { dateStyle: 'short', timeStyle: 'medium' })}</td>
+                              <td>{p.jahr ?? '—'}</td>
+                              <td className={p.ergebnis === 'OK' ? 'text-emerald-700' : 'text-red-600 font-bold'}>{ergebnisText[p.ergebnis] || p.ergebnis}</td>
+                              <td className="font-mono">{p.ip || '—'}</td>
+                              <td>{browserKurz(p.browser)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                </div>
+              )}
               </div>
             );
           })}

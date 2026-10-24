@@ -26,12 +26,21 @@ const RevisionsSeite: React.FC = () => {
   const [laedt, setLaedt] = useState(true);
   const [daten, setDaten] = useState<any>(null);
 
+  const festesJahr = React.useRef(false);
   useEffect(() => {
+    if (festesJahr.current) { festesJahr.current = false; return; }
     let lebt = true;
     setLaedt(true); setFehler(''); setHtml(null);
     supabase.rpc('revisionsdaten', { p_token: token, p_jahr: jahr }).then(({ data, error }) => {
       if (!lebt) return;
       if (error) { setFehler(error.message || 'Zugang nicht gültig.'); setLaedt(false); return; }
+      // Abweisungen kommen als Ergebnis, nicht als Fehler -- sonst ginge
+      // ihr Eintrag im Zugriffsprotokoll verloren.
+      if ((data as any)?.fehler) { setFehler((data as any).fehler); setLaedt(false); return; }
+      // Ein Zugang fuer ein festes Jahr liefert dieses Jahr; die Auswahl
+      // zeigt es an, ohne neu zu laden (jeder Abruf wird protokolliert).
+      const fest = (data as any)?.zugang?.jahr;
+      if (fest && fest !== jahr) { festesJahr.current = true; setJahr(fest); }
       setDaten(data);
       setHtml(revisionsberichtHtml(data));
       setLaedt(false);
