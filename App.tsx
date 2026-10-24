@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import './lib/design.css';
 import { useWerBinIch, type WerBinIch } from './lib/useWerBinIch';
 import { useDemoRolle } from './lib/useDemoRolle';
 import { usePaket } from './lib/usePaket';
@@ -581,6 +582,7 @@ const AppContent: React.FC = () => {
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Zaehlwache />
+      <DesignMarke vorlage={vorlage} />
       <MaintenanceGuard maintenanceMode={systemSettings?.maintenanceMode || false} user={user} branding={branding}>
         {/* Grund aus der Variablen: sie steht in index.html je Domain und
             ist schon vor dem ersten Rendern gesetzt. */}
@@ -784,6 +786,28 @@ const AppContent: React.FC = () => {
       </MaintenanceGuard>
     </Router>
   );
+};
+
+// Die gewaehlte Vorlage gilt fuer die ganze oeffentliche Website, nicht nur
+// fuer die Startseite: lib/design.css uebersetzt Navigation, Fusszeile und
+// die Bausteine der uebrigen Seiten in ihr Aussehen. Hier stehen nur die
+// Marken am Wurzelelement. Wo gearbeitet wird -- Verwaltung, Mitglieder-
+// und Vertreterbereich, die Seiten hinter einem Zugangslink -- bleibt es
+// beim gewohnten Aussehen; die Navigation darueber traegt die Vorlage
+// trotzdem, sie gehoert zur Website.
+const ARBEITSBEREICHE = ['/dashboard', '/nachbarschaft', '/setup-profile', '/admin', '/super-admin',
+                         '/drucksachen', '/revision', '/treffen', '/vorstellen', '/heft'];
+const DesignMarke: React.FC<{ vorlage: string | null }> = ({ vorlage }) => {
+  const { pathname } = useLocation();
+  const istPlattform = useIstPlattformDomain();
+  useEffect(() => {
+    const h = document.documentElement;
+    const aktiv = istPlattform === false && !!vorlage && vorlage !== 'KLASSISCH';
+    const arbeit = ARBEITSBEREICHE.some(p => pathname.startsWith(p));
+    if (aktiv) h.dataset.design = vorlage!; else delete h.dataset.design;
+    if (aktiv && !arbeit && pathname !== '/') h.dataset.designSeite = vorlage!; else delete h.dataset.designSeite;
+  }, [vorlage, pathname, istPlattform]);
+  return null;
 };
 
 const Navigation: React.FC<any> = ({ user, branding, systemSettings, systemGeladen }) => {

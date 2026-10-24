@@ -1,0 +1,165 @@
+/* Das Design der gewaehlten Vorlage -- fuer die ganze oeffentliche Website,
+   nicht nur fuer die Startseite.
+
+   Die Vorlagen unter components/vorlagen zeichnen nur die Startseite. Alle
+   uebrigen Seiten (Ueber uns, Anlaesse, Neuigkeiten, Spenden, eigene
+   Seiten ...) sind mit den Farben der klassischen Vorlage gebaut: Stein-
+   toene, weisse Karten, grosse Rundungen. Wer "Magazin" waehlte, bekam
+   deshalb eine Zeitungsseite als Startseite und dahinter dieselbe Website
+   wie vorher.
+
+   Statt jede Seite sechsmal zu bauen, uebersetzt diese Datei die
+   Grundbausteine der Seiten in die Sprache der Vorlage: Papier statt
+   Weiss, Haarlinie statt Schatten, dunkler Grund statt hellem. App.tsx
+   setzt dafuer am Wurzelelement
+     data-design       die Vorlage -- gilt fuer Navigation und Fusszeile,
+     data-design-seite auf jeder oeffentlichen Seite ausser der Startseite
+                       (die zeichnet die Vorlage selbst).
+   Verwaltung, Mitgliederbereich und Vertreterbereich bleiben unberuehrt:
+   dort wird gearbeitet, nicht gezeigt. */
+
+/* ------------------------------------------------------------ Werte */
+html[data-design="MAGAZIN"] {
+  --d-grund: #f7f5f0; --d-flaeche: #fbfaf6; --d-flaeche-2: #efebe2;
+  --d-tinte: #141210; --d-tinte-2: #4a443c; --d-tinte-3: #8a8275;
+  --d-linie: #d8d2c6; --d-radius-gross: 2px; --d-radius: 2px;
+  --d-schatten: none; --d-dunkel: #141210;
+  --d-leiste: #f7f5f0; --d-leiste-tinte: #141210;
+}
+html[data-design="KOMPAKT"] {
+  --d-grund: #ffffff; --d-flaeche: #ffffff; --d-flaeche-2: #f5f5f4;
+  --d-tinte: #0c0a09; --d-tinte-2: #57534e; --d-tinte-3: #a8a29e;
+  --d-linie: #e7e5e4; --d-radius-gross: 1rem; --d-radius: .625rem;
+  --d-schatten: none; --d-dunkel: #0c0a09;
+  --d-leiste: rgba(255,255,255,.92); --d-leiste-tinte: #0c0a09;
+}
+html:is([data-design="ERZAEHLUNG"], [data-design="BUEHNE"], [data-design="JOURNAL"]) {
+  --d-grund: #0b0c10; --d-flaeche: #14161d; --d-flaeche-2: #1b1e27;
+  --d-tinte: #f6f5f3; --d-tinte-2: #b4b5bc; --d-tinte-3: #7d7f88;
+  --d-linie: rgba(255,255,255,.1); --d-radius-gross: 1.5rem; --d-radius: .875rem;
+  --d-schatten: 0 20px 40px -24px rgba(0,0,0,.9); --d-dunkel: #1b1e27;
+  --d-leiste: rgba(11,12,16,.72); --d-leiste-tinte: #e9e8e6;
+}
+/* Buehne: harte Kanten, wie ein Plakat. Journal: kaum Rundung, Band-Gefuehl. */
+html[data-design="BUEHNE"]  { --d-radius-gross: .5rem; --d-radius: .375rem; }
+html[data-design="JOURNAL"] { --d-radius-gross: .75rem; --d-radius: .5rem; }
+
+/* ------------------------------------------------------------ Seiten */
+html[data-design-seite] main { background: var(--d-grund); color: var(--d-tinte); }
+
+html[data-design-seite] main :is(.bg-\[\#faf9f6\], .bg-\[\#f7f5f0\], .bg-stone-50\/50) { background-color: var(--d-grund); }
+html[data-design-seite] main :is(.bg-white, .bg-white\/95, .bg-white\/90, .bg-white\/80, .bg-white\/70) { background-color: var(--d-flaeche); }
+html[data-design-seite] main :is(.bg-stone-50, .bg-stone-100, .bg-stone-200) { background-color: var(--d-flaeche-2); }
+html[data-design-seite] main :is(.bg-stone-900, .bg-stone-800, .bg-black) { background-color: var(--d-dunkel); }
+html[data-design-seite] main :is(.text-stone-900, .text-stone-800, .text-stone-700) { color: var(--d-tinte); }
+html[data-design-seite] main :is(.text-stone-600, .text-stone-500) { color: var(--d-tinte-2); }
+html[data-design-seite] main :is(.text-stone-400, .text-stone-300) { color: var(--d-tinte-3); }
+html[data-design-seite] main :is(.border-stone-50, .border-stone-100, .border-stone-200, .border-stone-300, .divide-stone-50 > *, .divide-stone-100 > *) { border-color: var(--d-linie); }
+html[data-design-seite] main :is(.bg-rose-50, .bg-rose-100) { background-color: color-mix(in srgb, var(--primary) 12%, transparent); }
+
+html[data-design-seite] main :is(.rounded-\[3rem\], .rounded-\[2\.5rem\], .rounded-\[2rem\], .rounded-3xl) { border-radius: var(--d-radius-gross); }
+html[data-design-seite] main :is(.rounded-2xl, .rounded-xl) { border-radius: var(--d-radius); }
+html[data-design-seite] main :is(.shadow-sm, .shadow, .shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl,
+  .hover\:shadow-xl:hover, .hover\:shadow-2xl:hover, .hover\:shadow-lg:hover) { box-shadow: var(--d-schatten); }
+
+/* Felder: auf dunklem Grund sonst schwarze Schrift auf schwarzer Flaeche. */
+html[data-design-seite] main :is(input, select, textarea) { color: var(--d-tinte); }
+html[data-design-seite] main :is(input, textarea)::placeholder { color: var(--d-tinte-3); }
+
+/* ------------------------------------------------------------ Magazin */
+/* Serifen ohne Kursiv, Linien statt Karten -- die Zeitungsseite. */
+html[data-design-seite="MAGAZIN"] main .italic { font-style: normal; }
+html[data-design-seite="MAGAZIN"] main .font-display { letter-spacing: -.01em; }
+html[data-design-seite="MAGAZIN"] main h1 { border-bottom: 2px solid var(--d-tinte); padding-bottom: .4em; }
+html[data-design-seite="MAGAZIN"] main :is(.border-stone-100, .border-stone-200) { border-color: var(--d-linie); }
+html[data-design-seite="MAGAZIN"] main .bg-white.border { border-color: var(--d-tinte); }
+
+/* ------------------------------------------------------------ Kompakt */
+/* Eine Schrift, gross und gerade. Keine Zierde, viel Luft. */
+html[data-design-seite="KOMPAKT"] main .font-display { font-family: 'Inter', sans-serif; font-weight: 700; letter-spacing: -.035em; }
+html[data-design-seite="KOMPAKT"] main .italic { font-style: normal; }
+html[data-design-seite="KOMPAKT"] main .bg-white.border { border-color: var(--d-linie); }
+
+/* ------------------------------------------------------------ Dunkel */
+/* Erzaehlung, Buehne, Journal: der Grund der Startseite traegt weiter. */
+html:is([data-design-seite="ERZAEHLUNG"], [data-design-seite="BUEHNE"], [data-design-seite="JOURNAL"]) main :is(.bg-red-50, .bg-emerald-50, .bg-green-50, .bg-amber-50, .bg-blue-50) {
+  background-color: rgba(255,255,255,.05);
+}
+html:is([data-design-seite="ERZAEHLUNG"], [data-design-seite="BUEHNE"], [data-design-seite="JOURNAL"]) main :is(.border-red-100, .border-emerald-100, .border-amber-100, .border-rose-100) {
+  border-color: var(--d-linie);
+}
+html:is([data-design-seite="ERZAEHLUNG"], [data-design-seite="BUEHNE"], [data-design-seite="JOURNAL"]) main :is(.bg-stone-900, .bg-black) { border: 1px solid var(--d-linie); }
+html:is([data-design-seite="BUEHNE"], [data-design-seite="JOURNAL"]) main .italic { font-style: normal; }
+html[data-design-seite="BUEHNE"] main h1 { text-transform: uppercase; letter-spacing: -.02em; }
+html[data-design-seite="JOURNAL"] main :is(.uppercase.tracking-widest, .uppercase.tracking-\[0\.2em\]) { font-family: 'IBM Plex Mono', monospace; font-weight: 400; }
+
+/* ------------------------------------------------------------ Navigation */
+html[data-design]:not([data-design="KLASSISCH"]) :is(nav, aside) .glass {
+  background: var(--d-leiste);
+  border-color: var(--d-linie);
+  box-shadow: var(--d-schatten);
+}
+html[data-design]:not([data-design="KLASSISCH"]) :is(nav, aside) .glass :is(a, button):not(.bg-primary):not(.bg-stone-900) { color: var(--d-leiste-tinte); }
+html[data-design]:not([data-design="KLASSISCH"]) :is(nav, aside) .glass .font-display { color: var(--d-leiste-tinte); }
+html[data-design]:not([data-design="KLASSISCH"]) :is(nav, aside) .glass .bg-white { background-color: color-mix(in srgb, var(--d-leiste-tinte) 9%, transparent); box-shadow: none; }
+html[data-design]:not([data-design="KLASSISCH"]) :is(nav, aside) .glass .hover\:bg-white\/50:hover { background-color: color-mix(in srgb, var(--d-leiste-tinte) 6%, transparent); }
+html[data-design]:not([data-design="KLASSISCH"]) nav .bg-white\/95 { background: var(--d-grund); color: var(--d-tinte); border-color: var(--d-linie); }
+html[data-design]:not([data-design="KLASSISCH"]) nav .bg-white\/95 .bg-stone-50 { background: var(--d-flaeche-2); }
+html[data-design]:not([data-design="KLASSISCH"]) nav .bg-white\/95 .bg-stone-100 { background: var(--d-linie); }
+html[data-design]:not([data-design="KLASSISCH"]) :is(nav, aside) .bg-stone-100\/50 { background: color-mix(in srgb, var(--d-leiste-tinte) 7%, transparent); }
+html[data-design]:not([data-design="KLASSISCH"]) :is(nav, aside) .bg-stone-100\/50 .bg-white { background: var(--d-flaeche); }
+html[data-design]:not([data-design="KLASSISCH"]) nav .glass > button.bg-white { background: transparent; border-color: var(--d-linie); color: var(--d-leiste-tinte); }
+
+/* Magazin: der Zeitungskopf -- eckig, zwei Linien, Grossbuchstaben. */
+html[data-design="MAGAZIN"] nav.fixed.top-0 { padding-left: 0; padding-right: 0; padding-top: 0; }
+html[data-design="MAGAZIN"] nav.fixed.top-0 > .glass {
+  max-width: none; border-radius: 0; border: 0;
+  border-bottom: 1px solid var(--d-tinte); box-shadow: 0 -2px 0 var(--d-tinte) inset;
+  padding-top: .9rem; padding-bottom: .9rem; backdrop-filter: none; -webkit-backdrop-filter: none;
+}
+html[data-design="MAGAZIN"] :is(nav, aside) .glass :is(a, button) .font-bold.text-sm { text-transform: uppercase; letter-spacing: .14em; font-size: .7rem; }
+html[data-design="MAGAZIN"] :is(nav, aside) .glass .italic { font-style: normal; }
+html[data-design="MAGAZIN"] :is(nav, aside) .glass :is(.rounded-xl, .rounded-lg, .rounded-md) { border-radius: 0; }
+html[data-design="MAGAZIN"] :is(nav, aside) .glass .bg-white { background: transparent; box-shadow: inset 0 -2px 0 var(--primary); }
+html[data-design="MAGAZIN"] aside > .glass { border-radius: 0; border: 0; border-right: 1px solid var(--d-tinte); }
+html[data-design="MAGAZIN"] aside.fixed { padding: 0; }
+html[data-design="MAGAZIN"] nav.fixed.bottom-0 > .glass { border-radius: 0; border-top: 2px solid var(--d-tinte); }
+html[data-design="MAGAZIN"] nav.fixed.bottom-0 { padding: 0; }
+
+/* Kompakt: ein Band, das kaum auffaellt. */
+html[data-design="KOMPAKT"] nav.fixed.top-0 { padding-left: 0; padding-right: 0; padding-top: 0; }
+html[data-design="KOMPAKT"] nav.fixed.top-0 > .glass {
+  max-width: none; border-radius: 0; border: 0; border-bottom: 1px solid var(--d-linie);
+  padding-left: 1.5rem; padding-right: 1.5rem;
+}
+html[data-design="KOMPAKT"] :is(nav, aside) .glass .italic { font-style: normal; }
+html[data-design="KOMPAKT"] :is(nav, aside) .glass .font-display { font-family: 'Inter', sans-serif; letter-spacing: -.03em; }
+html[data-design="KOMPAKT"] aside > .glass { border-radius: 0; border: 0; border-right: 1px solid var(--d-linie); }
+html[data-design="KOMPAKT"] aside.fixed { padding: 0; }
+
+/* Dunkel: die Leiste der erzaehlenden Startseiten, auf jeder Seite. */
+html:is([data-design="ERZAEHLUNG"], [data-design="BUEHNE"], [data-design="JOURNAL"]) :is(nav, aside) .glass {
+  border: 1px solid rgba(255,255,255,.12);
+}
+html:is([data-design="BUEHNE"], [data-design="JOURNAL"]) :is(nav, aside) .glass .italic { font-style: normal; }
+html[data-design="JOURNAL"] :is(nav, aside) .glass :is(a, button) .font-bold.text-sm { font-family: 'IBM Plex Mono', monospace; font-weight: 400; text-transform: uppercase; letter-spacing: .08em; font-size: .72rem; }
+html[data-design="BUEHNE"] :is(nav, aside) .glass :is(a, button) .font-bold.text-sm { text-transform: uppercase; letter-spacing: .06em; }
+
+/* ------------------------------------------------------------ Fusszeile */
+html:is([data-design="MAGAZIN"], [data-design="KOMPAKT"]) footer.bg-secondary {
+  background: var(--d-grund); color: var(--d-tinte); border-top: 1px solid var(--d-tinte);
+}
+html[data-design="MAGAZIN"] footer.bg-secondary { box-shadow: inset 0 3px 0 var(--d-grund), inset 0 5px 0 var(--d-tinte); }
+html[data-design="KOMPAKT"] footer.bg-secondary { border-top-color: var(--d-linie); }
+html:is([data-design="MAGAZIN"], [data-design="KOMPAKT"]) footer.bg-secondary :is(.text-white\/50, .text-white\/60) { color: var(--d-tinte-2); }
+html:is([data-design="MAGAZIN"], [data-design="KOMPAKT"]) footer.bg-secondary :is(.text-white\/30) { color: var(--d-tinte-3); }
+html:is([data-design="MAGAZIN"], [data-design="KOMPAKT"]) footer.bg-secondary .hover\:text-white:hover { color: var(--d-tinte); }
+html:is([data-design="MAGAZIN"], [data-design="KOMPAKT"]) footer.bg-secondary .border-white\/10 { border-color: var(--d-linie); }
+html:is([data-design="MAGAZIN"], [data-design="KOMPAKT"]) footer.bg-secondary .italic { font-style: normal; }
+html:is([data-design="ERZAEHLUNG"], [data-design="BUEHNE"], [data-design="JOURNAL"]) footer.bg-secondary {
+  background: #08090c; border-top: 1px solid rgba(255,255,255,.08);
+}
+
+/* Sprachwahl: die aktive Sprache behaelt die Hausfarbe. */
+html[data-design]:not([data-design="KLASSISCH"]) :is(nav, aside) .bg-stone-100\/50 button.text-primary { color: var(--primary); }
+html[data-design]:not([data-design="KLASSISCH"]) :is(nav, aside) .bg-stone-100\/50 button.text-stone-400 { color: var(--d-leiste-tinte); opacity: .5; }
