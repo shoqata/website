@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowUp, ArrowDown, Eye, EyeOff, Loader2, Save, Check, AlertCircle } from 'lucide-react';
+import { ArrowUp, ArrowDown, Eye, EyeOff, Loader2, Save, Check, AlertCircle, Monitor, Smartphone } from 'lucide-react';
 import { db } from '../services/datenzugriff';
 import { doc, onSnapshot, setDoc } from '@/services/supabase-bridge';
 import { useTranslation } from '../context/LanguageContext';
 import { useFeedback } from '../context/FeedbackContext';
-import { useKopfzeile, NavEintrag } from './kopfzeile';
+import { useKopfzeile, NavEintrag, NavOrt, NavLayout, navLayout, zeigtOben, zeigtFuss } from './kopfzeile';
 
 // Die Kopfzeile der Website verwalten: welche Eintraege, in welcher
 // Reihenfolge.
@@ -25,6 +25,7 @@ const AdminNavigation: React.FC = () => {
   const [speichert, setSpeichert] = useState(false);
   const [gespeichert, setGespeichert] = useState(false);
   const [geaendert, setGeaendert] = useState(false);
+  const [layout, setLayout] = useState<NavLayout | null>(null);
 
   useEffect(() => onSnapshot(doc(db, 'settings', 'system'), (snap: any) => {
     setSystem(snap.exists() ? snap.data() : {});
@@ -37,6 +38,17 @@ const AdminNavigation: React.FC = () => {
   // Einmal uebernehmen, danach gehoert die Liste der Maske -- sonst
   // ueberschriebe jede Antwort der Datenbank die laufende Bearbeitung.
   useEffect(() => { if (alle && system !== undefined && !geaendert) setListe(alle); }, [alle, system]);
+  useEffect(() => { if (system !== undefined && !geaendert) setLayout(navLayout(system?.navigationLayout)); }, [system]);
+
+  const ortSetzen = (i: number, ort: NavOrt) => {
+    if (!liste) return;
+    setListe(liste.map((e, k) => k === i ? { ...e, ort } : e));
+    setGeaendert(true); setGespeichert(false);
+  };
+  const layoutSetzen = (neu: Partial<NavLayout>) => {
+    setLayout(l => ({ ...(l || navLayout(null)), ...neu }));
+    setGeaendert(true); setGespeichert(false);
+  };
 
   const schieben = (i: number, um: number) => {
     if (!liste) return;
@@ -57,7 +69,8 @@ const AdminNavigation: React.FC = () => {
     setSpeichert(true);
     try {
       await setDoc(doc(db, 'settings', 'system'),
-        { navigation: liste.map(e => ({ schluessel: e.schluessel, an: e.an })) }, { merge: true });
+        { navigation: liste.map(e => ({ schluessel: e.schluessel, an: e.an, ort: e.ort })),
+          navigationLayout: layout || navLayout(null) }, { merge: true });
       setGeaendert(false); setGespeichert(true);
     } catch (e: any) {
       showAlert({ type: 'error', message: e?.message || t('set.save_failed') });
@@ -68,7 +81,22 @@ const AdminNavigation: React.FC = () => {
 
   if (!liste) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
-  const sichtbar = liste.filter(e => e.an && e.moeglich);
+  const sichtbar = liste.filter(e => e.an && e.moeglich && zeigtOben(e));
+  const imFuss = liste.filter(e => e.an && e.moeglich && zeigtFuss(e));
+  const lay = layout || navLayout(null);
+
+  const Wahl = <W extends string>({ wert, optionen, setzen }:
+    { wert: W; optionen: [W, string][]; setzen: (w: W) => void }) => (
+    <div className="flex bg-stone-100 p-1 rounded-xl gap-1">
+      {optionen.map(([w, label]) => (
+        <button key={w} onClick={() => setzen(w)}
+          className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold transition-colors ${
+            wert === w ? 'bg-white shadow-sm text-stone-900' : 'text-stone-500 hover:text-stone-800'}`}>
+          {label}
+        </button>
+      ))}
+    </div>
+  );
 
   return (
     <div className="space-y-5">
@@ -77,14 +105,43 @@ const AdminNavigation: React.FC = () => {
         <p className="text-xs text-stone-500 leading-relaxed mt-1 max-w-2xl">{t('navv.hinweis')}</p>
       </div>
 
-      {/* Vorschau: so sieht die Leiste aus. */}
-      <div className="bg-stone-50 border border-stone-100 rounded-2xl p-3 flex flex-wrap gap-1.5">
-        {sichtbar.length === 0 && <span className="text-xs text-stone-400 italic p-2">{t('navv.leer')}</span>}
-        {sichtbar.map(e => (
-          <span key={e.schluessel} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white shadow-sm text-sm font-bold">
-            {e.icon}{e.uebersetzen ? t(e.label) : e.label}
-          </span>
-        ))}
+      {/* Wo die Navigation steht -- am Computer und auf dem Handy getrennt. */}
+      <div className="bg-white border border-stone-100 rounded-2xl p-4 space-y-3">
+        <p className="text-xs font-bold text-stone-500 uppercase tracking-wider">{t('navv.layout')}</p>
+        <div className="grid md:grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <p className="text-xs font-bold text-stone-700 flex items-center gap-1.5"><Monitor size={13} /> {t('navv.computer')}</p>
+            <Wahl wert={lay.computer} setzen={(w) => layoutSetzen({ computer: w })}
+              optionen={[['KOPFZEILE', t('navv.kopfzeile')], ['SEITENLEISTE', t('navv.seitenleiste')]]} />
+          </div>
+          <div className="space-y-1.5">
+            <p className="text-xs font-bold text-stone-700 flex items-center gap-1.5"><Smartphone size={13} /> {t('navv.handy')}</p>
+            <Wahl wert={lay.handy} setzen={(w) => layoutSetzen({ handy: w })}
+              optionen={[['MENUE', t('navv.menue')], ['LEISTE', t('navv.leiste_unten')]]} />
+          </div>
+        </div>
+        {lay.handy === 'LEISTE' && <p className="text-[11px] text-stone-500">{t('navv.leiste_hinweis')}</p>}
+      </div>
+
+      {/* Vorschau: was in der Navigation steht, was in der Fusszeile. */}
+      <div className="space-y-2">
+        <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">{t('navv.vorschau_oben')}</p>
+        <div className={`bg-stone-50 border border-stone-100 rounded-2xl p-3 flex gap-1.5 ${
+          lay.computer === 'SEITENLEISTE' ? 'flex-col items-start max-w-xs' : 'flex-wrap'}`}>
+          {sichtbar.length === 0 && <span className="text-xs text-stone-400 italic p-2">{t('navv.leer')}</span>}
+          {sichtbar.map(e => (
+            <span key={e.schluessel} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white shadow-sm text-sm font-bold">
+              {e.icon}{e.uebersetzen ? t(e.label) : e.label}
+            </span>
+          ))}
+        </div>
+        <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider pt-1">{t('navv.vorschau_fuss')}</p>
+        <div className="bg-stone-800 rounded-2xl p-3 flex flex-wrap gap-x-4 gap-y-1.5">
+          {imFuss.length === 0 && <span className="text-xs text-white/40 italic p-1">{t('navv.leer')}</span>}
+          {imFuss.map(e => (
+            <span key={e.schluessel} className="text-sm text-white/70">{e.uebersetzen ? t(e.label) : e.label}</span>
+          ))}
+        </div>
       </div>
 
       <div className="border border-stone-100 rounded-2xl divide-y divide-stone-100 bg-white">
@@ -104,6 +161,15 @@ const AdminNavigation: React.FC = () => {
                 <p className="text-[11px] text-amber-700 flex items-center gap-1 mt-0.5"><AlertCircle size={11} /> {e.grund}</p>
               )}
             </div>
+            {e.an && (
+              <select value={e.ort} onChange={ev => ortSetzen(i, ev.target.value as NavOrt)}
+                aria-label={t('navv.ort')}
+                className="px-2 py-2 bg-white border border-stone-200 rounded-xl text-xs font-bold shrink-0">
+                <option value="OBEN">{t('navv.ort_oben')}</option>
+                <option value="FUSS">{t('navv.ort_fuss')}</option>
+                <option value="BEIDES">{t('navv.ort_beides')}</option>
+              </select>
+            )}
             <button onClick={() => schalten(i)}
               className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 ${
                 e.an ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-500'}`}>

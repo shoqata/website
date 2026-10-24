@@ -99,6 +99,15 @@
       .font-display {
         font-family: 'Playfair Display', serif;
       }
+      /* Platz fuer die gewaehlte Navigation (App.tsx setzt die Marken). */
+      @media (min-width: 768px) {
+        html[data-nav-seite] main, html[data-nav-seite] footer { padding-left: 18rem; }
+      }
+      @media (max-width: 767px) {
+        html[data-nav-unten] main { padding-bottom: 6rem; }
+        html[data-nav-unten] footer { padding-bottom: 8rem; }
+        html[data-nav-unten] .ueber-leiste { bottom: 6.5rem !important; }
+      }
       .glass {
         background: rgba(255, 255, 255, 0.4);
         backdrop-filter: blur(12px);

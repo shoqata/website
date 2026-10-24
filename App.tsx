@@ -26,11 +26,11 @@ import { useOeffentlicheModule } from './lib/useOeffentlicheModule';
 import { seitenZustand } from './lib/modulgate';
 import { useWerbemessung } from './lib/useWerbemessung';
 import { useSpendenseiteSichtbar } from './lib/useSpendenseiteSichtbar';
-import { useKopfzeile } from './components/kopfzeile';
+import { useKopfzeile, navLayout, zeigtOben, zeigtFuss } from './components/kopfzeile';
 import { useReiterKennzeichen } from './lib/useReiterKennzeichen';
 import { HashRouter as Router, Routes, Route, Link, useLocation, Navigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Building2, Calendar, ChevronDown, Film, Globe, Hammer, Heart, Info, LayoutDashboard, Loader2, LogIn, LogOut, Mail, MapPin, Maximize, Menu, Newspaper, QrCode, Settings, ShieldCheck, Smartphone, Sparkles, Trophy, UserPlus, X, Zap } from 'lucide-react';
+import { ArrowRight, Building2, Calendar, ChevronDown, Film, Globe, Hammer, Heart, Home, Info, LayoutDashboard, Loader2, LogIn, LogOut, Mail, MapPin, Maximize, Menu, Newspaper, QrCode, Settings, ShieldCheck, Smartphone, Sparkles, Trophy, UserPlus, X, Zap } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
 // Supabase Auth (replaces Firebase Auth)
@@ -754,7 +754,7 @@ const AppContent: React.FC = () => {
                 </ErrorBoundary>
             </AnimatePresence>
             </main>
-            <ConditionalFooter branding={branding} user={user} />
+            <ConditionalFooter branding={branding} user={user} systemSettings={systemSettings} systemGeladen={systemGeladen} />
             <CookieConsent />
             {/* Zeigt sich nur dem Betreiber auf der Domain eines Vereins --
                 und nur, wenn er selbst zu keinem Verein gehoert. Sonst sieht
@@ -802,10 +802,26 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings, systemGelad
     zahlerliste: (systemSettings as any)?.zahlerliste,
     angemeldet: !!user, loc,
   });
-  const kopf = systemGeladen ? kopfAlle : null;
+  const kopf = systemGeladen ? (kopfAlle || []).filter(zeigtOben) : null;
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isActive = (path: string) => location.pathname === path;
+  // Wo die Navigation steht, waehlt der Verein (Website -> Navigation).
+  // Solange die Einstellungen fehlen, die Kopfzeile -- wie bisher.
+  const layout = navLayout(systemGeladen ? (systemSettings as any)?.navigationLayout : null);
+  const seitenleiste = layout.computer === 'SEITENLEISTE';
+  const leisteUnten = layout.handy === 'LEISTE';
+  // Platz fuer Seitenleiste und untere Leiste schafft index.html ueber
+  // diese Marken. Verschwindet die Navigation (Verwaltung), gehen sie mit.
+  useEffect(() => {
+    const h = document.documentElement;
+    if (seitenleiste) h.setAttribute('data-nav-seite', ''); else h.removeAttribute('data-nav-seite');
+    if (leisteUnten) h.setAttribute('data-nav-unten', ''); else h.removeAttribute('data-nav-unten');
+    return () => { h.removeAttribute('data-nav-seite'); h.removeAttribute('data-nav-unten'); };
+  }, [seitenleiste, leisteUnten]);
+  useEffect(() => { setIsMenuOpen(false); }, [location.pathname]);
+  const label = (e: any) => e.uebersetzen ? t(e.label) : e.label;
+  const istAdmin = !!user && (user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN || ADMIN_EMAILS.includes(user.email));
 
   const handleSignOut = async () => {
     try {
@@ -815,15 +831,79 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings, systemGelad
     }
   };
 
+  const logo = (gross: boolean) => branding.logoUrl ? (
+    <img src={branding.logoUrl} style={{ height: branding.logoHeight || '2.5rem' }} className="w-auto object-contain" alt="Logo"  onError={onImageError}/>
+  ) : (
+    <div className={`bg-primary ${gross ? 'p-2.5' : 'p-2'} rounded-xl text-white shadow-lg`}><Heart size={24} fill="white" /></div>
+  );
+  const sprachen = (
+    <div className="flex gap-1 bg-stone-100/50 p-1 rounded-lg">
+      {['sq', 'de', 'en'].map(l => ( <button key={l} onClick={() => setLanguage(l as any)} className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${language === l ? 'bg-white text-primary' : 'text-stone-400'}`}>{l}</button> ))}
+    </div>
+  );
+
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 p-4 md:p-6 select-none">
+    <>
+    {/* Seitenleiste links, nur am Computer. Auf dem Handy bleibt es bei
+        der Kopfzeile mit Menue oder der Leiste unten. */}
+    {seitenleiste && (
+      <aside className="hidden md:flex fixed top-0 left-0 bottom-0 w-72 z-50 p-4 select-none">
+        <div className="glass rounded-2xl shadow-lg flex flex-col w-full p-4 gap-1 overflow-y-auto">
+          <Link to="/" className="flex items-center gap-3 p-2 mb-4">
+            {logo(true)}
+            <span className="font-display font-bold text-lg italic text-stone-800 leading-tight">{loc((branding as any).associationName) || ''}</span>
+          </Link>
+          {(kopf || []).map(e => (
+            <Link key={e.schluessel} to={e.pfad} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${isActive(e.pfad) ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}>
+              {e.icon}<span className="font-bold text-sm">{label(e)}</span>
+            </Link>
+          ))}
+          <div className="flex-1" />
+          <div className="pt-4 border-t border-stone-200/60 space-y-3">
+            {sprachen}
+            {user ? (
+              <div className="flex items-center gap-2">
+                <Link to="/dashboard" className="flex-1 flex items-center gap-2 px-3 py-2.5 bg-stone-900 text-white rounded-xl text-sm font-bold"><LayoutDashboard size={15} /> {t('nav.dashboard')}</Link>
+                {istAdmin && <Link to="/admin" className="w-10 h-10 bg-stone-900 text-white rounded-xl flex items-center justify-center"><ShieldCheck size={16} /></Link>}
+                {werIch?.ist_betreiber && (
+                  <Link to="/super-admin" title={t('nav.platform')} className="w-10 h-10 bg-primary text-white rounded-xl flex items-center justify-center"><Building2 size={16} /></Link>
+                )}
+                <button onClick={handleSignOut} className="w-10 h-10 text-stone-400 hover:text-primary flex items-center justify-center"><LogOut size={18} /></button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <Link to="/register" className="bg-primary text-white px-4 py-2.5 rounded-xl text-sm font-bold text-center shadow-lg">{t('nav.join')}</Link>
+                <Link to="/login" className="text-sm font-bold text-stone-500 hover:text-primary text-center py-1">{t('nav.login')}</Link>
+              </div>
+            )}
+          </div>
+        </div>
+      </aside>
+    )}
+
+    {/* Leiste unten, nur auf dem Handy: Start, die ersten Eintraege, Mehr. */}
+    {leisteUnten && (
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 select-none">
+        <div className="glass rounded-2xl shadow-lg flex items-stretch justify-around px-1 py-1.5">
+          <Link to="/" className={`flex-1 flex flex-col items-center gap-1 py-1.5 rounded-xl ${isActive('/') ? 'bg-white shadow-sm text-stone-900' : 'text-stone-500'}`}>
+            <Home size={20} /><span className="text-[10px] font-bold truncate max-w-full px-1">{t('nav.home')}</span>
+          </Link>
+          {(kopf || []).slice(0, 3).map(e => (
+            <Link key={e.schluessel} to={e.pfad} className={`flex-1 min-w-0 flex flex-col items-center gap-1 py-1.5 rounded-xl ${isActive(e.pfad) ? 'bg-white shadow-sm text-stone-900' : 'text-stone-500'}`}>
+              {e.iconKlein}<span className="text-[10px] font-bold truncate max-w-full px-1">{label(e)}</span>
+            </Link>
+          ))}
+          <button onClick={() => setIsMenuOpen(!isMenuOpen)} className={`flex-1 flex flex-col items-center gap-1 py-1.5 rounded-xl ${isMenuOpen ? 'bg-white shadow-sm text-stone-900' : 'text-stone-500'}`}>
+            {isMenuOpen ? <X size={20} /> : <Menu size={20} />}<span className="text-[10px] font-bold">{t('nav.mehr')}</span>
+          </button>
+        </div>
+      </nav>
+    )}
+
+    <nav className={`fixed top-0 left-0 right-0 z-50 p-4 md:p-6 select-none ${seitenleiste ? 'md:hidden' : ''}`}>
       <div className="max-w-7xl mx-auto glass rounded-2xl flex items-center justify-between px-4 py-2 shadow-lg relative">
         <Link to="/" className="flex items-center gap-3 pr-4 group relative z-50">
-          {branding.logoUrl ? (
-            <img src={branding.logoUrl} style={{ height: branding.logoHeight || '2.5rem' }} className="w-auto object-contain" alt="Logo"  onError={onImageError}/>
-          ) : (
-            <div className="bg-primary p-2 rounded-xl text-white shadow-lg"><Heart size={24} fill="white" /></div>
-          )}
+          {logo(false)}
           <span className="font-display font-bold text-xl italic hidden xl:block text-stone-800">{loc((branding as any).associationName) || ''}</span>
         </Link>
 
@@ -841,14 +921,12 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings, systemGelad
         </div>
 
         <div className="flex items-center gap-2 md:gap-4 z-50">
-          <div className="flex gap-1 bg-stone-100/50 p-1 rounded-lg">
-            {['sq', 'de', 'en'].map(l => ( <button key={l} onClick={() => setLanguage(l as any)} className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${language === l ? 'bg-white text-primary' : 'text-stone-400'}`}>{l}</button> ))}
-          </div>
+          {sprachen}
           <div className="hidden md:flex items-center gap-3 pl-2">
               {user ? (
                 <>
                    <Link to="/dashboard" className="text-sm font-bold text-stone-500 hover:text-stone-900">{t('nav.dashboard')}</Link>
-                   {(user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN || ADMIN_EMAILS.includes(user.email)) && ( <Link to="/admin" className="w-9 h-9 bg-stone-900 text-white rounded-xl flex items-center justify-center shadow-lg"><ShieldCheck size={16} /></Link> )}
+                   {istAdmin && ( <Link to="/admin" className="w-9 h-9 bg-stone-900 text-white rounded-xl flex items-center justify-center shadow-lg"><ShieldCheck size={16} /></Link> )}
                    {werIch?.ist_betreiber && (
                      <Link to="/super-admin" title={t('nav.platform')} className="w-9 h-9 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg hover:bg-rose-600 transition-colors">
                        <Building2 size={16} />
@@ -863,7 +941,7 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings, systemGelad
                 </>
               )}
           </div>
-          <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="md:hidden w-10 h-10 bg-white rounded-xl flex items-center justify-center text-stone-600 shadow-sm border border-stone-100">
+          <button onClick={() => setIsMenuOpen(!isMenuOpen)} className={`${leisteUnten ? 'hidden' : 'md:hidden'} w-10 h-10 bg-white rounded-xl flex items-center justify-center text-stone-600 shadow-sm border border-stone-100`}>
             {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
@@ -871,7 +949,7 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings, systemGelad
         <AnimatePresence>
             {isMenuOpen && (
                 <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute top-full left-0 right-0 mt-3 mx-2 p-4 bg-white/95 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-white/20 md:hidden flex flex-col gap-2 z-40">
-                    {(kopf || []).map(e => (
+                    {(kopf || []).slice(leisteUnten ? 3 : 0).map(e => (
                       <Link key={e.schluessel} to={e.pfad} onClick={() => setIsMenuOpen(false)} className="flex items-center gap-4 p-4 bg-stone-50 rounded-2xl">{e.iconKlein}<span className="font-bold">{e.uebersetzen ? t(e.label) : e.label}</span></Link>
                     ))}
                     <div className="h-px bg-stone-100 my-2" />
@@ -891,6 +969,7 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings, systemGelad
         </AnimatePresence>
       </div>
     </nav>
+    </>
   );
 };
 
@@ -909,33 +988,19 @@ const ConditionalNavigation = ({ user, branding, systemSettings, systemGeladen }
   return <Navigation user={user} branding={branding} systemSettings={systemSettings} systemGeladen={systemGeladen} />;
 };
 
-const ConditionalFooter = ({ branding, user }: any) => {
+const ConditionalFooter = ({ branding, user, systemSettings, systemGeladen }: any) => {
   const { t, loc } = useTranslation();
-  // Dieselbe Frage wie in der Leiste: ohne gebuchtes Modul kein Verweis.
-  // Die Fusszeile ist die einzige durchgehende Navigation der Seite --
-  // ein Verweis, der nur hier stehenbliebe, fuehrte auf eine Umleitung.
-  const fussModule = useOeffentlicheModule();
-  const fussHatModul = (k: string) => !!fussModule?.has(k);
-  // Eigene Seiten des Vereins, die ins Menue sollen. Die Fusszeile ist die
-  // einzige durchgehende Navigation dieser Seite -- ohne sie waere der
-  // Schalter "Im Menue zeigen" ein Schalter ohne Wirkung.
-  //
-  // Gelesen wird ohne Anmeldung: die Zeilenregel gibt Besuchern nur
-  // veroeffentlichte Seiten ihres Vereins.
-  const [eigene, setEigene] = React.useState<{ pfad: string; titel: any }[]>([]);
-  React.useEffect(() => {
-    let lebt = true;
-    (async () => {
-      try {
-        const { supabase } = await import('./services/supabase-bridge');
-        if (!supabase) return;
-        const { data } = await supabase.from('seiten')
-          .select('pfad,titel').eq('im_menue', true).order('reihenfolge').limit(12);
-        if (lebt) setEigene((data as any[]) ?? []);
-      } catch { /* ohne eigene Seiten ist die Fusszeile wie bisher */ }
-    })();
-    return () => { lebt = false; };
-  }, []);
+  // Dieselbe Liste wie die Navigation (kopfzeile.tsx). Was in die
+  // Fusszeile kommt, bestimmt der Verein je Eintrag (Navigation,
+  // Fusszeile, beides); ob ein Eintrag erscheinen KANN, das Modul. Vorher
+  // standen die Verweise hier von Hand -- "Ueber uns" auch ohne Modul
+  // Website, und eigene Seiten ueber eine zweite Abfrage.
+  const fussAlle = useKopfzeile({
+    einstellung: (systemSettings as any)?.navigation,
+    zahlerliste: (systemSettings as any)?.zahlerliste,
+    angemeldet: !!user, loc,
+  });
+  const fuss = systemGeladen ? (fussAlle || []).filter(zeigtFuss) : [];
   const routeLoc = useLocation();
   // Dieselbe Ueberlegung wie bei der Navigation: die Fusszeile eines Vereins
   // gehoert nicht auf die Adresse der Plattform.
@@ -982,19 +1047,12 @@ const ConditionalFooter = ({ branding, user }: any) => {
             <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-primary">{t('footer.links')}</h4>
             <div className="flex flex-col gap-3 text-white/60">
               <Link to="/" className="hover:text-white transition-colors">{t('nav.home')}</Link>
-              <Link to="/about" className="hover:text-white transition-colors">{t('nav.about')}</Link>
-              {fussHatModul('DORFLEBEN') && (
-                <Link to="/live" className="hover:text-white transition-colors">{t('nav.live')}</Link>
-              )}
-              {fussHatModul('TURNIER') && (
-                <Link to="/fussball" className="hover:text-white transition-colors">{t('nav.turnier')}</Link>
-              )}
-              <Link to="/login" className="hover:text-white transition-colors">{t('nav.membership')}</Link>
-              {eigene.map(seite => (
-                <Link key={seite.pfad} to={`/${seite.pfad}`} className="hover:text-white transition-colors">
-                  {loc(seite.titel) || seite.pfad}
+              {fuss.map(e => (
+                <Link key={e.schluessel} to={e.pfad} className="hover:text-white transition-colors">
+                  {e.uebersetzen ? t(e.label) : e.label}
                 </Link>
               ))}
+              <Link to="/login" className="hover:text-white transition-colors">{t('nav.membership')}</Link>
             </div>
           </div>
         </div>

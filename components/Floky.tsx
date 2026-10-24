@@ -388,7 +388,7 @@ const Floky: React.FC = () => {
 
   if (!offen) return (
     <button onClick={() => setOffen(true)}
-      className="fixed bottom-6 right-6 z-40 flex items-center gap-2 bg-stone-900 text-white
+      className="ueber-leiste fixed bottom-6 right-6 z-40 flex items-center gap-2 bg-stone-900 text-white
                  pl-4 pr-5 py-3 rounded-2xl shadow-2xl hover:bg-stone-800 transition-colors">
       <Sparkles size={16} className="text-[color:var(--primary)]" />
       <span className="text-xs font-bold uppercase tracking-widest">{name}</span>
@@ -398,7 +398,7 @@ const Floky: React.FC = () => {
   const sichtbar = gespraeche.filter(g => g.archiviert === zeigeArchiv);
 
   return (
-    <div className={`fixed bottom-6 right-6 z-40 bg-white rounded-3xl shadow-2xl
+    <div className={`ueber-leiste fixed bottom-6 right-6 z-40 bg-white rounded-3xl shadow-2xl
                      border border-stone-200 flex overflow-hidden transition-all
                      ${GROESSEN[groesse]}`}>
 

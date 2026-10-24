@@ -326,7 +326,10 @@ export interface SystemSettings {
   startseiteVariante?: 'STANDARD' | 'PREMIUM';
   /** Kopfzeile: Reihenfolge und An/Aus je Eintrag (siehe kopfzeile.tsx).
       Ob ein Eintrag erscheinen KANN, entscheidet weiterhin das Modul. */
-  navigation?: { schluessel: string; an: boolean }[];
+  navigation?: { schluessel: string; an: boolean; ort?: 'OBEN' | 'FUSS' | 'BEIDES' }[];
+  /** Wo die Navigation steht. Computer: Kopfzeile oben oder Seitenleiste
+      links. Handy: Menue-Knopf oder Leiste unten. */
+  navigationLayout?: { computer?: 'KOPFZEILE' | 'SEITENLEISTE'; handy?: 'MENUE' | 'LEISTE' };
   /** Zahlerliste /beitraege. Entschieden wird in zahlerliste(). */
   zahlerliste?: { sichtbar: 'AUS' | 'MITGLIEDER' | 'OEFFENTLICH'; inhalt: 'STATISTIK' | 'NAMEN'; nachbarschaften: boolean };
   maintenanceMode: boolean;

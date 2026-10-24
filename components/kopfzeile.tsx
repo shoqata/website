@@ -15,7 +15,22 @@ import { useSpendenseiteSichtbar } from '../lib/useSpendenseiteSichtbar';
 // gebuchte Modul bzw. die Einstellung der Seite -- ein Verweis auf eine
 // Seite, die auf die Startseite umleitet, waere eine Falle.
 
-export type NavEinstellung = { schluessel: string; an: boolean }[];
+// ort: wo der Eintrag erscheint -- in der Navigation (oben bzw. in der
+// Seitenleiste), in der Fusszeile oder in beiden.
+export type NavOrt = 'OBEN' | 'FUSS' | 'BEIDES';
+export type NavEinstellung = { schluessel: string; an: boolean; ort?: NavOrt }[];
+export type NavLayout = { computer: 'KOPFZEILE' | 'SEITENLEISTE'; handy: 'MENUE' | 'LEISTE' };
+
+export const navLayout = (w: any): NavLayout => ({
+  computer: w?.computer === 'SEITENLEISTE' ? 'SEITENLEISTE' : 'KOPFZEILE',
+  handy: w?.handy === 'LEISTE' ? 'LEISTE' : 'MENUE',
+});
+
+// Ohne gespeicherte Wahl: wie die Seite bisher war. "Ueber uns", Live und
+// Turnier standen oben und in der Fusszeile, der Rest nur oben.
+const ORT_BISHER: Record<string, NavOrt> = { about: 'BEIDES', live: 'BEIDES', fussball: 'BEIDES' };
+export const zeigtOben = (e: { ort: NavOrt }) => e.ort !== 'FUSS';
+export const zeigtFuss = (e: { ort: NavOrt }) => e.ort !== 'OBEN';
 
 export type NavEintrag = {
   schluessel: string;
@@ -28,7 +43,10 @@ export type NavEintrag = {
   moeglich: boolean;
   grund?: string;
   an: boolean;
+  ort: NavOrt;
   eigeneSeite: boolean;
+  /** Eigene Seite mit "Im Menü" -- stand bisher immer in der Fusszeile. */
+  imMenue?: boolean;
 };
 
 type Fest = { schluessel: string; pfad: string; label: string; I: any; farbe: string };
@@ -93,13 +111,16 @@ export function useKopfzeile(opts: {
         schluessel: f.schluessel, pfad: f.pfad, label: f.label, uebersetzen: true,
         icon: <f.I size={16} className={f.farbe} />, iconKlein: <f.I size={20} />,
         moeglich: m, grund: m ? undefined : g, an: true, eigeneSeite: false,
+        ort: ORT_BISHER[f.schluessel] ?? 'OBEN',
       };
     }),
     ...seiten.map(s => ({
       schluessel: `seite:${s.pfad}`, pfad: `/${s.pfad}`, label: opts.loc(s.titel) || s.pfad, uebersetzen: false,
       icon: <FileText size={16} className="text-stone-500" />, iconKlein: <FileText size={20} />,
       moeglich: hat('WEBSITE'), grund: hat('WEBSITE') ? undefined : 'Modul Website ist nicht gebucht',
-      an: false, eigeneSeite: true,
+      // Bisher: in der Kopfzeile nur, wenn eingeschaltet; in der Fusszeile,
+      // wenn die Seite "Im Menü" hat. Ohne Einstellung bleibt das so.
+      an: !!s.im_menue, ort: (s.im_menue ? 'FUSS' : 'OBEN') as NavOrt, eigeneSeite: true, imMenue: !!s.im_menue,
     })),
   ];
 
@@ -110,7 +131,16 @@ export function useKopfzeile(opts: {
   for (const e of opts.einstellung ?? []) {
     const k = nach.get(e.schluessel);
     if (!k) continue;
-    geordnet.push({ ...k, an: e.an });
+    if (e.ort === 'OBEN' || e.ort === 'FUSS' || e.ort === 'BEIDES') {
+      geordnet.push({ ...k, an: e.an, ort: e.ort });
+    } else if (k.eigeneSeite) {
+      // Gespeichert vor der Ortswahl: "an" galt der Kopfzeile, "Im Menü"
+      // der Fusszeile. Beides zusammen ergibt den Ort.
+      geordnet.push({ ...k, an: e.an || !!k.imMenue,
+        ort: e.an && k.imMenue ? 'BEIDES' : e.an ? 'OBEN' : 'FUSS' });
+    } else {
+      geordnet.push({ ...k, an: e.an });
+    }
     nach.delete(e.schluessel);
   }
   for (const k of nach.values()) geordnet.push(k);
