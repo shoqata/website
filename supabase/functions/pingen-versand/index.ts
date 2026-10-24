@@ -29,8 +29,19 @@ const UMGEBUNGEN = {
   produktion: { api: "https://api.pingen.com", id: "https://identity.pingen.com" },
 } as const;
 
-const umgebung = (Deno.env.get("PINGEN_UMGEBUNG") ?? "staging").toLowerCase() === "produktion"
+// "produktion", "production", "prod" oder "live" -- alles andere ist die
+// Testumgebung. Eingetragen war "production"; mit der strengen Pruefung
+// lief die Funktion still im Staging und lehnte die echten Zugangsdaten ab.
+const umgebung = ["produktion", "production", "prod", "live"]
+  .includes((Deno.env.get("PINGEN_UMGEBUNG") ?? "staging").trim().toLowerCase())
   ? "produktion" : "staging";
+
+// Vereine, deren Briefe NIE an die echte Druckerei gehen. Der Demoverein
+// hat erfundene Personen an erfundenen (oder fremden echten) Adressen; ein
+// Brief dorthin kostet Geld und landet bei Unbeteiligten. In der Produktion
+// wird sein Brief darum nur simuliert -- er erscheint im Briefversand wie
+// ein echter, mit dem Hinweis, dass er nicht gedruckt wurde.
+const NUR_SIMULIERT = new Set(["demo"]);
 const ZIEL = UMGEBUNGEN[umgebung];
 
 const clientId = (Deno.env.get("PINGEN_CLIENT_ID") ?? "").trim();
@@ -269,6 +280,19 @@ Deno.serve(async (req) => {
             + "Der Brief bleibt liegen und geht hinaus, sobald Guthaben da ist.",
         });
         ohneKontingent++;
+        continue;
+      }
+      if (umgebung === "produktion" && NUR_SIMULIERT.has(z.tenantId)) {
+        await admin.rpc("post_zustand_melden", {
+          p_id: z.id, p_pingen_id: `demo-${z.id}`, p_zustand: "VERSENDET",
+          p_status: "simuliert",
+          p_meldung: "Demo — simuliert, nicht gedruckt und nicht verschickt",
+        });
+        // Abbuchen wie bei einem echten Brief: die Vorfuehrung soll den
+        // Verbrauch zeigen. Es ist Demo-Guthaben.
+        await admin.rpc("post_kontingent_verbrauchen", { p_post: z.id });
+        staende.set(z.tenantId, stand - 1);
+        aufgegeben++;
         continue;
       }
       const { url, sig } = await ablegen(tok, vonBase64(z.pdf));
