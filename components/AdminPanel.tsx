@@ -1,4 +1,5 @@
 
+import BetreuerAuswahl from './BetreuerAuswahl';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import AdminSpenden from './AdminSpenden';
 import AdminVideos from './AdminVideos';
@@ -1290,6 +1291,8 @@ const AdminPanel: React.FC = () => {
                           {userDrawerTab === 'INTERNAL' && (
                               <div className="space-y-6">
                                   <div><label className="text-[10px] font-bold text-stone-400 uppercase block mb-1">{t('admin.members.neighborhood')}</label><select value={selectedUser.neighborhoodId || ''} onChange={e => setSelectedUser({...selectedUser, neighborhoodId: e.target.value})} className="w-full p-4 bg-white border border-stone-200 rounded-xl outline-none font-bold">{neighborhoods.map(n => <option key={n.id} value={n.id}>{n.name}</option>)}</select></div>
+                                  <BetreuerAuswahl mitglied={selectedUser.id} nachbarschaft={selectedUser.neighborhoodId}
+                                    onGeaendert={(b) => setSelectedUser({ ...selectedUser, betreuer: b } as any)} />
                                   <div><label className="text-[10px] font-bold text-stone-400 uppercase block mb-1">{t('admin.members.role')}</label><select value={selectedUser.role} onChange={e => setSelectedUser({...selectedUser, role: e.target.value as any})} className="w-full p-4 bg-white border border-stone-200 rounded-xl outline-none font-bold"><option value={UserRole.MEMBER}>{t('role.member')}</option><option value={UserRole.BOARD}>{t('role.board')}</option><option value={UserRole.REPRESENTATIVE}>{t('role.representative')}</option><option value={UserRole.ADMIN}>{t('role.admin')}</option></select></div>
                                   <div>
                                       <label className="text-[10px] font-bold text-stone-400 uppercase block mb-1 flex items-center gap-2"><StickyNote size={12}/> {t('admin.members.notes_board')}</label>

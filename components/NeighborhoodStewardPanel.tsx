@@ -19,6 +19,7 @@ import { hasUsableEmail } from '../lib/memberEmail';
 import { rechnungsmailBauen } from '../lib/rechnungsmail';
 import { zahlungsangabenPruefen } from '../lib/postversand';
 import { versandsatz } from '../services/mailService';
+import MeineZustaendigkeit from './MeineZustaendigkeit';
 import { KassierenDialog, MitgliedErfassenDialog, KasseTab, AufgabenTab } from './VertreterVorOrt';
 
 interface Props { user: UserProfile; }
@@ -397,6 +398,7 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
         <h1 className="text-3xl md:text-4xl font-display font-bold italic mb-4">
           {nachbarschaften.map(n => n.name).join(' · ') || '-'}
         </h1>
+        <MeineZustaendigkeit />
         {/* Die Zahlen zaehlen Mitglieder, nicht Rechnungen. Vorher standen hier
             Rechnungszahlen -- wer wissen will, bei wem der Beitrag aussteht,
             ist damit nicht bedient. */}
