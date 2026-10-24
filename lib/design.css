@@ -142,8 +142,12 @@ html:is([data-design="ERZAEHLUNG"], [data-design="BUEHNE"], [data-design="JOURNA
   border: 1px solid rgba(255,255,255,.12);
 }
 html:is([data-design="BUEHNE"], [data-design="JOURNAL"]) :is(nav, aside) .glass .italic { font-style: normal; }
-html[data-design="JOURNAL"] :is(nav, aside) .glass :is(a, button) .font-bold.text-sm { font-family: 'IBM Plex Mono', monospace; font-weight: 400; text-transform: uppercase; letter-spacing: .08em; font-size: .72rem; }
-html[data-design="BUEHNE"] :is(nav, aside) .glass :is(a, button) .font-bold.text-sm { text-transform: uppercase; letter-spacing: .06em; }
+html[data-design="JOURNAL"] :is(nav, aside) .glass :is(a, button) .font-bold.text-sm { font-family: 'IBM Plex Mono', monospace; font-weight: 400; letter-spacing: -.01em; font-size: .78rem; }
+html[data-design="BUEHNE"] :is(nav, aside) .glass :is(a, button) .font-bold.text-sm { letter-spacing: .01em; }
+/* Grossbuchstaben und Schreibmaschine sind breiter: ohne das brechen
+   zweiwortige Eintraege in der Kopfzeile auf zwei Zeilen um. */
+html[data-design]:not([data-design="KLASSISCH"]) nav .glass :is(a, button) .font-bold.text-sm,
+html[data-design]:not([data-design="KLASSISCH"]) nav .glass .font-display { white-space: nowrap; }
 
 /* ------------------------------------------------------------ Fusszeile */
 html:is([data-design="MAGAZIN"], [data-design="KOMPAKT"]) footer.bg-secondary {
