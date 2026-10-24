@@ -275,7 +275,7 @@ Deno.serve(async (req) => {
       const stand = staende.get(z.tenantId) ?? 0;
       if (stand < 1) {
         await admin.rpc("post_zustand_melden", {
-          p_id: z.id, p_zustand: "PROBLEM",
+          p_id: z.id, p_zustand: "PROBLEM", p_status: "ohne_guthaben",
           p_meldung: "Kontingent aufgebraucht — der Verein muss Briefe nachkaufen. "
             + "Der Brief bleibt liegen und geht hinaus, sobald Guthaben da ist.",
         });
