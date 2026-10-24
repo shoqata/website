@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   FileText, X, Save, Loader2, Plus, Trash2, History, ChevronDown, ChevronRight, Users,
-  Eye, EyeOff, Download,
+  Eye, EyeOff, Download, UserPlus, PenLine,
 } from 'lucide-react';
 import { db } from '../services/datenzugriff';
-import { doc, updateDoc, setDoc, collection, getDocs, query } from '@/services/supabase-bridge';
+import { doc, updateDoc, setDoc, collection, getDocs, query, supabase } from '@/services/supabase-bridge';
+import { protokollPdf } from '../lib/protokollPdf';
 import { useTranslation } from '../context/LanguageContext';
 import { useFeedback } from '../context/FeedbackContext';
 import { BoardMeeting, UserProfile } from '../types';
@@ -25,6 +26,7 @@ const leeresProtokoll = (): any => ({
   location: '',
   status: 'PLANNED',
   attendees: [],
+  protokollfuehrer: null,
   agendaItems: [],
   decisions: [],
   documents: [],
@@ -46,6 +48,9 @@ const BoardMinutesEditor: React.FC<Props> = ({ meeting, open, boardUsers, onClos
   const [zeigeVerlauf, setZeigeVerlauf] = useState(false);
   const [offeneFassung, setOffeneFassung] = useState<string | null>(null);
   const [pdfLaeuft, setPdfLaeuft] = useState(false);
+  // Gaeste: Name im Protokoll, E-Mail nur in board_meeting_guests (die Tabelle
+  // liest nur der Vorstand -- ein freigegebenes Protokoll lesen alle Mitglieder).
+  const [gaeste, setGaeste] = useState<{ vorname: string; nachname: string; email: string }[]>([]);
 
   const istNeu = !meeting?.id;
 
@@ -55,7 +60,10 @@ const BoardMinutesEditor: React.FC<Props> = ({ meeting, open, boardUsers, onClos
     setZeigeVerlauf(false);
     setOffeneFassung(null);
     setVerlauf([]);
+    setGaeste([]);
     if (meeting?.id) {
+      supabase.from('board_meeting_guests').select('vorname,nachname,email').eq('meetingId', meeting.id).order('erstellt_am')
+        .then(({ data }) => setGaeste(((data as any[]) || []).map(g => ({ vorname: g.vorname || '', nachname: g.nachname || '', email: g.email || '' }))));
       (async () => {
         try {
           const snap = await getDocs(query(collection(db, 'board_meeting_versions')));
@@ -104,9 +112,25 @@ const BoardMinutesEditor: React.FC<Props> = ({ meeting, open, boardUsers, onClos
   const istAnwesend = (userId: string) =>
     !!(form.attendees || []).find((a: any) => a.userId === userId)?.present;
 
+  // Die Gaesteliste ersetzen -- sie ist kurz, und Ersetzen laesst keinen
+  // Gast zurueck, der in der Maske entfernt wurde.
+  const gaesteSpeichern = async (meetingId: string, liste: typeof gaeste) => {
+    const weg = await supabase.from('board_meeting_guests').delete().eq('meetingId', meetingId);
+    if (weg.error) throw weg.error;
+    if (!liste.length) return;
+    const neu = await supabase.from('board_meeting_guests').insert(liste.map(g => ({
+      meetingId, vorname: g.vorname.trim(), nachname: g.nachname.trim(), email: g.email.trim() || null,
+    })));
+    if (neu.error) throw neu.error;
+  };
+
   const speichern = async () => {
     if (!form.title?.trim()) { showAlert({ type: 'error', message: t('minutes.title_required') }); return; }
     if (!form.date) { showAlert({ type: 'error', message: t('minutes.date_required') }); return; }
+
+    const gaesteGueltig = gaeste.filter(g => g.vorname.trim() || g.nachname.trim());
+    const falsch = gaesteGueltig.find(g => g.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(g.email.trim()));
+    if (falsch) { showAlert({ type: 'error', message: t('minutes.guest_bad_mail', { name: `${falsch.vorname} ${falsch.nachname}`.trim() }) }); return; }
 
     setSpeichert(true);
     try {
@@ -115,7 +139,14 @@ const BoardMinutesEditor: React.FC<Props> = ({ meeting, open, boardUsers, onClos
         date: form.date,
         location: form.location?.trim() || null,
         status: form.status || 'PLANNED',
-        attendees: form.attendees || [],
+        // Gaeste stehen mit Namen unter den Anwesenden; die Liste wird aus
+        // dem Gaesteabschnitt neu gebildet, damit kein Gast doppelt steht.
+        attendees: [
+          ...(form.attendees || []).filter((a: any) => !a.guest),
+          ...gaesteGueltig.map(g => ({ userId: null, guest: true, role: 'Gast', present: true,
+                                      name: `${g.vorname.trim()} ${g.nachname.trim()}`.trim() })),
+        ],
+        protokollfuehrer: form.protokollfuehrer || null,
         agendaItems: form.agendaItems || [],
         decisions: form.decisions || [],
         documents: form.documents || [],
@@ -127,9 +158,11 @@ const BoardMinutesEditor: React.FC<Props> = ({ meeting, open, boardUsers, onClos
         // sich spaeter darauf verweisen laesst.
         const id = `mtg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
         await setDoc(doc(db, 'board_meetings', id), { ...rumpf, createdAt: new Date().toISOString() } as any);
+        await gaesteSpeichern(id, gaesteGueltig);
         showAlert({ type: 'success', message: t('minutes.created') });
       } else {
         await updateDoc(doc(db, 'board_meetings', meeting!.id), rumpf as any);
+        await gaesteSpeichern(meeting!.id, gaesteGueltig);
         showAlert({ type: 'success', message: t('minutes.saved_new_version') });
       }
       onClose(true);
@@ -148,72 +181,11 @@ const BoardMinutesEditor: React.FC<Props> = ({ meeting, open, boardUsers, onClos
   const alsPdf = async () => {
     setPdfLaeuft(true);
     try {
-      const { default: jsPDF } = await import('jspdf');
-      const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
-      const rand = 18;
-      const breite = 210 - rand * 2;
-      let y = rand;
-
-      const umbruch = (text: string, groesse: number, fett = false, einzug = 0) => {
-        pdf.setFontSize(groesse);
-        pdf.setFont('helvetica', fett ? 'bold' : 'normal');
-        const zeilen = pdf.splitTextToSize(text, breite - einzug);
-        zeilen.forEach((z: string) => {
-          // Neue Seite, bevor der Text unten herauslaeuft.
-          if (y > 275) { pdf.addPage(); y = rand; }
-          pdf.text(z, rand + einzug, y);
-          y += groesse * 0.45 + 1.4;
-        });
-      };
-
-      umbruch(form.title || t('minutes.heading'), 18, true);
-      y += 1;
-      const kopf = [
-        new Date(form.date).toLocaleDateString(),
-        form.location || null,
-        t('minutes.version', { n: (meeting as any)?.version ?? 1 }),
-      ].filter(Boolean).join('  ·  ');
-      pdf.setTextColor(120);
-      umbruch(kopf, 10);
-      pdf.setTextColor(0);
-      y += 3;
-
-      const anwesend = (form.attendees || []).filter((a: any) => a.present).map((a: any) => a.name);
-      umbruch(t('minutes.attendance'), 12, true);
-      umbruch(anwesend.length ? anwesend.join(', ') : '—', 10, false, 2);
-      y += 3;
-
-      const teil = (titel: string, liste: any[]) => {
-        umbruch(titel, 12, true);
-        if (!liste?.length) { umbruch('—', 10, false, 2); y += 2; return; }
-        liste.forEach((e: any, i: number) => {
-          umbruch(`${i + 1}. ${e.title || ''}`, 11, true, 2);
-          if (e.content) umbruch(e.content, 10, false, 6);
-          if (e.responsible || e.dueDate) {
-            const z = [e.responsible && `${t('minutes.responsible')}: ${e.responsible}`,
-                       e.dueDate && new Date(e.dueDate).toLocaleDateString()].filter(Boolean).join('  ·  ');
-            pdf.setTextColor(120); umbruch(z, 9, false, 6); pdf.setTextColor(0);
-          }
-          y += 1.5;
-        });
-        y += 2;
-      };
-      teil(t('minutes.agenda'), form.agendaItems || []);
-      teil(t('minutes.decisions'), form.decisions || []);
-
-      // Fusszeile auf jeder Seite: ohne sie ist ein ausgedrucktes Blatt nicht
-      // zuzuordnen.
-      const seiten = pdf.getNumberOfPages();
-      for (let i = 1; i <= seiten; i++) {
-        pdf.setPage(i);
-        pdf.setFontSize(8);
-        pdf.setTextColor(150);
-        pdf.text(`${form.title || ''} · ${new Date(form.date).toLocaleDateString()}`, rand, 289);
-        pdf.text(`${i} / ${seiten}`, 210 - rand, 289, { align: 'right' });
-      }
-
-      const name = `${(form.title || 'Protokoll').replace(/[^\p{L}\p{N}]+/gu, '-')}-${form.date}.pdf`;
-      pdf.save(name);
+      const p = await protokollPdf({ ...form, version: (meeting as any)?.version ?? 1 }, t);
+      const url = URL.createObjectURL(p.blob);
+      const el = document.createElement('a');
+      el.href = url; el.download = p.dateiname; document.body.appendChild(el); el.click(); el.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
     } catch (e: any) {
       showAlert({ type: 'error', message: t('minutes.pdf_failed', { reason: e?.message || '?' }) });
     } finally {
@@ -320,6 +292,40 @@ const BoardMinutesEditor: React.FC<Props> = ({ meeting, open, boardUsers, onClos
               ))}
               {boardUsers.length === 0 && <p className="text-xs text-stone-400 italic">{t('minutes.no_board')}</p>}
             </div>
+          </div>
+
+          <div>
+            <label className={marke}><PenLine size={11} className="inline mr-1" /> {t('minutes.minute_taker')}</label>
+            <select value={form.protokollfuehrer?.userId || ''}
+              onChange={e => {
+                const u = boardUsers.find(x => x.id === e.target.value);
+                setzen('protokollfuehrer', u ? { userId: u.id, name: u.displayName || '' } : null);
+              }} className={feld}>
+              <option value="">{t('minutes.minute_taker_none')}</option>
+              {boardUsers.map(u => <option key={u.id} value={u.id}>{u.displayName}</option>)}
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className={marke + ' mb-0'}><UserPlus size={11} className="inline mr-1" /> {t('minutes.guests')}</label>
+              <button type="button" onClick={() => setGaeste(g => [...g, { vorname: '', nachname: '', email: '' }])}
+                className="text-xs font-bold text-primary flex items-center gap-1 hover:opacity-70"><Plus size={13} /> {t('minutes.add_guest')}</button>
+            </div>
+            {gaeste.length === 0 && <p className="text-xs text-stone-400 italic">{t('minutes.no_guests')}</p>}
+            {gaeste.map((g, i) => (
+              <div key={i} className="grid grid-cols-[1fr_1fr_1.4fr_auto] gap-2">
+                <input value={g.vorname} placeholder={t('field.firstName')} className={feld}
+                  onChange={e => setGaeste(l => l.map((x, j) => j === i ? { ...x, vorname: e.target.value } : x))} />
+                <input value={g.nachname} placeholder={t('field.lastName')} className={feld}
+                  onChange={e => setGaeste(l => l.map((x, j) => j === i ? { ...x, nachname: e.target.value } : x))} />
+                <input value={g.email} type="email" placeholder={t('field.email')} className={feld}
+                  onChange={e => setGaeste(l => l.map((x, j) => j === i ? { ...x, email: e.target.value } : x))} />
+                <button type="button" onClick={() => setGaeste(l => l.filter((_, j) => j !== i))}
+                  className="p-2 text-stone-400 hover:text-red-600"><Trash2 size={15} /></button>
+              </div>
+            ))}
+            {gaeste.length > 0 && <p className="text-[11px] text-stone-400">{t('minutes.guest_hint')}</p>}
           </div>
 
           {abschnitt('agendaItems', t('minutes.agenda'))}

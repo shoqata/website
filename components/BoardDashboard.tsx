@@ -6,6 +6,7 @@ import BoardMinutesEditor from './BoardMinutesEditor';
 import VorstandWizard from './VorstandWizard';
 import VorstandPostausgang from './VorstandPostausgang';
 import AnfragenBearbeiten from './AnfragenBearbeiten';
+import ProtokollTeilen from './ProtokollTeilen';
 import CountrySelect from './ui/CountrySelect';
 import { missingFieldKeys } from '../lib/memberQuality';
 import { markPaymentPaid, zahlungDifferenzSetzen } from '@/services/supabase-bridge';
@@ -1050,17 +1051,26 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                         <div className="p-6 border-b border-stone-100 flex justify-between items-center bg-stone-50">
                             <div>
                                 <h3 className="font-bold text-lg text-stone-900">{selectedMeeting.title}</h3>
-                                <p className="text-xs text-stone-500">{new Date(selectedMeeting.date).toLocaleDateString()}</p>
+                                <p className="text-xs text-stone-500">
+                                    {new Date(selectedMeeting.date).toLocaleDateString()}
+                                    {(selectedMeeting as any).location ? ` · ${(selectedMeeting as any).location}` : ''}
+                                    {(selectedMeeting as any).protokollfuehrer?.name ? ` · ${t('minutes.minute_taker')}: ${(selectedMeeting as any).protokollfuehrer.name}` : ''}
+                                </p>
                             </div>
                             <button onClick={() => setSelectedMeeting(null)} className="p-2 hover:bg-stone-200 rounded-full text-stone-500 transition-colors"><X size={20}/></button>
+                        </div>
+                        {/* Weitergeben: PDF, WhatsApp, E-Mail */}
+                        <div className="px-6 py-3 border-b border-stone-100">
+                            <ProtokollTeilen meeting={selectedMeeting}
+                                boardUsers={users.filter(u => ['BOARD','ADMIN','SUPER_ADMIN'].includes(u.role || ''))} />
                         </div>
                         <div className="p-8 overflow-y-auto custom-scrollbar flex-1 space-y-8">
                             <div>
                                 <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-3 border-b border-stone-100 pb-2">{t('board.attendees')}</h4>
                                 <div className="flex flex-wrap gap-2">
                                     {selectedMeeting.attendees?.map((att, i) => (
-                                        <div key={i} className={`text-xs px-3 py-1.5 rounded-lg border ${att.present ? 'bg-white border-stone-200 text-stone-800' : 'bg-stone-50 border-stone-100 text-stone-400 line-through'}`}>
-                                            {att.name}
+                                        <div key={i} className={`text-xs px-3 py-1.5 rounded-lg border ${(att as any).guest ? 'bg-violet-50 border-violet-100 text-violet-800' : att.present ? 'bg-white border-stone-200 text-stone-800' : 'bg-stone-50 border-stone-100 text-stone-400 line-through'}`}>
+                                            {att.name}{(att as any).guest ? ` · ${t('minutes.guest')}` : ''}
                                         </div>
                                     ))}
                                 </div>
@@ -1074,11 +1084,29 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                                                 <span className="bg-stone-100 w-5 h-5 flex items-center justify-center rounded-full text-[10px]">{i+1}</span> 
                                                 {item.title}
                                             </h5>
-                                            <div className="pl-7 text-sm text-stone-600 leading-relaxed prose prose-sm" dangerouslySetInnerHTML={{ __html: item.content }} />
+                                            {/* Als Text, nicht als HTML: der Editor speichert Klartext,
+                                                und eingeschleustes HTML gehoert nicht in die Ansicht. */}
+                                            <p className="pl-7 text-sm text-stone-600 leading-relaxed whitespace-pre-wrap">{String(item.content || '').replace(/<[^>]*>/g, '')}</p>
                                         </div>
                                     ))}
                                 </div>
                             </div>
+                            {((selectedMeeting as any).decisions || []).length > 0 && (
+                                <div>
+                                    <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-4 border-b border-stone-100 pb-2">{t('minutes.decisions')}</h4>
+                                    <div className="space-y-4">
+                                        {((selectedMeeting as any).decisions || []).map((d: any, i: number) => (
+                                            <div key={i}>
+                                                <h5 className="font-bold text-stone-900 text-sm">{i + 1}. {d.title}</h5>
+                                                {d.content && <p className="text-sm text-stone-600 whitespace-pre-wrap mt-1">{d.content}</p>}
+                                                {(d.responsible || d.dueDate) && (
+                                                    <p className="text-[11px] text-stone-400 mt-1">{[d.responsible && `${t('minutes.responsible')}: ${d.responsible}`, d.dueDate && new Date(d.dueDate).toLocaleDateString()].filter(Boolean).join(' · ')}</p>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </motion.div>
                 </div>
