@@ -25,6 +25,9 @@ export const KopfGruppe: React.FC<{
   const [offen, setOffen] = useState(false);
   const rahmen = useRef<HTMLDivElement>(null);
   const zu = useRef<number | null>(null);
+  // Wann das Zeigen geoeffnet hat: ein Klick kurz danach soll nicht
+  // wieder schliessen -- mit der Maus fuehrt man beides fast gleichzeitig aus.
+  const geoeffnetAm = useRef(0);
   const aktiv = eintraege.some(e => e.pfad === pathname);
   const label = (e: NavEintrag) => e.uebersetzen ? t(e.label) : e.label;
 
@@ -38,12 +41,17 @@ export const KopfGruppe: React.FC<{
     return () => { document.removeEventListener('mousedown', klick); document.removeEventListener('keydown', taste); };
   }, [offen]);
 
-  const rein = () => { if (zu.current) window.clearTimeout(zu.current); setOffen(true); };
+  const rein = () => {
+    if (zu.current) window.clearTimeout(zu.current);
+    if (!offen) geoeffnetAm.current = Date.now();
+    setOffen(true);
+  };
+  const klick = () => setOffen(o => (o && Date.now() - geoeffnetAm.current < 600) ? true : !o);
   const raus = () => { zu.current = window.setTimeout(() => setOffen(false), 160); };
 
   return (
     <div ref={rahmen} className={mega ? '' : 'relative'} onMouseEnter={rein} onMouseLeave={raus}>
-      <button type="button" aria-expanded={offen} aria-haspopup="true" onClick={() => setOffen(!offen)}
+      <button type="button" aria-expanded={offen} aria-haspopup="true" onClick={klick}
         className={`flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all ${aktiv || offen ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}>
         <span className="font-bold text-sm">{loc(gruppe.label)}</span>
         <ChevronDown size={14} className={`transition-transform ${offen ? 'rotate-180' : ''}`} />
