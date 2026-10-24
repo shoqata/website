@@ -47,6 +47,8 @@ import AdminHandkassen from './AdminHandkassen';
 
 import { neighborhoodPlace } from '../lib/neighborhood';
 import { onImageError } from '../lib/imageFallback';
+import { inhaltAlsText } from '../lib/news';
+import { bildHochladen } from '../lib/bildHochladen';
 import AdminNeighborhoodEditor from './AdminNeighborhoodEditor';
 import CountrySelect from './ui/CountrySelect';
 import AdminPasswordReset from './AdminPasswordReset';
@@ -132,6 +134,7 @@ const AdminPanel: React.FC = () => {
   const [editingEvent, setEditingEvent] = useState<Partial<SolidarityEvent> | null>(null);
   const [showNewsModal, setShowNewsModal] = useState(false);
   const [editingNews, setEditingNews] = useState<Partial<NewsArticle> | null>(null);
+  const [newsBildLaedt, setNewsBildLaedt] = useState(false);
   
   const [managingEventRegistrations, setManagingEventRegistrations] = useState<SolidarityEvent | null>(null);
 
@@ -360,6 +363,7 @@ const AdminPanel: React.FC = () => {
     try {
         const data = {
             ...editingNews,
+            content: inhaltAlsText(editingNews.content),
             publishAt: editingNews.publishAt ? (typeof editingNews.publishAt === 'string' ? Timestamp.fromDate(new Date(editingNews.publishAt)) : editingNews.publishAt) : null
         };
 
@@ -749,7 +753,7 @@ const AdminPanel: React.FC = () => {
                             <div className="space-y-6">
                                 <div className="flex justify-between items-center bg-white p-6 rounded-3xl border border-stone-100 shadow-sm">
                                     <h3 className="font-bold text-stone-900 text-xl flex items-center gap-2"><Newspaper size={20} className="text-blue-600"/> {t('admin.news.title')}</h3>
-                                    <button onClick={() => { setEditingNews({ title: '', category: 'DIASPORA', subcategory: 'Updates', location: 'Zürich', content: [''], image: '', status: 'DRAFT' }); setShowNewsModal(true); }} className="bg-stone-900 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-black transition-all shadow-lg"><Plus size={16}/> {t('admin.news.add')}</button>
+                                    <button onClick={() => { setEditingNews({ title: '', category: 'DIASPORA', subcategory: 'Updates', location: '', content: '' as any, image: '', status: 'DRAFT' }); setShowNewsModal(true); }} className="bg-stone-900 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-black transition-all shadow-lg"><Plus size={16}/> {t('admin.news.add')}</button>
                                 </div>
                                 <div className="bg-white rounded-[2.5rem] border border-stone-100 shadow-sm overflow-hidden">
                                     <table className="w-full text-left">
@@ -998,12 +1002,32 @@ const AdminPanel: React.FC = () => {
                         </div>
 
                         <div><label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('field.title')}</label><input value={editingNews.title} onChange={e => setEditingNews({...editingNews, title: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none font-bold" /></div>
-                        <div><label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('admin.news.body_first')}</label><textarea value={editingNews.content?.[0] || ''} onChange={e => setEditingNews({...editingNews, content: [e.target.value]})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none h-32 text-sm" /></div>
+                        {/* Der ganze Text. Hier stand content?.[0] -- bei einem Text ist das
+                            der erste BUCHSTABE; wer eine Nachricht bearbeitete und
+                            speicherte, haette sie auf ein Zeichen gekuerzt. */}
+                        <div><label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('admin.news.text')}</label><textarea value={inhaltAlsText(editingNews.content)} onChange={e => setEditingNews({...editingNews, content: e.target.value as any})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none h-64 text-sm leading-relaxed" /><p className="text-[10px] text-stone-400 mt-1">{t('admin.news.text_hinweis')}</p></div>
                         <div className="grid grid-cols-2 gap-4">
                             <div><label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('admin.news.location')}</label><input value={editingNews.location} onChange={e => setEditingNews({...editingNews, location: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none" /></div>
                             <div><label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('field.category')}</label><select value={editingNews.category} onChange={e => setEditingNews({...editingNews, category: e.target.value})} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none text-xs font-bold"><option value="DIASPORA">{t('cat.diaspora')}</option><option value="LOCAL">{t('cat.local')}</option><option value="PROJECT">{t('cat.project')}</option></select></div>
                         </div>
-                        <div><label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('field.image_url')}</label><input value={editingNews.image} onChange={e => setEditingNews({...editingNews, image: e.target.value})} placeholder="https://..." className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none text-xs font-mono" /></div>
+                        <div>
+                            <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('field.image_url')}</label>
+                            <div className="flex gap-2">
+                                <input value={editingNews.image || ''} onChange={e => setEditingNews({...editingNews, image: e.target.value})} placeholder="https://..." className="flex-1 p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none text-xs font-mono" />
+                                <label className={`shrink-0 px-4 bg-stone-100 hover:bg-stone-200 rounded-xl text-xs font-bold text-stone-600 flex items-center gap-1.5 cursor-pointer ${newsBildLaedt ? 'opacity-50 pointer-events-none' : ''}`}>
+                                    {newsBildLaedt ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />} {t('web.upload')}
+                                    <input type="file" accept="image/*" hidden onChange={async e => {
+                                        const d = e.target.files?.[0]; e.target.value = '';
+                                        if (!d) return;
+                                        setNewsBildLaedt(true);
+                                        try { const url = await bildHochladen(d, 'news'); setEditingNews(n => n ? { ...n, image: url } : n); }
+                                        catch (err: any) { showAlert({ type: 'error', message: err?.message || t('web.upload_failed') }); }
+                                        finally { setNewsBildLaedt(false); }
+                                    }} />
+                                </label>
+                            </div>
+                            {editingNews.image && <img src={editingNews.image} alt="" className="mt-3 w-full h-40 object-cover rounded-xl border border-stone-100" onError={onImageError} />}
+                        </div>
                     </div>
                     <div className="p-6 border-t border-stone-100 bg-stone-50 flex gap-3"><button onClick={() => setShowNewsModal(false)} className="flex-1 py-3 bg-stone-200 text-stone-600 rounded-xl font-bold">{t('common.cancel')}</button><button onClick={handleSaveNews} className="flex-[2] py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg">{t('admin.news.save')}</button></div>
                 </motion.div>

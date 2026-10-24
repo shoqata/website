@@ -1,359 +1,124 @@
-
-import { motion, AnimatePresence, useReducedMotion, LayoutGroup, Variants } from "framer-motion";
-import React, { useState, useEffect } from "react";
-import { BookmarkIcon, X, Loader2 } from "lucide-react";
-import { db } from "../services/datenzugriff";
-import { collection, query, orderBy, limit, onSnapshot, where, Timestamp } from '@/services/supabase-bridge';
-import { NewsArticle } from "../types";
-import { useTranslation } from "../context/LanguageContext";
-
+import React, { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Loader2, MapPin, ArrowRight, Newspaper } from 'lucide-react';
+import { useTranslation } from '../context/LanguageContext';
+import { useNachrichten, useLikes, absaetze, nachrichtDatum, vorZeit, type Nachricht } from '../lib/news';
+import { LikeKnopf, TeilenKnopf } from './NachrichtAktionen';
 import { onImageError } from '../lib/imageFallback';
-// Utility function to replace 'cn'
-function cn(...classes: (string | undefined | null | false)[]) {
-  return classes.filter(Boolean).join(' ');
-}
 
-// Format time ago helper
-const timeAgo = (date: Date) => {
-  const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-  let interval = seconds / 31536000;
-  if (interval > 1) return Math.floor(interval) + " years ago";
-  interval = seconds / 2592000;
-  if (interval > 1) return Math.floor(interval) + " months ago";
-  interval = seconds / 86400;
-  if (interval > 1) return Math.floor(interval) + " days ago";
-  interval = seconds / 3600;
-  if (interval > 1) return Math.floor(interval) + " hours ago";
-  interval = seconds / 60;
-  if (interval > 1) return Math.floor(interval) + " min ago";
-  return "Just now";
+// Die Liste der Neuigkeiten.
+//
+// Vorher: sechs gleich grosse Karten, ein Lesezeichen, das nichts
+// speicherte, und ein Fenster, das bei jeder Nachricht abstuerzte (der
+// Inhalt ist Text, die Ansicht erwartete eine Liste). Jetzt: die neueste
+// gross, die uebrigen darunter, jede mit eigener Seite und eigenem Link --
+// sonst laesst sich nichts teilen.
+
+export const kategorieName = (k: string | null | undefined, t: (s: string) => string) => {
+  if (!k) return '';
+  const s = `cat.${k.toLowerCase()}`;
+  const w = t(s);
+  return w === s ? k : w;
 };
 
+const Bild: React.FC<{ n: Nachricht; className: string }> = ({ n, className }) => n.image ? (
+  <img src={n.image} alt={n.title} loading="lazy" onError={onImageError} className={`${className} object-cover`} />
+) : (
+  <div className={`${className} tupfer-primaer flex items-center justify-center`}>
+    <Newspaper size={40} className="opacity-40" />
+  </div>
+);
+
 export function NewsSection() {
-  const { t } = useTranslation();
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [selectedCard, setSelectedCard] = useState<NewsArticle | null>(null);
-  const [bookmarkedCards, setBookmarkedCards] = useState<Set<string>>(new Set());
-  const [newsCards, setNewsCards] = useState<NewsArticle[]>([]);
-  const [loading, setLoading] = useState(true);
-  
-  const shouldReduceMotion = useReducedMotion();
-  const shouldAnimate = !shouldReduceMotion;
+  const { t, language } = useTranslation();
+  const nachrichten = useNachrichten();
+  const [kategorie, setKategorie] = useState<string | null>(null);
+  const { stand, umschalten } = useLikes((nachrichten ?? []).map(n => n.id));
 
-  useEffect(() => {
-    // 1. Fetch Published News
-    const q = query(
-        collection(db, 'news'), 
-        where('status', '==', 'PUBLISHED'),
-        orderBy('timestamp', 'desc')
-    );
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const now = new Date();
-      const articles = snapshot.docs
-        .map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            ...data,
-            gradientColors: data.gradientColors || ["from-rose-500/20", "to-purple-500/20"],
-            timestamp: data.timestamp,
-            publishAt: data.publishAt
-          } as NewsArticle;
-        })
-        // 2. Client-side Scheduling Filter (in case DB index isn't ready for complex where)
-        .filter(article => {
-            if (!article.publishAt) return true; // immediate if no schedule
-            const pDate = article.publishAt.toDate();
-            return pDate <= now;
-        })
-        .slice(0, 6);
+  const kategorien = useMemo(() =>
+    [...new Set((nachrichten ?? []).map(n => n.category).filter(Boolean) as string[])], [nachrichten]);
+  const sichtbar = (nachrichten ?? []).filter(n => !kategorie || n.category === kategorie);
 
-      setNewsCards(articles);
-      setLoading(false);
-      setTimeout(() => setIsLoaded(true), 100);
-    });
-    return () => unsubscribe();
-  }, []);
+  if (nachrichten === null) return (
+    <div className="flex justify-center py-24"><Loader2 className="animate-spin text-stone-300" size={32} /></div>
+  );
+  if (nachrichten.length === 0) return (
+    <div className="max-w-7xl mx-auto px-6">
+      <div className="bg-white rounded-[2rem] border border-stone-100 p-14 text-center text-stone-400 italic">{t('news.empty')}</div>
+    </div>
+  );
 
-  const toggleBookmark = (cardId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setBookmarkedCards(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(cardId)) {
-        newSet.delete(cardId);
-      } else {
-        newSet.add(cardId);
-      }
-      return newSet;
-    });
-  };
-
-  const openCard = (card: NewsArticle) => {
-    setSelectedCard(card);
-    document.body.style.overflow = 'hidden';
-  };
-
-  const closeCard = () => {
-    setSelectedCard(null);
-    document.body.style.overflow = 'unset';
-  };
-
-  // Animation variants
-  const containerVariants: Variants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.2,
-      }
-    }
-  };
-
-  const headerVariants: Variants = {
-    hidden: { 
-      opacity: 0, 
-      y: -20,
-      scale: 0.95,
-      filter: "blur(4px)",
-    },
-    visible: { 
-      opacity: 1, 
-      y: 0,
-      scale: 1,
-      filter: "blur(0px)",
-      transition: { 
-        type: "spring", 
-        stiffness: 400, 
-        damping: 28,
-        mass: 0.6,
-      }
-    }
-  };
-
-  const cardContainerVariants: Variants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.12,
-        delayChildren: 0.8,
-      }
-    }
-  };
-
-  const cardVariants: Variants = {
-    hidden: { 
-      opacity: 0, 
-      y: 30,
-      scale: 0.9,
-      filter: "blur(6px)",
-    },
-    visible: { 
-      opacity: 1, 
-      y: 0, 
-      scale: 1,
-      filter: "blur(0px)",
-      transition: { 
-        type: "spring", 
-        stiffness: 300, 
-        damping: 28,
-        mass: 0.8,
-      }
-    }
-  };
-
-  if (loading) {
-    return (
-        <div className="flex justify-center py-24">
-            <Loader2 className="animate-spin text-stone-300" size={32} />
-        </div>
-    )
-  }
-
-  if (newsCards.length === 0) return (
-      <div className="text-center py-20 text-stone-400 italic">{t('news.empty')}</div>
+  const [erste, ...rest] = sichtbar;
+  const aktionen = (n: Nachricht, klein = true) => (
+    <div className="flex items-center gap-2">
+      <LikeKnopf klein={klein} anzahl={stand[n.id]?.anzahl ?? 0} gelikt={!!stand[n.id]?.gelikt} onClick={() => umschalten(n.id)} />
+      <TeilenKnopf klein={klein} id={n.id} titel={n.title} />
+    </div>
+  );
+  const kopfzeile = (n: Nachricht) => (
+    <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 flex items-center gap-2 flex-wrap">
+      {n.category && <span className="text-primary">{kategorieName(n.category, t)}</span>}
+      <span>{vorZeit(nachrichtDatum(n), language)}</span>
+      {n.location && <span className="inline-flex items-center gap-1"><MapPin size={10} />{n.location}</span>}
+    </p>
   );
 
   return (
-    <motion.div
-      id="news"
-      className="w-full max-w-7xl mx-auto px-6 py-24 bg-[#faf9f6]"
-      initial={shouldAnimate ? "hidden" : "visible"}
-      animate={isLoaded ? "visible" : "hidden"}
-      variants={shouldAnimate ? containerVariants : {}}
-    >
-       {/* Header */}
-       <motion.div
-         className="mb-12"
-         variants={shouldAnimate ? headerVariants : {}}
-       >
-         <h2 className="text-4xl font-display font-bold italic mb-2 text-stone-900">{t('news.badge')}</h2>
-         <p className="text-stone-500 text-lg italic">{t('news.subtitle')}</p>
-         <div className="mt-6 w-24 h-1 bg-primary rounded-full" />
-       </motion.div>
+    <div className="max-w-7xl mx-auto px-6 pb-12">
+      {kategorien.length > 1 && (
+        <div className="flex gap-2 flex-wrap mb-10">
+          {[null, ...kategorien].map(k => (
+            <button key={k ?? 'alle'} onClick={() => setKategorie(k)}
+              className={`px-4 py-2 rounded-full text-xs font-bold border transition-colors ${
+                kategorie === k ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-500 border-stone-200 hover:border-stone-400'}`}>
+              {k ? kategorieName(k, t) : t('chronik.alle')}
+            </button>
+          ))}
+        </div>
+      )}
 
-       <LayoutGroup>
-         <motion.div
-           className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8"
-           variants={shouldAnimate ? cardContainerVariants : {}}
-         >
-           {newsCards.map((card) => {
-             const formattedTime = card.timestamp ? timeAgo(card.timestamp.toDate()) : '';
+      {erste && (
+        <article className="bg-white rounded-[2.5rem] border border-stone-100 shadow-sm overflow-hidden grid md:grid-cols-2 mb-10 group">
+          <Link to={`/news/${encodeURIComponent(erste.id)}`} className="block overflow-hidden">
+            <Bild n={erste} className="w-full h-64 md:h-full md:min-h-[22rem] group-hover:scale-[1.02] transition-transform duration-700" />
+          </Link>
+          <div className="p-8 md:p-12 flex flex-col">
+            {kopfzeile(erste)}
+            <Link to={`/news/${encodeURIComponent(erste.id)}`}>
+              <h2 className="font-display text-3xl md:text-4xl font-bold text-stone-900 leading-tight mt-4 group-hover:text-primary transition-colors">
+                {erste.title}
+              </h2>
+            </Link>
+            <p className="text-stone-500 leading-relaxed mt-4 line-clamp-4">{absaetze(erste.content)[0]}</p>
+            <div className="mt-auto pt-8 flex items-center justify-between gap-4 flex-wrap">
+              {aktionen(erste, false)}
+              <Link to={`/news/${encodeURIComponent(erste.id)}`} className="inline-flex items-center gap-2 text-sm font-bold text-primary">
+                {t('news.weiterlesen')} <ArrowRight size={16} />
+              </Link>
+            </div>
+          </div>
+        </article>
+      )}
 
-             return (
-               <motion.article
-                 key={card.id}
-                 layoutId={`card-${card.id}`}
-                 className={`bg-white border border-stone-100 rounded-[2rem] overflow-hidden transition-all duration-300 cursor-pointer group shadow-sm hover:shadow-xl ${selectedCard?.id === card.id ? 'opacity-0' : 'opacity-100'}`}
-                 variants={shouldAnimate ? cardVariants : {}}
-                 whileHover={shouldAnimate ? { 
-                   y: -4,
-                   scale: 1.01,
-                   transition: { type: "spring", stiffness: 400, damping: 25 }
-                 } : {}}
-                 onClick={() => openCard(card)}
-               >
-                 <motion.div 
-                   layoutId={`card-image-${card.id}`}
-                   className="relative h-64 overflow-hidden bg-stone-100"
-                 >
-                   <img
-                     src={card.image}
-                     alt={card.title}
-                     className="w-full h-full object-cover transform-gpu group-hover:scale-105 transition-transform duration-700 ease-out"
-                    onError={onImageError}/>
-                   <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent"></div>
-                   <motion.div 
-                     className="absolute top-4 right-4 z-10"
-                     initial={{ opacity: 0, scale: 0.8 }}
-                     animate={{ opacity: 1, scale: 1 }}
-                     transition={{ delay: 0.6 }}
-                     onClick={(e) => toggleBookmark(card.id, e)}
-                   >
-                     <div className={`p-2 rounded-full backdrop-blur-md ${bookmarkedCards.has(card.id) ? 'bg-yellow-400 text-white' : 'bg-black/20 text-white hover:bg-black/40'}`}>
-                        <BookmarkIcon size={16} fill={bookmarkedCards.has(card.id) ? "currentColor" : "none"} />
-                     </div>
-                   </motion.div>
-                   <motion.div 
-                     className="absolute bottom-4 left-4 text-white p-2"
-                     initial={{ opacity: 0, y: 10 }}
-                     animate={{ opacity: 1, y: 0 }}
-                     transition={{ delay: 0.5 }}
-                   >
-                     <div className="text-[10px] font-bold uppercase tracking-widest mb-1 opacity-90">
-                       {card.category} • {card.subcategory}
-                     </div>
-                     <div className="text-xs opacity-75 font-medium flex items-center gap-2">
-                       {formattedTime} • {card.location}
-                     </div>
-                   </motion.div>
-                 </motion.div>
-                 <motion.div 
-                   layoutId={`card-content-${card.id}`}
-                   className="p-6"
-                 >
-                   <motion.h3 
-                     layoutId={`card-title-${card.id}`}
-                     className="font-display font-bold text-xl leading-tight line-clamp-2 group-hover:text-primary transition-colors text-stone-900"
-                   >
-                     {card.title}
-                   </motion.h3>
-                   <motion.p
-                     initial={{ opacity: 0 }}
-                     animate={{ opacity: 1 }}
-                     className="text-stone-500 text-sm mt-2 line-clamp-2"
-                   >
-                     {card.content?.[0]}
-                   </motion.p>
-                 </motion.div>
-               </motion.article>
-             );
-           })}
-         </motion.div>
-
-         <AnimatePresence>
-           {selectedCard && (
-             <>
-               <motion.div
-                 className="fixed inset-0 bg-stone-900/60 backdrop-blur-md z-[100]"
-                 initial={{ opacity: 0 }}
-                 animate={{ opacity: 1 }}
-                 exit={{ opacity: 0 }}
-                 onClick={closeCard}
-               />
-               <motion.div
-                 layoutId={`card-${selectedCard.id}`}
-                 className="fixed inset-4 md:inset-10 lg:inset-x-32 lg:inset-y-10 bg-white rounded-[2.5rem] overflow-hidden z-[101] shadow-2xl flex flex-col md:flex-row"
-               >
-                 <motion.button
-                   className="absolute top-6 right-6 w-10 h-10 bg-white/20 backdrop-blur-md hover:bg-white text-white hover:text-stone-900 rounded-full flex items-center justify-center z-20 transition-all shadow-lg"
-                   initial={{ opacity: 0, scale: 0 }}
-                   animate={{ opacity: 1, scale: 1 }}
-                   transition={{ delay: 0.2 }}
-                   onClick={closeCard}
-                 >
-                   <X className="w-5 h-5" />
-                 </motion.button>
-                 <motion.div 
-                    layoutId={`card-image-${selectedCard.id}`}
-                    className="relative w-full md:w-1/2 h-64 md:h-full bg-stone-200"
-                 >
-                    <img
-                        src={selectedCard.image}
-                        alt={selectedCard.title}
-                        className="w-full h-full object-cover"
-                     onError={onImageError}/>
-                    <div className="absolute inset-0 bg-gradient-to-t from-stone-900/80 via-transparent to-transparent md:bg-gradient-to-r"></div>
-                    <div className="absolute bottom-8 left-8 text-white">
-                        <motion.div 
-                            className="inline-flex items-center gap-2 bg-[color:color-mix(in_srgb,var(--primary)_90%,transparent)] backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest mb-4"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.3 }}
-                        >
-                           {selectedCard.category}
-                        </motion.div>
-                        <h2 className="text-3xl md:text-4xl font-display font-bold italic mb-2 leading-tight">
-                            {selectedCard.title}
-                        </h2>
-                        <div className="flex items-center gap-4 text-sm font-medium text-white/80">
-                            <span>{selectedCard.subcategory}</span>
-                            <span>•</span>
-                            <span>{selectedCard.location}</span>
-                            <span>•</span>
-                            <span>{selectedCard.timestamp ? timeAgo(selectedCard.timestamp.toDate()) : ''}</span>
-                        </div>
-                    </div>
-                 </motion.div>
-                 <motion.div 
-                   layoutId={`card-content-${selectedCard.id}`}
-                   className="w-full md:w-1/2 p-8 md:p-12 overflow-y-auto custom-scrollbar bg-white"
-                 >
-                   <motion.h3 layoutId={`card-title-${selectedCard.id}`} className="hidden">{selectedCard.title}</motion.h3>
-                   <motion.div 
-                     className="prose prose-lg max-w-none text-stone-600 leading-relaxed space-y-6"
-                     initial={{ opacity: 0, y: 20 }}
-                     animate={{ opacity: 1, y: 0 }}
-                     transition={{ delay: 0.4, duration: 0.4 }}
-                   >
-                     {selectedCard.content ? (
-                       selectedCard.content.map((paragraph, index) => (
-                         <p key={index} className="first-letter:text-4xl first-letter:font-display first-letter:font-bold first-letter:mr-1 first-letter:float-left first-letter:text-stone-900">
-                           {paragraph}
-                         </p>
-                       ))
-                     ) : (
-                       <p>{t('news.no_content')}</p>
-                     )}
-                   </motion.div>
-                 </motion.div>
-               </motion.div>
-             </>
-           )}
-         </AnimatePresence>
-       </LayoutGroup>
-    </motion.div>
+      {rest.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">
+          {rest.map(n => (
+            <article key={n.id} className="bg-white rounded-[2rem] border border-stone-100 shadow-sm overflow-hidden flex flex-col group">
+              <Link to={`/news/${encodeURIComponent(n.id)}`} className="block overflow-hidden">
+                <Bild n={n} className="w-full h-52 group-hover:scale-[1.03] transition-transform duration-700" />
+              </Link>
+              <div className="p-6 flex flex-col flex-1">
+                {kopfzeile(n)}
+                <Link to={`/news/${encodeURIComponent(n.id)}`}>
+                  <h3 className="font-display text-xl font-bold text-stone-900 leading-snug mt-3 line-clamp-2 group-hover:text-primary transition-colors">{n.title}</h3>
+                </Link>
+                <p className="text-stone-500 text-sm leading-relaxed mt-2 line-clamp-3">{absaetze(n.content)[0]}</p>
+                <div className="mt-auto pt-5">{aktionen(n)}</div>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

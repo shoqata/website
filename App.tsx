@@ -89,6 +89,7 @@ const VillageLive = React.lazy(() => import('./components/VillageLive'));
 const ProfileSetup = React.lazy(() => import('./components/ProfileSetup'));
 const EventsPage = React.lazy(() => import('./components/EventsPage'));
 const NewsPage = React.lazy(() => import('./components/NewsPage'));
+const NachrichtSeite = React.lazy(() => import('./components/NachrichtSeite'));
 const AboutUsPage = React.lazy(() => import('./components/AboutUsPage'));
 const ChronikSeite = React.lazy(() => import('./components/ChronikSeite'));
 const FutsalPage = React.lazy(() => import('./components/FutsalPage'));
@@ -670,6 +671,11 @@ const AppContent: React.FC = () => {
                     <Route path="/news" element={
                       ((z) => z === 'LAEDT' ? <PageLoader />
                             : z === 'ZEIGEN' ? <NewsPage />
+                            : <Navigate to="/" replace />)
+                      (seitenZustand(websiteModule, 'NEUIGKEITEN', istPlattformDomain))} />
+                    <Route path="/news/:id" element={
+                      ((z) => z === 'LAEDT' ? <PageLoader />
+                            : z === 'ZEIGEN' ? <NachrichtSeite />
                             : <Navigate to="/" replace />)
                       (seitenZustand(websiteModule, 'NEUIGKEITEN', istPlattformDomain))} />
                     {/* Turnier und Sponsoring. Die Adressen werden so geteilt
