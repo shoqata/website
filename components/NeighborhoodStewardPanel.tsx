@@ -20,6 +20,7 @@ import { rechnungsmailBauen } from '../lib/rechnungsmail';
 import { zahlungsangabenPruefen } from '../lib/postversand';
 import { versandsatz } from '../services/mailService';
 import MeineZustaendigkeit from './MeineZustaendigkeit';
+import { useVereinsjahre } from '../lib/useVereinsjahre';
 import { KassierenDialog, MitgliedErfassenDialog, KasseTab, AufgabenTab } from './VertreterVorOrt';
 
 interface Props { user: UserProfile; }
@@ -122,7 +123,8 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
 
   useEffect(() => { laden(); }, [user.id]);
 
-  const jahr = new Date().getFullYear();
+  // Das Arbeitsjahr des Vereins: nach dem Jahreswechsel das neue.
+  const { aktuell: jahr } = useVereinsjahre();
 
   // Beitragsstand und fehlende Angaben einmal je Mitglied, nicht in jeder
   // Zeile neu -- die Liste kann mehrere Dutzend Eintraege lang sein.

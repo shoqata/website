@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import JahresWechsel from './JahresWechsel';
+import { useVereinsjahre } from '../lib/useVereinsjahre';
 import CountrySelect from './ui/CountrySelect';
 import { 
   CreditCard, 
@@ -31,7 +33,8 @@ import {
   PieChart as PieChartIcon,
   Calculator,
   Info,
-  LayoutTemplate
+  LayoutTemplate,
+  CalendarPlus,
 } from 'lucide-react';
 import { db } from '../services/datenzugriff';
 import { supabase } from '@/services/supabase-bridge';
@@ -66,6 +69,9 @@ import { layoutLesen, VORGABE, type Rechnungslayout } from '../lib/rechnungslayo
 interface AdminFinanceProps {
     viewMode: 'LIST' | 'GRID' | 'KANBAN';
     selectedYear: number;
+    /** Jahreswechsel gleich oeffnen, etwa nach dem Jahresabschluss. */
+    jahreswechsel?: number | null;
+    onJahreswechselGeoeffnet?: () => void;
 }
 
 // Eine Zeile im Budget: Konto, Planzahl, Ist -- und wie weit das eine das
@@ -138,7 +144,15 @@ const BudgetZeile: React.FC<{
 const perPost = (p: Payment) => p.deliveryMethod === 'POST' || p.deliveryMethod === 'BOTH';
 const perMail = (p: Payment) => p.deliveryMethod === 'EMAIL' || p.deliveryMethod === 'BOTH';
 
-const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) => {
+const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear, jahreswechsel, onJahreswechselGeoeffnet }) => {
+    const vereinsjahre = useVereinsjahre();
+    const [wechselJahr, setWechselJahr] = useState<number | null>(null);
+    // Fuer welches Jahr der Rechnungsassistent laeuft: aus dem Jahreswechsel
+    // das neue, sonst das gewaehlte.
+    const [assistentJahr, setAssistentJahr] = useState<number | null>(null);
+    useEffect(() => {
+        if (jahreswechsel) { setWechselJahr(jahreswechsel); onJahreswechselGeoeffnet?.(); }
+    }, [jahreswechsel]);
     const { t, loc } = useTranslation();
     const { showAlert, showConfirm } = useFeedback();
     
@@ -897,15 +911,25 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
         } 
     };
 
+    // Hat das Arbeitsjahr schon Beitragsrechnungen, geht der Wechsel ins
+    // naechste; sonst ist das Arbeitsjahr selbst noch einzurichten.
+    const naechstesWechselJahr = payments.some(p => p.type === 'FEE' && (p as any).billingYear === vereinsjahre.aktuell)
+        ? vereinsjahre.aktuell + 1 : vereinsjahre.aktuell;
+
     return (
         <div className="bg-white rounded-[2.5rem] border border-stone-100 shadow-sm overflow-hidden min-h-[600px] flex flex-col">
+            {wechselJahr && (
+                <JahresWechsel jahr={wechselJahr} users={users} payments={payments}
+                    onRechnungen={(j) => { setWechselJahr(null); setAssistentJahr(j); setAssistent(true); }}
+                    onClose={() => setWechselJahr(null)} />
+            )}
             {assistent && (
-                <RechnungsAssistent users={users} payments={payments} jahr={selectedYear}
+                <RechnungsAssistent users={users} payments={payments} jahr={assistentJahr ?? selectedYear}
                     beitragVon={beitragVon} zahlart={determinePaymentMethod}
                     mailen={(p, melde) => handleSendInvoiceEmail(p, melde)}
                     aufgeben={(p, melde) => handlePostAufgeben(p, true, melde)}
                     holen={rechnungenHolen}
-                    onClose={() => setAssistent(false)} />
+                    onClose={() => { setAssistent(false); setAssistentJahr(null); }} />
             )}
             {postDialog && (
                 <PostGuthabenDialog anzahl={postDialog.length}
@@ -944,7 +968,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
                     <div className="space-y-6">
                         <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-4 rounded-3xl border border-stone-100 shadow-sm">
                             <div className="flex gap-2 w-full md:w-auto"><div className="relative flex-1 md:w-64"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={16} /><input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t('common.search')} className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)]"/></div><div className="flex bg-stone-50 p-1 rounded-xl border border-stone-200">{(['ALL', 'TO_PRINT', 'PAID', 'PENDING', 'OVERDUE'] as const).map(s => (<button key={s} onClick={() => setFilterStatus(s)} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${filterStatus === s ? 'bg-white shadow-sm text-stone-900' : 'text-stone-400 hover:text-stone-600'}`}>{s === 'TO_PRINT' ? <><Printer size={12}/> {t('admin.finance.to_print')}</> : s === 'ALL' ? t('status.all') : s === 'PAID' ? t('board.paid') : s === 'PENDING' ? t('status.pending') : t('admin.finance.overdue')}</button>))}</div>{filterStatus === 'TO_PRINT' && filteredPayments.some(p => perPost(p) && p.status !== 'PAID') && (<button onClick={() => setPostDialog(filteredPayments.filter(p => perPost(p) && p.status !== 'PAID'))} disabled={postLaeuft !== ''} className="px-4 py-2.5 bg-stone-900 text-white rounded-xl text-xs font-bold hover:bg-stone-800 disabled:opacity-40 flex items-center gap-2 whitespace-nowrap">{postLaeuft === 'ALLE' ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}{t('post.alle_als_brief')}</button>)}</div>
-                            <div className="flex gap-2">{pendingEmailPayments.length > 0 && (<button onClick={handleSendBulkEmails} disabled={isSendingEmails} className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-blue-700 transition-all shadow-lg disabled:opacity-50">{isSendingEmails ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />} Send All Emails ({pendingEmailPayments.length})</button>)}<button onClick={() => setShowCreateModal(true)} className="bg-stone-900 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-black transition-all shadow-lg"><Plus size={16} /> {t('admin.finance.create')}</button></div>
+                            <div className="flex gap-2">{pendingEmailPayments.length > 0 && (<button onClick={handleSendBulkEmails} disabled={isSendingEmails} className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-blue-700 transition-all shadow-lg disabled:opacity-50">{isSendingEmails ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />} Send All Emails ({pendingEmailPayments.length})</button>)}<button onClick={() => setWechselJahr(naechstesWechselJahr)} title="Neues Vereinsjahr: Mitglieder aktualisieren, Rechnungen erstellen und senden" className="bg-white border border-stone-200 text-stone-700 px-5 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:border-stone-400 transition-all"><CalendarPlus size={16} /> Jahreswechsel {naechstesWechselJahr}</button><button onClick={() => setShowCreateModal(true)} className="bg-stone-900 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-black transition-all shadow-lg"><Plus size={16} /> {t('admin.finance.create')}</button></div>
                         </div>
                         <div className="bg-white rounded-[2.5rem] border border-stone-100 shadow-sm overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-stone-50 text-stone-400 font-bold uppercase text-[10px] tracking-widest border-b border-stone-100 sticky top-0 z-10"><tr><th className="px-6 py-4">{t('admin.finance.invoiceNum')}</th><th className="px-6 py-4">{t('field.recipient')}</th><th className="px-6 py-4">{t('field.description')}</th><th className="px-6 py-4">{t('field.date')}</th><th className="px-6 py-4">{t('field.amount')}</th><th className="px-6 py-4">{t('admin.finance.method_via')}</th><th className="px-6 py-4">{t('field.status')}</th><th className="px-6 py-4 text-right">{t('common.actions')}</th></tr></thead><tbody className="divide-y divide-stone-50">{filteredPayments.map(p => { const recipientUser = users.find(u => u.id === p.userId); const recipientName = recipientUser?.displayName || p.customRecipient?.name || 'Unknown'; return (<tr key={p.id} className="hover:bg-stone-50 transition-colors group"><td className="px-6 py-4 font-mono text-xs text-stone-500">{p.invoiceNumber}</td><td className="px-6 py-4 font-bold text-stone-800">{recipientName}</td><td className="px-6 py-4 text-stone-600">{p.description}</td><td className="px-6 py-4 text-stone-500 text-xs">{p.timestamp?.toDate().toLocaleDateString()}</td><td className="px-6 py-4 font-mono font-bold">{p.amount.toFixed(2)} {p.currency}</td><td className="px-6 py-4"><div className="flex flex-col gap-1"><span className="text-[10px] font-bold text-stone-600 uppercase tracking-widest">{p.method === 'QR_BILL' ? 'Swiss QR' : p.method === 'GIRO_CODE' ? 'GiroCode' : p.method === 'PAYPAL' ? 'PayPal' : p.method}</span>{perPost(p) && (<span className="flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded w-fit"><Printer size={10}/> {t('admin.finance.post')}</span>)}{perMail(p) && (<span className="flex items-center gap-1 text-[10px] font-bold text-sky-700 bg-sky-50 px-2 py-1 rounded w-fit"><Mail size={10}/> {t('field.email')}</span>)}</div></td><td className="px-6 py-4"><span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${p.status === 'PAID' ? 'bg-green-100 text-green-700' : p.status === 'OVERDUE' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>{p.status}</span></td><td className="px-6 py-4 text-right"><div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">{perMail(p) && p.status !== 'PAID' && (<button onClick={() => handleSendInvoiceEmail(p)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"><Send size={14} /></button>)}{perPost(p) && p.status !== 'PAID' && (<button onClick={() => setPostDialog([p])} disabled={postLaeuft === p.id} title={t('post.als_brief')} className="p-2 bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100 disabled:opacity-40">{postLaeuft === p.id ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}</button>)}<button onClick={() => setViewInvoice(p)} className="p-2 bg-stone-100 text-stone-600 rounded-lg hover:bg-stone-200"><Eye size={14} /></button>{p.status !== 'PAID' && (<button onClick={() => handleMarkPaid(p)} className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100"><CheckCircle2 size={14} /></button>)}<button onClick={() => handleDelete(p.id)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100"><Trash2 size={14} /></button></div></td></tr>); })}</tbody></table></div>
                     </div>

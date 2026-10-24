@@ -1,4 +1,5 @@
 
+import { useJahresauswahl } from '../lib/useVereinsjahre';
 import BetreuerAuswahl from './BetreuerAuswahl';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import AdminSpenden from './AdminSpenden';
@@ -109,7 +110,11 @@ const AdminPanel: React.FC = () => {
   // Mitglieder-Drawer erstellte Rechnung lautete also ueber 20 Franken zu wenig.
   const [feeSettings, setFeeSettings] = useState<any>(null);
   const [registrations, setRegistrations] = useState<EventRegistration[]>([]);
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  // Das Arbeitsjahr des Vereins, nicht das Kalenderjahr: ein eroeffnetes
+  // Folgejahr ist sofort waehlbar und vorgewaehlt.
+  const [selectedYear, setSelectedYear, vereinsjahre] = useJahresauswahl();
+  // Nach dem Jahresabschluss: gleich weiter in den Jahreswechsel.
+  const [jahreswechsel, setJahreswechsel] = useState<number | null>(null);
 
   // Management UI States
   const [search, setSearch] = useState('');
@@ -494,7 +499,7 @@ const AdminPanel: React.FC = () => {
                   </h2>
               </div>
               <div className="flex items-center gap-3">
-                  <div className="bg-stone-100 px-3 py-1.5 rounded-xl flex items-center gap-2"><CalendarDays size={14} className="text-stone-400"/><select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value))} className="bg-transparent text-xs font-bold text-stone-600 outline-none">{Array.from({length: 5}, (_, i) => new Date().getFullYear() - i).map(y => <option key={y} value={y}>{y}</option>)}</select></div>
+                  <div className="bg-stone-100 px-3 py-1.5 rounded-xl flex items-center gap-2"><CalendarDays size={14} className="text-stone-400"/><select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value))} className="bg-transparent text-xs font-bold text-stone-600 outline-none">{vereinsjahre.jahre.map(y => <option key={y} value={y}>{y}{vereinsjahre.geschlossen.includes(y) ? ' ✓' : ''}</option>)}</select></div>
                   <button onClick={() => setLeisteSchmal(v => !v)}
                     title={leisteSchmal ? 'Menü ausklappen' : 'Menü einklappen'}
                     className="hidden lg:flex bg-stone-100 p-2 rounded-xl text-stone-500 hover:text-stone-900">
@@ -626,7 +631,8 @@ const AdminPanel: React.FC = () => {
                                     ueber Zahlungen: beide warten auf dieselbe
                                     Entscheidung desselben Vorstands. */}
                                 <AdminMitgliedMeldungen />
-                                <AdminFinance viewMode="GRID" selectedYear={selectedYear} />
+                                <AdminFinance viewMode="GRID" selectedYear={selectedYear}
+                                    jahreswechsel={jahreswechsel} onJahreswechselGeoeffnet={() => setJahreswechsel(null)} />
                             </div>
                         )}
                         {activeTab === 'EXPENSES' && <><AdminHandkassen /><AdminExpenses /></>}
@@ -634,7 +640,8 @@ const AdminPanel: React.FC = () => {
                             die Handkassen der Vertreter gehoeren aber zu den
                             Nachbarschaften und muessen pruefbar bleiben. */}
                         {activeTab === 'FINANCE' && modulGesperrt('BUCHHALTUNG') && <AdminHandkassen />}
-                        {activeTab === 'ACCOUNTING' && <AdminAccounting selectedYear={selectedYear} />}
+                        {activeTab === 'ACCOUNTING' && <AdminAccounting selectedYear={selectedYear}
+                            onJahrEroeffnet={(j) => { setSelectedYear(j); setJahreswechsel(j); setActiveTab('FINANCE'); }} />}
                         {activeTab === 'STATISTICS' && <AdminStatistics users={users} payments={payments} neighborhoods={neighborhoods} selectedYear={selectedYear} />}
                         {activeTab === 'WEBSITE' && <AdminWebsite />}
                         {activeTab === 'SEO' && <AdminSeo />}

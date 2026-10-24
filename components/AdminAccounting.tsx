@@ -1,4 +1,6 @@
 
+import { KontoAnlegen, KontoBearbeiten } from './KontoVerwaltung';
+import { vereinsjahreNeuLaden } from '../lib/useVereinsjahre';
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   BookOpen, 
@@ -76,6 +78,8 @@ interface AccountWithBalance extends Account {
 
 interface AdminAccountingProps {
     selectedYear: number;
+    /** Nach dem Abschluss: das neu eroeffnete Jahr, fuer den Jahreswechsel. */
+    onJahrEroeffnet?: (jahr: number) => void;
     isYearClosed?: boolean;
 }
 
@@ -101,7 +105,7 @@ const getDateString = (dateInput: any): string => {
     return String(dateInput);
 };
 
-const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearClosed: isYearClosedProp }) => {
+const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearClosed: isYearClosedProp, onJahrEroeffnet }) => {
   const { t } = useTranslation();
   const { showAlert, showConfirm } = useFeedback();
   const [activeTab, setActiveTab] = useState<'JOURNAL' | 'ACCOUNTS' | 'BILANZ' | 'ERFOLG'>('BILANZ');
@@ -159,6 +163,13 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
   // Closing Ceremony State
   const [showClosingWizard, setShowClosingWizard] = useState(false);
   const [closingStep, setClosingStep] = useState(0);
+
+  const kontenNeuLaden = async () => {
+    const snap = await getDocs(query(collection(db, 'accounting_accounts'), orderBy('code')));
+    const liste = snap.docs.map(d => d.data() as Account);
+    liste.sort((a, b) => a.code.localeCompare(b.code));
+    setAccounts(liste);
+  };
 
   useEffect(() => {
     // 1. Sync Accounts (Seed if empty, or add missing specific accounts like 1001)
@@ -447,11 +458,15 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
           const e: any = data || {};
           setYearClosedInDb(true);
           setClosingStep(3);
+          // Das Folgejahr ist jetzt eroeffnet -- ueberall, nicht nur hier.
+          await vereinsjahreNeuLaden();
           setTimeout(() => {
               setShowClosingWizard(false);
               setClosingStep(0);
               showAlert({ type: 'success',
-                  message: `Geschäftsjahr ${selectedYear} abgeschlossen. Ergebnis ${Number(e.ergebnis ?? 0).toLocaleString('de-CH')} CHF, ${e.vortraege ?? 0} Vorträge ins Jahr ${selectedYear + 1}.` });
+                  message: `Geschäftsjahr ${selectedYear} abgeschlossen, ${selectedYear + 1} eröffnet. Ergebnis ${Number(e.ergebnis ?? 0).toLocaleString('de-CH')} CHF, ${e.vortraege ?? 0} Vorträge.` });
+              // Weiter im Jahreswechsel: Mitglieder, Rechnungen, Versand.
+              onJahrEroeffnet?.(selectedYear + 1);
           }, 1500);
       } catch (e: any) {
           console.error('[AdminAccounting] Jahresabschluss fehlgeschlagen:', e);
@@ -570,6 +585,7 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
 
             {activeTab === 'ACCOUNTS' && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <KontoAnlegen vorhandene={accounts.map(a => a.code)} onFertig={kontenNeuLaden} />
                     {accountBalances.map(acc => (
                         <div key={acc.id} onClick={() => setViewAccount(acc)} className="bg-white border border-stone-200 p-6 rounded-[2rem] flex justify-between items-center shadow-sm hover:shadow-md hover:border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)] transition-all cursor-pointer group">
                             <div className="flex items-center gap-4"><div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-mono font-bold text-sm ${acc.class === 'ASSET' ? 'bg-emerald-100 text-emerald-700' : acc.class === 'LIABILITY' ? 'bg-orange-100 text-orange-700' : acc.class === 'REVENUE' ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'}`}>{acc.code}</div><div><p className="font-bold text-stone-900 group-hover:text-primary transition-colors">{acc.name}</p><p className="text-[10px] text-stone-400 uppercase tracking-widest">{acc.category}</p></div></div>
@@ -585,7 +601,12 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
                 <div className="fixed inset-0 z-[300] bg-stone-900/80 backdrop-blur-md flex items-center justify-center p-4">
                     <motion.div initial={{opacity:0, scale:0.95}} animate={{opacity:1, scale:1}} exit={{opacity:0, scale:0.95}} className="bg-white h-[90vh] w-full max-w-4xl rounded-2xl flex flex-col overflow-hidden relative">
                         <div className="bg-stone-50 border-b border-stone-200 p-4 flex justify-between items-center shrink-0 no-print">
-                            <h3 className="font-bold text-stone-800">Kontoauszug: {viewAccount.code} {viewAccount.name}</h3>
+                            <div className="flex items-center gap-4 flex-wrap">
+                              <h3 className="font-bold text-stone-800">Kontoauszug: {viewAccount.code} {viewAccount.name}</h3>
+                              <KontoBearbeiten key={viewAccount.code} konto={viewAccount as any}
+                                buchungen={journal.filter(j => String(j.debitCode) === String(viewAccount.code) || String(j.creditCode) === String(viewAccount.code)).length}
+                                onFertig={async (weg) => { await kontenNeuLaden(); if (weg) setViewAccount(null); }} />
+                            </div>
                             <div className="flex gap-2"><button onClick={() => handleExportStatement(viewAccount)} className="flex items-center gap-2 px-4 py-2 bg-white border border-stone-200 rounded-lg text-sm font-bold text-stone-600 hover:text-primary transition-colors"><Download size={16}/> {t('acc.csv_export')}</button><button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 bg-stone-900 text-white rounded-lg text-sm font-bold hover:bg-black transition-colors"><Printer size={16}/> {t('acc.print')}</button><button onClick={() => setViewAccount(null)} className="p-2 hover:bg-stone-200 rounded-lg text-stone-500"><X size={20}/></button></div>
                         </div>
                         <div className="flex-1 overflow-y-auto bg-stone-100 p-8 flex justify-center printable-scroll-area">

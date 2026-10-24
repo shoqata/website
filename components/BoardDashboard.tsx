@@ -1,4 +1,5 @@
 
+import { useJahresauswahl } from '../lib/useVereinsjahre';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from '../context/LanguageContext';
 import { UserProfile, Payment, Neighborhood, BoardMeeting } from '../types';
@@ -53,7 +54,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
   const { showAlert, showConfirm } = useFeedback();
   
   // Data State
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedYear, setSelectedYear, vereinsjahre] = useJahresauswahl();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([]);
@@ -432,7 +433,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                         onChange={(e) => setSelectedYear(parseInt(e.target.value))}
                         className="bg-transparent font-bold text-stone-800 outline-none cursor-pointer"
                     >
-                        {Array.from({length: 5}, (_, i) => new Date().getFullYear() - i).map(y => (
+                        {vereinsjahre.jahre.map(y => (
                             <option key={y} value={y}>{y}</option>
                         ))}
                     </select>

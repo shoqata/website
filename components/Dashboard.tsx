@@ -1,4 +1,5 @@
 
+import { useVereinsjahre } from '../lib/useVereinsjahre';
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from '../context/LanguageContext';
@@ -80,7 +81,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   // braucht das Jahr. Eine Konstante unterhalb ihrer Verwendung laeuft nur
   // deshalb, weil Effekte nach dem Rendern ausgefuehrt werden -- eine Falle
   // fuer den Naechsten, der etwas verschiebt.
-  const beitragsjahr = new Date().getFullYear();
+  // Das Arbeitsjahr des Vereins -- nach dem Jahreswechsel das neue.
+  const { aktuell: beitragsjahr } = useVereinsjahre();
 
   const [puls, setPuls] = useState<{
     mitglieder: number; aktiv: number; bezahlt: number; offen: number; ohne_rechnung: number;
