@@ -15,8 +15,10 @@ verify_jwt = false
 [functions.pingen-webhook]
 verify_jwt = false
 
-# Der Arbeiter wird aus der Anwendung gerufen, mit dem Token des
-# Anwenders. Hier bleibt die Pruefung AN: er gibt Briefe auf, und das
-# soll niemand ohne Anmeldung anstossen koennen.
+# Der Arbeiter wird vom Zeitplan (ohne Anmeldung, mit Zeitplan-Kennwort)
+# und aus der Verwaltung (mit Anmeldung) gerufen. Wie bei send-mail-queue
+# prueft er selbst, wer aufrufen darf -- ohne eines von beidem antwortet
+# er 401. Die vorgeschaltete Pruefung muss deshalb aus, sonst kaeme der
+# Zeitplan nie an.
 [functions.pingen-versand]
-verify_jwt = true
+verify_jwt = false

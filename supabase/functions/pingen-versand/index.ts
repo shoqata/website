@@ -143,11 +143,46 @@ const vonBase64 = (b64: string): Uint8Array => {
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Nur POST." }, 405);
 
-  // Derselbe Riegel wie beim Mailversand: ohne Marke kein Lauf.
+  // Derselbe Riegel wie beim Mailversand. Drei Wege herein:
+  //   * CRON_TOKEN aus den Secrets,
+  //   * das Zeitplan-Kennwort aus mail_settings (damit muss niemand ein
+  //     Kennwort von Hand in die Secrets tragen -- der Zeitplan schickt es),
+  //   * eine angemeldete Verwaltung (Knopf "Zugang pruefen", Anstossen
+  //     nach dem Einreihen).
+  // Bisher galt nur der erste, und es gab ihn nicht: jeder Aufruf wurde
+  // abgewiesen, und eingereihte Briefe blieben liegen.
   const marke_kopf = req.headers.get("x-cron-token") ?? "";
-  if (!cronToken || marke_kopf !== cronToken) {
-    return json({ error: "Nicht berechtigt." }, 401);
+  const dienst = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    { auth: { persistSession: false } },
+  );
+  let erlaubt = !!cronToken && marke_kopf === cronToken;
+  if (!erlaubt && marke_kopf) {
+    const { data: treffer } = await dienst.rpc("zeitplan_token_gueltig", { p_token: marke_kopf });
+    erlaubt = treffer === true;
   }
+  if (!erlaubt) {
+    const kopf = req.headers.get("Authorization") ?? "";
+    if (kopf.startsWith("Bearer ")) {
+      const alsAufrufer = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: kopf } }, auth: { persistSession: false } },
+      );
+      const { data } = await alsAufrufer.auth.getUser();
+      const mail = (data?.user?.email ?? "").toLowerCase();
+      if (mail) {
+        const { data: zeilen } = await dienst.from("users").select("role").ilike("email", mail).limit(1);
+        erlaubt = ["ADMIN", "SUPER_ADMIN", "BOARD"].includes(zeilen?.[0]?.role ?? "");
+        if (!erlaubt) {
+          const { data: betr } = await dienst.from("platform_admins").select("email").ilike("email", mail).limit(1);
+          erlaubt = !!betr?.length;
+        }
+      }
+    }
+  }
+  if (!erlaubt) return json({ error: "Nicht berechtigt." }, 401);
 
   let koerper: any = {};
   try { koerper = await req.json(); } catch { /* leer ist in Ordnung */ }
