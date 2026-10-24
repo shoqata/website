@@ -54,7 +54,9 @@ const PostGuthabenDialog: React.FC<{
     laden();
   };
 
-  const reicht = !!g && g.frei >= anzahl;
+  // Modul aus (z. B. Paket Light): nichts einreihen -- der Brief ginge nie hinaus.
+  const modulAus = !!g && !g.modul_aktiv;
+  const reicht = !!g && !modulAus && g.frei >= anzahl;
   const fehlt = g ? Math.max(anzahl - g.frei, 0) : 0;
 
   return (
@@ -68,7 +70,13 @@ const PostGuthabenDialog: React.FC<{
 
         {!g && !fehler && <div className="flex justify-center py-6"><Loader2 className="animate-spin text-stone-300" /></div>}
 
-        {g && (
+        {modulAus && (
+          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-100 text-sm text-amber-900">
+            Der Briefversand ist für diesen Verein nicht aktiv. Er gehört zum Paket Voll.
+          </div>
+        )}
+
+        {g && !modulAus && (
           <>
             <div className="grid grid-cols-3 gap-2 text-center">
               <div className="bg-stone-50 rounded-2xl p-3">
@@ -121,7 +129,7 @@ const PostGuthabenDialog: React.FC<{
 
         <div className="flex gap-2 justify-end pt-1">
           <button onClick={onAbbrechen} className="px-5 py-3 rounded-xl text-sm font-bold text-stone-500 hover:bg-stone-100">Abbrechen</button>
-          <button onClick={onAufgeben} disabled={!g}
+          <button onClick={onAufgeben} disabled={!g || modulAus}
             className={`px-6 py-3 rounded-xl text-sm font-bold flex items-center gap-2 disabled:opacity-40 ${reicht ? 'bg-primary text-white' : 'bg-stone-200 text-stone-700'}`}>
             <Printer size={16} /> {reicht ? 'Jetzt aufgeben' : 'Trotzdem einreihen'}
           </button>
