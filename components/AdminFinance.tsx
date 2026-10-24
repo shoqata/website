@@ -129,6 +129,15 @@ const BudgetZeile: React.FC<{
   );
 };
 
+// Zustellweg einer Rechnung. "BOTH" heisst beides -- E-Mail UND Brief.
+// Vorher wurde nur auf 'POST' bzw. 'EMAIL' geprueft: eine Rechnung mit
+// BOTH bekam weder den Mail- noch den Postknopf und stand in der Liste
+// als "E-Mail". Ausserhalb der Komponente: die Listen weiter oben rechnen
+// schon beim ersten Aufbau damit (als Konstante in der Komponente standen
+// sie dahinter, und die Seite brach beim Oeffnen ab).
+const perPost = (p: Payment) => p.deliveryMethod === 'POST' || p.deliveryMethod === 'BOTH';
+const perMail = (p: Payment) => p.deliveryMethod === 'EMAIL' || p.deliveryMethod === 'BOTH';
+
 const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) => {
     const { t, loc } = useTranslation();
     const { showAlert, showConfirm } = useFeedback();
@@ -424,13 +433,6 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear }) =
     // Gibt zurueck, ob die Nachricht wirklich eingereiht wurde. Vorher gab
     // sie nichts zurueck, und der Sammelversand meldete deshalb Erfolg fuer
     // alles -- auch fuer das, was er gerade abgewiesen hatte.
-    // Zustellweg einer Rechnung. "BOTH" heisst beides -- E-Mail UND Brief.
-    // Vorher wurde nur auf 'POST' bzw. 'EMAIL' geprueft: eine Rechnung mit
-    // BOTH bekam weder den Mail- noch den Postknopf und stand in der Liste
-    // als "E-Mail".
-    const perPost = (p: Payment) => p.deliveryMethod === 'POST' || (p.deliveryMethod as string) === 'BOTH';
-    const perMail = (p: Payment) => p.deliveryMethod === 'EMAIL' || (p.deliveryMethod as string) === 'BOTH';
-
     // melde: im Assistenten werden Fehler gesammelt statt einzeln gemeldet.
     const handleSendInvoiceEmail = async (payment: Payment, melde?: (grund: string) => void): Promise<boolean> => {
         const fehlerMelden = (m: string) => melde ? melde(m) : showAlert({ type: 'error', message: m });
