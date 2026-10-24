@@ -27,7 +27,8 @@ import { useOeffentlicheModule } from './lib/useOeffentlicheModule';
 import { seitenZustand } from './lib/modulgate';
 import { useWerbemessung } from './lib/useWerbemessung';
 import { useSpendenseiteSichtbar } from './lib/useSpendenseiteSichtbar';
-import { useKopfzeile, navLayout, zeigtOben, zeigtFuss } from './components/kopfzeile';
+import { useKopfzeile, navLayout, zeigtOben, zeigtFuss, navGruppen, navBaum } from './components/kopfzeile';
+import { KopfGruppe, GruppenTitel } from './components/NavGruppen';
 import { useReiterKennzeichen } from './lib/useReiterKennzeichen';
 import { HashRouter as Router, Routes, Route, Link, useLocation, Navigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -92,6 +93,7 @@ const NewsPage = React.lazy(() => import('./components/NewsPage'));
 const NachrichtSeite = React.lazy(() => import('./components/NachrichtSeite'));
 const AboutUsPage = React.lazy(() => import('./components/AboutUsPage'));
 const ChronikSeite = React.lazy(() => import('./components/ChronikSeite'));
+const KontaktSeite = React.lazy(() => import('./components/KontaktSeite'));
 const FutsalPage = React.lazy(() => import('./components/FutsalPage'));
 const SponsorPage = React.lazy(() => import('./components/SponsorPage'));
 const LegalPage = React.lazy(() => import('./components/LegalPage'));
@@ -652,6 +654,11 @@ const AppContent: React.FC = () => {
                             : z === 'ZEIGEN' ? <ChronikSeite />
                             : <Navigate to="/" replace />)
                       (seitenZustand(websiteModule, 'WEBSITE', istPlattformDomain))} />
+                    <Route path="/kontakt" element={
+                      ((z) => z === 'LAEDT' ? <PageLoader />
+                            : z === 'ZEIGEN' ? <KontaktSeite />
+                            : <Navigate to="/" replace />)
+                      (seitenZustand(websiteModule, 'WEBSITE', istPlattformDomain))} />
                     {/* Dorfleben nur mit gebuchtem Modul. Ausgeblendet
                         heisst auch nicht erreichbar: nur den Verweis
                         wegzunehmen hiesse "schwerer zu finden", nicht "aus".
@@ -839,6 +846,9 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings, systemGelad
     angemeldet: !!user, loc,
   });
   const kopf = systemGeladen ? (kopfAlle || []).filter(zeigtOben) : null;
+  // Untermenues: die Gruppen aus Website -> Navigation. Ohne Gruppen ist
+  // der Baum dieselbe flache Liste wie bisher.
+  const baum = navBaum(kopf || [], navGruppen((systemSettings as any)?.navigationGruppen));
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isActive = (path: string) => location.pathname === path;
@@ -889,11 +899,19 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings, systemGelad
             {logo(true)}
             <span className="font-display font-bold text-lg italic text-stone-800 leading-tight">{loc((branding as any).associationName) || ''}</span>
           </Link>
-          {(kopf || []).map(e => (
-            <Link key={e.schluessel} to={e.pfad} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${isActive(e.pfad) ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}>
-              {e.icon}<span className="font-bold text-sm">{label(e)}</span>
-            </Link>
-          ))}
+          {baum.map(k => {
+            const zeile = (e: any) => (
+              <Link key={e.schluessel} to={e.pfad} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${isActive(e.pfad) ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}>
+                {e.icon}<span className="font-bold text-sm">{label(e)}</span>
+              </Link>
+            );
+            return k.art === 'eintrag' ? zeile(k.eintrag) : (
+              <React.Fragment key={`g-${k.gruppe.id}`}>
+                <GruppenTitel gruppe={k.gruppe} />
+                {k.eintraege.map(zeile)}
+              </React.Fragment>
+            );
+          })}
           <div className="flex-1" />
           <div className="pt-4 border-t border-stone-200/60 space-y-3">
             {sprachen}
@@ -949,10 +967,13 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings, systemGelad
             vorher waren es zwei Abschriften, und im Handymenue fehlten
             Videos und Spenden. */}
         <div className="hidden md:flex items-center gap-1 lg:gap-2">
-            {(kopf || []).map(e => (
-              <Link key={e.schluessel} to={e.pfad} className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${isActive(e.pfad) ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}>
-                  {e.icon}<span className="font-bold text-sm">{e.uebersetzen ? t(e.label) : e.label}</span>
+            {baum.map(k => k.art === 'eintrag' ? (
+              <Link key={k.eintrag.schluessel} to={k.eintrag.pfad} className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${isActive(k.eintrag.pfad) ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}>
+                  {k.eintrag.icon}<span className="font-bold text-sm">{label(k.eintrag)}</span>
               </Link>
+            ) : (
+              <KopfGruppe key={`g-${k.gruppe.id}`} gruppe={k.gruppe} eintraege={k.eintraege}
+                mega={layout.computer === 'MEGAMENU'} angemeldet={!!user} />
             ))}
         </div>
 
@@ -985,9 +1006,23 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings, systemGelad
         <AnimatePresence>
             {isMenuOpen && (
                 <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute top-full left-0 right-0 mt-3 mx-2 p-4 bg-white/95 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-white/20 md:hidden flex flex-col gap-2 z-40">
-                    {(kopf || []).slice(leisteUnten ? 3 : 0).map(e => (
-                      <Link key={e.schluessel} to={e.pfad} onClick={() => setIsMenuOpen(false)} className="flex items-center gap-4 p-4 bg-stone-50 rounded-2xl">{e.iconKlein}<span className="font-bold">{e.uebersetzen ? t(e.label) : e.label}</span></Link>
-                    ))}
+                    {/* Mit der Leiste unten stehen die ersten drei schon dort. */}
+                    {(() => {
+                      const schonUnten = new Set(leisteUnten ? (kopf || []).slice(0, 3).map(e => e.schluessel) : []);
+                      const zeile = (e: any) => (
+                        <Link key={e.schluessel} to={e.pfad} onClick={() => setIsMenuOpen(false)} className="flex items-center gap-4 p-4 bg-stone-50 rounded-2xl">{e.iconKlein}<span className="font-bold">{label(e)}</span></Link>
+                      );
+                      return baum.map(k => {
+                        if (k.art === 'eintrag') return schonUnten.has(k.eintrag.schluessel) ? null : zeile(k.eintrag);
+                        const rest = k.eintraege.filter(e => !schonUnten.has(e.schluessel));
+                        return rest.length ? (
+                          <React.Fragment key={`g-${k.gruppe.id}`}>
+                            <GruppenTitel gruppe={k.gruppe} />
+                            {rest.map(zeile)}
+                          </React.Fragment>
+                        ) : null;
+                      });
+                    })()}
                     <div className="h-px bg-stone-100 my-2" />
                     {user ? (
                         <>

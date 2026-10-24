@@ -18,6 +18,7 @@ import AdminSeiten from './AdminSeiten';
 import AdminNavigation from './AdminNavigation';
 import AdminUeberUns from './AdminUeberUns';
 import AdminChronik from './AdminChronik';
+import AdminKontakt from './AdminKontakt';
 // --- TYPES ---
 // Helper type for localized strings
 type LocalizedString = string | { [key: string]: string };
@@ -68,7 +69,7 @@ interface BrandingSettings {
   tournamentDetailUrl?: string;
 }
 
-type Tab = 'DESIGN' | 'GLOBAL' | 'NAVIGATION' | 'HOME' | 'ABOUT' | 'CHRONIK' | 'SEITEN' | 'LIVE' | 'TURNIER' | 'LEGAL';
+type Tab = 'DESIGN' | 'GLOBAL' | 'NAVIGATION' | 'HOME' | 'ABOUT' | 'CHRONIK' | 'KONTAKT' | 'SEITEN' | 'LIVE' | 'TURNIER' | 'LEGAL';
 type LangCode = 'de' | 'en' | 'sq';
 
 // Aufklappbarer Bereich im Editor. Auf Modulebene, nicht innerhalb von
@@ -382,7 +383,7 @@ const AdminWebsite: React.FC = () => {
              {/* Die Reiter zeigten bisher ihren Schluessel: DESIGN, GLOBAL,
                  LIVE. Verstaendlich fuer den, der den Quelltext kennt. */}
              {(([['DESIGN','Design'], ['GLOBAL','Allgemein'], ['NAVIGATION','Navigation'], ['HOME','Startseite'],
-                ['ABOUT','Über uns'], ['CHRONIK','Chronik'], ['SEITEN','Eigene Seiten'],
+                ['ABOUT','Über uns'], ['CHRONIK','Chronik'], ['KONTAKT','Kontakt'], ['SEITEN','Eigene Seiten'],
                 ...(modulAktiv('DORFLEBEN') ? [['LIVE', t('nav.live')]] : []),
                 ...(modulAktiv('TURNIER') ? [['TURNIER', t('nav.turnier')]] : []),
                 ['LEGAL','Rechtliches']]) as [Tab, string][]).map(([k, name]) => (
@@ -668,6 +669,29 @@ const AdminWebsite: React.FC = () => {
                 </>
             )}
 
+            {activeTab === 'KONTAKT' && (
+                <>
+                    <BuilderSection offen={expandedSection} setOffen={setExpandedSection} id="kontakt-seite" title="Seite Kontakt" icon={<Mail size={18}/>}>
+                        <div className="space-y-3">
+                            <input value={getLoc((branding as any).kontaktTitel)}
+                                onChange={e => updateField('kontaktTitel', e.target.value, true)}
+                                placeholder={`${t('kontakt.titel')} (${editLang})`}
+                                className="w-full p-3 bg-stone-50 rounded-xl text-sm border border-stone-100 font-display font-bold" />
+                            <textarea rows={3} value={getLoc((branding as any).kontaktIntro)}
+                                onChange={e => updateField('kontaktIntro', e.target.value, true)}
+                                placeholder={`${t('kontakt.intro')} (${editLang})`}
+                                className="w-full p-3 bg-stone-50 rounded-xl text-sm border border-stone-100" />
+                            <input value={(branding as any).kontaktTelefon || ''}
+                                onChange={e => updateField('kontaktTelefon', e.target.value)}
+                                placeholder="Telefon (freiwillig), z. B. +41 79 123 45 67"
+                                className="w-full p-3 bg-stone-50 rounded-xl text-sm border border-stone-100" />
+                            <p className="text-[10px] text-stone-400">Adresse und E-Mail kommen aus Allgemein → Fusszeile. Gespeichert wird mit „Veröffentlichen“ unten.</p>
+                        </div>
+                    </BuilderSection>
+                    <AdminKontakt />
+                </>
+            )}
+
             {activeTab === 'TURNIER' && (
                 <BuilderSection offen={expandedSection} setOffen={setExpandedSection} id="turnier" title={t('nav.turnier')} icon={<Trophy size={18}/>}>
                     <div className="space-y-4">
@@ -851,7 +875,7 @@ const AdminWebsite: React.FC = () => {
             Nachteil, bewusst in Kauf genommen: der Rahmen zeigt den
             gespeicherten Stand, keine ungesicherten Textaenderungen. Im
             Design-Reiter aendert man aber keine Texte. */}
-        {activeTab === 'DESIGN' || activeTab === 'ABOUT' || activeTab === 'CHRONIK' ? (
+        {activeTab === 'DESIGN' || activeTab === 'ABOUT' || activeTab === 'CHRONIK' || activeTab === 'KONTAKT' ? (
           <div className="sticky top-12 h-full flex flex-col">
             <div className="flex items-center justify-between mb-4 shrink-0 px-1">
               <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400">
@@ -863,7 +887,7 @@ const AdminWebsite: React.FC = () => {
               </button>
             </div>
             <div className="bg-stone-900 rounded-[2.5rem] p-3 shadow-2xl border-[10px] border-stone-800 flex-1 max-h-[800px]">
-              <iframe key={vorschauSchluessel} src={activeTab === 'ABOUT' ? '/#/about' : activeTab === 'CHRONIK' ? '/#/chronik' : '/'} title={t('web.echte_seite')}
+              <iframe key={vorschauSchluessel} src={activeTab === 'ABOUT' ? '/#/about' : activeTab === 'CHRONIK' ? '/#/chronik' : activeTab === 'KONTAKT' ? '/#/kontakt' : '/'} title={t('web.echte_seite')}
                       className="w-full h-full rounded-[1.6rem] bg-white border-0" />
             </div>
             <p className="text-[11px] text-stone-400 mt-3 text-center">{t('web.vorschau_hinweis')}</p>

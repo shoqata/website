@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowUp, ArrowDown, Eye, EyeOff, Loader2, Save, Check, AlertCircle, Monitor, Smartphone } from 'lucide-react';
+import { ArrowUp, ArrowDown, Eye, EyeOff, Loader2, Save, Check, AlertCircle, Monitor, Smartphone, Plus, Trash2, FolderTree, Wand2, ChevronDown } from 'lucide-react';
 import { db } from '../services/datenzugriff';
 import { doc, onSnapshot, setDoc } from '@/services/supabase-bridge';
 import { useTranslation } from '../context/LanguageContext';
 import { useFeedback } from '../context/FeedbackContext';
-import { useKopfzeile, NavEintrag, NavOrt, NavLayout, navLayout, zeigtOben, zeigtFuss } from './kopfzeile';
+import { useKopfzeile, NavEintrag, NavOrt, NavLayout, NavGruppe, navLayout, navGruppen, navBaum, GRUPPEN_VORSCHLAG, zeigtOben, zeigtFuss } from './kopfzeile';
 
 // Die Kopfzeile der Website verwalten: welche Eintraege, in welcher
 // Reihenfolge.
@@ -26,6 +26,8 @@ const AdminNavigation: React.FC = () => {
   const [gespeichert, setGespeichert] = useState(false);
   const [geaendert, setGeaendert] = useState(false);
   const [layout, setLayout] = useState<NavLayout | null>(null);
+  const [gruppen, setGruppen] = useState<NavGruppe[] | null>(null);
+  const [sprache, setSprache] = useState<'de' | 'sq' | 'en'>('de');
 
   useEffect(() => onSnapshot(doc(db, 'settings', 'system'), (snap: any) => {
     setSystem(snap.exists() ? snap.data() : {});
@@ -39,6 +41,45 @@ const AdminNavigation: React.FC = () => {
   // ueberschriebe jede Antwort der Datenbank die laufende Bearbeitung.
   useEffect(() => { if (alle && system !== undefined && !geaendert) setListe(alle); }, [alle, system]);
   useEffect(() => { if (system !== undefined && !geaendert) setLayout(navLayout(system?.navigationLayout)); }, [system]);
+  useEffect(() => { if (system !== undefined && !geaendert) setGruppen(navGruppen(system?.navigationGruppen)); }, [system]);
+
+  const geaendertMarken = () => { setGeaendert(true); setGespeichert(false); };
+  const gruppeSetzen = (i: number, gruppe: string) => {
+    if (!liste) return;
+    setListe(liste.map((e, k) => k === i ? { ...e, gruppe: gruppe || null } : e));
+    geaendertMarken();
+  };
+  const gruppeAendern = (id: string, wert: string) => {
+    setGruppen(g => (g || []).map(x => x.id === id
+      ? { ...x, label: { ...(typeof x.label === 'object' && x.label ? x.label : { de: x.label || '' }), [sprache]: wert } } : x));
+    geaendertMarken();
+  };
+  const gruppeNeu = () => {
+    setGruppen(g => [...(g || []), { id: `g${Date.now().toString(36)}`, label: { [sprache]: '' } }]);
+    geaendertMarken();
+  };
+  const gruppeWeg = (id: string) => {
+    setGruppen(g => (g || []).filter(x => x.id !== id));
+    setListe(l => l ? l.map(e => e.gruppe === id ? { ...e, gruppe: null } : e) : l);
+    geaendertMarken();
+  };
+  // Vorschlag: Verein / Aktuell / Mitmachen. Eintraege in der Liste
+  // werden so umsortiert, dass jede Gruppe beisammen steht.
+  const vorschlag = () => {
+    if (!liste) return;
+    const zuordnung = new Map<string, string>();
+    GRUPPEN_VORSCHLAG.forEach(v => v.eintraege.forEach(k => zuordnung.set(k, v.gruppe.id)));
+    const mit = liste.map(e => ({ ...e, gruppe: zuordnung.get(e.schluessel) ?? e.gruppe ?? null }));
+    const reihe = [...GRUPPEN_VORSCHLAG.map(v => v.gruppe.id)];
+    mit.sort((a, b) => {
+      const ia = a.gruppe ? reihe.indexOf(a.gruppe) : 99, ib = b.gruppe ? reihe.indexOf(b.gruppe) : 99;
+      return ia - ib;
+    });
+    setListe(mit);
+    setGruppen(GRUPPEN_VORSCHLAG.map(v => v.gruppe));
+    if ((layout?.computer || 'KOPFZEILE') === 'KOPFZEILE') setLayout(l => ({ ...(l || navLayout(null)), computer: 'MEGAMENU' }));
+    geaendertMarken();
+  };
 
   const ortSetzen = (i: number, ort: NavOrt) => {
     if (!liste) return;
@@ -69,8 +110,10 @@ const AdminNavigation: React.FC = () => {
     setSpeichert(true);
     try {
       await setDoc(doc(db, 'settings', 'system'),
-        { navigation: liste.map(e => ({ schluessel: e.schluessel, an: e.an, ort: e.ort })),
-          navigationLayout: layout || navLayout(null) }, { merge: true });
+        { navigation: liste.map(e => ({ schluessel: e.schluessel, an: e.an, ort: e.ort, gruppe: e.gruppe ?? null })),
+          navigationLayout: layout || navLayout(null),
+          navigationGruppen: (gruppen || []).filter(g => Object.values(g.label || {}).some((v: any) => String(v || '').trim())) },
+        { merge: true });
       setGeaendert(false); setGespeichert(true);
     } catch (e: any) {
       showAlert({ type: 'error', message: e?.message || t('set.save_failed') });
@@ -112,7 +155,7 @@ const AdminNavigation: React.FC = () => {
           <div className="space-y-1.5">
             <p className="text-xs font-bold text-stone-700 flex items-center gap-1.5"><Monitor size={13} /> {t('navv.computer')}</p>
             <Wahl wert={lay.computer} setzen={(w) => layoutSetzen({ computer: w })}
-              optionen={[['KOPFZEILE', t('navv.kopfzeile')], ['SEITENLEISTE', t('navv.seitenleiste')]]} />
+              optionen={[['KOPFZEILE', t('navv.kopfzeile')], ['MEGAMENU', t('navv.megamenu')], ['SEITENLEISTE', t('navv.seitenleiste')]]} />
           </div>
           <div className="space-y-1.5">
             <p className="text-xs font-bold text-stone-700 flex items-center gap-1.5"><Smartphone size={13} /> {t('navv.handy')}</p>
@@ -123,15 +166,61 @@ const AdminNavigation: React.FC = () => {
         {lay.handy === 'LEISTE' && <p className="text-[11px] text-stone-500">{t('navv.leiste_hinweis')}</p>}
       </div>
 
+      {/* Untermenues. */}
+      <div className="bg-white border border-stone-100 rounded-2xl p-4 space-y-3">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <p className="text-xs font-bold text-stone-500 uppercase tracking-wider flex items-center gap-1.5"><FolderTree size={13} /> {t('navv.gruppen')}</p>
+            <p className="text-[11px] text-stone-500 mt-1 max-w-xl leading-relaxed">{t('navv.gruppen_hinweis')}</p>
+          </div>
+          <div className="flex gap-1 bg-stone-100 p-1 rounded-lg">
+            {(['de', 'sq', 'en'] as const).map(l => (
+              <button key={l} onClick={() => setSprache(l)}
+                className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${sprache === l ? 'bg-white text-stone-900' : 'text-stone-400'}`}>{l}</button>
+            ))}
+          </div>
+        </div>
+        {(gruppen || []).map(g => (
+          <div key={g.id} className="flex items-center gap-2">
+            <input value={(typeof g.label === 'object' ? g.label?.[sprache] : (sprache === 'de' ? g.label : '')) || ''}
+              onChange={e => gruppeAendern(g.id, e.target.value)}
+              placeholder={`${t('navv.gruppe_name')} (${sprache})`}
+              className="flex-1 p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold outline-none" />
+            <span className="text-[11px] text-stone-400 w-16 text-right shrink-0">
+              {(liste || []).filter(e => e.gruppe === g.id).length} {t('navv.eintraege')}
+            </span>
+            <button onClick={() => gruppeWeg(g.id)} className="p-2 text-stone-300 hover:text-red-600"><Trash2 size={14} /></button>
+          </div>
+        ))}
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={gruppeNeu}
+            className="px-3 py-2 border-2 border-dashed border-stone-200 rounded-xl text-xs font-bold text-stone-500 hover:text-stone-900 flex items-center gap-1.5">
+            <Plus size={13} /> {t('navv.gruppe_neu')}
+          </button>
+          {(gruppen || []).length === 0 && (
+            <button onClick={vorschlag}
+              className="px-3 py-2 bg-stone-900 text-white rounded-xl text-xs font-bold flex items-center gap-1.5">
+              <Wand2 size={13} /> {t('navv.vorschlag')}
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Vorschau: was in der Navigation steht, was in der Fusszeile. */}
       <div className="space-y-2">
         <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">{t('navv.vorschau_oben')}</p>
         <div className={`bg-stone-50 border border-stone-100 rounded-2xl p-3 flex gap-1.5 ${
           lay.computer === 'SEITENLEISTE' ? 'flex-col items-start max-w-xs' : 'flex-wrap'}`}>
           {sichtbar.length === 0 && <span className="text-xs text-stone-400 italic p-2">{t('navv.leer')}</span>}
-          {sichtbar.map(e => (
-            <span key={e.schluessel} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white shadow-sm text-sm font-bold">
-              {e.icon}{e.uebersetzen ? t(e.label) : e.label}
+          {navBaum(sichtbar, gruppen || []).map(k => k.art === 'eintrag' ? (
+            <span key={k.eintrag.schluessel} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white shadow-sm text-sm font-bold">
+              {k.eintrag.icon}{k.eintrag.uebersetzen ? t(k.eintrag.label) : k.eintrag.label}
+            </span>
+          ) : (
+            <span key={k.gruppe.id} title={k.eintraege.map(e => e.uebersetzen ? t(e.label) : e.label).join(', ')}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white shadow-sm text-sm font-bold">
+              {loc(k.gruppe.label) || '…'} <ChevronDown size={13} className="text-stone-400" />
+              <span className="text-[10px] text-stone-400 font-normal">({k.eintraege.length})</span>
             </span>
           ))}
         </div>
@@ -161,6 +250,14 @@ const AdminNavigation: React.FC = () => {
                 <p className="text-[11px] text-amber-700 flex items-center gap-1 mt-0.5"><AlertCircle size={11} /> {e.grund}</p>
               )}
             </div>
+            {e.an && (gruppen || []).length > 0 && e.ort !== 'FUSS' && (
+              <select value={e.gruppe || ''} onChange={ev => gruppeSetzen(i, ev.target.value)}
+                aria-label={t('navv.gruppe')}
+                className="px-2 py-2 bg-white border border-stone-200 rounded-xl text-xs font-bold shrink-0 max-w-[9rem]">
+                <option value="">{t('navv.ohne_gruppe')}</option>
+                {(gruppen || []).map(g => <option key={g.id} value={g.id}>{loc(g.label) || '…'}</option>)}
+              </select>
+            )}
             {e.an && (
               <select value={e.ort} onChange={ev => ortSetzen(i, ev.target.value as NavOrt)}
                 aria-label={t('navv.ort')}

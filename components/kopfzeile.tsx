@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Info, Calendar, Newspaper, Zap, Trophy, Film, Heart, BadgeCheck, FileText, History } from 'lucide-react';
+import { Info, Calendar, Newspaper, Zap, Trophy, Film, Heart, BadgeCheck, FileText, History, Mail } from 'lucide-react';
 import { supabase } from '@/services/supabase-bridge';
 import { useOeffentlicheModule } from '../lib/useOeffentlicheModule';
 import { useSpendenseiteSichtbar } from '../lib/useSpendenseiteSichtbar';
@@ -18,17 +18,55 @@ import { useSpendenseiteSichtbar } from '../lib/useSpendenseiteSichtbar';
 // ort: wo der Eintrag erscheint -- in der Navigation (oben bzw. in der
 // Seitenleiste), in der Fusszeile oder in beiden.
 export type NavOrt = 'OBEN' | 'FUSS' | 'BEIDES';
-export type NavEinstellung = { schluessel: string; an: boolean; ort?: NavOrt }[];
-export type NavLayout = { computer: 'KOPFZEILE' | 'SEITENLEISTE'; handy: 'MENUE' | 'LEISTE' };
+export type NavEinstellung = { schluessel: string; an: boolean; ort?: NavOrt; gruppe?: string | null }[];
+export type NavLayout = { computer: 'KOPFZEILE' | 'MEGAMENU' | 'SEITENLEISTE'; handy: 'MENUE' | 'LEISTE' };
+
+// Untermenues: Gruppen, unter denen Eintraege zusammengefasst werden. Mit
+// zehn und mehr Eintraegen passt die Kopfzeile nicht mehr auf eine Zeile;
+// "Verein", "Aktuell", "Mitmachen" schon. Ohne Gruppen bleibt alles flach.
+export type NavGruppe = { id: string; label: any };
+export const navGruppen = (w: any): NavGruppe[] =>
+  Array.isArray(w) ? w.filter((g: any) => g && typeof g.id === 'string' && g.id) : [];
+
+// Ein Vorschlag fuer den Anfang -- die Verwaltung uebernimmt ihn mit einem
+// Klick und passt ihn an.
+export const GRUPPEN_VORSCHLAG: { gruppe: NavGruppe; eintraege: string[] }[] = [
+  { gruppe: { id: 'verein', label: { de: 'Verein', sq: 'Shoqata', en: 'Association' } }, eintraege: ['about', 'chronik', 'kontakt'] },
+  { gruppe: { id: 'aktuell', label: { de: 'Aktuell', sq: 'Aktuale', en: 'News' } }, eintraege: ['events', 'news', 'live', 'videos'] },
+  { gruppe: { id: 'mitmachen', label: { de: 'Mitmachen', sq: 'Merr pjesë', en: 'Get involved' } }, eintraege: ['fussball', 'spenden', 'beitraege'] },
+];
+
+export type NavKnoten =
+  | { art: 'eintrag'; eintrag: NavEintrag }
+  | { art: 'gruppe'; gruppe: NavGruppe; eintraege: NavEintrag[] };
+
+// Aus der flachen Liste den Baum: eine Gruppe steht dort, wo ihr erster
+// Eintrag steht. Leere Gruppen fallen weg, Eintraege mit unbekannter
+// Gruppe bleiben einzeln.
+export function navBaum(eintraege: NavEintrag[], gruppen: NavGruppe[]): NavKnoten[] {
+  const bekannt = new Map(gruppen.map(g => [g.id, g]));
+  const knoten: NavKnoten[] = [];
+  const offen = new Map<string, NavEintrag[]>();
+  for (const e of eintraege) {
+    const g = e.gruppe ? bekannt.get(e.gruppe) : undefined;
+    if (!g) { knoten.push({ art: 'eintrag', eintrag: e }); continue; }
+    const liste = offen.get(g.id);
+    if (liste) { liste.push(e); continue; }
+    const neu = [e];
+    offen.set(g.id, neu);
+    knoten.push({ art: 'gruppe', gruppe: g, eintraege: neu });
+  }
+  return knoten;
+}
 
 export const navLayout = (w: any): NavLayout => ({
-  computer: w?.computer === 'SEITENLEISTE' ? 'SEITENLEISTE' : 'KOPFZEILE',
+  computer: w?.computer === 'SEITENLEISTE' ? 'SEITENLEISTE' : w?.computer === 'MEGAMENU' ? 'MEGAMENU' : 'KOPFZEILE',
   handy: w?.handy === 'LEISTE' ? 'LEISTE' : 'MENUE',
 });
 
 // Ohne gespeicherte Wahl: wie die Seite bisher war. "Ueber uns", Live und
 // Turnier standen oben und in der Fusszeile, der Rest nur oben.
-const ORT_BISHER: Record<string, NavOrt> = { about: 'BEIDES', live: 'BEIDES', fussball: 'BEIDES' };
+const ORT_BISHER: Record<string, NavOrt> = { about: 'BEIDES', live: 'BEIDES', fussball: 'BEIDES', kontakt: 'BEIDES' };
 export const zeigtOben = (e: { ort: NavOrt }) => e.ort !== 'FUSS';
 export const zeigtFuss = (e: { ort: NavOrt }) => e.ort !== 'OBEN';
 
@@ -47,6 +85,10 @@ export type NavEintrag = {
   eigeneSeite: boolean;
   /** Eigene Seite mit "Im Menü" -- stand bisher immer in der Fusszeile. */
   imMenue?: boolean;
+  /** Untermenue, in dem der Eintrag steht. */
+  gruppe?: string | null;
+  /** Kurze Beschreibung fuers Megamenue (Uebersetzungsschluessel). */
+  beschreibung?: string;
 };
 
 type Fest = { schluessel: string; pfad: string; label: string; I: any; farbe: string };
@@ -60,6 +102,7 @@ const FEST: Fest[] = [
   { schluessel: 'videos',    pfad: '/videos',    label: 'video.oeff_titel', I: Film,       farbe: 'text-violet-600' },
   { schluessel: 'spenden',   pfad: '/spenden',   label: 'nav.spenden',      I: Heart,      farbe: 'text-primary' },
   { schluessel: 'beitraege', pfad: '/beitraege', label: 'nav.beitraege',    I: BadgeCheck, farbe: 'text-emerald-600' },
+  { schluessel: 'kontakt',   pfad: '/kontakt',   label: 'nav.kontakt',      I: Mail,       farbe: 'text-sky-600' },
 ];
 
 // Eigene Seiten des Vereins, veroeffentlicht. Die Zeilenregel gibt nur die
@@ -109,6 +152,7 @@ export function useKopfzeile(opts: {
   const hat = (m: string) => module.size === 0 && ['WEBSITE', 'ANLAESSE', 'NEUIGKEITEN'].includes(m) || module.has(m);
   const moeglich: Record<string, [boolean, string?]> = {
     about: [hat('WEBSITE'), 'Modul Website ist nicht gebucht'],
+    kontakt: [hat('WEBSITE'), 'Modul Website ist nicht gebucht'],
     chronik: [hat('WEBSITE') && !!chronik, hat('WEBSITE') ? 'Noch keine veröffentlichten Einträge (Website → Chronik)' : 'Modul Website ist nicht gebucht'],
     events: [hat('ANLAESSE'), 'Modul Anlässe ist nicht gebucht'],
     news: [hat('NEUIGKEITEN'), 'Modul Neuigkeiten ist nicht gebucht'],
@@ -126,7 +170,7 @@ export function useKopfzeile(opts: {
       return {
         schluessel: f.schluessel, pfad: f.pfad, label: f.label, uebersetzen: true,
         icon: <f.I size={16} className={f.farbe} />, iconKlein: <f.I size={20} />,
-        moeglich: m, grund: m ? undefined : g, an: true, eigeneSeite: false,
+        moeglich: m, grund: m ? undefined : g, an: true, eigeneSeite: false, beschreibung: `navb.${f.schluessel}`,
         ort: ORT_BISHER[f.schluessel] ?? 'OBEN',
       };
     }),
@@ -148,14 +192,14 @@ export function useKopfzeile(opts: {
     const k = nach.get(e.schluessel);
     if (!k) continue;
     if (e.ort === 'OBEN' || e.ort === 'FUSS' || e.ort === 'BEIDES') {
-      geordnet.push({ ...k, an: e.an, ort: e.ort });
+      geordnet.push({ ...k, an: e.an, ort: e.ort, gruppe: e.gruppe ?? null });
     } else if (k.eigeneSeite) {
       // Gespeichert vor der Ortswahl: "an" galt der Kopfzeile, "Im Menü"
       // der Fusszeile. Beides zusammen ergibt den Ort.
-      geordnet.push({ ...k, an: e.an || !!k.imMenue,
+      geordnet.push({ ...k, an: e.an || !!k.imMenue, gruppe: e.gruppe ?? null,
         ort: e.an && k.imMenue ? 'BEIDES' : e.an ? 'OBEN' : 'FUSS' });
     } else {
-      geordnet.push({ ...k, an: e.an });
+      geordnet.push({ ...k, an: e.an, gruppe: e.gruppe ?? null });
     }
     nach.delete(e.schluessel);
   }

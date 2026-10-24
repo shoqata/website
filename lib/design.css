@@ -171,3 +171,18 @@ html[data-design]:not([data-design="KLASSISCH"]) :is(nav, aside) .bg-stone-100\/
 /* Chronik: der Rand um den Punkt auf der Linie hat die Farbe des Grundes. */
 html[data-design-seite] main .border-\[\#faf9f6\] { border-color: var(--d-grund); }
 html[data-design-seite] main .bg-stone-200.w-px { background-color: var(--d-linie); }
+
+/* Untermenues der Navigation (components/NavGruppen.tsx). Eine eigene
+   Klasse statt bg-white: die Regeln oben machen bg-white in der Leiste
+   halb durchsichtig -- fuer ein Feld ueber dem Seiteninhalt waere das
+   unlesbar. */
+.nav-tafel { background: #ffffff; border-color: #f5f5f4; color: #1c1917; }
+.nav-tafel .nav-tafel-eintrag:hover { background: #f5f5f4; }
+.nav-tafel .nav-tafel-aktiv { background: #fafaf9; }
+.nav-tafel .nav-tafel-leise { color: #78716c; }
+html[data-design]:not([data-design="KLASSISCH"]) .nav-tafel { background: var(--d-grund); border-color: var(--d-linie); color: var(--d-tinte); }
+html[data-design]:not([data-design="KLASSISCH"]) .nav-tafel :is(a, button) { color: var(--d-tinte) !important; }
+html[data-design]:not([data-design="KLASSISCH"]) .nav-tafel .nav-tafel-eintrag:hover { background: var(--d-flaeche-2); }
+html[data-design]:not([data-design="KLASSISCH"]) .nav-tafel .nav-tafel-aktiv { background: var(--d-flaeche); }
+html[data-design]:not([data-design="KLASSISCH"]) .nav-tafel .nav-tafel-leise { color: var(--d-tinte-2); }
+html[data-design="MAGAZIN"] .nav-tafel { border-radius: 0; border-color: var(--d-tinte); box-shadow: none; }
