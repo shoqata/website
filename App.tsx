@@ -27,7 +27,7 @@ import { useOeffentlicheModule } from './lib/useOeffentlicheModule';
 import { seitenZustand } from './lib/modulgate';
 import { useWerbemessung } from './lib/useWerbemessung';
 import { useSpendenseiteSichtbar } from './lib/useSpendenseiteSichtbar';
-import { useKopfzeile, navLayout, zeigtOben, zeigtFuss, navGruppen, navBaum } from './components/kopfzeile';
+import { useKopfzeile, navLayout, zeigtOben, zeigtFuss, navGruppen, navBaum, mitVorschlag } from './components/kopfzeile';
 import { KopfGruppe, GruppenTitel } from './components/NavGruppen';
 import { useReiterKennzeichen } from './lib/useReiterKennzeichen';
 import { HashRouter as Router, Routes, Route, Link, useLocation, Navigate, useSearchParams } from 'react-router-dom';
@@ -846,9 +846,13 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings, systemGelad
     angemeldet: !!user, loc,
   });
   const kopf = systemGeladen ? (kopfAlle || []).filter(zeigtOben) : null;
+  const layoutVorab = navLayout(systemGeladen ? (systemSettings as any)?.navigationLayout : null);
   // Untermenues: die Gruppen aus Website -> Navigation. Ohne Gruppen ist
   // der Baum dieselbe flache Liste wie bisher.
-  const baum = navBaum(kopf || [], navGruppen((systemSettings as any)?.navigationGruppen));
+  const eigeneGruppen = navGruppen((systemSettings as any)?.navigationGruppen);
+  const baum = (layoutVorab.computer === 'MEGAMENU' && eigeneGruppen.length === 0)
+    ? (({ eintraege, gruppen }) => navBaum(eintraege, gruppen))(mitVorschlag(kopf || []))
+    : navBaum(kopf || [], eigeneGruppen);
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isActive = (path: string) => location.pathname === path;

@@ -36,6 +36,18 @@ export const GRUPPEN_VORSCHLAG: { gruppe: NavGruppe; eintraege: string[] }[] = [
   { gruppe: { id: 'mitmachen', label: { de: 'Mitmachen', sq: 'Merr pjesë', en: 'Get involved' } }, eintraege: ['fussball', 'spenden', 'beitraege'] },
 ];
 
+// Megamenue ohne eigene Gruppen: dann gilt der Vorschlag. Ein Megamenue
+// ohne Untermenues haette nichts aufzuklappen -- genau so sah es im Demo
+// aus, nachdem dort "Megamenü" gewaehlt, aber keine Gruppe angelegt war.
+export function mitVorschlag(eintraege: NavEintrag[]): { eintraege: NavEintrag[]; gruppen: NavGruppe[] } {
+  const zu = new Map<string, string>();
+  GRUPPEN_VORSCHLAG.forEach(v => v.eintraege.forEach(k => zu.set(k, v.gruppe.id)));
+  return {
+    eintraege: eintraege.map(e => ({ ...e, gruppe: e.gruppe || zu.get(e.schluessel) || null })),
+    gruppen: GRUPPEN_VORSCHLAG.map(v => v.gruppe),
+  };
+}
+
 export type NavKnoten =
   | { art: 'eintrag'; eintrag: NavEintrag }
   | { art: 'gruppe'; gruppe: NavGruppe; eintraege: NavEintrag[] };

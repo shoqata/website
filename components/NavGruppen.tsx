@@ -11,9 +11,9 @@ import type { NavEintrag, NavGruppe } from './kopfzeile';
 // Zeigen, auf dem Tablet und mit der Tastatur braucht es den Klick. Esc
 // und ein Klick daneben schliessen.
 //
-// Das Megamenue liegt nicht im Wrapper des Knopfs, sondern spannt ueber die
-// ganze Leiste: der Wrapper ist darum nicht "relative", das Feld richtet
-// sich an der Leiste aus (die ist es).
+// Das Megamenue oeffnet sich unter seinem Knopf, mittig und hoechstens
+// 44rem breit -- nicht ueber die ganze Leiste: ein Feld ueber die volle
+// Breite mit drei Eintraegen sah leer aus und loeste sich vom Knopf.
 
 const Tafel = 'nav-tafel border rounded-2xl shadow-2xl';
 
@@ -50,7 +50,7 @@ export const KopfGruppe: React.FC<{
   const raus = () => { zu.current = window.setTimeout(() => setOffen(false), 160); };
 
   return (
-    <div ref={rahmen} className={mega ? '' : 'relative'} onMouseEnter={rein} onMouseLeave={raus}>
+    <div ref={rahmen} className="relative" onMouseEnter={rein} onMouseLeave={raus}>
       <button type="button" aria-expanded={offen} aria-haspopup="true" onClick={klick}
         className={`flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all ${aktiv || offen ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}>
         <span className="font-bold text-sm">{loc(gruppe.label)}</span>
@@ -71,11 +71,12 @@ export const KopfGruppe: React.FC<{
       )}
 
       {offen && mega && (
-        <div className="absolute left-0 right-0 top-full pt-3 z-50">
-          <div className={`${Tafel} p-6 grid grid-cols-1 lg:grid-cols-4 gap-6`}>
-            <div className="lg:col-span-3">
+        <div className="absolute left-1/2 -translate-x-1/2 top-full pt-3 z-50"
+             style={{ width: `min(${angemeldet ? (eintraege.length > 4 ? 40 : 30) : 44}rem, calc(100vw - 2rem))` }}>
+          <div className={`${Tafel} p-5 grid grid-cols-1 ${angemeldet ? '' : 'md:grid-cols-3'} gap-5`}>
+            <div className={angemeldet ? '' : 'md:col-span-2'}>
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary mb-4">{loc(gruppe.label)}</p>
-              <div className="grid grid-cols-2 xl:grid-cols-3 gap-2">
+              <div className={`grid gap-1 ${eintraege.length > 4 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                 {eintraege.map(e => {
                   const b = e.beschreibung ? t(e.beschreibung) : '';
                   return (

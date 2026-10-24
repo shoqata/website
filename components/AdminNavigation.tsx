@@ -154,7 +154,7 @@ const AdminNavigation: React.FC = () => {
         <div className="grid md:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <p className="text-xs font-bold text-stone-700 flex items-center gap-1.5"><Monitor size={13} /> {t('navv.computer')}</p>
-            <Wahl wert={lay.computer} setzen={(w) => layoutSetzen({ computer: w })}
+            <Wahl wert={lay.computer} setzen={(w) => { layoutSetzen({ computer: w }); if (w === 'MEGAMENU' && (gruppen || []).length === 0) vorschlag(); }}
               optionen={[['KOPFZEILE', t('navv.kopfzeile')], ['MEGAMENU', t('navv.megamenu')], ['SEITENLEISTE', t('navv.seitenleiste')]]} />
           </div>
           <div className="space-y-1.5">
@@ -164,6 +164,7 @@ const AdminNavigation: React.FC = () => {
           </div>
         </div>
         {lay.handy === 'LEISTE' && <p className="text-[11px] text-stone-500">{t('navv.leiste_hinweis')}</p>}
+        {lay.computer === 'MEGAMENU' && <p className="text-[11px] text-stone-500">{t('navv.mega_hinweis')}</p>}
       </div>
 
       {/* Untermenues. */}
