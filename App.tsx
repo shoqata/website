@@ -797,7 +797,7 @@ const AppContent: React.FC = () => {
                 frueher oder spaeter auseinander. */}
             {user && (
               <React.Suspense fallback={null}>
-                <Floky />
+                <FlokyWache />
               </React.Suspense>
             )}
             <BackToTop />
@@ -827,6 +827,17 @@ const DesignMarke: React.FC<{ vorlage: string | null }> = ({ vorlage }) => {
     if (aktiv && !arbeit && pathname !== '/') h.dataset.designSeite = vorlage!; else delete h.dataset.designSeite;
   }, [vorlage, pathname, istPlattform]);
   return null;
+};
+
+// Floky gehoert in die Arbeitsbereiche, nicht auf die oeffentliche
+// Website. Bisher erschien die Schaltflaeche auf jeder Seite, sobald
+// jemand angemeldet war -- auch auf "Ueber uns" und den Neuigkeiten, wo
+// Besucher mitlesen. Ob Floky ueberhaupt erscheint (Modul gebucht, Rolle),
+// entscheidet weiter floky_darf() in der Datenbank; hier nur, WO.
+const FLOKY_BEREICHE = ['/dashboard', '/admin', '/nachbarschaft'];
+const FlokyWache: React.FC = () => {
+  const { pathname } = useLocation();
+  return FLOKY_BEREICHE.some(p => pathname === p || pathname.startsWith(p + '/')) ? <Floky /> : null;
 };
 
 const Navigation: React.FC<any> = ({ user, branding, systemSettings, systemGeladen }) => {
