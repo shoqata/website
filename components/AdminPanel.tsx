@@ -13,6 +13,7 @@ import AdminStammbaum from './AdminStammbaum';
 import MitgliedFamilie from './MitgliedFamilie';
 import DatenSchnellkorrektur from './DatenSchnellkorrektur';
 import AenderungenVerwaltung from './AenderungenVerwaltung';
+import AdminVersammlung from './AdminVersammlung';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Activity as ActivityIcon, AlertCircle, AlertTriangle, AlignLeft, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ArrowUpDown, AtSign, Ban, BarChart2, BarChart3, Bell, Blocks, BookOpen, Briefcase, Calendar, CalendarDays, CheckCircle2, CheckSquare, ChevronLeft, ChevronRight, ClipboardCheck, ClipboardList, Clock, Coins, Command, Copy, CreditCard, Crown, Database, DollarSign, Download, ExternalLink, Eye, FileEdit, FileInput, FileText, Files, Film, Filter, Globe, Hash, Heart, History, Home, Image as LucideImage, ImageIcon, Info, Kanban, KeyRound, Layout, LayoutDashboard, LayoutGrid, LayoutList, Link as LinkIcon, ListFilter, Loader2, Lock, LogOut, Mail, Map, MapPin, MapPinned, Megaphone, Menu, MessageSquare, MoreHorizontal, MoreVertical, MousePointer2, Newspaper, PanelLeftClose, PanelLeftOpen, Phone, PieChart as LucidePieChart, Plus, Printer, Receipt, RefreshCw, Save, Search, Send, Settings, Shield, ShieldAlert, Sliders, Sparkles, Square, StickyNote, Tag, Target, ToggleLeft, ToggleRight, Trash2, TrendingUp, Unlock, Upload, User as UserIcon, UserCheck, UserCheck2, UserCog, UserMinus, UserPlus, UserPlus2, Users, Users2, Wallet, X, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -62,7 +63,7 @@ import { missingFieldKeys, qualityScore, feeStateFor, hasDeliveryConflict } from
 import { isPlaceholderEmail, hasUsableEmail, emailMissingForDelivery, deliveryNeedsEmail } from '../lib/memberEmail';
 import AdminTreffen from './AdminTreffen';
 import SuperAdminTreffen from './SuperAdminTreffen';
-type AdminTabId = 'USERS' | 'NEIGHBORHOODS' | 'ANALYTICS' | 'STATISTICS' | 'WEBSITE' | 'SOCIAL_AI' | 'EVENTS' | 'NEWS' | 'FINANCE' | 'EXPENSES' | 'DATA' | 'ACCOUNTING' | 'SETTINGS' | 'BOARD' | 'COMMUNICATION' | 'DATA_QUALITY' | 'STAMMBAUM' | 'MARKTPLATZ' | 'SPENDEN' | 'VIDEOS' | 'PROZESSE' | 'TREFFEN' | 'SEO' | 'BRIEFVERSAND' | 'VEREINSADRESSEN';
+type AdminTabId = 'USERS' | 'NEIGHBORHOODS' | 'ANALYTICS' | 'STATISTICS' | 'WEBSITE' | 'SOCIAL_AI' | 'EVENTS' | 'NEWS' | 'FINANCE' | 'EXPENSES' | 'DATA' | 'ACCOUNTING' | 'SETTINGS' | 'BOARD' | 'COMMUNICATION' | 'DATA_QUALITY' | 'STAMMBAUM' | 'GV' | 'MARKTPLATZ' | 'SPENDEN' | 'VIDEOS' | 'PROZESSE' | 'TREFFEN' | 'SEO' | 'BRIEFVERSAND' | 'VEREINSADRESSEN';
 
 interface NavItem {
     id: AdminTabId;
@@ -215,6 +216,7 @@ const AdminPanel: React.FC = () => {
               { id: 'NEIGHBORHOODS', label: t('admin.tab.neighborhoods'), icon: <MapPin size={18} /> },
               { id: 'BOARD', label: t('admin.tab.board'), icon: <Briefcase size={18} /> },
               { id: 'STAMMBAUM', label: t('admin.tab.stammbaum'), icon: <Users2 size={18} /> },
+              { id: 'GV', label: t('gv.titel'), icon: <ClipboardCheck size={18} /> },
               { id: 'MARKTPLATZ', label: t('admin.tab.marktplatz'), icon: <Blocks size={18} /> },
               { id: 'PROZESSE', label: t('admin.tab.prozesse'), icon: <Map size={18} /> },
           ]
@@ -638,6 +640,7 @@ const AdminPanel: React.FC = () => {
                         {activeTab === 'SOCIAL_AI' && <SocialAI />}
                         {activeTab === 'DATA' && <AdminData />}
                         {activeTab === 'STAMMBAUM' && <AdminStammbaum />}
+                        {activeTab === 'GV' && <AdminVersammlung />}
                         {activeTab === 'SPENDEN' && <AdminSpenden />}
                         {activeTab === 'VIDEOS' && <AdminVideos />}
                         {activeTab === 'PROZESSE' && <AdminProzesse />}

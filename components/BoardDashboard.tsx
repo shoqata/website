@@ -50,6 +50,8 @@ import { neighborhoodCity } from '../lib/neighborhood';
 import { billingYearOf, isOverdue } from '../lib/memberQuality';
 import { onImageError } from '../lib/imageFallback';
 import AenderungenVerwaltung from './AenderungenVerwaltung';
+import VorstandCockpit from './VorstandCockpit';
+import AdminVersammlung from './AdminVersammlung';
 interface BoardDashboardProps {
   user: UserProfile;
 }
@@ -482,6 +484,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
 
         {/* Anfragen & Feedback zuerst: das ist, was nach der Anmeldung zu
             tun ist. Kennzahlen und Auswertungen folgen darunter. */}
+        <VorstandCockpit />
         <div className="mb-10">
             <AnfragenBearbeiten breit />
         </div>
@@ -683,6 +686,11 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                 )}
             </div>
 
+        </div>
+
+        {/* Generalversammlung */}
+        <div className="mb-8 bg-white p-8 rounded-[2.5rem] border border-stone-100 shadow-sm">
+            <AdminVersammlung />
         </div>
 
         {/* Protokolle */}
