@@ -280,7 +280,7 @@ const AdminStammbaum: React.FC = () => {
                     )}
                     <p className="text-[11px] text-stone-400">
                       {mitglieder.length} {t('stamm.personen')} ·{' '}
-                      {new Set(generationen(alsKnoten(ids)).values()).size} {t('stamm.generationen')}
+                      {((g) => `${g} ${t(g === 1 ? 'stamm.generation' : 'stamm.generationen')}`)(new Set(generationen(alsKnoten(ids)).values()).size)}
                     </p>
                   </div>
                   <button onClick={() => oeffnen(ids)}

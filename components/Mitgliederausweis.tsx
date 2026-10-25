@@ -24,10 +24,10 @@ export const AusweisKarte: React.FC<{ user: UserProfile }> = ({ user }) => {
     <div className="relative overflow-hidden rounded-[2rem] p-6 text-white shadow-xl" style={{ background: 'linear-gradient(135deg, var(--primary), #1c1917)' }}>
       <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-white/10" />
       <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">{t('ausweis.titel')} {jahr}</p>
-      <p className="font-display text-xl font-bold italic mt-1 truncate">{tenant?.name || ''}</p>
+      <p className="font-display text-xl font-bold italic mt-1 truncate" title={tenant?.name || ''}>{tenant?.name || ''}</p>
       <div className="flex items-end justify-between gap-4 mt-6">
         <div className="min-w-0">
-          <p className="text-lg font-bold truncate">{user.displayName}</p>
+          <p className="text-lg font-bold truncate" title={user.displayName}>{user.displayName}</p>
           <p className="text-[11px] font-mono text-white/70">Nr. {user.id.slice(0, 8).toUpperCase()}</p>
           {jahrVon((user as any).joinedAt) && <p className="text-[11px] text-white/70">{t('ausweis.seit')} {jahrVon((user as any).joinedAt)}</p>}
         </div>

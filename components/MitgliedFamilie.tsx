@@ -65,7 +65,7 @@ const MitgliedFamilie: React.FC<{
               ) : <p className="font-bold text-stone-800">{t('stamm.keine_familie')}</p>}
               <p className="text-[11px] text-stone-400">
                 {ids.length
-                  ? `${ids.length} ${t('stamm.personen')} · ${new Set(generationen(knoten).values()).size} ${t('stamm.generationen')}`
+                  ? `${ids.length} ${t('stamm.personen')} · ${((g) => `${g} ${t(g === 1 ? 'stamm.generation' : 'stamm.generationen')}`)(new Set(generationen(knoten).values()).size)}`
                   : t('stamm.keine_familie_hinweis')}
               </p>
             </div>

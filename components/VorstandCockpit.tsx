@@ -37,13 +37,13 @@ const VorstandCockpit: React.FC = () => {
       const entwuerfe = (news.data ?? []).filter((n: any) => n.status === 'DRAFT').length;
       const ueberfaellig = (pay.data ?? []).filter((p: any) => isOverdue(p)).length;
       setKacheln([
-        { k: 'neu', icon: <UserPlus size={18} />, zahl: neue, text: t('neu.titel'), dringend: neue > 0 },
-        { k: 'aend', icon: <Inbox size={18} />, zahl: offen, text: t('cockpit.aenderungen'), dringend: offen > 0 },
-        { k: 'ueber', icon: <AlertTriangle size={18} />, zahl: ueberfaellig, text: t('cockpit.ueberfaellig'), dringend: ueberfaellig > 0 },
+        { k: 'neu', icon: <UserPlus size={18} />, zahl: neue, text: t(neue === 1 ? 'cockpit.neu_1' : 'neu.titel'), dringend: neue > 0 },
+        { k: 'aend', icon: <Inbox size={18} />, zahl: offen, text: t(offen === 1 ? 'cockpit.aenderungen_1' : 'cockpit.aenderungen'), dringend: offen > 0 },
+        { k: 'ueber', icon: <AlertTriangle size={18} />, zahl: ueberfaellig, text: t(ueberfaellig === 1 ? 'cockpit.ueberfaellig_1' : 'cockpit.ueberfaellig'), dringend: ueberfaellig > 0 },
         { k: 'gv', icon: <Gavel size={18} />, zahl: naechste ? new Date(naechste.datum + 'T12:00:00').toLocaleDateString('de-CH', { day: 'numeric', month: 'short' }) : '—',
           text: t('cockpit.gv'), unter: naechste ? `${naechste.titel} · ${t(`gv.status.${naechste.status}`)}` : t('cockpit.gv_keine') },
-        { k: 'ev', icon: <CalendarDays size={18} />, zahl: anlaesse.length, text: t('cockpit.anlaesse'), unter: anlaesse[0]?.title },
-        { k: 'news', icon: <Newspaper size={18} />, zahl: entwuerfe, text: t('cockpit.entwuerfe') },
+        { k: 'ev', icon: <CalendarDays size={18} />, zahl: anlaesse.length, text: t(anlaesse.length === 1 ? 'cockpit.anlaesse_1' : 'cockpit.anlaesse'), unter: anlaesse[0]?.title },
+        { k: 'news', icon: <Newspaper size={18} />, zahl: entwuerfe, text: t(entwuerfe === 1 ? 'cockpit.entwuerfe_1' : 'cockpit.entwuerfe') },
       ]);
     })().catch(() => setKacheln([]));
   }, []);
@@ -63,7 +63,7 @@ const VorstandCockpit: React.FC = () => {
             <div className={`mb-3 ${k.dringend ? 'text-amber-600' : 'text-stone-400'}`}>{k.icon}</div>
             <p className="text-2xl font-bold text-stone-900">{k.zahl}</p>
             <p className="text-xs font-bold text-stone-600">{k.text}</p>
-            {k.unter && <p className="text-[11px] text-stone-400 truncate mt-1">{k.unter}</p>}
+            {k.unter && <p className="text-[11px] text-stone-400 truncate mt-1" title={k.unter}>{k.unter}</p>}
           </div>
         ))}
       </div>

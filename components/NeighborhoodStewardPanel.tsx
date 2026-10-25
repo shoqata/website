@@ -465,7 +465,7 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
       {/* Was ist zu tun: aus den Zahlen abgeleitet, je ein Klick zur Liste. */}
       {(() => {
         const punkte = [
-          rechte.sehen && zaehler.offen > 0 && { n: zaehler.offen, text: t('vtodo.offen'), f: 'OFFEN' as const,
+          rechte.sehen && zaehler.offen > 0 && { n: zaehler.offen, text: t(zaehler.offen === 1 ? 'vtodo.offen_1' : 'vtodo.offen'), f: 'OFFEN' as const,
             namen: bewertet.filter(b => b.beitrag === 'OPEN').map(b => b.m.displayName) },
           zaehler.luecken > 0 && { n: zaehler.luecken, text: t('vtodo.luecken'), f: 'UNVOLLSTAENDIG' as const,
             namen: bewertet.filter(b => b.fehlt.length > 0).map(b => b.m.displayName) },

@@ -113,7 +113,7 @@ const StammbaumPerson: React.FC<{
                 <button key={l.person} onClick={() => hinzufuegen(l.person)} disabled={sb.arbeitet}
                         className="w-full text-left px-3 py-2 bg-white hover:bg-stone-100 rounded-lg flex items-center justify-between gap-3">
                   <span className="min-w-0">
-                    <span className="block text-sm font-bold text-stone-700 truncate">{l.name}</span>
+                    <span className="block text-sm font-bold text-stone-700 truncate" title={l.name}>{l.name}</span>
                     <span className="block text-[10px] text-stone-400 truncate">
                       {l.nachbarschaft || '—'}{l.geburtsdatum ? ` · ${l.geburtsdatum}` : ''}
                       {l.familienname ? ` · ${familienTitel(l.familienname, t('stamm.familie'))}` : ''}

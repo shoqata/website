@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import './lib/design.css';
+import './lib/mobil.css';
 import { useWerBinIch, type WerBinIch } from './lib/useWerBinIch';
 import { useDemoRolle } from './lib/useDemoRolle';
 import { usePaket } from './lib/usePaket';
@@ -31,7 +32,7 @@ import { useKopfzeile, navLayout, zeigtOben, zeigtFuss, navGruppen, navBaum, mit
 import { KopfGruppe, GruppenTitel } from './components/NavGruppen';
 import { useReiterKennzeichen } from './lib/useReiterKennzeichen';
 import { HashRouter as Router, Routes, Route, Link, useLocation, Navigate, useSearchParams } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { ArrowRight, Building2, Calendar, ChevronDown, Film, Globe, Hammer, Heart, Home, Info, LayoutDashboard, Loader2, LogIn, LogOut, Mail, MapPin, Maximize, Menu, Newspaper, QrCode, Settings, ShieldCheck, Smartphone, Sparkles, Trophy, UserPlus, X, Zap } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
@@ -587,6 +588,7 @@ const AppContent: React.FC = () => {
   );
 
   return (
+    <MotionConfig reducedMotion="user">
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Zaehlwache />
       <DesignMarke vorlage={vorlage} />
@@ -818,6 +820,7 @@ const AppContent: React.FC = () => {
         </div>
       </MaintenanceGuard>
     </Router>
+    </MotionConfig>
   );
 };
 

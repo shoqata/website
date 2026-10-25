@@ -1,0 +1,30 @@
+/* Handy und Barrierefreiheit -- nach den Regeln aus emilkowalski/skills
+   (mobile-native, emil-design-eng). Global, weil es jede Seite betrifft. */
+
+/* Kein grau-blaues Aufblitzen beim Antippen. */
+html { -webkit-tap-highlight-color: transparent; }
+
+/* Antippen reagiert sofort (kein Warten auf den Doppeltipp-Zoom). */
+a, button, [role="button"], label, summary, select { touch-action: manipulation; }
+
+/* iOS zoomt in jedes Eingabefeld unter 16px hinein. Nur bei Fingerbedienung,
+   am Computer bleiben die kompakten Felder. */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea { font-size: 16px !important; }
+}
+
+/* 100vh ist auf dem Handy zu hoch (Adressleiste). Seiten: kleinste Hoehe
+   ohne Springen; feste App-Rahmen: dynamische Hoehe. */
+@supports (height: 100svh) {
+  /* html davor: Tailwind (CDN) schreibt seine Regeln spaeter in die Seite. */
+  html .min-h-screen { min-height: 100svh; }
+  html .h-screen { height: 100dvh; }
+}
+
+/* Wer weniger Bewegung eingestellt hat, bekommt sie. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important; scroll-behavior: auto !important;
+  }
+}

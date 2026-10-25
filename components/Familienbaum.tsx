@@ -31,8 +31,17 @@ export type Knoten = {
   anrede?: string | null;
 };
 
-const initialen = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2)
-  .map(w => w[0]?.toUpperCase() ?? '').join('') || '?';
+// Erstes und letztes Wort, je das erste Schriftzeichen (Grapheme, damit ein
+// Akzent oder Emoji nicht zerbricht). "Jo" -> "J", "Arta von Allmen" -> "AA".
+const zeichen = (w: string) => {
+  const seg = (Intl as any).Segmenter ? new (Intl as any).Segmenter(undefined, { granularity: 'grapheme' }) : null;
+  return (seg ? [...seg.segment(w)][0]?.segment : Array.from(w)[0]) ?? '';
+};
+const initialen = (name: string) => {
+  const w = name.trim().split(/\s+/).filter(Boolean);
+  if (!w.length) return '?';
+  return (zeichen(w[0]) + (w.length > 1 ? zeichen(w[w.length - 1]) : '')).toUpperCase();
+};
 const jahr = (d: string | null) => {
   const m = d?.match(/(\d{4})/);
   return m ? m[1] : null;
@@ -405,7 +414,7 @@ const Familienbaum: React.FC<{
                       color: gewaehlt ? '#fff' : w === 'w' ? '#be185d' : w === 'm' ? '#0369a1' : '#78716c',
                     }}>{initialen(p.name)}</span>
               <span className="min-w-0 flex-1">
-                <span className="block text-[12px] font-bold truncate leading-tight"
+                <span className="block text-[12px] font-bold truncate leading-tight" title={p.name}
                       style={{ color: gewaehlt ? '#fff' : '#292524' }}>{p.name}</span>
                 <span className="block text-[10px] leading-tight mt-0.5"
                       style={{ color: gewaehlt ? 'rgba(255,255,255,.75)' : '#a8a29e' }}>

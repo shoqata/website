@@ -301,6 +301,9 @@ const AdminVersammlung: React.FC = () => {
               <input value={suche} onChange={e => setSuche(e.target.value)} placeholder={t('stamm.mitglied_suchen')} className="w-full pl-9 pr-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none" />
             </div>
             <div className="max-h-[420px] overflow-y-auto space-y-1">
+              {!suche.trim() && mitglieder.length > treffer.length && (
+                <p className="text-[11px] text-stone-400 px-3 pb-1">{t('gv.mehr_suchen', { count: mitglieder.length - treffer.length })}</p>
+              )}
               {treffer.map(m => (
                 <label key={m.id} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-stone-50 cursor-pointer">
                   <input type="checkbox" checked={praesenz.has(m.id)} onChange={e => anwesendSetzen(m.id, e.target.checked)} className="w-4 h-4" />

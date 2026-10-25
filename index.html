@@ -57,6 +57,11 @@
       })();
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      /* Hover-Zustaende nur mit Maus: auf dem Handy bleibt ein angetippter
+         Knopf sonst "gehovert" stehen. */
+      tailwind.config = { future: { hoverOnlyWhenSupported: true } };
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">

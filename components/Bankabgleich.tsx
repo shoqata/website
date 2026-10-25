@@ -108,8 +108,8 @@ const Bankabgleich: React.FC = () => {
                   return (
                     <tr key={z.g.schluessel} className="border-t border-stone-100 align-top">
                       <td className="py-2.5 pr-3 whitespace-nowrap text-stone-600">{z.g.datum ? new Date(z.g.datum).toLocaleDateString('de-CH') : '—'}</td>
-                      <td className="py-2.5 pr-3 text-right font-mono font-bold">{z.g.betrag.toFixed(2)}</td>
-                      <td className="py-2.5 pr-3 text-stone-600 max-w-[220px]"><p className="truncate">{z.g.auftraggeber || '—'}</p><p className="text-[11px] text-stone-400 truncate">{z.g.mitteilung || z.g.referenz}</p></td>
+                      <td className="py-2.5 pr-3 text-right font-mono font-bold tabular-nums whitespace-nowrap">{z.g.betrag.toFixed(2)}</td>
+                      <td className="py-2.5 pr-3 text-stone-600 max-w-[220px]"><p className="truncate" title={z.g.auftraggeber || ''}>{z.g.auftraggeber || '—'}</p><p className="text-[11px] text-stone-400 truncate" title={z.g.mitteilung || z.g.referenz || ''}>{z.g.mitteilung || z.g.referenz}</p></td>
                       <td className="py-2.5 pr-3">
                         {z.schon ? <span className="text-stone-400">{z.mitglied || '—'}</span> : (
                           <select value={z.wahl || ''} onChange={e => setZeilen(zs => zs!.map((x, j) => j === i ? { ...x, wahl: e.target.value || null } : x))}
