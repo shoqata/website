@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import NachbarschaftenAbschnitt from './NachbarschaftenAbschnitt';
 import { motion, AnimatePresence } from 'framer-motion';
 // Fix: Add missing Link import
 import { Link } from 'react-router-dom';
@@ -80,6 +81,10 @@ const VillageLive: React.FC = () => {
           </motion.div>
         </div>
       </section>
+
+      {/* Die Nachbarschaften des Dorfes -- nur die eingeschalteten
+          (Verwaltung -> Nachbarschaften -> Auf der Website). */}
+      <NachbarschaftenAbschnitt />
 
       {/* 2. Interactive Selector */}
       <section className="py-12 flex flex-col items-center">

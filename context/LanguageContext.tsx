@@ -1163,7 +1163,7 @@ const translations: Translations = {
 
   'legal.empty': { en: 'No content has been published yet.', de: 'Es wurde noch kein Inhalt veröffentlicht.', sq: 'Ende nuk është publikuar asnjë përmbajtje.' },
 
-  'live.header.badge': { en: 'Village life', de: 'Dorfleben', sq: 'Jeta e fshatit' },
+  'live.header.badge': { en: 'Village', de: 'Dorf', sq: 'Fshati' },
   'live.empty': { en: 'No events scheduled yet.', de: 'Zurzeit sind keine Veranstaltungen geplant.', sq: 'Ende nuk ka ngjarje të planifikuara.' },
   'live.contact': { en: 'Contact us', de: 'Kontaktieren Sie uns', sq: 'Na kontaktoni' },
 
@@ -1191,7 +1191,7 @@ const translations: Translations = {
   'nav.news.desc': { en: 'Updates from Koretin and the Diaspora.', de: 'Updates aus Koretin und der Diaspora.', sq: 'Lajme nga Koretini dhe Diaspora.' },
   'nav.events.title': { en: 'Events & Live', de: 'Events & Live', sq: 'Ngjarjet & Live' },
   'nav.events.desc': { en: 'Join community gatherings and projects.', de: 'Nimm an Treffen und Projekten teil.', sq: 'Bashkohuni në tubime dhe projekte.' },
-  'nav.live': { en: 'Village life', de: 'Dorfleben', sq: 'Jeta e fshatit' },
+  'nav.live': { en: 'Village', de: 'Dorf', sq: 'Fshati' },
   'nav.turnier': { en: 'Tournament', de: 'Turnier', sq: 'Turneu' },
 
   // --- POSTAUSGANG DES VORSTANDS ---
@@ -1717,6 +1717,20 @@ const translations: Translations = {
   'navv.mega_hinweis': { en: "The mega menu opens the sub-menus below as panels with descriptions. Without own sub-menus, “Association”, “News” and “Get involved” apply.", de: "Das Megamenü öffnet die Untermenüs unten als Feld mit Beschreibungen. Ohne eigene Untermenüs gelten „Verein“, „Aktuell“ und „Mitmachen“.", sq: "Megamenuja i hap nënmenutë më poshtë si panel me përshkrime. Pa nënmenu të veta vlejnë „Shoqata“, „Aktuale“ dhe „Merr pjesë“." },
   'news.titel_fehlt': { en: "The news item needs a title.", de: "Die Nachricht braucht einen Titel.", sq: "Lajmi ka nevojë për një titull." },
   'news.ansehen': { en: "View on the website", de: "Auf der Website ansehen", sq: "Shiko në faqe" },
+  'nav.nachbarschaften': { en: "Neighbourhoods", de: "Nachbarschaften", sq: "Lagjet" },
+  'navb.nachbarschaften': { en: "Who lives where in the village", de: "Wer wo im Dorf zu Hause ist", sq: "Kush ku banon në fshat" },
+  'nb.marke': { en: "Our village", de: "Unser Dorf", sq: "Fshati ynë" },
+  'nb.titel': { en: "Our neighbourhoods", de: "Unsere Nachbarschaften", sq: "Lagjet tona" },
+  'nb.intro': { en: "{anzahl} neighbourhoods, {mitglieder} members — each with its own story.", de: "{anzahl} Nachbarschaften, {mitglieder} Mitglieder — jede mit ihrer eigenen Geschichte.", sq: "{anzahl} lagje, {mitglieder} anëtarë — secila me historinë e vet." },
+  'nb.alle': { en: "All neighbourhoods", de: "Alle Nachbarschaften", sq: "Të gjitha lagjet" },
+  'nb.mitglieder': { en: "members", de: "Mitglieder", sq: "anëtarë" },
+  'nb.kennenlernen': { en: "Discover", de: "Kennenlernen", sq: "Njihuni" },
+  'nb.keine': { en: "No neighbourhood is presented yet.", de: "Noch stellt sich keine Nachbarschaft vor.", sq: "Asnjë lagje nuk është prezantuar ende." },
+  'nb.gebiet': { en: "Area", de: "Gebiet", sq: "Zona" },
+  'nb.bilder': { en: "Pictures", de: "Bilder", sq: "Fotografi" },
+  'nb.weitere': { en: "More neighbourhoods", de: "Weitere Nachbarschaften", sq: "Lagje të tjera" },
+  'nb.noch_kein_text': { en: "This neighbourhood will introduce itself here soon.", de: "Diese Nachbarschaft stellt sich hier bald vor.", sq: "Kjo lagje do të prezantohet këtu së shpejti." },
+  'nb.website_von': { en: "{name} on the website", de: "{name} auf der Website", sq: "{name} në faqe" },
   'about.badge': { en: 'Global network', de: 'Globales Netzwerk', sq: 'Rrjet global' },
   'about.title': { en: 'About us', de: 'Über uns', sq: 'Rreth Nesh' },
   'about.intro': { en: 'The association is a bridge between the home village and the diaspora. We are committed to developing our community through concrete projects and solidarity.', de: 'Der Verein ist die Brücke zwischen der Heimat und der Diaspora. Wir setzen uns mit konkreten Projekten und Solidarität für die Entwicklung unserer Gemeinschaft ein.', sq: 'Shoqata është urë lidhëse mes vendlindjes dhe diasporës. Ne jemi të përkushtuar për zhvillimin e komunitetit tonë përmes projekteve konkrete dhe solidaritetit.' },

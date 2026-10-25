@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Info, Calendar, Newspaper, Zap, Trophy, Film, Heart, BadgeCheck, FileText, History, Mail } from 'lucide-react';
+import { Info, Calendar, Newspaper, Zap, Trophy, Film, Heart, BadgeCheck, FileText, History, Mail, MapPinned } from 'lucide-react';
 import { supabase } from '@/services/supabase-bridge';
 import { useOeffentlicheModule } from '../lib/useOeffentlicheModule';
 import { useSpendenseiteSichtbar } from '../lib/useSpendenseiteSichtbar';
@@ -31,7 +31,7 @@ export const navGruppen = (w: any): NavGruppe[] =>
 // Ein Vorschlag fuer den Anfang -- die Verwaltung uebernimmt ihn mit einem
 // Klick und passt ihn an.
 export const GRUPPEN_VORSCHLAG: { gruppe: NavGruppe; eintraege: string[] }[] = [
-  { gruppe: { id: 'verein', label: { de: 'Verein', sq: 'Shoqata', en: 'Association' } }, eintraege: ['about', 'chronik', 'kontakt'] },
+  { gruppe: { id: 'verein', label: { de: 'Verein', sq: 'Shoqata', en: 'Association' } }, eintraege: ['about', 'chronik', 'nachbarschaften', 'kontakt'] },
   { gruppe: { id: 'aktuell', label: { de: 'Aktuell', sq: 'Aktuale', en: 'News' } }, eintraege: ['events', 'news', 'live', 'videos'] },
   { gruppe: { id: 'mitmachen', label: { de: 'Mitmachen', sq: 'Merr pjesë', en: 'Get involved' } }, eintraege: ['fussball', 'spenden', 'beitraege'] },
 ];
@@ -107,6 +107,7 @@ type Fest = { schluessel: string; pfad: string; label: string; I: any; farbe: st
 const FEST: Fest[] = [
   { schluessel: 'about',     pfad: '/about',     label: 'nav.about',        I: Info,       farbe: 'text-emerald-600' },
   { schluessel: 'chronik',   pfad: '/chronik',   label: 'nav.chronik',      I: History,    farbe: 'text-amber-700' },
+  { schluessel: 'nachbarschaften', pfad: '/nachbarschaften', label: 'nav.nachbarschaften', I: MapPinned, farbe: 'text-teal-600' },
   { schluessel: 'events',    pfad: '/events',    label: 'nav.events.title', I: Calendar,   farbe: 'text-primary' },
   { schluessel: 'news',      pfad: '/news',      label: 'nav.news.title',   I: Newspaper,  farbe: 'text-blue-600' },
   { schluessel: 'live',      pfad: '/live',      label: 'nav.live',         I: Zap,        farbe: 'text-amber-600' },
@@ -144,6 +145,18 @@ export function useChronikVorhanden() {
   return da;
 }
 
+// Gibt es Nachbarschaften mit eingeschalteter Vorstellung?
+export function useNachbarschaftenVorhanden() {
+  const [da, setDa] = useState<boolean | null>(null);
+  useEffect(() => {
+    let lebt = true;
+    supabase.from('nachbarschaft_profil').select('nachbarschaft').eq('sichtbar', true).limit(1)
+      .then(({ data }) => { if (lebt) setDa(((data as any[]) ?? []).length > 0); }, () => { if (lebt) setDa(false); });
+    return () => { lebt = false; };
+  }, []);
+  return da;
+}
+
 export function useKopfzeile(opts: {
   einstellung?: NavEinstellung;
   zahlerliste?: { sichtbar?: string };
@@ -156,6 +169,7 @@ export function useKopfzeile(opts: {
   const spenden = useSpendenseiteSichtbar();
   const seiten = useEigeneSeiten();
   const chronik = useChronikVorhanden();
+  const nachbarschaften = useNachbarschaftenVorhanden();
   if (module === null || seiten === null) return null;
 
   const zl = (opts.zahlerliste?.sichtbar || 'AUS').toUpperCase();
@@ -165,6 +179,7 @@ export function useKopfzeile(opts: {
   const moeglich: Record<string, [boolean, string?]> = {
     about: [hat('WEBSITE'), 'Modul Website ist nicht gebucht'],
     kontakt: [hat('WEBSITE'), 'Modul Website ist nicht gebucht'],
+    nachbarschaften: [hat('WEBSITE') && !!nachbarschaften, hat('WEBSITE') ? 'Noch keine Nachbarschaft auf der Website eingeschaltet' : 'Modul Website ist nicht gebucht'],
     chronik: [hat('WEBSITE') && !!chronik, hat('WEBSITE') ? 'Noch keine veröffentlichten Einträge (Website → Chronik)' : 'Modul Website ist nicht gebucht'],
     events: [hat('ANLAESSE'), 'Modul Anlässe ist nicht gebucht'],
     news: [hat('NEUIGKEITEN'), 'Modul Neuigkeiten ist nicht gebucht'],
@@ -182,7 +197,7 @@ export function useKopfzeile(opts: {
       return {
         schluessel: f.schluessel, pfad: f.pfad, label: f.label, uebersetzen: true,
         icon: <f.I size={16} className={f.farbe} />, iconKlein: <f.I size={20} />,
-        moeglich: m, grund: m ? undefined : g, an: true, eigeneSeite: false, beschreibung: `navb.${f.schluessel}`,
+        moeglich: m, grund: m ? undefined : g, an: f.schluessel !== 'nachbarschaften', eigeneSeite: false, beschreibung: `navb.${f.schluessel}`,
         ort: ORT_BISHER[f.schluessel] ?? 'OBEN',
       };
     }),

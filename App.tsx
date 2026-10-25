@@ -94,6 +94,8 @@ const NachrichtSeite = React.lazy(() => import('./components/NachrichtSeite'));
 const AboutUsPage = React.lazy(() => import('./components/AboutUsPage'));
 const ChronikSeite = React.lazy(() => import('./components/ChronikSeite'));
 const KontaktSeite = React.lazy(() => import('./components/KontaktSeite'));
+const NachbarschaftSeite = React.lazy(() => import('./components/NachbarschaftSeite'));
+const NachbarschaftenUebersicht = React.lazy(() => import('./components/NachbarschaftSeite').then(m => ({ default: m.NachbarschaftenUebersicht })));
 const FutsalPage = React.lazy(() => import('./components/FutsalPage'));
 const SponsorPage = React.lazy(() => import('./components/SponsorPage'));
 const LegalPage = React.lazy(() => import('./components/LegalPage'));
@@ -657,6 +659,16 @@ const AppContent: React.FC = () => {
                     <Route path="/kontakt" element={
                       ((z) => z === 'LAEDT' ? <PageLoader />
                             : z === 'ZEIGEN' ? <KontaktSeite />
+                            : <Navigate to="/" replace />)
+                      (seitenZustand(websiteModule, 'WEBSITE', istPlattformDomain))} />
+                    <Route path="/nachbarschaften" element={
+                      ((z) => z === 'LAEDT' ? <PageLoader />
+                            : z === 'ZEIGEN' ? <NachbarschaftenUebersicht />
+                            : <Navigate to="/" replace />)
+                      (seitenZustand(websiteModule, 'WEBSITE', istPlattformDomain))} />
+                    <Route path="/nachbarschaften/:id" element={
+                      ((z) => z === 'LAEDT' ? <PageLoader />
+                            : z === 'ZEIGEN' ? <NachbarschaftSeite />
                             : <Navigate to="/" replace />)
                       (seitenZustand(websiteModule, 'WEBSITE', istPlattformDomain))} />
                     {/* Dorfleben nur mit gebuchtem Modul. Ausgeblendet

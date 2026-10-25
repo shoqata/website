@@ -20,6 +20,7 @@ import { rechnungsmailBauen } from '../lib/rechnungsmail';
 import { zahlungsangabenPruefen } from '../lib/postversand';
 import { versandsatz } from '../services/mailService';
 import MeineZustaendigkeit from './MeineZustaendigkeit';
+import NbWebsiteLeiste from './NbWebsiteLeiste';
 import { useVereinsjahre } from '../lib/useVereinsjahre';
 import { KassierenDialog, MitgliedErfassenDialog, KasseTab, AufgabenTab } from './VertreterVorOrt';
 
@@ -401,6 +402,16 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
           {nachbarschaften.map(n => n.name).join(' · ') || '-'}
         </h1>
         <MeineZustaendigkeit />
+        {/* Die eigene Nachbarschaft auf der Website vorstellen: Text,
+            Bilder, Gebiet. Pruefen tut nachbarschaft_profil_speichern(). */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+          {nachbarschaften.map(n => (
+            <div key={n.id} className="bg-white/5 rounded-2xl p-4">
+              <p className="text-xs font-bold text-stone-300">{t('nb.website_von', { name: n.name })}</p>
+              <NbWebsiteLeiste nb={{ id: n.id, name: n.name }} />
+            </div>
+          ))}
+        </div>
         {/* Die Zahlen zaehlen Mitglieder, nicht Rechnungen. Vorher standen hier
             Rechnungszahlen -- wer wissen will, bei wem der Beitrag aussteht,
             ist damit nicht bedient. */}

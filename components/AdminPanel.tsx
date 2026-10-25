@@ -49,6 +49,7 @@ import { neighborhoodPlace } from '../lib/neighborhood';
 import { onImageError } from '../lib/imageFallback';
 import NachrichtenVerwaltung from './NachrichtenVerwaltung';
 import AdminNeighborhoodEditor from './AdminNeighborhoodEditor';
+import NbWebsiteLeiste from './NbWebsiteLeiste';
 import CountrySelect from './ui/CountrySelect';
 import AdminPasswordReset from './AdminPasswordReset';
 import { rechnungErfassen } from '../lib/erfassen';
@@ -594,6 +595,7 @@ const AdminPanel: React.FC = () => {
                                         <div className="space-y-3">
                                             <div className="flex justify-between items-center p-3 bg-stone-50 rounded-2xl"><span className="text-xs font-bold text-stone-400 uppercase">{t('admin.members.count')}</span><span className="font-bold text-stone-900">{users.filter(u => u.neighborhoodId === n.id).length}</span></div>
                                         </div>
+                                        <NbWebsiteLeiste nb={{ id: n.id, name: n.name }} />
                                     </div>
                                 ))}
                             </div>
