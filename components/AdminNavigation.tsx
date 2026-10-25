@@ -39,7 +39,19 @@ const AdminNavigation: React.FC = () => {
   });
   // Einmal uebernehmen, danach gehoert die Liste der Maske -- sonst
   // ueberschriebe jede Antwort der Datenbank die laufende Bearbeitung.
-  useEffect(() => { if (alle && system !== undefined && !geaendert) setListe(alle); }, [alle, system]);
+  // Nur uebernehmen, wenn sich der gespeicherte Stand wirklich geaendert
+  // hat. useKopfzeile liefert bei jedem Zeichnen eine neue Liste; mit ihr
+  // als Ausloeser lief dieser Effekt in einem fort -- und ein Klick auf
+  // "Megamenü" oder "Vorschlag übernehmen" konnte genau dazwischen fallen:
+  // die Gruppen entstanden, die Zuordnung der Eintraege wurde vom naechsten
+  // Durchlauf wieder ueberschrieben ("0 Einträge").
+  const fingerabdruck = alle ? alle.map(e => `${e.schluessel}:${e.an}:${e.ort}:${e.gruppe ?? ''}:${e.moeglich}`).join('|') : '';
+  const uebernommen = React.useRef('');
+  useEffect(() => {
+    if (!alle || system === undefined || geaendert || uebernommen.current === fingerabdruck) return;
+    uebernommen.current = fingerabdruck;
+    setListe(alle);
+  }, [fingerabdruck, system, geaendert]);
   useEffect(() => { if (system !== undefined && !geaendert) setLayout(navLayout(system?.navigationLayout)); }, [system]);
   useEffect(() => { if (system !== undefined && !geaendert) setGruppen(navGruppen(system?.navigationGruppen)); }, [system]);
 
