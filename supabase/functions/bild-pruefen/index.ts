@@ -56,8 +56,12 @@ Deno.serve(async (req) => {
     global: { headers: { Authorization: auth, ...(herkunft ? { origin: herkunft } : {}) } },
     auth: { persistSession: false },
   });
-  const { data: wer, error: werFehler } = await alsAufrufer.auth.getUser();
-  if (werFehler || !wer?.user) return json({ fehler: "Nicht angemeldet." }, 401);
+  // Kein auth.getUser(): das fragt den Anmeldedienst nach der Sitzung,
+  // und die kann dort schon beendet sein, waehrend das Token noch gilt --
+  // dann hiess es "Nicht angemeldet", obwohl die ganze uebrige App (die
+  // Datenbank prueft die Signatur des Tokens) weiter funktionierte.
+  // Wer der Aufrufer ist und was er darf, entscheidet unten
+  // nachbarschaft_bild_erlaubt() mit genau diesem Token.
 
   let form: FormData;
   try { form = await req.formData(); } catch { return json({ fehler: "Anfrage nicht lesbar." }, 400); }
