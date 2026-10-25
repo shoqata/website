@@ -49,6 +49,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Cartes
 import { neighborhoodCity } from '../lib/neighborhood';
 import { billingYearOf, isOverdue } from '../lib/memberQuality';
 import { onImageError } from '../lib/imageFallback';
+import AenderungenVerwaltung from './AenderungenVerwaltung';
 interface BoardDashboardProps {
   user: UserProfile;
 }
@@ -483,6 +484,9 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
             tun ist. Kennzahlen und Auswertungen folgen darunter. */}
         <div className="mb-10">
             <AnfragenBearbeiten breit />
+        </div>
+        <div className="mb-10">
+            <AenderungenVerwaltung kompakt />
         </div>
 
         {/* --- STATS & ANALYTICS SECTION --- */}

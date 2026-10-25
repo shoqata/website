@@ -11,6 +11,8 @@ import { useTenant } from '../context/TenantContext';
 import Marktplatz from './Marktplatz';
 import AdminStammbaum from './AdminStammbaum';
 import MitgliedFamilie from './MitgliedFamilie';
+import DatenSchnellkorrektur from './DatenSchnellkorrektur';
+import AenderungenVerwaltung from './AenderungenVerwaltung';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Activity as ActivityIcon, AlertCircle, AlertTriangle, AlignLeft, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ArrowUpDown, AtSign, Ban, BarChart2, BarChart3, Bell, Blocks, BookOpen, Briefcase, Calendar, CalendarDays, CheckCircle2, CheckSquare, ChevronLeft, ChevronRight, ClipboardCheck, ClipboardList, Clock, Coins, Command, Copy, CreditCard, Crown, Database, DollarSign, Download, ExternalLink, Eye, FileEdit, FileInput, FileText, Files, Film, Filter, Globe, Hash, Heart, History, Home, Image as LucideImage, ImageIcon, Info, Kanban, KeyRound, Layout, LayoutDashboard, LayoutGrid, LayoutList, Link as LinkIcon, ListFilter, Loader2, Lock, LogOut, Mail, Map, MapPin, MapPinned, Megaphone, Menu, MessageSquare, MoreHorizontal, MoreVertical, MousePointer2, Newspaper, PanelLeftClose, PanelLeftOpen, Phone, PieChart as LucidePieChart, Plus, Printer, Receipt, RefreshCw, Save, Search, Send, Settings, Shield, ShieldAlert, Sliders, Sparkles, Square, StickyNote, Tag, Target, ToggleLeft, ToggleRight, Trash2, TrendingUp, Unlock, Upload, User as UserIcon, UserCheck, UserCheck2, UserCog, UserMinus, UserPlus, UserPlus2, Users, Users2, Wallet, X, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -516,6 +518,11 @@ const AdminPanel: React.FC = () => {
                       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                         {activeTab === 'ANALYTICS' && <AdminAnalytics payments={payments} users={users} neighborhoods={neighborhoods} selectedYear={selectedYear} />}
                         
+                        {activeTab === 'DATA_QUALITY' && (
+                            <div className="mb-8">
+                                <AenderungenVerwaltung onOeffnen={(id) => { const u = users.find(x => x.id === id); if (u) { setSelectedUser(u); setUserDrawerTab('GENERAL'); setIsUserDrawerOpen(true); } }} />
+                            </div>
+                        )}
                         {activeTab === 'DATA_QUALITY' && (
                             <AdminDataQuality 
                                 users={users} 
@@ -1312,6 +1319,8 @@ const AdminDataQuality = ({ users, neighborhoods, onEditUser }: any) => {
                     <p className="text-sm text-rose-700">{t('admin.dq.action_text', { count: qualityReport.filter((u: any) => u.score < 60).length })}</p>
                 </div>
             </div>
+
+            <DatenSchnellkorrektur users={aktiveUsers} onEditUser={onEditUser} />
 
             {deliveryConflicts.length > 0 && (
                 <div className="bg-amber-50 border border-amber-200 rounded-[2.5rem] p-8 flex flex-wrap items-start justify-between gap-6">

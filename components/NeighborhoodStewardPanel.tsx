@@ -3,7 +3,7 @@ import { VERTRETER_FELD_KEYS } from '../lib/vertreterfelder';
 import { motion } from 'framer-motion';
 import {
   Home, Users, Receipt, Search, Save, Loader2, CheckCircle2, Clock, Pencil,
-  AlertTriangle, Phone, Mail, MapPin, Send, X, ShieldAlert, Download, Banknote, UserPlus,
+  AlertTriangle, Phone, Mail, MapPin, Send, X, ShieldAlert, Download, Banknote, UserPlus, MessageCircle,
 } from 'lucide-react';
 import { db } from '../services/datenzugriff';
 import {
@@ -23,6 +23,22 @@ import MeineZustaendigkeit from './MeineZustaendigkeit';
 import NbWebsiteLeiste from './NbWebsiteLeiste';
 import { useVereinsjahre } from '../lib/useVereinsjahre';
 import { KassierenDialog, MitgliedErfassenDialog, KasseTab, AufgabenTab } from './VertreterVorOrt';
+import VertreterFamilien from './VertreterFamilien';
+import { useModule } from '../lib/useModule';
+
+// Telefonnummer fuer WhatsApp: nur Ziffern, international. Schweizer
+// Nummern ohne Vorwahl (079 …) bekommen 41.
+const waNummer = (tel: string) => {
+  let z = tel.replace(/[^\d+]/g, '');
+  if (z.startsWith('+')) z = z.slice(1);
+  else if (z.startsWith('00')) z = z.slice(2);
+  else if (z.startsWith('0')) z = '41' + z.slice(1);
+  return z.replace(/\D/g, '');
+};
+const Kontakt: React.FC<{ href: string; title: string; children: React.ReactNode; neu?: boolean }> = ({ href, title, children, neu }) => (
+  <a href={href} title={title} onClick={e => e.stopPropagation()} target={neu ? '_blank' : undefined} rel={neu ? 'noopener noreferrer' : undefined}
+     className="w-8 h-8 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center">{children}</a>
+);
 
 interface Props { user: UserProfile; }
 
@@ -37,7 +53,8 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
   const { t } = useTranslation();
   const { showAlert } = useFeedback();
 
-  const [tab, setTab] = useState<'MEMBERS' | 'INVOICES' | 'KASSE' | 'AUFGABEN'>('MEMBERS');
+  const [tab, setTab] = useState<'MEMBERS' | 'INVOICES' | 'KASSE' | 'AUFGABEN' | 'FAMILIEN'>('MEMBERS');
+  const { aktiv: modulAktiv } = useModule();
   const [meine, setMeine] = useState<string[]>([]);
   const [nachbarschaften, setNachbarschaften] = useState<Neighborhood[]>([]);
   const [mitglieder, setMitglieder] = useState<UserProfile[]>([]);
@@ -445,12 +462,44 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
         )}
       </div>
 
+      {/* Was ist zu tun: aus den Zahlen abgeleitet, je ein Klick zur Liste. */}
+      {(() => {
+        const punkte = [
+          rechte.sehen && zaehler.offen > 0 && { n: zaehler.offen, text: t('vtodo.offen'), f: 'OFFEN' as const,
+            namen: bewertet.filter(b => b.beitrag === 'OPEN').map(b => b.m.displayName) },
+          zaehler.luecken > 0 && { n: zaehler.luecken, text: t('vtodo.luecken'), f: 'UNVOLLSTAENDIG' as const,
+            namen: bewertet.filter(b => b.fehlt.length > 0).map(b => b.m.displayName) },
+          rechte.sehen && zaehler.nichtVerrechnet > 0 && { n: zaehler.nichtVerrechnet, text: t('vtodo.nicht_verrechnet', { year: jahr }), f: 'ALLE' as const,
+            namen: bewertet.filter(b => b.beitrag === 'NONE').map(b => b.m.displayName) },
+        ].filter(Boolean) as { n: number; text: string; f: 'OFFEN' | 'UNVOLLSTAENDIG' | 'ALLE'; namen: (string | undefined)[] }[];
+        if (!punkte.length) return (
+          <div className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl text-sm text-emerald-800">
+            <CheckCircle2 size={18} /> {t('vtodo.alles_erledigt')}
+          </div>
+        );
+        return (
+          <div className="bg-white border border-stone-200 rounded-2xl p-5">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-3">{t('vtodo.titel')}</p>
+            <div className="grid gap-2 md:grid-cols-3">
+              {punkte.map(p => (
+                <button key={p.text} onClick={() => { setTab('MEMBERS'); setFilter(p.f); }}
+                        className="text-left p-4 bg-stone-50 hover:bg-stone-100 rounded-xl">
+                  <p className="text-sm font-bold text-stone-800"><span className="text-xl mr-1">{p.n}</span> {p.text}</p>
+                  <p className="text-xs text-stone-500 truncate mt-1">{p.namen.filter(Boolean).slice(0, 3).join(', ')}{p.namen.length > 3 ? ' …' : ''}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       <div className="flex gap-2 border-b border-stone-100 overflow-x-auto">
         {([
           ['MEMBERS', t('steward.tab_members'), true],
           ['INVOICES', t('steward.tab_invoices'), rechte.sehen],
           ['KASSE', t('steward.tab_cash'), rechte.kassieren || rechte.ausgaben],
           ['AUFGABEN', t('steward.tab_tasks'), rechte.aufgaben],
+          ['FAMILIEN', t('vfam.tab'), modulAktiv('STAMMBAUM')],
         ] as const).filter(([, , zeigen]) => zeigen).map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)}
             className={`px-5 py-3 font-bold text-xs uppercase tracking-widest border-b-2 transition-colors whitespace-nowrap ${
@@ -459,6 +508,8 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
           </button>
         ))}
       </div>
+
+      {tab === 'FAMILIEN' && modulAktiv('STAMMBAUM') && <VertreterFamilien />}
 
       {tab === 'MEMBERS' && (
         <div className="space-y-4">
@@ -524,10 +575,18 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
                   <p className="text-xs text-stone-500 truncate">
                     {[m.street, [m.zip, m.city].filter(Boolean).join(' ')].filter(Boolean).join(', ') || t('steward.no_address')}
                   </p>
-                  <div className="flex flex-wrap gap-3 text-xs text-stone-500">
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-stone-500">
                     {m.phone && <span className="flex items-center gap-1.5"><Phone size={12} /> {m.phone}</span>}
                     {hasUsableEmail(m) && <span className="flex items-center gap-1.5 truncate"><Mail size={12} /> {m.email}</span>}
                   </div>
+                  {/* Direkt erreichen: anrufen, WhatsApp, E-Mail. */}
+                  {(m.phone || hasUsableEmail(m)) && (
+                    <div className="flex gap-1.5 pt-1">
+                      {m.phone && <Kontakt href={`tel:${m.phone.replace(/\s/g, '')}`} title={t('vfam.anrufen')}><Phone size={14} /></Kontakt>}
+                      {m.phone && <Kontakt href={`https://wa.me/${waNummer(m.phone)}`} title="WhatsApp" neu><MessageCircle size={14} /></Kontakt>}
+                      {hasUsableEmail(m) && <Kontakt href={`mailto:${m.email}`} title={t('field.email')}><Mail size={14} /></Kontakt>}
+                    </div>
+                  )}
                 </div>
 
                 {/* Die beiden Auskuenfte, um die es geht: Beitrag des laufenden

@@ -52,6 +52,8 @@ import CountrySelect from './ui/CountrySelect';
 import { emailMissingForDelivery } from '../lib/memberEmail';
 import { missingFieldKeys, feeStateFor } from '../lib/memberQuality';
 import { onImageError } from '../lib/imageFallback';
+import MeineFamilie from './MeineFamilie';
+import AenderungMelden from './AenderungMelden';
 // Kuerzel aus dem Vereinsnamen, z. B. "Shoqata Koretini" -> "SK".
 const initialsOf = (name: string) =>
   name.trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || 'V';
@@ -125,6 +127,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
   // Request Modal State
   const [showRequestModal, setShowRequestModal] = useState(false);
+  const [aendernOffen, setAendernOffen] = useState(false);
   const [newRequest, setNewRequest] = useState({ type: 'GENERAL', subject: '', message: '' });
 
   // Missing Fields State
@@ -880,6 +883,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                     </div>
                 </motion.div>
             </div>
+
+            {/* Meine Familie (nur lesen) und Aenderungen melden */}
+            <MeineFamilie onMelden={() => setAendernOffen(true)} />
+            {aendernOffen && <AenderungMelden onClose={() => setAendernOffen(false)} />}
 
             {/* REQUEST CENTER (INQUIRIES) */}
             <div className="bg-white p-8 rounded-[2.5rem] border border-stone-100 shadow-sm">

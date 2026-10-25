@@ -21,7 +21,8 @@ const StammbaumPerson: React.FC<{
   onOeffnen?: (id: string) => void;        // Name anklicken: zu dieser Person
   onHinzugefuegt?: (id: string) => void;   // neue Person ist jetzt verbunden
   onHerausgenommen?: () => void;
-}> = ({ sb, person, onOeffnen, onHinzugefuegt, onHerausgenommen }) => {
+  nurLesen?: boolean;                      // Vertreter: sehen, nicht aendern
+}> = ({ sb, person, onOeffnen, onHinzugefuegt, onHerausgenommen, nurLesen }) => {
   const { t } = useTranslation();
   const { showConfirm } = useFeedback();
   const [rolle, setRolle] = useState<Rolle | null>(null);
@@ -73,11 +74,11 @@ const StammbaumPerson: React.FC<{
                     className="inline-flex items-center gap-2 pl-3 pr-1.5 py-1.5 bg-white border border-stone-200 rounded-xl text-xs">
                 <span className="text-stone-400">{rollenwort(x.rolle)}</span>
                 {name(x.id, x.name)}
-                <button onClick={() => sb.loesen(x.a, x.b, x.art)} disabled={sb.arbeitet}
+                {!nurLesen && <button onClick={() => sb.loesen(x.a, x.b, x.art)} disabled={sb.arbeitet}
                         className="w-6 h-6 rounded-lg flex items-center justify-center text-stone-300 hover:text-rose-600 hover:bg-rose-50"
                         title={t('stamm.loesen')}>
                   <X size={13} />
-                </button>
+                </button>}
               </span>
             ))}
           </div>
@@ -85,7 +86,7 @@ const StammbaumPerson: React.FC<{
       </div>
 
       {/* Hinzufuegen */}
-      <div>
+      {!nurLesen && <div>
         <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-2">{t('stamm.hinzufuegen')}</p>
         <div className="flex flex-wrap gap-2">
           {ROLLEN.map(r => (
@@ -127,7 +128,7 @@ const StammbaumPerson: React.FC<{
             </div>
           </div>
         )}
-      </div>
+      </div>}
 
       {sb.fehler && <p className="text-xs text-rose-600">{sb.fehler}</p>}
 
@@ -148,7 +149,7 @@ const StammbaumPerson: React.FC<{
         ) : <p className="text-xs text-stone-400">{t('stamm.keine_abgeleiteten')}</p>}
       </div>
 
-      {direkt.length > 0 && (
+      {!nurLesen && direkt.length > 0 && (
         <button onClick={allesLoesen} disabled={sb.arbeitet}
                 className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100">
           <UserMinus size={14} /> {t('stamm.herausnehmen')}
