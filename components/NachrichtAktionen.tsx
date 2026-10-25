@@ -11,7 +11,7 @@ export const LikeKnopf: React.FC<{ anzahl: number; gelikt: boolean; onClick: () 
   return (
     <button type="button" aria-pressed={gelikt} title={t(gelikt ? 'news.like_weg' : 'news.like')}
       onClick={e => { e.stopPropagation(); onClick(); }}
-      className={`inline-flex items-center gap-1.5 rounded-full font-bold transition-all border ${klein ? 'px-3 py-1.5 text-xs' : 'px-4 py-2.5 text-sm'} ${
+      className={`inline-flex items-center gap-1.5 rounded-full font-bold transition border ${klein ? 'px-3 py-1.5 text-xs' : 'px-4 py-2.5 text-sm'} ${
         gelikt ? 'bg-primary text-white border-primary' : 'bg-white text-stone-600 border-stone-200 hover:border-stone-400'}`}>
       <Heart size={klein ? 13 : 16} fill={gelikt ? 'currentColor' : 'none'}
         className={gelikt ? 'scale-110 transition-transform' : 'transition-transform'} />

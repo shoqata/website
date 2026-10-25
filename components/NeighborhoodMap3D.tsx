@@ -2,6 +2,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Sphere, MeshDistortMaterial, Float, Text } from '@react-three/drei';
+import { wenigerBewegung } from '../lib/bewegung';
 import * as THREE from 'three';
 
 // Fix: Alias Three.js intrinsic elements to avoid JSX type errors in environments where JSX.IntrinsicElements is not properly augmented
@@ -46,7 +47,7 @@ const Globe = () => {
   const meshRef = useRef<THREE.Mesh>(null!);
   
   useFrame((state) => {
-    meshRef.current.rotation.y += 0.002;
+    if (!wenigerBewegung()) meshRef.current.rotation.y += 0.002;
   });
 
   return (
@@ -104,7 +105,7 @@ const NeighborhoodMap3D: React.FC = () => {
         <PointLight position={[10, 10, 10]} intensity={1} />
         <SpotLight position={[-10, 10, 10]} angle={0.15} penumbra={1} />
         <Globe />
-        <OrbitControls enableZoom={false} autoRotate autoRotateSpeed={0.5} />
+        <OrbitControls enableZoom={false} autoRotate={!wenigerBewegung()} autoRotateSpeed={0.5} />
       </Canvas>
     </div>
   );

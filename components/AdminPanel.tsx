@@ -430,7 +430,7 @@ const AdminPanel: React.FC = () => {
         table td, table th { font-variant-numeric: tabular-nums }
       `}</style>
       {/* Sidebar */}
-      <aside className={`fixed lg:sticky top-0 left-0 h-screen bg-white border-r border-stone-200 z-50 transition-all duration-300 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} ${leisteSchmal ? 'w-20' : 'w-72'} flex flex-col`}>
+      <aside className={`fixed lg:sticky top-0 left-0 h-screen bg-white border-r border-stone-200 z-50 transition-transform duration-300 ease-drawer ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} ${leisteSchmal ? 'w-20' : 'w-72'} flex flex-col`}>
           <div className={`border-b border-stone-100 flex items-center justify-between ${leisteSchmal ? 'p-4 justify-center' : 'p-6'}`}>
               <Link to="/dashboard" className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-rose-200"><Shield size={20} /></div>
@@ -456,7 +456,7 @@ const AdminPanel: React.FC = () => {
                               return (
                               <button key={item.id} onClick={() => { setActiveTab(item.id); setSelectedNeighborhoodId(null); setIsSidebarOpen(false); }}
                                 title={leisteSchmal ? String(item.label) : undefined}
-                                className={`w-full flex items-center rounded-xl text-sm font-bold transition-all ${leisteSchmal ? 'justify-center px-0 py-3' : 'gap-3 px-4 py-3'} ${zu ? 'opacity-45' : ''} ${activeTab === item.id ? 'bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)] text-primary border-r-4 border-primary shadow-sm' : 'text-stone-500 hover:bg-stone-50 hover:text-stone-900'}`}>
+                                className={`w-full flex items-center rounded-xl text-sm font-bold transition-colors ${leisteSchmal ? 'justify-center px-0 py-3' : 'gap-3 px-4 py-3'} ${zu ? 'opacity-45' : ''} ${activeTab === item.id ? 'bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)] text-primary border-r-4 border-primary shadow-sm' : 'text-stone-500 hover:bg-stone-50 hover:text-stone-900'}`}>
                                   <span className="relative flex items-center">
                                     {item.icon}
                                     {/* Bei schmaler Leiste bleibt die Zahl sichtbar -- sie ist
@@ -496,10 +496,10 @@ const AdminPanel: React.FC = () => {
                   <div className="hidden sm:flex gap-1 bg-stone-100 p-1 rounded-xl">
                     {([['bequem','Bequem'],['kompakt','Kompakt']] as const).map(([w, n]) => (
                       <button key={w} onClick={() => setDichte(w)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${dichte === w ? 'bg-white shadow-sm text-primary' : 'text-stone-400'}`}>{n}</button>
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${dichte === w ? 'bg-white shadow-sm text-primary' : 'text-stone-400'}`}>{n}</button>
                     ))}
                   </div>
-                  <div className="flex gap-1 bg-stone-100 p-1 rounded-xl">{['sq', 'de', 'en'].map(l => (<button key={l} onClick={() => setLanguage(l as any)} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${language === l ? 'bg-white shadow-sm text-primary' : 'text-stone-400'}`}>{l}</button>))}</div>
+                  <div className="flex gap-1 bg-stone-100 p-1 rounded-xl">{['sq', 'de', 'en'].map(l => (<button key={l} onClick={() => setLanguage(l as any)} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${language === l ? 'bg-white shadow-sm text-primary' : 'text-stone-400'}`}>{l}</button>))}</div>
               </div>
           </header>
 
@@ -546,7 +546,7 @@ const AdminPanel: React.FC = () => {
                                         <div className="relative flex-1 md:w-64"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={16}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('admin.members.search')} className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)]" /></div>
                                         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="p-2.5 bg-stone-50 border border-stone-100 rounded-xl text-xs font-bold outline-none"><option value="ALL">{t('status.all')}</option><option value="ACTIVE">{t('status.active')}</option><option value="PENDING">{t('status.pending')}</option><option value="INACTIVE">{t('status.inactive')}</option></select>
                                     </div>
-                                    <button onClick={() => { setSelectedUser({ id: '', email: '', role: UserRole.MEMBER, membershipStatus: 'PENDING', joinedAt: new Date().toISOString(), tenantId: tenant?.id ?? '' }); setUserDrawerTab('GENERAL'); setIsUserDrawerOpen(true); }} className="bg-stone-900 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-black transition-all shadow-lg"><UserPlus size={16}/> {t('admin.members.add_new')}</button>
+                                    <button onClick={() => { setSelectedUser({ id: '', email: '', role: UserRole.MEMBER, membershipStatus: 'PENDING', joinedAt: new Date().toISOString(), tenantId: tenant?.id ?? '' }); setUserDrawerTab('GENERAL'); setIsUserDrawerOpen(true); }} className="bg-stone-900 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-black transition shadow-lg"><UserPlus size={16}/> {t('admin.members.add_new')}</button>
                                 </div>
                                 <div className="bg-white rounded-[2.5rem] border border-stone-100 shadow-sm overflow-hidden overflow-x-auto">
                                     <table className="w-full text-left min-w-[36rem]">
@@ -597,11 +597,11 @@ const AdminPanel: React.FC = () => {
                           <div className="space-y-6">
                             <div className="flex justify-between items-center bg-white p-4 rounded-3xl border border-stone-100 shadow-sm">
                                 <h3 className="font-bold text-stone-900 flex items-center gap-2 px-2"><MapPin size={18} className="text-primary"/> {t('admin.tab.neighborhoods')}</h3>
-                                <button onClick={() => { setEditingNeighborhood({ name: '', status: 'ACTIVE' }); setShowNeighborhoodModal(true); }} className="bg-stone-900 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-black transition-all shadow-lg"><Plus size={16}/> {t('admin.nb.new')}</button>
+                                <button onClick={() => { setEditingNeighborhood({ name: '', status: 'ACTIVE' }); setShowNeighborhoodModal(true); }} className="bg-stone-900 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-black transition shadow-lg"><Plus size={16}/> {t('admin.nb.new')}</button>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {neighborhoods.map(n => (
-                                    <div key={n.id} onClick={() => setSelectedNeighborhoodId(n.id)} className="bg-white p-6 rounded-[2.5rem] border border-stone-100 shadow-sm group hover:shadow-xl transition-all relative overflow-hidden cursor-pointer">
+                                    <div key={n.id} onClick={() => setSelectedNeighborhoodId(n.id)} className="bg-white p-6 rounded-[2.5rem] border border-stone-100 shadow-sm group hover:shadow-xl transition relative overflow-hidden cursor-pointer">
                                         <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
                                           <button onClick={(e) => { e.stopPropagation(); setEditingNeighborhood(n); setShowNeighborhoodModal(true); }} className="p-2 bg-stone-50 text-stone-400 hover:text-stone-900 rounded-xl border border-stone-100 transition-colors"><Settings size={16}/></button>
                                         </div>
@@ -697,13 +697,13 @@ const AdminPanel: React.FC = () => {
                             <div className="space-y-6">
                                 <div className="flex justify-between items-center bg-white p-6 rounded-3xl border border-stone-100 shadow-sm">
                                     <h3 className="font-bold text-stone-900 text-xl flex items-center gap-2"><Calendar size={20} className="text-primary"/> {t('admin.events.title')}</h3>
-                                    <button onClick={() => { setEditingEvent({ title: '', description: '', date: new Date().toISOString().split('T')[0], time: '19:00', location: 'Koretin', category: 'SOCIAL', status: 'DRAFT', isRegistrable: true }); setShowEventModal(true); }} className="bg-stone-900 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-black transition-all shadow-lg"><Plus size={16}/> {t('admin.events.add')}</button>
+                                    <button onClick={() => { setEditingEvent({ title: '', description: '', date: new Date().toISOString().split('T')[0], time: '19:00', location: 'Koretin', category: 'SOCIAL', status: 'DRAFT', isRegistrable: true }); setShowEventModal(true); }} className="bg-stone-900 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-black transition shadow-lg"><Plus size={16}/> {t('admin.events.add')}</button>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {events.map(event => {
                                         const timeBadge = getEventTimeBadge(event.date);
                                         return (
-                                            <div key={event.id} className={`bg-white rounded-[2rem] overflow-hidden border transition-all relative group hover:shadow-xl ${event.status === 'ARCHIVED' ? 'opacity-50 border-stone-200' : 'border-stone-100 shadow-sm'}`}>
+                                            <div key={event.id} className={`bg-white rounded-[2rem] overflow-hidden border transition relative group hover:shadow-xl ${event.status === 'ARCHIVED' ? 'opacity-50 border-stone-200' : 'border-stone-100 shadow-sm'}`}>
                                                 <div className="aspect-video relative overflow-hidden">
                                                     <img src={event.image || 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=800&q=80'} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"  onError={onImageError}/>
                                                     <div className="absolute top-4 left-4 flex flex-col gap-2">
@@ -844,7 +844,7 @@ const AdminPanel: React.FC = () => {
                       <div className="flex-1 overflow-y-auto p-8 bg-[#faf9f6] custom-scrollbar">
                           <div className="space-y-4">
                               {registrations.filter(r => r.eventId === managingEventRegistrations.id).map(reg => (
-                                  <div key={reg.id} className="bg-white p-5 rounded-2xl border border-stone-100 shadow-sm flex items-center justify-between group hover:shadow-md transition-all">
+                                  <div key={reg.id} className="bg-white p-5 rounded-2xl border border-stone-100 shadow-sm flex items-center justify-between group hover:shadow-md transition">
                                       <div className="flex items-center gap-4">
                                           <div className="w-12 h-12 rounded-xl bg-stone-100 flex items-center justify-center font-bold text-stone-400">
                                               {reg.name.charAt(0)}
@@ -1084,7 +1084,7 @@ const AdminPanel: React.FC = () => {
                                       )}
                                       <div className="flex gap-4">
                                           {(['EMAIL', 'POST', 'BOTH'] as const).map(method => (
-                                              <button key={method} onClick={() => setSelectedUser({...selectedUser, invoiceDeliveryMethod: method})} className={`flex-1 py-4 rounded-xl text-xs font-bold border-2 transition-all ${selectedUser.invoiceDeliveryMethod === method ? 'border-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)] text-primary' : 'border-stone-200 bg-white text-stone-400'}`}>
+                                              <button key={method} onClick={() => setSelectedUser({...selectedUser, invoiceDeliveryMethod: method})} className={`flex-1 py-4 rounded-xl text-xs font-bold border-2 transition ${selectedUser.invoiceDeliveryMethod === method ? 'border-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)] text-primary' : 'border-stone-200 bg-white text-stone-400'}`}>
                                                   {method}
                                               </button>
                                           ))}
@@ -1190,7 +1190,7 @@ const AdminPanel: React.FC = () => {
                               <div className="space-y-4">
                                   <div className="flex items-center justify-between px-2 mb-2"><h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest">{t('admin.members.payment_history')}</h4><span className="text-[10px] font-bold text-stone-400">{payments.filter(p => p.userId === selectedUser.id).length} Einträge</span></div>
                                   {payments.filter(p => p.userId === selectedUser.id).sort((a,b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0)).map(p => (
-                                      <div key={p.id} className="bg-white p-4 rounded-xl border border-stone-100 flex justify-between items-center group hover:shadow-md transition-all">
+                                      <div key={p.id} className="bg-white p-4 rounded-xl border border-stone-100 flex justify-between items-center group hover:shadow-md transition">
                                           <div className="flex items-center gap-3">
                                               <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${p.status === 'PAID' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}><FileText size={18}/></div>
                                               <div><p className="font-bold text-sm text-stone-800">{p.description}</p><p className="text-[10px] text-stone-400 uppercase font-mono">{/* Ohne Datum stand hier "Invalid Date". Gemessen hat zwar jede der 346 Zahlungen einen Zeitstempel -- aber ein fehlender darf keine Fehlermeldung in die Zeile schreiben. */}{p.timestamp?.toDate ? p.timestamp.toDate().toLocaleDateString('de-CH') : <span className="text-stone-300">—</span>}</p></div>
@@ -1234,7 +1234,7 @@ const AdminPanel: React.FC = () => {
                               )
                           )}
                           <button onClick={() => setIsUserDrawerOpen(false)} className="flex-1 py-4 bg-stone-100 text-stone-500 rounded-2xl font-bold hover:bg-stone-200 transition-colors">{t('common.cancel')}</button>
-                          <button onClick={handleSaveUser} className="flex-[2] py-4 bg-primary text-white rounded-2xl font-bold shadow-xl shadow-rose-100 flex items-center justify-center gap-2 hover:bg-rose-600 transition-all"><Save size={20}/> {t('common.save_changes')}</button>
+                          <button onClick={handleSaveUser} className="flex-[2] py-4 bg-primary text-white rounded-2xl font-bold shadow-xl shadow-rose-100 flex items-center justify-center gap-2 hover:bg-rose-600 transition"><Save size={20}/> {t('common.save_changes')}</button>
                       </div>
                   </motion.div>
               </div>
@@ -1394,7 +1394,7 @@ const AdminDataQuality = ({ users, neighborhoods, onEditUser }: any) => {
                                         </div>
                                     </td>
                                     <td className="px-8 py-4 text-right">
-                                        <button onClick={() => onEditUser(u.user)} className="p-2 bg-stone-900 text-white rounded-lg hover:bg-primary transition-all shadow-sm">
+                                        <button onClick={() => onEditUser(u.user)} className="p-2 bg-stone-900 text-white rounded-lg hover:bg-primary transition shadow-sm">
                                             <ArrowRight size={14}/>
                                         </button>
                                     </td>
@@ -1539,7 +1539,7 @@ const AdminNeighborhoodDetail = ({ neighborhoodId, neighborhoods, users, payment
                                ['OPEN', t('admin.nb.filter_open'), openCount],
                                ['INCOMPLETE', t('admin.nb.filter_incomplete'), incompleteCount]] as const).map(([key, lbl, n]) => (
                                 <button key={key} onClick={() => setMemberFilter(key as any)}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${memberFilter === key ? 'bg-stone-900 text-white' : 'text-stone-400 hover:text-stone-700'}`}>
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${memberFilter === key ? 'bg-stone-900 text-white' : 'text-stone-400 hover:text-stone-700'}`}>
                                     {lbl} <span className={memberFilter === key ? 'opacity-70' : 'opacity-50'}>{n}</span>
                                 </button>
                             ))}

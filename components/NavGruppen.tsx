@@ -52,7 +52,7 @@ export const KopfGruppe: React.FC<{
   return (
     <div ref={rahmen} className="relative" onMouseEnter={rein} onMouseLeave={raus}>
       <button type="button" aria-expanded={offen} aria-haspopup="true" onClick={klick}
-        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all ${aktiv || offen ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}>
+        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl transition ${aktiv || offen ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}>
         <span className="font-bold text-sm">{loc(gruppe.label)}</span>
         <ChevronDown size={14} className={`transition-transform ${offen ? 'rotate-180' : ''}`} />
       </button>

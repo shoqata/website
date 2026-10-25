@@ -81,30 +81,30 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const closeAlert = () => {
     if (alertState) {
       setAlertState(prev => prev ? { ...prev, isOpen: false } : null);
-      setTimeout(() => {
-        alertState.resolve();
-        setAlertState(null);
-      }, 200);
+      // Sofort antworten: wer "Loeschen?" bestaetigt, wartete sonst 200 ms
+      // auf das Ende der Ausblendung. Abgeraeumt wird erst danach.
+      alertState.resolve();
+      setTimeout(() => setAlertState(null), 200);
     }
   };
 
   const closeConfirm = (result: boolean) => {
     if (confirmState) {
       setConfirmState(prev => prev ? { ...prev, isOpen: false } : null);
-      setTimeout(() => {
-        confirmState.resolve(result);
-        setConfirmState(null);
-      }, 200);
+      // Sofort antworten: wer "Loeschen?" bestaetigt, wartete sonst 200 ms
+      // auf das Ende der Ausblendung. Abgeraeumt wird erst danach.
+      confirmState.resolve(result);
+      setTimeout(() => setConfirmState(null), 200);
     }
   };
 
   const closePrompt = (result: string | null) => {
     if (promptState) {
       setPromptState(prev => prev ? { ...prev, isOpen: false } : null);
-      setTimeout(() => {
-        promptState.resolve(result);
-        setPromptState(null);
-      }, 200);
+      // Sofort antworten: wer "Loeschen?" bestaetigt, wartete sonst 200 ms
+      // auf das Ende der Ausblendung. Abgeraeumt wird erst danach.
+      promptState.resolve(result);
+      setTimeout(() => setPromptState(null), 200);
     }
   };
 

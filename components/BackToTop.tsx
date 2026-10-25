@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from '../context/LanguageContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import { scrollArt } from '../lib/bewegung';
 import { ArrowUp } from 'lucide-react';
 
 const BackToTop: React.FC = () => {
@@ -24,7 +25,7 @@ const BackToTop: React.FC = () => {
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
-      behavior: 'smooth',
+      behavior: scrollArt(),
     });
   };
 
@@ -32,9 +33,9 @@ const BackToTop: React.FC = () => {
     <AnimatePresence>
       {isVisible && (
         <motion.button
-          initial={{ opacity: 0, scale: 0.5, y: 20 }}
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.5, y: 20 }}
+          exit={{ opacity: 0, scale: 0.9, y: 20 }}
           onClick={scrollToTop}
           className="ueber-leiste fixed bottom-[max(2rem,env(safe-area-inset-bottom))] right-8 z-40 bg-white text-stone-900 p-4 rounded-full shadow-xl border border-stone-100 hover:bg-primary hover:text-white transition-colors duration-300 group"
           aria-label={t('a11y.back_to_top')}

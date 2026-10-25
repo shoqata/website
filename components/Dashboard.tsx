@@ -56,6 +56,7 @@ import MeineFamilie from './MeineFamilie';
 import AenderungMelden from './AenderungMelden';
 import MeineAnlaesse from './MeineAnlaesse';
 import { AusweisKarte } from './Mitgliederausweis';
+import { EINBLENDEN } from '../lib/bewegung';
 import { supabase as sbClient } from '../services/supabase-bridge';
 // Kuerzel aus dem Vereinsnamen, z. B. "Shoqata Koretini" -> "SK".
 const initialsOf = (name: string) =>
@@ -621,14 +622,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
                         <button 
                             onClick={() => setViewInvoice(activeInvoice)}
-                            className="w-full py-4 bg-white text-stone-900 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-stone-100 transition-all shadow-lg"
+                            className="w-full py-4 bg-white text-stone-900 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-stone-100 transition shadow-lg"
                         >
                             <QrCode size={18}/> {t('dash.payment.qr')}
                         </button>
                         {/* Twint, wenn der Verein einen Link hinterlegt hat. */}
                         {paymentSettings?.twintUrl && (
                             <a href={paymentSettings.twintUrl} target="_blank" rel="noopener noreferrer"
-                               className="mt-3 w-full py-3.5 bg-[#eb3333] text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-[#d62d2d] transition-all">
+                               className="mt-3 w-full py-3.5 bg-[#eb3333] text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-[#d62d2d] transition">
                                 {t('dash.twint')}
                             </a>
                         )}
@@ -893,12 +894,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
                         <div className="flex gap-2 w-full">
                             {manager?.email && (
-                                <a href={`mailto:${manager.email}`} className="flex-1 py-2 bg-white border border-stone-200 rounded-xl text-stone-600 text-xs font-bold flex items-center justify-center gap-2 hover:border-primary hover:text-primary transition-all">
+                                <a href={`mailto:${manager.email}`} className="flex-1 py-2 bg-white border border-stone-200 rounded-xl text-stone-600 text-xs font-bold flex items-center justify-center gap-2 hover:border-primary hover:text-primary transition">
                                     <Mail size={14}/> {t('dash.manager.email')}
                                 </a>
                             )}
                             {manager?.phone && (
-                                <a href={`tel:${manager.phone}`} className="flex-1 py-2 bg-stone-900 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-black transition-all">
+                                <a href={`tel:${manager.phone}`} className="flex-1 py-2 bg-stone-900 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-black transition">
                                     <Phone size={14}/> {t('dash.manager.call')}
                                 </a>
                             )}
@@ -917,7 +918,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             <div className="bg-white p-8 rounded-[2.5rem] border border-stone-100 shadow-sm">
                 <div className="flex justify-between items-center mb-6">
                     <h4 className="font-bold text-xl text-stone-900 flex items-center gap-2"><HelpCircle className="text-primary"/> {t('dash.requests.title')}</h4>
-                    <button onClick={() => setShowRequestModal(true)} className="bg-stone-900 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-black transition-all shadow-lg">
+                    <button onClick={() => setShowRequestModal(true)} className="bg-stone-900 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-black transition shadow-lg">
                         <Plus size={14} /> {t('dash.requests.new')}
                     </button>
                 </div>
@@ -929,7 +930,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                         </div>
                     ) : (
                         inquiries.map(req => (
-                            <div key={req.id} className="p-4 bg-stone-50 rounded-2xl border border-stone-100 hover:bg-white hover:shadow-md transition-all">
+                            <div key={req.id} className="p-4 bg-stone-50 rounded-2xl border border-stone-100 hover:bg-white hover:shadow-md transition">
                                 <div className="flex justify-between items-start gap-3">
                                     <div className="min-w-0">
                                         <div className="flex items-center gap-2 mb-1">
@@ -1006,7 +1007,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                             <div 
                                                 key={m.id} 
                                                 onClick={() => handleOpenManageNeighbor(m)}
-                                                className={`bg-white px-3 py-1.5 rounded-lg border border-stone-100 shadow-sm flex items-center gap-2 relative ${istBetreuer ? 'cursor-pointer hover:border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)] hover:shadow-md transition-all' : ''}`}
+                                                className={`bg-white px-3 py-1.5 rounded-lg border border-stone-100 shadow-sm flex items-center gap-2 relative ${istBetreuer ? 'cursor-pointer hover:border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)] hover:shadow-md transition' : ''}`}
                                             >
                                                 {istBetreuer && luckenVon(m).length > 0 && (
                                                     <div className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full flex items-center justify-center z-10 border border-white"
@@ -1048,13 +1049,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                 {groupedNeighbors.individuals.map((n, i) => (
                                     <motion.div 
                                         key={n.id} 
-                                        initial={{ opacity: 0, scale: 0 }}
+                                        initial={{ opacity: 0, scale: 0.95 }}
                                         animate={{ opacity: 1, scale: 1 }}
-                                        transition={{ delay: i * 0.05 }}
+                                        // Gedeckelt: bei 40 Nachbarn liefe die Kaskade sonst 2 s,
+                                        // bei jedem Besuch der Startseite.
+                                        transition={{ ...EINBLENDEN, delay: Math.min(i, 8) * 0.03 }}
                                         onClick={() => handleOpenManageNeighbor(n)}
                                         className={`flex flex-col items-center gap-2 w-20 group relative ${istBetreuer ? 'cursor-pointer' : 'cursor-default'}`}
                                     >
-                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-bold border-2 transition-all shadow-sm overflow-hidden relative ${n.membershipStatus === 'ACTIVE' ? 'border-emerald-100 bg-emerald-50 text-emerald-600' : 'border-stone-100 bg-stone-50 text-stone-400 grayscale'}`}>
+                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-bold border-2 transition shadow-sm overflow-hidden relative ${n.membershipStatus === 'ACTIVE' ? 'border-emerald-100 bg-emerald-50 text-emerald-600' : 'border-stone-100 bg-stone-50 text-stone-400 grayscale'}`}>
                                             {n.photoFileName ? (
                                                 <img src={n.photoFileName} className="w-full h-full object-cover"  onError={onImageError}/>
                                             ) : (
@@ -1215,7 +1218,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                         </div>
 
                         <div className="pt-4 border-t border-stone-100 flex flex-col gap-3">
-                            <button onClick={handleSaveManagedNeighbor} className="w-full py-3 bg-stone-900 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-black transition-all">
+                            <button onClick={handleSaveManagedNeighbor} className="w-full py-3 bg-stone-900 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-black transition">
                                 <Save size={16}/> {t('dash.save_data')}
                             </button>
                             {/* Dieses Fenster bietet sieben Felder. Die
@@ -1232,7 +1235,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                 <span className="flex-shrink-0 mx-4 text-stone-400 text-xs font-bold uppercase">{t('common.or')}</span>
                                 <div className="flex-grow border-t border-stone-200"></div>
                             </div>
-                            <button onClick={handleSendUpdateRequest} className="w-full py-3 bg-white border border-stone-200 text-stone-600 rounded-xl font-bold flex items-center justify-center gap-2 hover:border-primary hover:text-primary transition-all">
+                            <button onClick={handleSendUpdateRequest} className="w-full py-3 bg-white border border-stone-200 text-stone-600 rounded-xl font-bold flex items-center justify-center gap-2 hover:border-primary hover:text-primary transition">
                                 <Send size={16}/> {t('dash.invite_update')}
                             </button>
                         </div>
@@ -1269,7 +1272,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                     <button 
                                         key={type} 
                                         onClick={() => setNewRequest({...newRequest, type})}
-                                        className={`py-3 rounded-xl text-xs font-bold border-2 transition-all ${newRequest.type === type ? 'border-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)] text-primary' : 'border-stone-100 text-stone-400 hover:border-stone-200'}`}
+                                        className={`py-3 rounded-xl text-xs font-bold border-2 transition ${newRequest.type === type ? 'border-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)] text-primary' : 'border-stone-100 text-stone-400 hover:border-stone-200'}`}
                                     >
                                         {t(`req.type.${type}`)}
                                     </button>
@@ -1303,7 +1306,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                             />
                         </div>
 
-                        <button onClick={handleSubmitRequest} className="w-full py-4 bg-stone-900 text-white rounded-xl font-bold shadow-lg hover:bg-black transition-all">
+                        <button onClick={handleSubmitRequest} className="w-full py-4 bg-stone-900 text-white rounded-xl font-bold shadow-lg hover:bg-black transition">
                             {t('dash.requests.submit')}
                         </button>
                     </div>
@@ -1405,7 +1408,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                             <button
                                                 key={method}
                                                 onClick={() => setProfileData({...profileData, invoiceDeliveryMethod: method})}
-                                                className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${profileData.invoiceDeliveryMethod === method ? 'bg-primary text-white border-primary' : 'bg-white text-stone-500 border-stone-200 hover:bg-stone-50'}`}
+                                                className={`flex-1 py-2 rounded-lg text-xs font-bold border transition ${profileData.invoiceDeliveryMethod === method ? 'bg-primary text-white border-primary' : 'bg-white text-stone-500 border-stone-200 hover:bg-stone-50'}`}
                                             >
                                                 {method}
                                             </button>
@@ -1475,7 +1478,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
                     <div className="p-6 border-t border-stone-100 bg-stone-50 flex justify-end gap-3">
                         <button onClick={() => setShowProfileModal(false)} className="px-6 py-3 rounded-xl font-bold text-stone-500 hover:bg-stone-200 transition-colors text-sm">{t('common.cancel')}</button>
-                        <button onClick={handleUpdateProfile} className="px-8 py-3 bg-primary text-white rounded-xl font-bold shadow-lg hover:scale-105 transition-all text-sm flex items-center gap-2"><Save size={16}/> {t('common.save_changes')}</button>
+                        <button onClick={handleUpdateProfile} className="px-8 py-3 bg-primary text-white rounded-xl font-bold shadow-lg hover:scale-105 transition text-sm flex items-center gap-2"><Save size={16}/> {t('common.save_changes')}</button>
                     </div>
                 </motion.div>
             </div>

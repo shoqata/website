@@ -74,7 +74,7 @@ const AdminVorlagen: React.FC<{ onGewaehlt?: () => void }> = ({ onGewaehlt }) =>
 
   const Karte: React.FC<{ v: Vorlage }> = ({ v }) => (
     <button type="button" onClick={() => waehlen(v)} disabled={v.gesperrt || !!arbeitet}
-      className={`text-left p-5 rounded-2xl border transition-all relative ${
+      className={`text-left p-5 rounded-2xl border transition relative ${
         v.gesperrt ? 'bg-stone-50 border-stone-200 cursor-not-allowed'
         : v.gewaehlt ? 'bg-white border-primary shadow-sm ring-1 ring-primary/20'
         : 'bg-white/70 border-stone-200 hover:border-stone-300 hover:shadow-sm'}`}>

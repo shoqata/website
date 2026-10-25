@@ -140,8 +140,11 @@ const EventsPage: React.FC = () => {
                    key={event.id} 
                    initial={{ opacity: 0, y: 20 }}
                    animate={{ opacity: 1, y: 0 }}
-                   transition={{ delay: index * 0.1 }}
-                   className="bg-white rounded-[2.5rem] overflow-hidden border border-stone-100 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group"
+                   transition={{ delay: Math.min(index, 6) * 0.05 }}
+                   // Anheben ueber framer statt CSS: eine CSS-Transition auf
+                   // transform jagte framers Einblenden Bild fuer Bild hinterher.
+                   whileHover={{ y: -8, transition: { duration: 0.2, ease: [0.23, 1, 0.32, 1] } }}
+                   className="bg-white rounded-[2.5rem] overflow-hidden border border-stone-100 shadow-sm hover:shadow-2xl transition-shadow duration-300 group"
                  >
                     <div className="aspect-[4/3] overflow-hidden relative">
                        <img src={event.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={event.title}  onError={onImageError}/>
@@ -185,7 +188,7 @@ const EventsPage: React.FC = () => {
                        </div>
                        
                        {event.isRegistrable ? (
-                          <button onClick={() => openRegistration(event)} className="w-full mt-6 bg-primary text-white py-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 group/btn shadow-lg shadow-rose-200">
+                          <button onClick={() => openRegistration(event)} className="w-full mt-6 bg-primary text-white py-4 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 group/btn shadow-lg shadow-rose-200">
                              {t('events.join')} <ChevronRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
                           </button>
                        ) : (
@@ -257,7 +260,7 @@ const EventsPage: React.FC = () => {
                                       </>
                                   )}
 
-                                  <button type="submit" disabled={regLoading} className="w-full py-4 bg-primary text-white font-bold rounded-xl shadow-lg shadow-rose-200 flex items-center justify-center gap-2 hover:scale-[1.02] transition-all disabled:opacity-50">
+                                  <button type="submit" disabled={regLoading} className="w-full py-4 bg-primary text-white font-bold rounded-xl shadow-lg shadow-rose-200 flex items-center justify-center gap-2 hover:scale-[1.02] transition disabled:opacity-50">
                                       {regLoading ? <Loader2 className="animate-spin" /> : 'Konfirmo Regjistrimin'}
                                   </button>
                               </form>

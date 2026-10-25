@@ -198,7 +198,7 @@ const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) =
               <div className="absolute top-1/2 left-0 w-full h-px bg-white/10 -z-10 -translate-y-1/2" />
               {steps.map((s) => (
                 <div key={s.id} className="flex flex-col items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all border ${step >= s.id ? 'bg-primary border-primary text-white' : 'bg-stone-800 border-stone-700 text-stone-500'}`}>
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition border ${step >= s.id ? 'bg-primary border-primary text-white' : 'bg-stone-800 border-stone-700 text-stone-500'}`}>
                     {s.icon}
                   </div>
                   <span className={`text-[9px] font-bold uppercase tracking-widest ${step >= s.id ? 'text-white' : 'text-stone-600'}`}>
@@ -231,7 +231,7 @@ const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) =
                       value={formData.name}
                       onChange={(e) => setFormData({...formData, name: e.target.value})}
                       placeholder={t('ph.fullname')}
-                      className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-all text-lg font-medium"
+                      className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition text-lg font-medium"
                     />
                   </div>
                   <div className="space-y-3">
@@ -243,7 +243,7 @@ const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) =
                       value={formData.phone}
                       onChange={(e) => setFormData({...formData, phone: e.target.value})}
                       placeholder={t('ph.phone')}
-                      className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-all text-lg font-medium"
+                      className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition text-lg font-medium"
                     />
                   </div>
                 </div>
@@ -270,20 +270,20 @@ const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) =
                     value={formData.street}
                     onChange={(e) => setFormData({...formData, street: e.target.value})}
                     placeholder={t('admin.members.street_no')}
-                    className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-all text-lg font-medium"
+                    className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition text-lg font-medium"
                   />
                   <div className="grid grid-cols-3 gap-4">
                     <input
                       value={formData.zip}
                       onChange={(e) => setFormData({...formData, zip: e.target.value})}
                       placeholder={t('field.zip')}
-                      className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-all text-lg font-medium"
+                      className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition text-lg font-medium"
                     />
                     <input
                       value={formData.city}
                       onChange={(e) => setFormData({...formData, city: e.target.value})}
                       placeholder={t('field.city')}
-                      className="col-span-2 w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-all text-lg font-medium"
+                      className="col-span-2 w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition text-lg font-medium"
                     />
                   </div>
                 </div>
@@ -296,7 +296,7 @@ const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) =
                         <CountrySelect
                             value={formData.country}
                             onChange={(v) => setFormData({...formData, country: v})}
-                            className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-all text-lg font-medium"
+                            className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition text-lg font-medium"
                         />
                         <p className="text-xs text-stone-400 italic">{t('form.fee_hint')}</p>
                     </div>
@@ -311,7 +311,7 @@ const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) =
                                     key={method}
                                     type="button"
                                     onClick={() => setFormData({...formData, invoiceDeliveryMethod: method})}
-                                    className={`p-4 rounded-2xl border-2 text-sm font-bold transition-all ${formData.invoiceDeliveryMethod === method ? 'border-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)] text-primary' : 'border-stone-100 text-stone-400 hover:border-stone-200'}`}
+                                    className={`p-4 rounded-2xl border-2 text-sm font-bold transition ${formData.invoiceDeliveryMethod === method ? 'border-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)] text-primary' : 'border-stone-100 text-stone-400 hover:border-stone-200'}`}
                                 >
                                     {method}
                                 </button>
@@ -336,13 +336,13 @@ const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) =
                       key={n.id}
                       type="button"
                       onClick={() => setFormData({...formData, neighborhoodId: n.id})}
-                      className={`p-6 rounded-2xl border-2 text-left transition-all flex items-center justify-between group ${formData.neighborhoodId === n.id ? 'border-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)] shadow-lg' : 'border-stone-100 hover:border-stone-200 hover:bg-stone-50'}`}
+                      className={`p-6 rounded-2xl border-2 text-left transition flex items-center justify-between group ${formData.neighborhoodId === n.id ? 'border-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)] shadow-lg' : 'border-stone-100 hover:border-stone-200 hover:bg-stone-50'}`}
                     >
                       <div>
                         <p className={`font-bold transition-colors ${formData.neighborhoodId === n.id ? 'text-primary' : 'text-stone-900'}`}>{n.name}</p>
                         <p className="text-xs text-stone-500 uppercase tracking-widest">{neighborhoodCity(n)}</p>
                       </div>
-                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${formData.neighborhoodId === n.id ? 'bg-primary border-primary text-white' : 'border-stone-200'}`}>
+                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition ${formData.neighborhoodId === n.id ? 'bg-primary border-primary text-white' : 'border-stone-200'}`}>
                         {formData.neighborhoodId === n.id && <CheckCircle2 size={14} />}
                       </div>
                     </button>
@@ -372,7 +372,7 @@ const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) =
                 </div>
                 <button 
                   onClick={() => navigate('/dashboard')}
-                  className="bg-stone-900 text-white px-10 py-5 rounded-2xl font-bold flex items-center justify-center gap-3 mx-auto hover:bg-stone-800 transition-all shadow-xl"
+                  className="bg-stone-900 text-white px-10 py-5 rounded-2xl font-bold flex items-center justify-center gap-3 mx-auto hover:bg-stone-800 transition shadow-xl"
                 >
                   {t('wizard.finish')} <ArrowRight size={20} />
                 </button>
@@ -393,7 +393,7 @@ const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) =
               <button 
                 onClick={step === 3 ? handleSubmit : handleNext}
                 disabled={isLoading || (step === 1 && !formData.name) || (step === 2 && (!formData.street.trim() || !formData.zip.trim() || !formData.city.trim() || !formData.country)) || (step === 3 && !formData.neighborhoodId)}
-                className="bg-primary text-white px-10 py-4 rounded-2xl font-bold flex items-center gap-3 hover:opacity-90 transition-all shadow-xl shadow-rose-100 disabled:opacity-50"
+                className="bg-primary text-white px-10 py-4 rounded-2xl font-bold flex items-center gap-3 hover:opacity-90 transition shadow-xl shadow-rose-100 disabled:opacity-50"
               >
                 {isLoading ? <Loader2 className="animate-spin" /> : step === 3 ? t('wizard.finish') : t('wizard.next')} <ArrowRight size={18} />
               </button>

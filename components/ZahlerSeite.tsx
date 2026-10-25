@@ -23,7 +23,7 @@ const Balken: React.FC<{ bezahlt: number; gesamt: number }> = ({ bezahlt, gesamt
   const anteil = gesamt > 0 ? Math.floor((bezahlt / gesamt) * 100) : 0;
   return (
     <div className="h-2.5 bg-stone-100 rounded-full overflow-hidden">
-      <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${anteil}%` }} />
+      <div className="h-full bg-emerald-500 rounded-full transition-[width] duration-300 ease-out-strong" style={{ width: `${anteil}%` }} />
     </div>
   );
 };

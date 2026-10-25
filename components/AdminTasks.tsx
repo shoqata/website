@@ -21,7 +21,7 @@ interface TaskCardProps {
 const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdateStatus, onAssignUser, onDeleteTask }) => {
   const { t } = useTranslation();
   return (
-    <motion.div layoutId={task.id} className="bg-white p-4 rounded-xl border border-stone-100 shadow-sm mb-3 group hover:shadow-md transition-all">
+    <motion.div layoutId={task.id} className="bg-white p-4 rounded-xl border border-stone-100 shadow-sm mb-3 group hover:shadow-md transition">
         <div className="flex justify-between items-start mb-2">
             <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${task.priority === 'HIGH' ? 'bg-red-100 text-red-600' : 'bg-stone-100 text-stone-500'}`}>{task.priority}</span>
             <button onClick={() => onDeleteTask(task.id)} className="opacity-0 group-hover:opacity-100 text-stone-300 hover:text-red-500"><Trash2 size={14}/></button>

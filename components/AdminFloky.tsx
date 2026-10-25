@@ -108,7 +108,7 @@ const AdminFloky: React.FC = () => {
           <div className="flex gap-1 bg-white p-1 rounded-xl border border-stone-200 w-fit">
             {([[false, 'Sie'], [true, 'du']] as const).map(([w, n]) => (
               <button key={String(w)} onClick={() => setDu(w)}
-                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                className={`px-4 py-2 rounded-lg text-xs font-bold transition ${
                   du === w ? 'bg-stone-900 text-white' : 'text-stone-400 hover:text-stone-700'}`}>
                 {n}
               </button>

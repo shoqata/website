@@ -59,13 +59,13 @@ const Kompakt: React.FC = () => {
             {wege.map(w => (
               <Link key={w.zu} to={w.zu}
                 className="group flex items-center justify-between py-5 border-b border-stone-200
-                           hover:px-2 transition-all duration-300">
+                           hover:translate-x-2 transition-transform duration-300 ease-out-strong">
                 <span className="text-lg font-medium group-hover:text-primary transition-colors">
                   {w.wort}
                 </span>
                 <ArrowUpRight size={20}
                   className="text-stone-300 group-hover:text-primary group-hover:-translate-y-0.5
-                             group-hover:translate-x-0.5 transition-all" />
+                             group-hover:translate-x-0.5 transition" />
               </Link>
             ))}
           </nav>

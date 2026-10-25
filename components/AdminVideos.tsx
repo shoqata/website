@@ -3,6 +3,7 @@ import { Film, Plus, Trash2, Eye, EyeOff, Loader2, Save, Upload, Pencil, X, Arro
 import { supabase, resolveTenantId } from '@/services/supabase-bridge';
 import { useTranslation } from '../context/LanguageContext';
 import { useFeedback } from '../context/FeedbackContext';
+import { scrollArt } from '../lib/bewegung';
 import { onImageError } from '../lib/imageFallback';
 
 type Video = {
@@ -156,7 +157,7 @@ const AdminVideos: React.FC = () => {
       titel: v.titel, beschreibung: v.beschreibung || '', quelle: v.quelle,
       vorschaubild: v.vorschaubild || '', dauer_s: v.dauer_s,
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: scrollArt() });
   };
   const abbrechen = () => { setBearbeitet(null); setForm({ ...LEER }); };
 

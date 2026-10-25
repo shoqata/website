@@ -224,7 +224,7 @@ const AboutUsPage: React.FC = () => {
           <>
             <div className="flex items-end justify-between gap-6 flex-wrap">
               <Kopf marke={t('about.geschichte.marke')} titel={titelVon(a, vorgabe('geschichte'))} />
-              <Link to="/chronik" className="mb-10 inline-flex items-center gap-2 text-sm font-bold text-primary hover:gap-3 transition-all">
+              <Link to="/chronik" className="mb-10 inline-flex items-center gap-2 text-sm font-bold text-primary hover:gap-3 transition-[gap,color] duration-200 ease-out-strong">
                 {t('about.geschichte.alle')} <ArrowRight size={16} />
               </Link>
             </div>

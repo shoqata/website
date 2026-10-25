@@ -134,7 +134,7 @@ const VillageSelector = ({ data, getLoc }: { data?: any[], getLoc: (v: any) => s
         {options.map((option, index) => (
           <div
             key={index}
-            className={`relative flex flex-col justify-end overflow-hidden transition-all duration-700 ease-in-out cursor-pointer ${activeIndex === index ? 'flex-[5]' : 'flex-[1] opacity-60 hover:opacity-100'}`}
+            className={`relative flex flex-col justify-end overflow-hidden transition duration-700 ease-in-out cursor-pointer ${activeIndex === index ? 'flex-[5]' : 'flex-[1] opacity-60 hover:opacity-100'}`}
             style={{
               backgroundImage: `url('${option.image}')`,
               backgroundSize: 'cover',
@@ -144,7 +144,7 @@ const VillageSelector = ({ data, getLoc }: { data?: any[], getLoc: (v: any) => s
           >
             <div className={`absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent transition-opacity ${activeIndex === index ? 'opacity-100' : 'opacity-40'}`} />
             <div className="absolute left-0 right-0 bottom-8 flex items-center h-16 z-20 px-6 gap-4">
-              <div className={`w-14 h-14 min-w-[3.5rem] flex items-center justify-center rounded-2xl backdrop-blur-md border border-white/20 transition-all ${activeIndex === index ? 'bg-primary scale-110' : 'bg-white/10'}`}>
+              <div className={`w-14 h-14 min-w-[3.5rem] flex items-center justify-center rounded-2xl backdrop-blur-md border border-white/20 transition ${activeIndex === index ? 'bg-primary scale-110' : 'bg-white/10'}`}>
                 {option.icon}
               </div>
               <AnimatePresence>
@@ -196,7 +196,7 @@ const EventTimeline = () => {
                    <Award className="text-rose-500" />
                 )}
               </div>
-              <div className="bg-stone-50 p-6 rounded-3xl border border-transparent group-hover:bg-white group-hover:shadow-xl transition-all w-full">
+              <div className="bg-stone-50 p-6 rounded-3xl border border-transparent group-hover:bg-white group-hover:shadow-xl transition w-full">
                 <div className="flex justify-between items-start mb-1">
                    <span className="text-[10px] font-bold text-primary uppercase tracking-widest">{e.category}</span>
                    <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest flex items-center gap-1">

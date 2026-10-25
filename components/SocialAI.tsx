@@ -240,13 +240,13 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
       <div className="flex bg-stone-100 p-1 rounded-2xl w-fit shrink-0">
           <button 
             onClick={() => setActiveSubTab('STUDIO')}
-            className={`px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeSubTab === 'STUDIO' ? 'bg-white text-primary shadow-sm' : 'text-stone-500 hover:text-stone-900'}`}
+            className={`px-8 py-2.5 rounded-xl text-sm font-bold transition flex items-center gap-2 ${activeSubTab === 'STUDIO' ? 'bg-white text-primary shadow-sm' : 'text-stone-500 hover:text-stone-900'}`}
           >
               <Layout size={16}/> {t('social.studio')}
           </button>
           <button 
             onClick={() => setActiveSubTab('CONFIG')}
-            className={`px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeSubTab === 'CONFIG' ? 'bg-white text-primary shadow-sm' : 'text-stone-500 hover:text-stone-900'}`}
+            className={`px-8 py-2.5 rounded-xl text-sm font-bold transition flex items-center gap-2 ${activeSubTab === 'CONFIG' ? 'bg-white text-primary shadow-sm' : 'text-stone-500 hover:text-stone-900'}`}
           >
               <Settings size={16}/> {t('social.config')}
           </button>
@@ -275,7 +275,7 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
                     <div className="space-y-6">
                         <div 
                         onClick={() => fileInputRef.current?.click()}
-                        className={`p-10 border-2 border-dashed rounded-[2.5rem] flex flex-col items-center gap-4 cursor-pointer transition-all ${previewImage ? 'border-primary bg-rose-50/20' : 'border-stone-100 hover:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)]'}`}
+                        className={`p-10 border-2 border-dashed rounded-[2.5rem] flex flex-col items-center gap-4 cursor-pointer transition ${previewImage ? 'border-primary bg-rose-50/20' : 'border-stone-100 hover:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)]'}`}
                         >
                             {previewImage ? (
                             <div className="relative group">
@@ -307,7 +307,7 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
                             value={topic}
                             onChange={(e) => setTopic(e.target.value)}
                             placeholder={t('social.topic.placeholder')}
-                            className="w-full p-5 bg-stone-50 border border-stone-100 rounded-[1.5rem] outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] h-32 transition-all font-medium text-stone-700 leading-relaxed"
+                            className="w-full p-5 bg-stone-50 border border-stone-100 rounded-[1.5rem] outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] h-32 transition font-medium text-stone-700 leading-relaxed"
                             />
                         </div>
 
@@ -335,7 +335,7 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
                         <button 
                             onClick={handleGenerate}
                             disabled={isLoading || (!topic && !previewImage)}
-                            className="w-full py-5 bg-stone-900 text-white rounded-[1.5rem] font-bold flex items-center justify-center gap-3 shadow-xl hover:bg-black transition-all disabled:opacity-50 group"
+                            className="w-full py-5 bg-stone-900 text-white rounded-[1.5rem] font-bold flex items-center justify-center gap-3 shadow-xl hover:bg-black transition disabled:opacity-50 group"
                         >
                             {isLoading ? <RefreshCw className="animate-spin" /> : <Wand2 size={20} className="group-hover:rotate-12 transition-transform" />} 
                             {previewImage ? t('social.analyze') : t('social.generate')}
@@ -350,8 +350,8 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
                             <div className="relative z-10">
                                 <div className="flex justify-between items-center mb-6">
                                     <div className="flex gap-2">
-                                        <button onClick={() => togglePlatform('FACEBOOK')} className={`p-2.5 rounded-xl transition-all ${platforms.includes('FACEBOOK') ? 'bg-blue-600 text-white' : 'bg-stone-800 text-stone-500'}`}><Facebook size={18} /></button>
-                                        <button onClick={() => togglePlatform('INSTAGRAM')} className={`p-2.5 rounded-xl transition-all ${platforms.includes('INSTAGRAM') ? 'bg-gradient-to-tr from-yellow-500 via-rose-500 to-purple-600 text-white' : 'bg-stone-800 text-stone-500'}`}><Instagram size={18} /></button>
+                                        <button onClick={() => togglePlatform('FACEBOOK')} className={`p-2.5 rounded-xl transition ${platforms.includes('FACEBOOK') ? 'bg-blue-600 text-white' : 'bg-stone-800 text-stone-500'}`}><Facebook size={18} /></button>
+                                        <button onClick={() => togglePlatform('INSTAGRAM')} className={`p-2.5 rounded-xl transition ${platforms.includes('INSTAGRAM') ? 'bg-gradient-to-tr from-yellow-500 via-rose-500 to-purple-600 text-white' : 'bg-stone-800 text-stone-500'}`}><Instagram size={18} /></button>
                                     </div>
                                     <span className={`text-[9px] font-bold px-2.5 py-1 rounded-full uppercase tracking-widest ${kannSenden ? 'text-emerald-400 bg-emerald-500/10' : 'text-stone-500 bg-white/5'}`}>
                                         {kannSenden ? t('social.verbunden_kurz') : t('social.nur_vorbereiten')}
@@ -379,16 +379,16 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
                                 <div className="flex justify-between items-center border-t border-white/5 pt-6 gap-4">
                                     <button 
                                         onClick={() => handlePublish(false)}
-                                        className="flex-1 py-3.5 bg-stone-800 text-stone-300 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-stone-700 transition-all"
+                                        className="flex-1 py-3.5 bg-stone-800 text-stone-300 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-stone-700 transition"
                                     >
                                         <Mail size={18}/> {t('social.save_draft')}
                                     </button>
                                     {scheduledTime ? (
-                                        <button onClick={() => handlePublish(true)} className="flex-[2] bg-emerald-600 text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-900/20">
+                                        <button onClick={() => handlePublish(true)} className="flex-[2] bg-emerald-600 text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-700 transition shadow-lg shadow-emerald-900/20">
                                             <Clock size={18} /> {t('social.schedule')}
                                         </button>
                                     ) : (
-                                        <button onClick={() => handlePublish(false)} className="flex-[2] bg-primary text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-rose-600 transition-all shadow-lg shadow-rose-900/20">
+                                        <button onClick={() => handlePublish(false)} className="flex-[2] bg-primary text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-rose-600 transition shadow-lg shadow-rose-900/20">
                                             <Send size={18} /> {kannSenden ? t('social.publish') : t('social.sichern')}
                                         </button>
                                     )}
@@ -408,7 +408,7 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
                     
                     <div className="space-y-4">
                         {scheduledPosts.map(p => (
-                            <div key={p.id} className="p-4 bg-stone-50 rounded-2xl border border-stone-100 flex gap-4 items-start group hover:bg-white hover:shadow-md transition-all cursor-pointer">
+                            <div key={p.id} className="p-4 bg-stone-50 rounded-2xl border border-stone-100 flex gap-4 items-start group hover:bg-white hover:shadow-md transition cursor-pointer">
                                 <div className="w-16 h-16 bg-white rounded-xl flex items-center justify-center shrink-0 border border-stone-200 overflow-hidden shadow-inner">
                                     {p.image ? <img src={p.image} className="w-full h-full object-cover"  onError={onImageError}/> : <ImageIcon className="text-stone-200" size={24} />}
                                 </div>
@@ -472,7 +472,7 @@ const SocialAI: React.FC<SocialAIProps> = ({ viewMode = 'LIST' }) => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {zurWahl.map((k: any) => (
                             <button key={k.id} onClick={() => seiteWaehlen(k.id)}
-                                className="text-left p-5 rounded-2xl border border-stone-200 hover:border-[color:color-mix(in_srgb,var(--primary)_40%,transparent)] hover:bg-stone-50 transition-all">
+                                className="text-left p-5 rounded-2xl border border-stone-200 hover:border-[color:color-mix(in_srgb,var(--primary)_40%,transparent)] hover:bg-stone-50 transition">
                                 <p className="font-bold text-stone-900 text-sm">{k.name}</p>
                                 <p className="text-[10px] text-stone-400 font-mono mt-1">{k.id}</p>
                             </button>

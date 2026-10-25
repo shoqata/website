@@ -29,6 +29,14 @@ a, button, [role="button"], label, summary, select { touch-action: manipulation;
   }
 }
 
+/* Ausnahme: Ladeanzeigen. Ein stehender Kreis sieht aus wie ein Haenger --
+   dass etwas laedt, ist Information, nicht Schmuck. Langsamer, aber in
+   Bewegung. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin { animation-duration: 1.5s !important; animation-iteration-count: infinite !important; }
+  .animate-pulse { animation-duration: 2s !important; animation-iteration-count: infinite !important; }
+}
+
 /* Querformat: iOS vergroessert sonst die Schrift von sich aus. */
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 

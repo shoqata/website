@@ -70,7 +70,7 @@ const AdminProzesse: React.FC = () => {
           );
           return (
             <button key={k.schluessel} onClick={() => setOffen(k)}
-              className={`text-left p-5 rounded-2xl border transition-all ${gewaehlt
+              className={`text-left p-5 rounded-2xl border transition ${gewaehlt
                 ? 'bg-white border-primary shadow-sm'
                 : 'bg-white/60 border-stone-200 hover:border-stone-300'}`}>
               <p className={`font-bold text-sm mb-1 ${gewaehlt ? 'text-primary' : 'text-stone-900'}`}>{k.titel}</p>

@@ -84,7 +84,7 @@ const AdminVorstandsrechte: React.FC = () => {
           <div className="flex gap-1 bg-white p-1 rounded-xl border border-stone-200 shrink-0">
             {([[true, 'Darf ändern'], [false, 'Nur lesen']] as const).map(([w, n]) => (
               <button key={String(w)} onClick={() => umschalten(w)} disabled={arbeitet}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-40 ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition disabled:opacity-40 ${
                   an === w ? 'bg-stone-900 text-white' : 'text-stone-400 hover:text-stone-700'}`}>
                 {arbeitet && an !== w ? <Loader2 size={12} className="animate-spin" />
                   : gespeichert && an === w ? <span className="flex items-center gap-1"><Check size={12} /> {n}</span>

@@ -1,5 +1,6 @@
 "use client";
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useId } from "react";
+import { wenigerBewegung } from '../../lib/bewegung';
 import { motion, AnimatePresence } from "framer-motion";
 
 // Utility function to replace imported utils
@@ -35,6 +36,9 @@ const Word = ({
 }: WordProps) => {
   const [displayText, setDisplayText] = useState(text);
   const [isHovered, setIsHovered] = useState(false);
+  // Eigene layoutId je Wort: mit einer gemeinsamen sprang die Pille
+  // zwischen allen HyperText-Bloecken der Seite hin und her.
+  const pillenId = useId();
   const intervalRef = useRef<any>(null);
 
   // Cleanup on unmount
@@ -45,6 +49,7 @@ const Word = ({
   }, []);
 
   const scramble = useCallback(() => {
+    if (wenigerBewegung()) { setDisplayText(text); return; }
     let pos = 0;
     if (intervalRef.current) clearInterval(intervalRef.current);
 
@@ -92,17 +97,18 @@ const Word = ({
   return (
     <motion.span
       className={`
-        relative inline-block font-display font-medium whitespace-nowrap cursor-default
+        relative inline-block font-display font-medium whitespace-nowrap cursor-default transition-colors duration-150
         ${isHighlightable ? "cursor-pointer" : ""}
+        ${isHovered ? "text-white" : isHighlightable ? "text-primary" : "text-stone-900"}
       `}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      // Nur mit der Maus: onMouseEnter feuert auch beim Antippen, und auf
+      // dem Handy blieb der Text danach gedimmt und verschwommen stehen.
+      onPointerEnter={e => { if (e.pointerType === "mouse") handleMouseEnter(); }}
+      onPointerLeave={e => { if (e.pointerType === "mouse") handleMouseLeave(); }}
       animate={{
         scale: isHovered ? 1.1 : 1,
         y: isHovered ? -4 : 0,
         opacity: isDimmed && !isHovered ? 0.3 : 1,
-        filter: isDimmed && !isHovered ? "blur(2px)" : "blur(0px)",
-        color: isHovered ? "#FFFFFF" : isHighlightable ? "#f43f5e" : "#1c1917", // Primary Rose if highlightable
         zIndex: isHovered ? 20 : 1,
       }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
@@ -115,7 +121,7 @@ const Word = ({
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
-            layoutId="hover-bg"
+            layoutId={pillenId}
             style={{
               boxShadow:
                 "0px 10px 25px -5px rgba(244, 63, 94, 0.4), 0px 8px 10px -6px rgba(0, 0, 0, 0.1)",
@@ -132,15 +138,15 @@ const Word = ({
         {isHovered && (
           <>
             <motion.span
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0 }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
               className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full z-20"
             />
             <motion.span
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0 }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
               className="absolute -bottom-1 -left-1 w-2 h-2 bg-rose-300 rounded-full z-20"
             />
           </>

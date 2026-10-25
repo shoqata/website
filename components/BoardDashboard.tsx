@@ -499,7 +499,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
             <motion.div 
                 whileHover={{ y: -5 }}
                 onClick={() => setShowInvoiceListModal('PAID')}
-                className="bg-emerald-50 p-6 rounded-3xl border border-emerald-100 cursor-pointer shadow-sm hover:shadow-md transition-all group"
+                className="bg-emerald-50 p-6 rounded-3xl border border-emerald-100 cursor-pointer shadow-sm hover:shadow-md transition group"
             >
                 <div className="flex justify-between items-start mb-2">
                     <p className="text-emerald-600 font-bold text-xs uppercase tracking-widest">Bezahlt ({selectedYear})</p>
@@ -518,7 +518,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
             <motion.div 
                 whileHover={{ y: -5 }}
                 onClick={() => setShowInvoiceListModal('OPEN')}
-                className="bg-amber-50 p-6 rounded-3xl border border-amber-100 cursor-pointer shadow-sm hover:shadow-md transition-all group"
+                className="bg-amber-50 p-6 rounded-3xl border border-amber-100 cursor-pointer shadow-sm hover:shadow-md transition group"
             >
                 <div className="flex justify-between items-start mb-2">
                     <p className="text-amber-600 font-bold text-xs uppercase tracking-widest">Offen ({selectedYear})</p>
@@ -537,7 +537,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
             <motion.div
                 whileHover={{ y: -5 }}
                 onClick={() => setZeigeNachbarschaften(true)}
-                className="bg-stone-900 text-white p-6 rounded-3xl cursor-pointer shadow-sm hover:shadow-md transition-all group"
+                className="bg-stone-900 text-white p-6 rounded-3xl cursor-pointer shadow-sm hover:shadow-md transition group"
             >
                 <div className="flex justify-between items-start mb-2">
                     <p className="text-stone-400 font-bold text-xs uppercase tracking-widest">{t('admin.tab.neighborhoods')}</p>
@@ -617,7 +617,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                 <div className="relative w-40 h-40 flex items-center justify-center">
                     <svg className="w-full h-full transform -rotate-90">
                         <circle cx="80" cy="80" r="70" stroke="#f5f5f4" strokeWidth="12" fill="transparent" />
-                        <circle cx="80" cy="80" r="70" stroke={stats.paidPercentage > 80 ? '#10b981' : stats.paidPercentage > 50 ? '#f59e0b' : '#f43f5e'} strokeWidth="12" fill="transparent" strokeDasharray={440} strokeDashoffset={440 - (440 * stats.paidPercentage) / 100} className="transition-all duration-1000" />
+                        <circle cx="80" cy="80" r="70" stroke={stats.paidPercentage > 80 ? '#10b981' : stats.paidPercentage > 50 ? '#f59e0b' : '#f43f5e'} strokeWidth="12" fill="transparent" strokeDasharray={440} strokeDashoffset={440 - (440 * stats.paidPercentage) / 100} className="transition duration-1000" />
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
                         <span className="text-4xl font-display font-bold text-stone-900">{stats.paidPercentage}%</span>
@@ -708,7 +708,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                 
                 <div className="overflow-y-auto custom-scrollbar flex-1 space-y-3">
                     {meetings.map(m => (
-                        <div key={m.id} className="p-4 rounded-2xl border border-stone-100 hover:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] hover:shadow-md transition-all group">
+                        <div key={m.id} className="p-4 rounded-2xl border border-stone-100 hover:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] hover:shadow-md transition group">
                             <div className="flex justify-between items-start mb-2 gap-2">
                                 <h4 onClick={() => setSelectedMeeting(m)} className="font-bold text-stone-800 group-hover:text-primary transition-colors cursor-pointer flex-1">{m.title}</h4>
                                 <div className="flex items-center gap-1.5 shrink-0">
@@ -1230,7 +1230,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
 
                         <div className="p-6 border-t border-stone-100 bg-stone-50 flex justify-end gap-3">
                             <button onClick={() => setShowProfileModal(false)} className="px-6 py-3 rounded-xl font-bold text-stone-500 hover:bg-stone-200 transition-colors text-sm">{t('common.cancel')}</button>
-                            <button onClick={handleUpdateProfile} className="px-8 py-3 bg-primary text-white rounded-xl font-bold shadow-lg hover:scale-105 transition-all text-sm flex items-center gap-2"><Save size={16}/> {t('common.save_changes')}</button>
+                            <button onClick={handleUpdateProfile} className="px-8 py-3 bg-primary text-white rounded-xl font-bold shadow-lg hover:scale-105 transition text-sm flex items-center gap-2"><Save size={16}/> {t('common.save_changes')}</button>
                         </div>
                     </motion.div>
                 </div>

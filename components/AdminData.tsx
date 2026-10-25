@@ -619,7 +619,7 @@ const AdminData: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
           {/* USERS CARD */}
-          <div className="border border-stone-200 rounded-3xl p-6 hover:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-all group">
+          <div className="border border-stone-200 rounded-3xl p-6 hover:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition group">
               <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                   <Users size={24} />
               </div>
@@ -627,17 +627,17 @@ const AdminData: React.FC = () => {
               <p className="text-xs text-stone-500 mb-6 h-10">Import members. If email is missing, a placeholder will be generated. Duplicates are checked by Name or Email.</p>
               
               <div className="flex gap-2">
-                  <button onClick={() => triggerImport('USERS')} disabled={loading} className="flex-1 py-2 bg-stone-900 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-stone-800 transition-all">
+                  <button onClick={() => triggerImport('USERS')} disabled={loading} className="flex-1 py-2 bg-stone-900 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-stone-800 transition">
                       <Upload size={14} /> {t('data.import')}
                   </button>
-                  <button onClick={() => handleExport('users')} disabled={loading} className="flex-1 py-2 bg-stone-100 text-stone-600 rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-stone-200 transition-all">
+                  <button onClick={() => handleExport('users')} disabled={loading} className="flex-1 py-2 bg-stone-100 text-stone-600 rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-stone-200 transition">
                       <Download size={14} /> {t('data.export')}
                   </button>
               </div>
           </div>
 
           {/* NEIGHBORHOODS CARD */}
-          <div className="border border-stone-200 rounded-3xl p-6 hover:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-all group">
+          <div className="border border-stone-200 rounded-3xl p-6 hover:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition group">
               <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                   <MapPin size={24} />
               </div>
@@ -645,17 +645,17 @@ const AdminData: React.FC = () => {
               <p className="text-xs text-stone-500 mb-6 h-10">{t('data.nb_desc')}</p>
               
               <div className="flex gap-2">
-                  <button onClick={() => triggerImport('NEIGHBORHOODS')} disabled={loading} className="flex-1 py-2 bg-stone-900 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-stone-800 transition-all">
+                  <button onClick={() => triggerImport('NEIGHBORHOODS')} disabled={loading} className="flex-1 py-2 bg-stone-900 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-stone-800 transition">
                       <Upload size={14} /> {t('data.import')}
                   </button>
-                  <button onClick={() => handleExport('neighborhoods')} disabled={loading} className="flex-1 py-2 bg-stone-100 text-stone-600 rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-stone-200 transition-all">
+                  <button onClick={() => handleExport('neighborhoods')} disabled={loading} className="flex-1 py-2 bg-stone-100 text-stone-600 rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-stone-200 transition">
                       <Download size={14} /> {t('data.export')}
                   </button>
               </div>
           </div>
 
           {/* PAYMENTS CARD */}
-          <div className="border border-stone-200 rounded-3xl p-6 hover:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-all group">
+          <div className="border border-stone-200 rounded-3xl p-6 hover:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition group">
               <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                   <CreditCard size={24} />
               </div>
@@ -663,10 +663,10 @@ const AdminData: React.FC = () => {
               <p className="text-xs text-stone-500 mb-6 h-10">{t('data.payments_desc')}</p>
               
               <div className="flex gap-2">
-                  <button onClick={() => triggerImport('PAYMENTS')} disabled={loading} className="flex-1 py-2 bg-stone-900 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-stone-800 transition-all">
+                  <button onClick={() => triggerImport('PAYMENTS')} disabled={loading} className="flex-1 py-2 bg-stone-900 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-stone-800 transition">
                       <Upload size={14} /> {t('data.import')}
                   </button>
-                  <button onClick={() => handleExport('payments')} disabled={loading} className="flex-1 py-2 bg-stone-100 text-stone-600 rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-stone-200 transition-all">
+                  <button onClick={() => handleExport('payments')} disabled={loading} className="flex-1 py-2 bg-stone-100 text-stone-600 rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-stone-200 transition">
                       <Download size={14} /> {t('data.export')}
                   </button>
               </div>
@@ -684,7 +684,7 @@ const AdminData: React.FC = () => {
                       <p className="text-emerald-700 text-sm">{t('data.golive_desc')}</p>
                   </div>
               </div>
-              <button onClick={handleGoLiveReset} className="w-full bg-white border border-emerald-200 text-emerald-700 px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-600 hover:text-white transition-all shadow-sm">
+              <button onClick={handleGoLiveReset} className="w-full bg-white border border-emerald-200 text-emerald-700 px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-600 hover:text-white transition shadow-sm">
                   <Trash2 size={18} /> {t('data.golive_button')}
               </button>
           </div>
@@ -698,7 +698,7 @@ const AdminData: React.FC = () => {
                       <p className="text-red-700 text-sm">{t('data.factory_desc')}</p>
                   </div>
               </div>
-              <button onClick={handleWipeData} className="w-full bg-white border border-red-200 text-red-600 px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-red-600 hover:text-white transition-all shadow-sm">
+              <button onClick={handleWipeData} className="w-full bg-white border border-red-200 text-red-600 px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-red-600 hover:text-white transition shadow-sm">
                   <Trash2 size={18} /> {t('data.factory_button')}
               </button>
           </div>

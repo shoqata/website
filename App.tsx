@@ -298,7 +298,7 @@ const MaintenanceScreen = ({ branding }: { branding: Branding }) => {
       </motion.div>
       <h1 className="text-5xl md:text-7xl font-display font-bold italic mb-6 text-center">{t('app.maintenance.title')}</h1>
       <p className="text-stone-400 text-lg md:text-xl max-w-xl text-center leading-relaxed mb-12">{t('app.maintenance.desc')}</p>
-      <Link to="/login" className="px-8 py-3 rounded-full border border-white/10 hover:bg-white/10 hover:border-white/30 transition-all font-bold text-sm uppercase tracking-widest flex items-center gap-2">
+      <Link to="/login" className="px-8 py-3 rounded-full border border-white/10 hover:bg-white/10 hover:border-white/30 transition font-bold text-sm uppercase tracking-widest flex items-center gap-2">
           <ShieldCheck size={16} /> {t('nav.staff_login')}
       </Link>
   </div>
@@ -933,7 +933,7 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings, systemGelad
           </Link>
           {baum.map(k => {
             const zeile = (e: any) => (
-              <Link key={e.schluessel} to={e.pfad} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${isActive(e.pfad) ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}>
+              <Link key={e.schluessel} to={e.pfad} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition ${isActive(e.pfad) ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}>
                 {e.icon}<span className="font-bold text-sm">{label(e)}</span>
               </Link>
             );
@@ -1000,7 +1000,7 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings, systemGelad
             Videos und Spenden. */}
         <div className="hidden md:flex items-center gap-1 lg:gap-2">
             {baum.map(k => k.art === 'eintrag' ? (
-              <Link key={k.eintrag.schluessel} to={k.eintrag.pfad} className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${isActive(k.eintrag.pfad) ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}>
+              <Link key={k.eintrag.schluessel} to={k.eintrag.pfad} className={`flex items-center gap-2 px-3 py-2 rounded-xl transition ${isActive(k.eintrag.pfad) ? 'bg-white shadow-sm' : 'hover:bg-white/50'}`}>
                   {k.eintrag.icon}<span className="font-bold text-sm">{label(k.eintrag)}</span>
               </Link>
             ) : (

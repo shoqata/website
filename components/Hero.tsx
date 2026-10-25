@@ -132,10 +132,10 @@ const Hero: React.FC = () => {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
-              <Link to="/register" className="bg-primary text-white px-8 py-4 rounded-2xl text-lg font-bold flex items-center justify-center gap-3 hover:scale-105 transition-all shadow-xl shadow-rose-200">
+              <Link to="/register" className="bg-primary text-white px-8 py-4 rounded-2xl text-lg font-bold flex items-center justify-center gap-3 hover:scale-105 transition shadow-xl shadow-rose-200">
                 <UserPlus size={22} /> {t('hero.cta.register')} <ArrowRight size={20} />
               </Link>
-              <Link to="/login" className="bg-white text-stone-800 border-2 border-stone-100 px-8 py-4 rounded-2xl text-lg font-bold hover:bg-stone-50 transition-all flex items-center justify-center gap-3">
+              <Link to="/login" className="bg-white text-stone-800 border-2 border-stone-100 px-8 py-4 rounded-2xl text-lg font-bold hover:bg-stone-50 transition flex items-center justify-center gap-3">
                 <LogIn size={20} className="text-primary" /> {t('hero.cta.login')}
               </Link>
             </div>
@@ -143,7 +143,7 @@ const Hero: React.FC = () => {
             {/* TWINT Donation Button */}
             {paymentSettings?.twintUrl && (
                 <div className="mt-6 flex items-center gap-4">
-                    <button onClick={() => setShowTwintModal(true)} className="flex items-center gap-3 bg-[#eb3333] text-white px-6 py-3 rounded-xl font-bold text-sm shadow-lg hover:bg-[#d62d2d] transition-all group">
+                    <button onClick={() => setShowTwintModal(true)} className="flex items-center gap-3 bg-[#eb3333] text-white px-6 py-3 rounded-xl font-bold text-sm shadow-lg hover:bg-[#d62d2d] transition group">
                        <Smartphone size={18} /> {t('twint.support')}
                     </button>
                     <span className="text-xs text-stone-400 font-medium italic">{t('hero.donate.hint')}</span>
@@ -158,7 +158,7 @@ const Hero: React.FC = () => {
             transition={{ duration: 1 }} 
             className="relative h-[600px] w-full flex items-center justify-center"
           >
-             <div className="relative w-full h-full rounded-[3rem] overflow-hidden shadow-2xl border-4 border-white rotate-2 hover:rotate-0 transition-all duration-500">
+             <div className="relative w-full h-full rounded-[3rem] overflow-hidden shadow-2xl border-4 border-white rotate-2 hover:rotate-0 transition duration-500">
                 <AnimatePresence mode="wait">
                   <motion.img
                     key={currentImageIndex}
@@ -175,13 +175,13 @@ const Hero: React.FC = () => {
                   {heroImages.map((_, idx) => (
                     <div 
                       key={idx} 
-                      className={`h-1 rounded-full transition-all duration-300 ${idx === currentImageIndex ? 'w-8 bg-white' : 'w-2 bg-white/40'}`} 
+                      className={`h-1 rounded-full transition-[width,background-color] duration-300 ease-out-strong ${idx === currentImageIndex ? 'w-8 bg-white' : 'w-2 bg-white/40'}`} 
                     />
                   ))}
                 </div>
              </div>
              
-             <div className="absolute -bottom-6 -left-6 bg-white p-6 rounded-3xl shadow-xl animate-bounce duration-[3000ms]">
+             <div className="absolute -bottom-6 -left-6 bg-white p-6 rounded-3xl shadow-xl animate-bounce [animation-duration:3s]">
                 <div className="flex items-center gap-3">
                    <div className="w-12 h-12 bg-rose-50 rounded-full flex items-center justify-center text-primary font-bold text-xl">
                       {diasporaCount > 0 ? diasporaCount : '2k+'}
@@ -355,7 +355,7 @@ const Hero: React.FC = () => {
                           <p className="text-xs font-bold text-primary tabular-nums">{teil}%</p>
                         </div>
                         <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${teil}%` }} />
+                          <div className="h-full bg-primary rounded-full transition-[width] duration-300 ease-out-strong" style={{ width: `${teil}%` }} />
                         </div>
                         {a.anzahl > 0 && (
                           <p className="text-[11px] text-stone-400 mt-2">{t('aufruf.spenden_anzahl', { anzahl: a.anzahl })}</p>
@@ -389,7 +389,7 @@ const Hero: React.FC = () => {
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                {featuredEvents.map((event) => (
-                 <div key={event.id} className="bg-white rounded-[2.5rem] overflow-hidden border border-stone-100 shadow-sm hover:shadow-xl transition-all group cursor-pointer">
+                 <div key={event.id} className="bg-white rounded-[2.5rem] overflow-hidden border border-stone-100 shadow-sm hover:shadow-xl transition group cursor-pointer">
                     <Link to="/events">
                         <div className="aspect-[16/10] overflow-hidden relative">
                            <img src={event.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"  onError={onImageError}/>
@@ -440,7 +440,7 @@ const Hero: React.FC = () => {
                           <QRCodeSVG value={paymentSettings.twintUrl} size={180} level="M" />
                       </div>
 
-                      <a href={paymentSettings.twintUrl} target="_blank" rel="noreferrer" className="w-full bg-[#eb3333] text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-[#d62d2d] transition-all shadow-xl">
+                      <a href={paymentSettings.twintUrl} target="_blank" rel="noreferrer" className="w-full bg-[#eb3333] text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-[#d62d2d] transition shadow-xl">
                           {t('twint.open_app')} <ArrowRight size={18} />
                       </a>
                   </motion.div>

@@ -20,6 +20,7 @@ import { collection, getDocs, query, orderBy, doc, setDoc } from '@/services/sup
 import { zielErreicht } from '@/lib/zaehler';
 import { Neighborhood } from '../types';
 
+import { EASE_OUT } from '../lib/bewegung';
 import { neighborhoodCity } from '../lib/neighborhood';
 const RegistrationWizard: React.FC = () => {
   const { t } = useTranslation();
@@ -227,7 +228,7 @@ const RegistrationWizard: React.FC = () => {
                         value={formData.email}
                         onChange={(e) => setFormData({...formData, email: e.target.value})}
                         placeholder={t('login.email.placeholder')}
-                        className="w-full pl-16 pr-6 py-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-all text-lg font-medium"
+                        className="w-full pl-16 pr-6 py-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition text-lg font-medium"
                       />
                     </div>
                   </div>
@@ -242,7 +243,7 @@ const RegistrationWizard: React.FC = () => {
                         value={formData.password}
                         onChange={(e) => setFormData({...formData, password: e.target.value})}
                         placeholder={t('ph.password')}
-                        className="w-full pl-16 pr-14 py-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-all text-lg font-medium"
+                        className="w-full pl-16 pr-14 py-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition text-lg font-medium"
                       />
                       <button 
                         type="button"
@@ -297,7 +298,7 @@ const RegistrationWizard: React.FC = () => {
                       <select 
                         value={formData.salutation}
                         onChange={(e) => setFormData({...formData, salutation: e.target.value})}
-                        className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-all text-lg font-medium appearance-none"
+                        className="w-full p-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition text-lg font-medium appearance-none"
                       >
                         <option value="">{t('common.select')}</option>
                         <option value="Z.">Z.</option>
@@ -313,7 +314,7 @@ const RegistrationWizard: React.FC = () => {
                           value={formData.firstName}
                           onChange={(e) => setFormData({...formData, firstName: e.target.value})}
                           placeholder={t('ph.firstname')}
-                          className="w-full pl-16 pr-6 py-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-all text-lg font-medium"
+                          className="w-full pl-16 pr-6 py-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition text-lg font-medium"
                         />
                       </div>
                     </div>
@@ -329,7 +330,7 @@ const RegistrationWizard: React.FC = () => {
                           value={formData.lastName}
                           onChange={(e) => setFormData({...formData, lastName: e.target.value})}
                           placeholder={t('ph.lastname')}
-                          className="w-full pl-16 pr-6 py-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-all text-lg font-medium"
+                          className="w-full pl-16 pr-6 py-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition text-lg font-medium"
                         />
                       </div>
                     </div>
@@ -342,7 +343,7 @@ const RegistrationWizard: React.FC = () => {
                           value={formData.phone}
                           onChange={(e) => setFormData({...formData, phone: e.target.value})}
                           placeholder={t('ph.phone')}
-                          className="w-full pl-16 pr-6 py-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition-all text-lg font-medium"
+                          className="w-full pl-16 pr-6 py-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition text-lg font-medium"
                         />
                       </div>
                     </div>
@@ -420,7 +421,7 @@ const RegistrationWizard: React.FC = () => {
                                     key={method}
                                     type="button"
                                     onClick={() => setFormData({...formData, invoiceDeliveryMethod: method})}
-                                    className={`py-2 px-1 rounded-xl border-2 text-[10px] font-bold uppercase tracking-wider transition-all ${formData.invoiceDeliveryMethod === method ? 'border-primary bg-[color:color-mix(in_srgb,var(--primary)_10%,transparent)] text-primary' : 'border-stone-100 text-stone-400 hover:border-stone-200 bg-white'}`}
+                                    className={`py-2 px-1 rounded-xl border-2 text-[10px] font-bold uppercase tracking-wider transition ${formData.invoiceDeliveryMethod === method ? 'border-primary bg-[color:color-mix(in_srgb,var(--primary)_10%,transparent)] text-primary' : 'border-stone-100 text-stone-400 hover:border-stone-200 bg-white'}`}
                                 >
                                     {method}
                                 </button>
@@ -452,7 +453,7 @@ const RegistrationWizard: React.FC = () => {
                             key={n.id}
                             type="button"
                             onClick={() => setFormData({...formData, neighborhoodId: n.id})}
-                            className={`p-3 rounded-xl border-2 text-left transition-all flex items-center justify-between group ${formData.neighborhoodId === n.id ? 'border-primary bg-white shadow-md' : 'border-white bg-white/50 hover:bg-white hover:border-stone-100'}`}
+                            className={`p-3 rounded-xl border-2 text-left transition flex items-center justify-between group ${formData.neighborhoodId === n.id ? 'border-primary bg-white shadow-md' : 'border-white bg-white/50 hover:bg-white hover:border-stone-100'}`}
                           >
                             <div className="flex items-center gap-3">
                               <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${formData.neighborhoodId === n.id ? 'bg-primary text-white' : 'bg-stone-100 text-stone-400 group-hover:bg-stone-200'}`}>
@@ -464,7 +465,7 @@ const RegistrationWizard: React.FC = () => {
                               </div>
                             </div>
                             {formData.neighborhoodId === n.id && (
-                              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
+                              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.15, ease: EASE_OUT }}>
                                 <CheckCircle2 className="text-primary" size={16} />
                               </motion.div>
                             )}
@@ -495,7 +496,7 @@ const RegistrationWizard: React.FC = () => {
                 <div className="w-full max-w-md mb-8 text-left"><TwintKnopf text={t('twint.beitrag')} /></div>
                 <Link 
                   to="/login" 
-                  className="bg-primary text-white px-10 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-xl shadow-rose-200 hover:scale-105 transition-all"
+                  className="bg-primary text-white px-10 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-xl shadow-rose-200 hover:scale-105 transition"
                 >
                   <ArrowLeft size={20} /> {t('login.submit')}
                 </Link>
@@ -517,7 +518,7 @@ const RegistrationWizard: React.FC = () => {
                 <button 
                   onClick={step === 3 ? handleSubmit : handleNext}
                   disabled={isLoading || (step === 1 && !isStep1Valid) || (step === 2 && !isStep2Valid) || (step === 3 && !isStep3Valid)}
-                  className="bg-primary text-white px-10 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-xl shadow-rose-200 hover:scale-105 transition-all disabled:opacity-50"
+                  className="bg-primary text-white px-10 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-xl shadow-rose-200 hover:scale-105 transition disabled:opacity-50"
                 >
                   {isLoading ? <Loader2 className="animate-spin" /> : step === 3 ? t('wizard.finish') : t('wizard.next')} <ArrowRight size={20} />
                 </button>

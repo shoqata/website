@@ -170,7 +170,7 @@ const VorstellungWizard: React.FC = () => {
           <div className="grid grid-cols-2 gap-2">
             {ESSEN.map(o => (
               <button key={o.w} type="button" onClick={() => setEssen(o.w)}
-                className={`text-left px-4 py-3 rounded-2xl border transition-all text-sm ${
+                className={`text-left px-4 py-3 rounded-2xl border transition text-sm ${
                   essen === o.w ? 'border-stone-900 bg-stone-900 text-white'
                                : 'border-stone-200 bg-white hover:border-stone-400'}`}>
                 {o.t}
@@ -199,7 +199,7 @@ const VorstellungWizard: React.FC = () => {
             return (
               <button key={a.id} type="button" disabled={voll || ausflugLaeuft === a.id}
                 onClick={() => anmelden(a, !a.dabei)}
-                className={`w-full text-left p-5 rounded-2xl border transition-all ${
+                className={`w-full text-left p-5 rounded-2xl border transition ${
                   a.dabei ? 'border-stone-900 bg-white shadow-sm'
                     : voll ? 'border-stone-200 bg-stone-50 opacity-60 cursor-not-allowed'
                     : 'border-stone-200 bg-white/60 hover:border-stone-400'}`}>
@@ -248,7 +248,7 @@ const VorstellungWizard: React.FC = () => {
               u: 'Sie nehmen ganz normal teil, erscheinen aber nicht im Heft. Das Heft zählt Sie nur mit — ohne Namen.' },
           ] as const).map(o => (
             <button key={String(o.w)} type="button" onClick={() => setImHeft(o.w)}
-              className={`w-full text-left p-5 rounded-2xl border transition-all ${
+              className={`w-full text-left p-5 rounded-2xl border transition ${
                 imHeft === o.w ? 'border-stone-900 bg-white shadow-sm' : 'border-stone-200 bg-white/60 hover:border-stone-400'}`}>
               <p className="font-bold text-sm mb-1 flex items-center gap-2">
                 {imHeft === o.w && <Check size={15} />} {o.t}
@@ -339,7 +339,7 @@ const VorstellungWizard: React.FC = () => {
               hört nicht nach dem dritten auf. */}
           <div className="flex items-center gap-1.5">
             {SCHRITTE.map((_, i) => (
-              <span key={i} className={`rounded-full transition-all ${
+              <span key={i} className={`rounded-full transition ${
                 i === schritt ? 'w-5 h-1.5 bg-stone-900' : i < schritt ? 'w-1.5 h-1.5 bg-stone-400' : 'w-1.5 h-1.5 bg-stone-200'}`} />
             ))}
           </div>

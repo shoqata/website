@@ -380,7 +380,7 @@ const VorstandWizard: React.FC<Props> = ({ mitglieder, nachbarschaften, onClose,
                   {([['', 'automatisch'], ['EMAIL', 'E-Mail'], ['POST', 'Post']] as const).map(([w, n]) => (
                     <button key={w || 'auto'} type="button"
                       onClick={() => setM({ ...m, invoiceDeliveryMethod: w as any })}
-                      className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
+                      className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${
                         m.invoiceDeliveryMethod === w ? 'bg-stone-900 text-white' : 'text-stone-500'}`}>
                       {n}
                     </button>

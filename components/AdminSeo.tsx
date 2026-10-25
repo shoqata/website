@@ -175,7 +175,7 @@ const AdminSeo: React.FC<{ fuerBetreiber?: boolean }> = ({ fuerBetreiber }) => {
         <div className="flex gap-1 bg-stone-100 p-1 rounded-xl shrink-0">
           {ZEITRAEUME.map(z => (
             <button key={z.tage} onClick={() => setTage(z.tage)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                 tage === z.tage ? 'bg-stone-900 text-white' : 'text-stone-500 hover:text-stone-800'}`}>
               {z.name}
             </button>
@@ -370,7 +370,7 @@ const AdminSeo: React.FC<{ fuerBetreiber?: boolean }> = ({ fuerBetreiber }) => {
                   return (
                     <div key={i} className="flex-1 flex flex-col items-center gap-1 h-full justify-end"
                       title={`${String(i).padStart(2, '0')} Uhr: ${n}`}>
-                      <span className="w-full bg-stone-900 rounded-t transition-all"
+                      <span className="w-full bg-stone-900 rounded-t transition"
                         style={{ height: `${Math.max(2, 100 * n / max)}%` }} />
                       {i % 3 === 0 && (
                         <span className="text-[9px] text-stone-400 font-mono">{String(i).padStart(2, '0')}</span>

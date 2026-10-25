@@ -399,7 +399,7 @@ const Floky: React.FC = () => {
 
   return (
     <div className={`ueber-leiste fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-6 z-40 bg-white rounded-3xl shadow-2xl
-                     border border-stone-200 flex overflow-hidden transition-all
+                     border border-stone-200 flex overflow-hidden transition
                      ${GROESSEN[groesse]}`}>
 
       {/* --------------------------------------------- Gesprächsliste */}
@@ -414,7 +414,7 @@ const Floky: React.FC = () => {
             <div className="flex gap-1 mt-3 bg-white p-1 rounded-lg border border-stone-200">
               {([[false, 'Laufend'], [true, 'Abgelegt']] as const).map(([w, n]) => (
                 <button key={String(w)} onClick={() => setZeigeArchiv(w)}
-                  className={`flex-1 py-1.5 rounded text-[10px] font-bold transition-all ${
+                  className={`flex-1 py-1.5 rounded text-[10px] font-bold transition ${
                     zeigeArchiv === w ? 'bg-stone-900 text-white' : 'text-stone-400 hover:text-stone-700'}`}>
                   {n}
                 </button>

@@ -109,13 +109,13 @@ const TreffenAntwort: React.FC<{
             <p className={`text-[10px] font-bold uppercase tracking-widest ${k.weich}`}>Kommen Sie?</p>
             <div className="flex gap-3 flex-wrap">
               <button type="button" onClick={() => setZugesagt(true)}
-                className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold border transition-all ${
+                className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold border transition ${
                   zugesagt === true ? 'bg-emerald-500 text-white border-emerald-500'
                     : `${k.feld} ${k.weich} hover:border-emerald-400`}`}>
                 <Check size={16} /> Wir kommen
               </button>
               <button type="button" onClick={() => { setZugesagt(false); setLeute([]); }}
-                className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold border transition-all ${
+                className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold border transition ${
                   zugesagt === false ? 'bg-stone-700 text-white border-stone-700'
                     : `${k.feld} ${k.weich} hover:border-stone-400`}`}>
                 <X size={16} /> Leider nicht

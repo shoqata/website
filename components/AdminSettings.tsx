@@ -257,7 +257,7 @@ const AdminSettings: React.FC = () => {
                             return (
                                 <button key={o.wert} type="button"
                                     onClick={() => setSettings({ ...settings, spendenseite: o.wert as SystemSettings['spendenseite'] })}
-                                    className={`text-left p-5 rounded-2xl border transition-all ${gewaehlt
+                                    className={`text-left p-5 rounded-2xl border transition ${gewaehlt
                                         ? 'bg-white border-primary shadow-sm'
                                         : 'bg-white/60 border-stone-200 hover:border-stone-300'}`}>
                                     <p className={`font-bold text-sm mb-1 ${gewaehlt ? 'text-primary' : 'text-stone-900'}`}>{o.titel}</p>
@@ -319,7 +319,7 @@ const AdminSettings: React.FC = () => {
                             return (
                                 <button key={o.wert} type="button"
                                     onClick={() => setSettings({ ...settings, beitraegeOeffentlich: o.wert as SystemSettings['beitraegeOeffentlich'] })}
-                                    className={`text-left p-5 rounded-2xl border transition-all ${aktiv
+                                    className={`text-left p-5 rounded-2xl border transition ${aktiv
                                         ? 'bg-white border-primary shadow-sm'
                                         : 'bg-white/60 border-stone-200 hover:border-stone-300'}`}>
                                     <p className={`font-bold text-sm mb-1 ${aktiv ? 'text-primary' : 'text-stone-900'}`}>{o.titel}</p>
@@ -407,7 +407,7 @@ const AdminSettings: React.FC = () => {
                     {(() => {
                         const zl = { sichtbar: 'AUS', inhalt: 'STATISTIK', nachbarschaften: true, ...((settings as any).zahlerliste || {}) };
                         const setz = (k: string, v: any) => setSettings({ ...settings, zahlerliste: { ...zl, [k]: v } } as any);
-                        const knopf = (aktiv: boolean) => `text-left p-4 rounded-2xl border transition-all ${aktiv ? 'bg-white border-primary shadow-sm' : 'bg-white/60 border-stone-200 hover:border-stone-300'}`;
+                        const knopf = (aktiv: boolean) => `text-left p-4 rounded-2xl border transition ${aktiv ? 'bg-white border-primary shadow-sm' : 'bg-white/60 border-stone-200 hover:border-stone-300'}`;
                         return (<>
                             <div>
                                 <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-2">{t('zl.wer')}</p>
@@ -613,7 +613,7 @@ const AdminSettings: React.FC = () => {
             <button 
                 onClick={handleSave} 
                 disabled={loading}
-                className="bg-stone-900 text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-xl hover:scale-105 transition-all disabled:opacity-50"
+                className="bg-stone-900 text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-xl hover:scale-105 transition disabled:opacity-50"
             >
                 {loading ? <Loader2 className="animate-spin" /> : <Save size={20} />} Save Configuration
             </button>

@@ -37,7 +37,7 @@ export const NbKarte: React.FC<{ n: NbOeffentlich }> = ({ n }) => {
           {n.mitglieder > 0
             ? <span className="inline-flex items-center gap-1.5 font-bold text-stone-700"><Users size={15} className="text-primary" /> {n.mitglieder} {t('nb.mitglieder')}</span>
             : <span />}
-          <span className="inline-flex items-center gap-1 font-bold text-primary group-hover:gap-2 transition-all">{t('nb.kennenlernen')} <ArrowRight size={15} /></span>
+          <span className="inline-flex items-center gap-1 font-bold text-primary group-hover:gap-2 transition-[gap] duration-200 ease-out-strong">{t('nb.kennenlernen')} <ArrowRight size={15} /></span>
         </div>
       </div>
     </Link>

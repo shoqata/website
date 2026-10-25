@@ -80,7 +80,7 @@ type LangCode = 'de' | 'en' | 'sq';
 const BuilderSection = ({ id, title, icon, children, offen, setOffen }: {
   id: string, title: string, icon: React.ReactNode, children?: React.ReactNode,
   offen: string | null, setOffen: (id: string | null) => void }) => (
-      <div className={`bg-stone-50 rounded-3xl border transition-all duration-300 ${offen === id ? 'border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)] shadow-lg bg-white' : 'border-stone-200'}`}>
+      <div className={`bg-stone-50 rounded-3xl border transition duration-300 ${offen === id ? 'border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)] shadow-lg bg-white' : 'border-stone-200'}`}>
           <button 
               onClick={() => setOffen(offen === id ? null : id)}
               className="w-full flex items-center justify-between p-6 text-left"
@@ -385,7 +385,7 @@ const AdminWebsite: React.FC = () => {
                 ...(modulAktiv('DORFLEBEN') ? [['LIVE', t('nav.live')]] : []),
                 ...(modulAktiv('TURNIER') ? [['TURNIER', t('nav.turnier')]] : []),
                 ['LEGAL','Rechtliches']]) as [Tab, string][]).map(([k, name]) => (
-                 <button key={k} onClick={() => { setActiveTab(k); setExpandedSection(null); }} className={`flex-1 px-4 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === k ? 'bg-white text-primary shadow-sm' : 'text-stone-400 hover:text-stone-900'}`}>
+                 <button key={k} onClick={() => { setActiveTab(k); setExpandedSection(null); }} className={`flex-1 px-4 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition whitespace-nowrap ${activeTab === k ? 'bg-white text-primary shadow-sm' : 'text-stone-400 hover:text-stone-900'}`}>
                      {name}
                  </button>
              ))}
@@ -398,7 +398,7 @@ const AdminWebsite: React.FC = () => {
                       <button 
                         key={lang}
                         onClick={() => setEditLang(lang)}
-                        className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase transition-all flex items-center justify-center gap-2 ${editLang === lang ? 'bg-white shadow-sm text-primary' : 'text-stone-400 hover:text-stone-600'}`}
+                        className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase transition flex items-center justify-center gap-2 ${editLang === lang ? 'bg-white shadow-sm text-primary' : 'text-stone-400 hover:text-stone-600'}`}
                       >
                           <Languages size={14} /> {lang}
                       </button>
@@ -531,7 +531,7 @@ const AdminWebsite: React.FC = () => {
                                         </div>
                                     ))}
                                     <div className="flex flex-col gap-2">
-                                        <button onClick={() => heroInputRef.current?.click()} className="flex-1 aspect-video border-2 border-dashed border-stone-200 rounded-lg flex items-center justify-center text-stone-300 hover:text-primary hover:border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)] transition-all flex-col gap-1 text-[10px] font-bold">
+                                        <button onClick={() => heroInputRef.current?.click()} className="flex-1 aspect-video border-2 border-dashed border-stone-200 rounded-lg flex items-center justify-center text-stone-300 hover:text-primary hover:border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)] transition flex-col gap-1 text-[10px] font-bold">
                                             <Plus size={16}/> {t('web.upload')}
                                         </button>
                                         <button onClick={() => handleManualLink('hero')} className="py-2 bg-stone-100 text-stone-500 rounded-lg text-[10px] font-bold hover:bg-stone-200">
@@ -572,7 +572,7 @@ const AdminWebsite: React.FC = () => {
                                 </div>
                                 <div className="flex flex-wrap gap-2">
                                     {branding.whyJoinHighlightWords.map((word, idx) => (
-                                        <div key={idx} className="bg-white border border-stone-200 px-3 py-1.5 rounded-full flex items-center gap-2 shadow-sm animate-in fade-in zoom-in duration-200">
+                                        <div key={idx} className="bg-white border border-stone-200 px-3 py-1.5 rounded-full flex items-center gap-2 shadow-sm">
                                             <span className="text-xs font-bold text-primary">{word}</span>
                                             <button onClick={() => removeHighlightWord(word)} className="text-stone-300 hover:text-red-500"><X size={12}/></button>
                                         </div>
@@ -852,7 +852,7 @@ const AdminWebsite: React.FC = () => {
               <button 
                 onClick={handleSaveBranding}
                 disabled={isSaving || isUploading}
-                className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all ${isSaved ? 'bg-green-500 text-white' : 'bg-primary text-white shadow-xl shadow-rose-200 hover:scale-[1.02]'}`}
+                className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-3 transition ${isSaved ? 'bg-green-500 text-white' : 'bg-primary text-white shadow-xl shadow-rose-200 hover:scale-[1.02]'}`}
               >
                 {isSaving || isUploading ? <Loader2 className="animate-spin" /> : isSaved ? <Check /> : <Save />} 
                 {isUploading ? t('web.uploading') : t('web.publish')}
@@ -862,7 +862,7 @@ const AdminWebsite: React.FC = () => {
       </div>
 
       {/* Preview Panel */}
-      <div className={`lg:col-span-7 transition-all duration-500 ${
+      <div className={`lg:col-span-7 transition duration-500 ${
         activeTab === 'SEITEN' || activeTab === 'NAVIGATION' ? 'hidden' : 'hidden lg:block'} ${showPreview ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
         {/* Im Design-Reiter die ECHTE Seite, nicht die Nachbildung.
             Die Nachbildung darunter kennt nur die klassische Vorlage -- wer
@@ -893,12 +893,12 @@ const AdminWebsite: React.FC = () => {
         ) : (
         <div className="sticky top-12 h-full flex flex-col">
           <div className="flex justify-center mb-6 gap-4 shrink-0">
-              <button onClick={() => setPreviewMode('DESKTOP')} className={`p-3 rounded-xl transition-all ${previewMode === 'DESKTOP' ? 'bg-primary text-white' : 'bg-white text-stone-400'}`}><Monitor size={18} /></button>
-              <button onClick={() => setPreviewMode('MOBILE')} className={`p-3 rounded-xl transition-all ${previewMode === 'MOBILE' ? 'bg-primary text-white' : 'bg-white text-stone-400'}`}><Smartphone size={18} /></button>
+              <button onClick={() => setPreviewMode('DESKTOP')} className={`p-3 rounded-xl transition ${previewMode === 'DESKTOP' ? 'bg-primary text-white' : 'bg-white text-stone-400'}`}><Monitor size={18} /></button>
+              <button onClick={() => setPreviewMode('MOBILE')} className={`p-3 rounded-xl transition ${previewMode === 'MOBILE' ? 'bg-primary text-white' : 'bg-white text-stone-400'}`}><Smartphone size={18} /></button>
           </div>
           
           <div className="bg-stone-900 rounded-[3.5rem] p-4 shadow-2xl border-[12px] border-stone-800 relative mx-auto flex-1 w-full max-h-[800px]">
-            <div className={`bg-[#faf9f6] rounded-[2.5rem] h-full overflow-y-auto custom-scrollbar transition-all duration-500 mx-auto ${previewMode === 'MOBILE' ? 'max-w-[375px]' : 'w-full'}`}>
+            <div className={`bg-[#faf9f6] rounded-[2.5rem] h-full overflow-y-auto custom-scrollbar transition duration-500 mx-auto ${previewMode === 'MOBILE' ? 'max-w-[375px]' : 'w-full'}`}>
                
                {/* Preview Header */}
                <div className="px-8 py-4 border-b border-stone-100 flex justify-between items-center sticky top-0 bg-white/80 backdrop-blur-md z-10">

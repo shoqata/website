@@ -232,7 +232,7 @@ const AdminExpenses: React.FC = () => {
                         <motion.div 
                             layoutId={expense.id} 
                             key={expense.id}
-                            className={`p-5 rounded-2xl border transition-all flex items-center gap-4 bg-white hover:shadow-md ${expense.bookedInJournal ? 'border-green-100' : 'border-stone-200'}`}
+                            className={`p-5 rounded-2xl border transition flex items-center gap-4 bg-white hover:shadow-md ${expense.bookedInJournal ? 'border-green-100' : 'border-stone-200'}`}
                         >
                             <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${expense.bookedInJournal ? 'bg-green-100 text-green-600' : 'bg-stone-100 text-stone-500'}`}>
                                 {expense.bookedInJournal ? <CheckCircle2 size={20}/> : <FileText size={20}/>}
@@ -274,7 +274,7 @@ const AdminExpenses: React.FC = () => {
 
                 {/* Right: Upload / Form */}
                 <div className="lg:col-span-5">
-                    <div className={`bg-white rounded-[2rem] border border-stone-200 shadow-xl overflow-hidden sticky top-8 transition-all ${isFormOpen ? 'ring-4 ring-[color:color-mix(in_srgb,var(--primary)_10%,transparent)]' : ''}`}>
+                    <div className={`bg-white rounded-[2rem] border border-stone-200 shadow-xl overflow-hidden sticky top-8 transition ${isFormOpen ? 'ring-4 ring-[color:color-mix(in_srgb,var(--primary)_10%,transparent)]' : ''}`}>
                         
                         {/* Action Header */}
                         <div className="bg-stone-900 text-white p-6">

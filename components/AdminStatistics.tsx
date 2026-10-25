@@ -271,9 +271,9 @@ const AdminStatistics: React.FC<AdminStatisticsProps> = ({ users, payments, neig
                         />
                     </div>
                     <div className="flex bg-stone-50 p-1 rounded-xl border border-stone-200">
-                        <button onClick={() => setMemberFilter('ALL')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${memberFilter === 'ALL' ? 'bg-white shadow-sm text-stone-900' : 'text-stone-400'}`}>{t('status.all')}</button>
-                        <button onClick={() => setMemberFilter('LATE')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${memberFilter === 'LATE' ? 'bg-white shadow-sm text-amber-600' : 'text-stone-400'}`}>{t('stats.late')}</button>
-                        <button onClick={() => setMemberFilter('UNPAID')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${memberFilter === 'UNPAID' ? 'bg-white shadow-sm text-rose-600' : 'text-stone-400'}`}>{t('stats.unpaid')}</button>
+                        <button onClick={() => setMemberFilter('ALL')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition ${memberFilter === 'ALL' ? 'bg-white shadow-sm text-stone-900' : 'text-stone-400'}`}>{t('status.all')}</button>
+                        <button onClick={() => setMemberFilter('LATE')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition ${memberFilter === 'LATE' ? 'bg-white shadow-sm text-amber-600' : 'text-stone-400'}`}>{t('stats.late')}</button>
+                        <button onClick={() => setMemberFilter('UNPAID')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition ${memberFilter === 'UNPAID' ? 'bg-white shadow-sm text-rose-600' : 'text-stone-400'}`}>{t('stats.unpaid')}</button>
                     </div>
                 </div>
             </div>

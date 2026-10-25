@@ -382,7 +382,7 @@ const VorstandPostausgang: React.FC<Props> = ({ mitglieder, nachbarschaften, onC
               disabled={sendet || anzahl === 0 || !betreff.trim() || !text.trim()
                         || eingabeFalsch || kopieZuViele
                         || absender?.darf_schreiben === false}
-              className="px-8 py-3 bg-primary text-white rounded-xl font-bold shadow-lg hover:scale-105 transition-all text-sm flex items-center gap-2 disabled:opacity-40 disabled:hover:scale-100">
+              className="px-8 py-3 bg-primary text-white rounded-xl font-bold shadow-lg hover:scale-105 transition text-sm flex items-center gap-2 disabled:opacity-40 disabled:hover:scale-100">
               {sendet ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
               {t('vpost.senden', { anzahl })}
             </button>

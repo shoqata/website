@@ -1,5 +1,6 @@
 
 import createGlobe from "cobe";
+import { wenigerBewegung } from '../lib/bewegung';
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 // Utility for class merging (simplified version of cn/clsx/tailwind-merge)
@@ -56,7 +57,9 @@ export function Globe({ className, markers }: GlobeProps) {
 
   const onRender = useCallback(
     (state: Record<string, any>) => {
-      if (!pointerInteracting.current) phi += 0.005;
+      // Dreht nur von selbst, wenn niemand weniger Bewegung eingestellt hat;
+      // ziehen laesst er sich immer.
+      if (!pointerInteracting.current && !wenigerBewegung()) phi += 0.005;
       state.phi = phi + r;
       state.width = width * 2;
       state.height = width * 2;

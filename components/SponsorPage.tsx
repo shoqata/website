@@ -5,6 +5,7 @@ import { Handshake, Check, ArrowRight, ArrowLeft, Loader2, ShieldCheck } from 'l
 import { submitSponsor } from '../services/datenzugriff';
 import { useTranslation } from '../context/LanguageContext';
 import { useFeedback } from '../context/FeedbackContext';
+import { scrollArt } from '../lib/bewegung';
 import { SPONSOR_PACKAGES, packageByKey, SponsorPackageKey } from '../lib/sponsorPackages';
 
 type Step = 1 | 2 | 3;
@@ -57,7 +58,7 @@ const SponsorPage: React.FC = () => {
         message: form.message,
       });
       setStep(3);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: scrollArt() });
     } catch (err: any) {
       showAlert({ type: 'error', message: t('sponsor.error', { reason: err?.message || '?' }) });
     } finally {
@@ -121,7 +122,7 @@ const SponsorPage: React.FC = () => {
                     key={p.key}
                     onClick={() => setSelected(p.key)}
                     aria-pressed={active}
-                    className={`text-left bg-white rounded-3xl border-2 p-7 transition-all ${
+                    className={`text-left bg-white rounded-3xl border-2 p-7 transition ${
                       active ? 'border-primary shadow-lg shadow-rose-100' : 'border-stone-100 hover:border-stone-300'
                     }`}
                   >

@@ -231,7 +231,7 @@ const AdminSpendenaufrufe: React.FC = () => {
 
                     {teil !== null && (
                       <div className="mt-2 h-1.5 bg-stone-100 rounded-full overflow-hidden max-w-md">
-                        <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${teil}%` }} />
+                        <div className="h-full bg-primary rounded-full transition-[width] duration-300 ease-out-strong" style={{ width: `${teil}%` }} />
                       </div>
                     )}
                   </div>

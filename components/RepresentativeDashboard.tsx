@@ -326,7 +326,7 @@ const RepresentativeDashboard: React.FC<RepresentativeDashboardProps> = ({ user 
                     <button 
                         key={l} 
                         onClick={() => setLanguage(l as any)} 
-                        className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${language === l ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-300 hover:text-white'}`}
+                        className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase transition ${language === l ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-300 hover:text-white'}`}
                     >
                         {l}
                     </button> 
@@ -358,13 +358,13 @@ const RepresentativeDashboard: React.FC<RepresentativeDashboardProps> = ({ user 
         {/* NAVIGATION TABS */}
         <div className="px-6 -mt-6 relative z-20">
             <div className="bg-white rounded-2xl shadow-lg p-2 flex gap-2">
-                <button onClick={() => setActiveTab('INKASO')} className={`flex-1 py-3 rounded-xl font-bold text-sm flex flex-col items-center gap-1 transition-all ${activeTab === 'INKASO' ? 'bg-stone-900 text-white shadow-md' : 'text-stone-400 hover:bg-stone-50'}`}>
+                <button onClick={() => setActiveTab('INKASO')} className={`flex-1 py-3 rounded-xl font-bold text-sm flex flex-col items-center gap-1 transition ${activeTab === 'INKASO' ? 'bg-stone-900 text-white shadow-md' : 'text-stone-400 hover:bg-stone-50'}`}>
                     <Users size={18}/> {t('rep.collection')}
                 </button>
-                <button onClick={() => setActiveTab('KASA')} className={`flex-1 py-3 rounded-xl font-bold text-sm flex flex-col items-center gap-1 transition-all ${activeTab === 'KASA' ? 'bg-stone-900 text-white shadow-md' : 'text-stone-400 hover:bg-stone-50'}`}>
+                <button onClick={() => setActiveTab('KASA')} className={`flex-1 py-3 rounded-xl font-bold text-sm flex flex-col items-center gap-1 transition ${activeTab === 'KASA' ? 'bg-stone-900 text-white shadow-md' : 'text-stone-400 hover:bg-stone-50'}`}>
                     <Banknote size={18}/> {t('rep.expenses')}
                 </button>
-                <button onClick={() => setActiveTab('MIREMBAJTJA')} className={`flex-1 py-3 rounded-xl font-bold text-sm flex flex-col items-center gap-1 transition-all ${activeTab === 'MIREMBAJTJA' ? 'bg-stone-900 text-white shadow-md' : 'text-stone-400 hover:bg-stone-50'}`}>
+                <button onClick={() => setActiveTab('MIREMBAJTJA')} className={`flex-1 py-3 rounded-xl font-bold text-sm flex flex-col items-center gap-1 transition ${activeTab === 'MIREMBAJTJA' ? 'bg-stone-900 text-white shadow-md' : 'text-stone-400 hover:bg-stone-50'}`}>
                     <Hammer size={18}/> {t('rep.tasks')}
                 </button>
             </div>
@@ -427,7 +427,7 @@ const RepresentativeDashboard: React.FC<RepresentativeDashboardProps> = ({ user 
             {/* --- KASA / SHPENZIME TAB --- */}
             {activeTab === 'KASA' && (
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-                    <button onClick={() => setShowExpenseModal(true)} className="w-full bg-white border-2 border-dashed border-stone-300 py-4 rounded-2xl text-stone-400 font-bold flex items-center justify-center gap-2 hover:border-primary hover:text-primary transition-all">
+                    <button onClick={() => setShowExpenseModal(true)} className="w-full bg-white border-2 border-dashed border-stone-300 py-4 rounded-2xl text-stone-400 font-bold flex items-center justify-center gap-2 hover:border-primary hover:text-primary transition">
                         <Plus size={20}/> {t('rep.new_expense')}
                     </button>
 

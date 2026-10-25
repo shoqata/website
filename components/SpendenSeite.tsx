@@ -205,7 +205,7 @@ const SpendenSeite: React.FC = () => {
                   const gewaehlt = aufruf === a.id;
                   return (
                     <button type="button" key={a.id} onClick={() => setAufruf(gewaehlt ? null : a.id)}
-                      className={`w-full text-left p-4 rounded-2xl border transition-all ${gewaehlt
+                      className={`w-full text-left p-4 rounded-2xl border transition ${gewaehlt
                         ? 'bg-white border-primary shadow-sm'
                         : 'bg-white/60 border-stone-200 hover:border-stone-300'}`}>
                       <p className={`font-bold text-sm ${gewaehlt ? 'text-primary' : 'text-stone-900'}`}>{a.titel}</p>

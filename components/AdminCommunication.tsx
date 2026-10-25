@@ -299,7 +299,7 @@ const AdminCommunication: React.FC = () => {
                             <div className="flex gap-2 mt-2">
                                 <button onClick={() => setNewPollOptions([...newPollOptions, ''])} className="text-xs font-bold text-stone-400 hover:text-stone-600">+ Add Option</button>
                             </div>
-                            <button onClick={createPoll} className="mt-4 w-full bg-stone-900 text-white py-3 rounded-xl font-bold hover:bg-black transition-all">{t('comm.launch_poll')}</button>
+                            <button onClick={createPoll} className="mt-4 w-full bg-stone-900 text-white py-3 rounded-xl font-bold hover:bg-black transition">{t('comm.launch_poll')}</button>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

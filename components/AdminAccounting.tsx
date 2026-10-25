@@ -32,6 +32,7 @@ import { useFeedback } from '../context/FeedbackContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from '../context/LanguageContext';
 import { revisionsberichtHtml } from '../lib/revisionsbericht';
+import { FEDER } from '../lib/bewegung';
 import AdminRevisionszugaenge from './AdminRevisionszugaenge';
 
 // Expanded Swiss KMU Chart of Accounts
@@ -483,10 +484,10 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
     <div className="bg-white rounded-[2.5rem] border border-stone-100 shadow-sm overflow-hidden min-h-[600px] flex flex-col">
         <div className="flex justify-between items-center pr-8 border-b border-stone-100 bg-white sticky top-0 z-20">
             <div className="flex overflow-x-auto no-scrollbar">
-                <button onClick={() => setActiveTab('BILANZ')} className={`px-8 py-6 font-bold text-sm transition-all flex items-center gap-2 border-b-2 ${activeTab === 'BILANZ' ? 'text-primary border-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)]' : 'text-stone-400 border-transparent hover:text-stone-900 hover:bg-stone-50'}`}><Scale size={18}/> {t('admin.accounting.balanceSheet')}</button>
-                <button onClick={() => setActiveTab('ERFOLG')} className={`px-8 py-6 font-bold text-sm transition-all flex items-center gap-2 border-b-2 ${activeTab === 'ERFOLG' ? 'text-primary border-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)]' : 'text-stone-400 border-transparent hover:text-stone-900 hover:bg-stone-50'}`}><TrendingUp size={18}/> {t('admin.accounting.incomeStatement')}</button>
-                <button onClick={() => setActiveTab('JOURNAL')} className={`px-8 py-6 font-bold text-sm transition-all flex items-center gap-2 border-b-2 ${activeTab === 'JOURNAL' ? 'text-primary border-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)]' : 'text-stone-400 border-transparent hover:text-stone-900 hover:bg-stone-50'}`}><BookOpen size={18}/> {t('admin.accounting.journal')}</button>
-                <button onClick={() => setActiveTab('ACCOUNTS')} className={`px-8 py-6 font-bold text-sm transition-all flex items-center gap-2 border-b-2 ${activeTab === 'ACCOUNTS' ? 'text-primary border-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)]' : 'text-stone-400 border-transparent hover:text-stone-900 hover:bg-stone-50'}`}><Filter size={18}/> {t('admin.accounting.accounts')}</button>
+                <button onClick={() => setActiveTab('BILANZ')} className={`px-8 py-6 font-bold text-sm transition flex items-center gap-2 border-b-2 ${activeTab === 'BILANZ' ? 'text-primary border-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)]' : 'text-stone-400 border-transparent hover:text-stone-900 hover:bg-stone-50'}`}><Scale size={18}/> {t('admin.accounting.balanceSheet')}</button>
+                <button onClick={() => setActiveTab('ERFOLG')} className={`px-8 py-6 font-bold text-sm transition flex items-center gap-2 border-b-2 ${activeTab === 'ERFOLG' ? 'text-primary border-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)]' : 'text-stone-400 border-transparent hover:text-stone-900 hover:bg-stone-50'}`}><TrendingUp size={18}/> {t('admin.accounting.incomeStatement')}</button>
+                <button onClick={() => setActiveTab('JOURNAL')} className={`px-8 py-6 font-bold text-sm transition flex items-center gap-2 border-b-2 ${activeTab === 'JOURNAL' ? 'text-primary border-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)]' : 'text-stone-400 border-transparent hover:text-stone-900 hover:bg-stone-50'}`}><BookOpen size={18}/> {t('admin.accounting.journal')}</button>
+                <button onClick={() => setActiveTab('ACCOUNTS')} className={`px-8 py-6 font-bold text-sm transition flex items-center gap-2 border-b-2 ${activeTab === 'ACCOUNTS' ? 'text-primary border-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)]' : 'text-stone-400 border-transparent hover:text-stone-900 hover:bg-stone-50'}`}><Filter size={18}/> {t('admin.accounting.accounts')}</button>
             </div>
             {/* Der Revisionsexport steht neben dem Abschluss, nicht
                 versteckt in einem Konto: er betrifft das ganze Jahr. Er
@@ -565,8 +566,8 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
                         <div><h3 className="text-xl font-bold text-stone-900">{t('acc.journal')}</h3><p className="text-stone-500 text-sm">{t('acc.journal_desc')}</p></div>
                         <div className="flex gap-3">
                             {unbookedPayments.length > 0 && !isYearClosed && ( <button onClick={handleSyncPayments} className="bg-amber-100 text-amber-800 px-5 py-3 rounded-xl font-bold text-xs flex items-center gap-2 hover:bg-amber-200 transition-colors shadow-sm animate-pulse border border-amber-200"><RefreshCw size={16}/> {t('admin.accounting.importPayments')} ({unbookedPayments.length})</button> )}
-                            <button onClick={() => setIsTransferModalOpen(true)} disabled={isYearClosed} className="bg-white border border-stone-200 text-stone-700 px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-stone-50 transition-all disabled:opacity-50"><ArrowLeftRight size={18} /> {t('acc.transfer')}</button>
-                            <button onClick={() => setIsBookingModalOpen(true)} disabled={isYearClosed} className="bg-stone-900 text-white px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-stone-800 transition-all disabled:opacity-50 shadow-lg"><Plus size={18} /> {t('admin.accounting.newBooking')}</button>
+                            <button onClick={() => setIsTransferModalOpen(true)} disabled={isYearClosed} className="bg-white border border-stone-200 text-stone-700 px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-stone-50 transition disabled:opacity-50"><ArrowLeftRight size={18} /> {t('acc.transfer')}</button>
+                            <button onClick={() => setIsBookingModalOpen(true)} disabled={isYearClosed} className="bg-stone-900 text-white px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-stone-800 transition disabled:opacity-50 shadow-lg"><Plus size={18} /> {t('admin.accounting.newBooking')}</button>
                         </div>
                     </div>
                     <div className="bg-white rounded-[2rem] border border-stone-200 overflow-hidden shadow-sm">
@@ -587,7 +588,7 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <KontoAnlegen vorhandene={accounts.map(a => a.code)} onFertig={kontenNeuLaden} />
                     {accountBalances.map(acc => (
-                        <div key={acc.id} onClick={() => setViewAccount(acc)} className="bg-white border border-stone-200 p-6 rounded-[2rem] flex justify-between items-center shadow-sm hover:shadow-md hover:border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)] transition-all cursor-pointer group">
+                        <div key={acc.id} onClick={() => setViewAccount(acc)} className="bg-white border border-stone-200 p-6 rounded-[2rem] flex justify-between items-center shadow-sm hover:shadow-md hover:border-[color:color-mix(in_srgb,var(--primary)_50%,transparent)] transition cursor-pointer group">
                             <div className="flex items-center gap-4"><div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-mono font-bold text-sm ${acc.class === 'ASSET' ? 'bg-emerald-100 text-emerald-700' : acc.class === 'LIABILITY' ? 'bg-orange-100 text-orange-700' : acc.class === 'REVENUE' ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'}`}>{acc.code}</div><div><p className="font-bold text-stone-900 group-hover:text-primary transition-colors">{acc.name}</p><p className="text-[10px] text-stone-400 uppercase tracking-widest">{acc.category}</p></div></div>
                             <div className="text-right"><p className="font-mono font-bold text-stone-800 text-lg">{acc.balance.toFixed(2)}</p><p className="text-[10px] text-stone-400 uppercase tracking-widest">{t('acc.balance')}</p></div>
                         </div>
@@ -704,7 +705,7 @@ const AdminAccounting: React.FC<AdminAccountingProps> = ({ selectedYear, isYearC
                     <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-lg rounded-[2.5rem] p-10 text-center relative overflow-hidden shadow-2xl">
                         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-rose-500 via-purple-500 to-amber-500" />
                         <div className="w-24 h-24 bg-stone-100 rounded-full flex items-center justify-center mx-auto mb-8 relative">
-                            {closingStep === 3 ? ( <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-green-500"><CheckCircle2 size={48} /></motion.div> ) : ( <Lock size={32} className="text-stone-400" /> )}
+                            {closingStep === 3 ? ( <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={FEDER} className="text-green-500"><CheckCircle2 size={48} /></motion.div> ) : ( <Lock size={32} className="text-stone-400" /> )}
                             {closingStep > 0 && closingStep < 3 && ( <div className="absolute inset-0 border-4 border-stone-200 border-t-primary rounded-full animate-spin" /> )}
                         </div>
                         <h3 className="text-3xl font-display font-bold mb-4 text-stone-900">{t('admin.accounting.closeYear')} {selectedYear}</h3>

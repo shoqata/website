@@ -241,13 +241,13 @@ const LoginPage: React.FC = () => {
                   <div className="flex bg-stone-100 p-1 rounded-2xl mb-6">
                     <button 
                       onClick={() => setLoginMethod('PASSWORD')}
-                      className={`flex-1 py-3 rounded-xl text-xs font-bold transition-all ${loginMethod === 'PASSWORD' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-400'}`}
+                      className={`flex-1 py-3 rounded-xl text-xs font-bold transition ${loginMethod === 'PASSWORD' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-400'}`}
                     >
                       {t('login.method.password')}
                     </button>
                     <button 
                       onClick={() => setLoginMethod('MAGIC')}
-                      className={`flex-1 py-3 rounded-xl text-xs font-bold transition-all ${loginMethod === 'MAGIC' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-400'}`}
+                      className={`flex-1 py-3 rounded-xl text-xs font-bold transition ${loginMethod === 'MAGIC' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-400'}`}
                     >
                       {t('login.method.magic')}
                     </button>
@@ -265,7 +265,7 @@ const LoginPage: React.FC = () => {
                             placeholder={t('login.email.placeholder')}
                             value={email} 
                             onChange={(e) => setEmail(e.target.value)} 
-                            className="w-full pl-16 pr-6 py-5 bg-white feld-primaer border-2 border-stone-100 rounded-2xl outline-none transition-all text-lg shadow-sm font-medium" 
+                            className="w-full pl-16 pr-6 py-5 bg-white feld-primaer border-2 border-stone-100 rounded-2xl outline-none transition text-lg shadow-sm font-medium" 
                           />
                         </div>
                       </div>
@@ -288,7 +288,7 @@ const LoginPage: React.FC = () => {
                             placeholder={t('ph.password')}
                             value={password} 
                             onChange={(e) => setPassword(e.target.value)} 
-                            className="w-full pl-16 pr-14 py-5 bg-white feld-primaer border-2 border-stone-100 rounded-2xl outline-none transition-all text-lg shadow-sm font-medium" 
+                            className="w-full pl-16 pr-14 py-5 bg-white feld-primaer border-2 border-stone-100 rounded-2xl outline-none transition text-lg shadow-sm font-medium" 
                           />
                           <button 
                             type="button"
@@ -302,7 +302,7 @@ const LoginPage: React.FC = () => {
                       <button 
                         type="submit" 
                         disabled={isLoading} 
-                        className="knopf-primaer w-full text-white font-bold py-5 rounded-2xl flex items-center justify-center gap-3 transition-all disabled:opacity-50 text-lg"
+                        className="knopf-primaer w-full text-white font-bold py-5 rounded-2xl flex items-center justify-center gap-3 transition disabled:opacity-50 text-lg"
                       >
                         {isLoading ? (
                           <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -323,14 +323,14 @@ const LoginPage: React.FC = () => {
                             placeholder={t('login.email.placeholder')}
                             value={email} 
                             onChange={(e) => setEmail(e.target.value)} 
-                            className="w-full pl-16 pr-6 py-5 bg-white feld-primaer border-2 border-stone-100 rounded-2xl outline-none transition-all text-lg shadow-sm font-medium" 
+                            className="w-full pl-16 pr-6 py-5 bg-white feld-primaer border-2 border-stone-100 rounded-2xl outline-none transition text-lg shadow-sm font-medium" 
                           />
                         </div>
                       </div>
                       <button 
                         type="submit" 
                         disabled={isLoading} 
-                        className="knopf-primaer w-full text-white font-bold py-5 rounded-2xl flex items-center justify-center gap-3 transition-all disabled:opacity-50 text-lg"
+                        className="knopf-primaer w-full text-white font-bold py-5 rounded-2xl flex items-center justify-center gap-3 transition disabled:opacity-50 text-lg"
                       >
                         {isLoading ? (
                           <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -368,14 +368,14 @@ const LoginPage: React.FC = () => {
                         placeholder={t('login.email.placeholder')}
                         value={email} 
                         onChange={(e) => setEmail(e.target.value)} 
-                        className="w-full pl-16 pr-6 py-5 bg-white feld-primaer border-2 border-stone-100 rounded-2xl outline-none transition-all text-lg shadow-sm font-medium" 
+                        className="w-full pl-16 pr-6 py-5 bg-white feld-primaer border-2 border-stone-100 rounded-2xl outline-none transition text-lg shadow-sm font-medium" 
                       />
                     </div>
                   </div>
                   <button 
                     type="submit" 
                     disabled={isLoading} 
-                    className="knopf-primaer w-full text-white font-bold py-5 rounded-2xl flex items-center justify-center gap-3 transition-all disabled:opacity-50 text-lg"
+                    className="knopf-primaer w-full text-white font-bold py-5 rounded-2xl flex items-center justify-center gap-3 transition disabled:opacity-50 text-lg"
                   >
                     {isLoading ? (
                       <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -404,7 +404,7 @@ const LoginPage: React.FC = () => {
                 </p>
                 <button 
                   onClick={() => setStep('INPUT')} 
-                  className="w-full bg-stone-900 text-white font-bold py-5 rounded-2xl flex items-center justify-center gap-3 hover:bg-stone-800 transition-all shadow-xl text-lg"
+                  className="w-full bg-stone-900 text-white font-bold py-5 rounded-2xl flex items-center justify-center gap-3 hover:bg-stone-800 transition shadow-xl text-lg"
                 >
                   <LogIn size={22} /> {t('login.submit')}
                 </button>

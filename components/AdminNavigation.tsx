@@ -290,7 +290,7 @@ const AdminNavigation: React.FC = () => {
       </div>
 
       <button onClick={speichern} disabled={speichert || !geaendert}
-        className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all disabled:opacity-60 ${
+        className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-3 transition disabled:opacity-60 ${
           gespeichert ? 'bg-green-500 text-white' : 'bg-primary text-white'}`}>
         {speichert ? <Loader2 className="animate-spin" size={18} /> : gespeichert ? <Check size={18} /> : <Save size={18} />}
         {gespeichert ? t('navv.gespeichert') : t('navv.speichern')}

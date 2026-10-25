@@ -159,7 +159,7 @@ const AdminSeiten: React.FC = () => {
         <div className="flex gap-1 bg-white p-1 rounded-xl border border-stone-200">
           {SPRACHEN.map(([w, n]) => (
             <button key={w} onClick={() => setSprache(w as any)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                 sprache === w ? 'bg-stone-900 text-white' : 'text-stone-400 hover:text-stone-700'}`}>
               {n}
             </button>

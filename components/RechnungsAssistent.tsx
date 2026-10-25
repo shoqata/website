@@ -225,7 +225,7 @@ const RechnungsAssistent: React.FC<{
                   ['AUSWAHL', 'Eigene Auswahl', 'Einzelne Mitglieder auswählen.'],
                 ] as const).map(([k, t, z]) => (
                   <button key={k} onClick={() => setModus(k)}
-                    className={`text-left p-4 rounded-2xl border-2 transition-all ${modus === k ? 'border-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)]' : 'border-stone-100 hover:border-stone-200'}`}>
+                    className={`text-left p-4 rounded-2xl border-2 transition ${modus === k ? 'border-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)]' : 'border-stone-100 hover:border-stone-200'}`}>
                     <p className="font-bold text-sm text-stone-900 flex items-center gap-2"><Users size={15} /> {t}</p>
                     <p className="text-xs text-stone-500 mt-1 leading-relaxed">{z}</p>
                   </button>
@@ -333,7 +333,7 @@ const RechnungsAssistent: React.FC<{
               <Loader2 className="animate-spin text-primary mx-auto" size={32} />
               <p className="font-bold text-stone-800">{stand}</p>
               <div className="max-w-sm mx-auto h-2 bg-stone-100 rounded-full overflow-hidden">
-                <div className="h-full bg-primary transition-all" style={{ width: `${fortschritt.gesamt ? (fortschritt.fertig / fortschritt.gesamt) * 100 : 0}%` }} />
+                <div className="h-full bg-primary transition-[width] duration-300 ease-out-strong" style={{ width: `${fortschritt.gesamt ? (fortschritt.fertig / fortschritt.gesamt) * 100 : 0}%` }} />
               </div>
               <p className="text-xs text-stone-500">{fortschritt.fertig} von {fortschritt.gesamt} · Bitte das Fenster offen lassen.</p>
             </div>

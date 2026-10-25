@@ -132,7 +132,7 @@ const AnfragenBearbeiten: React.FC<{ breit?: boolean }> = ({ breit }) => {
           const ueberfaellig = a.status === 'WAITING' && a.wartenBis && a.wartenBis < heute();
           return (
             <button key={a.id} onClick={() => setOffenId(a.id)}
-              className="w-full text-left p-4 rounded-2xl bg-stone-50 border border-stone-100 hover:bg-white hover:shadow-md hover:border-stone-200 transition-all group">
+              className="w-full text-left p-4 rounded-2xl bg-stone-50 border border-stone-100 hover:bg-white hover:shadow-md hover:border-stone-200 transition group">
               <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${STATUS_FARBE[a.status] || 'bg-stone-100'}`}>{t(`req.status.${a.status}`)}</span>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-white border border-stone-200 text-stone-500 uppercase">{t(`req.type.${a.type}`)}</span>

@@ -402,13 +402,13 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
             <div className="flex border-b border-stone-100 p-2 gap-2 bg-stone-50">
                 <button 
                     onClick={() => setActiveTab('PROTOCOLS')} 
-                    className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${activeTab === 'PROTOCOLS' ? 'bg-white text-primary shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
+                    className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition ${activeTab === 'PROTOCOLS' ? 'bg-white text-primary shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
                 >
                     <FileText size={16} /> {t('minutes.tab')}
                 </button>
                 <button 
                     onClick={() => setActiveTab('MEMBERS')} 
-                    className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${activeTab === 'MEMBERS' ? 'bg-white text-primary shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
+                    className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition ${activeTab === 'MEMBERS' ? 'bg-white text-primary shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
                 >
                     <Users size={16} /> {t('board.members_title')}
                 </button>
@@ -459,7 +459,7 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                             onChange={e => setNewBoardMember({...newBoardMember, quote: e.target.value})} 
                                             className="w-full p-3 bg-white rounded-xl text-sm border border-stone-200 outline-none h-20" 
                                         />
-                                        <button onClick={handleAddBoardMember} disabled={!newBoardMember.userId} className="px-6 py-3 bg-stone-900 text-white rounded-xl text-sm font-bold disabled:opacity-50 hover:bg-black transition-all">
+                                        <button onClick={handleAddBoardMember} disabled={!newBoardMember.userId} className="px-6 py-3 bg-stone-900 text-white rounded-xl text-sm font-bold disabled:opacity-50 hover:bg-black transition">
                                             {t('board.save_member')}
                                         </button>
                                     </div>
@@ -470,13 +470,13 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                 {boardMembers.map(bm => {
                                     const u = users.find(user => user.id === bm.userId);
                                     return (
-                                        <div key={bm.id} className="flex items-center gap-4 p-4 bg-white border border-stone-100 rounded-2xl shadow-sm group hover:shadow-md transition-all">
+                                        <div key={bm.id} className="flex items-center gap-4 p-4 bg-white border border-stone-100 rounded-2xl shadow-sm group hover:shadow-md transition">
                                             <img src={bm.image || u?.photoFileName} className="w-12 h-12 rounded-xl object-cover bg-stone-100" onError={onImageError}/>
                                             <div className="flex-1">
                                                 <p className="font-bold text-stone-900">{u?.displayName}</p>
                                                 <p className="text-xs text-primary font-bold uppercase tracking-wide">{bm.role}</p>
                                             </div>
-                                            <button onClick={() => handleDeleteBoardMember(bm.id)} className="p-2 bg-stone-50 text-stone-400 hover:text-red-500 rounded-lg opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={16}/></button>
+                                            <button onClick={() => handleDeleteBoardMember(bm.id)} className="p-2 bg-stone-50 text-stone-400 hover:text-red-500 rounded-lg opacity-0 group-hover:opacity-100 transition"><Trash2 size={16}/></button>
                                         </div>
                                     )
                                 })}
@@ -498,7 +498,7 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                     <div 
                                         key={m.id} 
                                         onClick={() => setSelectedMeeting(m)}
-                                        className={`p-4 rounded-xl cursor-pointer border transition-all group ${selectedMeeting?.id === m.id ? 'bg-white border-primary shadow-md' : 'bg-transparent border-transparent hover:bg-white hover:border-stone-200'}`}
+                                        className={`p-4 rounded-xl cursor-pointer border transition group ${selectedMeeting?.id === m.id ? 'bg-white border-primary shadow-md' : 'bg-transparent border-transparent hover:bg-white hover:border-stone-200'}`}
                                     >
                                         <div className="flex justify-between items-start mb-1">
                                             <span className="font-bold text-stone-800 text-sm line-clamp-1">{m.title}</span>
@@ -547,10 +547,10 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                             {/* Teilen nimmt den gespeicherten Stand mit den aktuellen Gaesten. */}
                                             <ProtokollTeilen meeting={{ ...selectedMeeting, attendees: mitGaesten(selectedMeeting.attendees, gaeste) }}
                                                 boardUsers={users.filter(u => ['BOARD', 'ADMIN', 'SUPER_ADMIN'].includes(u.role || ''))} />
-                                            <button onClick={() => setShowPreview(true)} className="bg-white border border-stone-200 text-stone-600 px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-stone-50 transition-all">
+                                            <button onClick={() => setShowPreview(true)} className="bg-white border border-stone-200 text-stone-600 px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-stone-50 transition">
                                                 <Eye size={18} /> {t('minutes.preview_pdf')}
                                             </button>
-                                            <button onClick={saveProtocol} className="bg-primary text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-rose-200 hover:scale-105 transition-all">
+                                            <button onClick={saveProtocol} className="bg-primary text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-rose-200 hover:scale-105 transition">
                                                 <Save size={18} /> {t('btn.save')}
                                             </button>
                                         </div>
@@ -596,7 +596,7 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
                                                             <td className="px-4 py-3 text-center">
                                                                 <button 
                                                                     onClick={() => updateAttendee(idx, !att.present)}
-                                                                    className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${att.present ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-400'}`}
+                                                                    className={`px-3 py-1 rounded-full text-xs font-bold transition ${att.present ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-400'}`}
                                                                 >
                                                                     {att.present ? t('common.yes') : t('common.no')}
                                                                 </button>
