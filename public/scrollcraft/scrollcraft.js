@@ -337,6 +337,7 @@
       var pinned = device === 'scrub' || device === 'pin' || device === 'pan';
       var act = {
         el: el,
+        exposeP: el.hasAttribute('data-sc-expose-p'),  // Zusatz, s. HERKUNFT.md
         device: device,
         pinned: pinned,
         span: parseFloat(el.getAttribute('data-sc-span')) || (pinned ? 1.5 : 0),
@@ -867,7 +868,7 @@
           a.vp = a.dwell ? dwell(vraw, a.dwell) : vraw;
         }
         a.live = (y > a.top - vh * 1.25) && (y < a.top + a.height + vh * 1.25);
-        a.el.style.setProperty('--sc-p', a.p.toFixed(4));
+        if (a.exposeP) a.el.style.setProperty('--sc-p', a.p.toFixed(4));  // Zusatz: nur auf Wunsch
 
         // Fetch earlier than we drive. A 1080p clip is megabytes, and a reader
         // who scrolls briskly will otherwise arrive at a stage that is still
@@ -1101,11 +1102,11 @@
     // triggering events includes touchend but NOT touchstart. A restricted
     // device (Low Power Mode) that rejects the touchstart prime for lacking
     // activation gets a second, valid chance the moment the finger lifts.
-    addEventListener('touchstart', prime, { passive: true });
-    addEventListener('touchend', prime, { passive: true });
-    addEventListener('pointerdown', prime, { passive: true });
-    addEventListener('click', prime, { passive: true });
-    addEventListener('scroll', prime, { passive: true });
+    scLauscher(window, 'touchstart', prime, { passive: true });  // Zusatz: abhaengbar
+    scLauscher(window, 'touchend', prime, { passive: true });  // Zusatz: abhaengbar
+    scLauscher(window, 'pointerdown', prime, { passive: true });  // Zusatz: abhaengbar
+    scLauscher(window, 'click', prime, { passive: true });  // Zusatz: abhaengbar
+    scLauscher(window, 'scroll', prime, { passive: true });  // Zusatz: abhaengbar
 
     // ---- pointer devices --------------------------------------------------
     var tilts = [], magnets = [], spots = [];
@@ -1205,6 +1206,7 @@
     if (document.fonts && document.fonts.ready) {
       // Line splitting measures line boxes, so it has to wait for the real face.
       document.fonts.ready.then(function () {
+        if (scTot) return;                     // Zusatz: nach destroy() nichts mehr
         acts.forEach(function (a) { a.cues.forEach(function (q) { if (q.kinetic && q.units) { q.el.__scSplit = null; q.units = null; } }); });
         layout();
       });
@@ -1225,6 +1227,7 @@
       var i = global.ScrollCraft.instances.indexOf(api);
       if (i >= 0) global.ScrollCraft.instances.splice(i, 1);
       document.documentElement.classList.remove('sc-ready');
+      document.documentElement.style.removeProperty('--sc-canvas');
     };
     global.ScrollCraft.instances.push(api);
     return api;

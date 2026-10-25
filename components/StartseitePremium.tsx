@@ -82,66 +82,108 @@ const StartseitePremium: React.FC = () => {
   const [bereit, setBereit] = useState(false);
 
   useEffect(() => {
-    (async () => {
+    let lebt = true;
+    const stamm = (async () => {
       const [b, z, s] = await Promise.all([
         getDoc(doc(db, 'public_settings', 'branding')).catch(() => null),
         getDoc(doc(db, 'public_settings', 'payment')).catch(() => null),
         supabase.rpc('beitragsstand_oeffentlich'),
       ]);
+      if (!lebt) return;
       if (b?.exists()) setMarke(b.data() as Marke);
       if (z?.exists()) setZahlung(z.data());
       if (!s.error) setBeitraege(s.data);
     })();
 
+    let ersteListe: () => void = () => {};
+    const mitgliederDa = new Promise<void>(r => { ersteListe = r; });
     const ab = onSnapshot(collection(db, 'public_members'), (snap) => {
       const alle = snap.docs.map((d: any) => d.data());
       const aktiv = alle.filter((m: any) => m.membershipStatus === 'ACTIVE');
       setMitglieder(aktiv.length);
       setDiaspora(aktiv.filter((m: any) => !m.livesInKoretin).length);
+      ersteListe();
     });
 
-    (async () => {
+    const termine = (async () => {
       const e = await getDocs(query(collection(db, 'events')));
       const kommend = e.docs.map((d: any) => ({ id: d.id, ...d.data() }))
         .filter((x: any) => x.date && new Date(x.date) >= new Date(Date.now() - 864e5))
         .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
-      setAnlaesse(kommend.slice(0, 3));
+      if (lebt) setAnlaesse(kommend.slice(0, 3));
     })().catch(() => { /* ohne Anlaesse entfaellt der Akt */ });
 
-    setBereit(true);
-    return () => ab();
+    // Erst bereit, wenn alles da ist, was die Akte formt. Vorher wurde der
+    // Kern auf leerem Markup eingehaengt und bei jeder ankommenden Antwort
+    // abgerissen und neu gebaut -- Stylesheet und dunkle Leiste flackerten,
+    // und kam die Marke zuletzt, fehlte der Akt mit den Projekten ganz.
+    // Haengt eine Quelle, wartet die Seite nicht laenger als 4 Sekunden.
+    Promise.race([
+      Promise.allSettled([stamm, termine, mitgliederDa]),
+      new Promise(r => setTimeout(r, 4000)),
+    ]).then(() => { if (lebt) setBereit(true); });
+
+    return () => { lebt = false; ab(); };
+  }, []);
+
+  // Stylesheet und Kennzeichen fuer die Leiste gehoeren zur ganzen
+  // Lebenszeit der Seite, nicht zu einem Einhaengen des Kerns.
+  const stilRef = useRef<HTMLLinkElement | null>(null);
+  useEffect(() => {
+    const stil = stilEinhaengen();
+    stilRef.current = stil;
+    // Die Navigationsleiste liegt ausserhalb dieser Seite und ist fuer hellen
+    // Grund gemacht. Hier kennzeichnen statt dort umbauen: so bleibt sie
+    // ueberall sonst unveraendert.
+    document.documentElement.dataset.startseite = 'premium';
+    return () => {
+      stil.remove();
+      delete document.documentElement.dataset.startseite;
+    };
   }, []);
 
   // Der Kern wird erst eingehaengt, wenn das Markup wirklich steht -- er
   // misst Zeilenhoehen und Positionen, und auf halb gefuelltem Markup
   // misst er falsch.
+  // Einmal einhaengen, wenn die Daten stehen. Spaetere Aenderungen (ein
+  // neues Mitglied, ein nachgeladenes Bild) verschieben nur Hoehen -- dafuer
+  // misst der Kern neu, statt abgerissen zu werden.
   useEffect(() => {
     if (!bereit || !wurzel.current) return;
     let instanz: any = null;
     let abgebrochen = false;
-    const stil = stilEinhaengen();
-    // Die Navigationsleiste liegt ausserhalb dieser Seite und ist fuer hellen
-    // Grund gemacht. Hier kennzeichnen statt dort umbauen: so bleibt sie
-    // ueberall sonst unveraendert.
-    document.documentElement.dataset.startseite = 'premium';
+    let beobachter: ResizeObserver | null = null;
 
-    kernLaden().then(() => {
+    // Auf das Stylesheet warten: vorher steht kein Akt an seinem Platz, der
+    // Kern mass die Positionen falsch, und am Seitenende blieben Schluss-
+    // titel und Knoepfe unsichtbar und nicht anklickbar.
+    const stil = stilRef.current;
+    const stilDa = new Promise<void>(r => {
+      if (!stil || stil.sheet) return r();
+      stil.addEventListener('load', () => r(), { once: true });
+      stil.addEventListener('error', () => r(), { once: true });
+    });
+
+    Promise.all([kernLaden(), stilDa]).then(() => {
       if (abgebrochen || !wurzel.current) return;
       const SC = (window as any).ScrollCraft;
       if (!SC) return;
       instanz = SC.mount(wurzel.current);
-    }).catch(() => { /* ohne Kern bleibt die Seite lesbar, nur ohne Bewegung */ });
+      wurzel.current.classList.add('sc-an');
+      beobachter = new ResizeObserver(() => instanz?.layout?.());
+      beobachter.observe(wurzel.current);
+    }).catch(() => { /* ohne Kern bleibt die Seite lesbar (.sc-an fehlt) */ });
 
     return () => {
       abgebrochen = true;
+      beobachter?.disconnect();
       // destroy() ist ein Zusatz dieser Anwendung; ohne ihn liefe die
       // Bildschleife auf abgehaengtem Markup weiter. Siehe
       // public/scrollcraft/HERKUNFT.md.
       if (instanz && typeof instanz.destroy === 'function') instanz.destroy();
-      stil.remove();
-      delete document.documentElement.dataset.startseite;
+      wurzel.current?.classList.remove('sc-an');
     };
-  }, [bereit, mitglieder, anlaesse.length, beitraege]);
+  }, [bereit]);
 
   const titel = textVon(marke.heroTitle, sprache);
   const unter = textVon(marke.heroSubtitle, sprache);
@@ -176,9 +218,27 @@ const StartseitePremium: React.FC = () => {
         }
         html[data-startseite="premium"] nav a,
         html[data-startseite="premium"] nav button { color: #f6f5f3; }
-        html[data-startseite="premium"] nav a:hover { color: var(--primary, #f43f5e); }
+        @media (hover: hover) and (pointer: fine) {
+          html[data-startseite="premium"] nav a:hover { color: var(--primary, #f43f5e); }
+        }
+        /* Weisse Schrift nur auf dunklem Grund: Menueknopf, aktiver Tab und
+           das aufgeklappte Menue haben eigenen hellen Hintergrund und waren
+           sonst weiss auf weiss. */
+        html[data-startseite="premium"] nav :is(a, button):is(.bg-white, [class*="bg-white/"]),
+        html[data-startseite="premium"] nav .bg-white\/95 :is(a, button) { color: #1c1917; }
 
         .sc-seite .zahl { font-variant-numeric: tabular-nums; }
+        /* Ohne Kern (Skript nicht geladen) liesse das Stylesheet jeden Cue
+           auf opacity 0 stehen -- die ganze Seite waere leer. */
+        .sc-seite:not(.sc-an) [data-sc-cue] { opacity: 1 !important; }
+        /* Reduzierte Bewegung: der Kern macht aus dem Schwenk einen seitlich
+           scrollbaren Streifen, den Mausnutzer nicht erreichen. Stattdessen
+           die Karten einfach untereinander zeigen. */
+        @media (prefers-reduced-motion: reduce) {
+          .sc-seite [data-sc-act="pan"] { height: auto !important; }
+          .sc-seite [data-sc-act="pan"] [data-sc-stage] { position: static; height: auto; overflow: visible; }
+          .sc-seite .band { position: static; flex-wrap: wrap; padding: 20vh 6vw 10vh; transform: none !important; }
+        }
         .sc-seite .marke-zeile {
           display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
         }
@@ -187,7 +247,9 @@ const StartseitePremium: React.FC = () => {
           padding: 14px 26px; border-radius: 999px; font-weight: 600;
           background: var(--sc-accent); color: var(--sc-accent-ink);
           text-decoration: none;
+          transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
         }
+        .sc-seite .knopf:active { transform: scale(0.97); }
         .sc-seite .knopf--leise {
           background: transparent; color: var(--sc-ink);
           border: 1px solid rgba(255,255,255,.22);
@@ -234,7 +296,7 @@ const StartseitePremium: React.FC = () => {
 
       {/* 1 · Ankunft. Gepinnt, damit die Schrift das ganze Bild bekommt.
           Liegt ein Bild vor, traegt es den Akt; sonst traegt ihn die Schrift. */}
-      <section data-sc-act="pin" data-sc-span="1.8" data-sc-drift="#0b0c10">
+      <section data-sc-act="pin" data-sc-span="1.8">
         <div data-sc-stage>
           {bilder[0] && (
             <img className="hintergrundbild" src={bilder[0]} alt="" onError={onImageError} />
@@ -242,7 +304,7 @@ const StartseitePremium: React.FC = () => {
           <div className="sc-scrim sc-scrim--lead" aria-hidden="true"></div>
           <div className="sc-copy sc-copy--lead" data-sc-cue="0 0.75 0">
             {abzeichen && <p className="sc-label">{abzeichen}</p>}
-            <h1 className="sc-display sc-display--xl" data-sc-kinetic="lines">
+            <h1 className="sc-display sc-display--xl">
               {titel || t('hero.title')}
             </h1>
             {unter && <p className="sc-lede">{unter}</p>}
@@ -256,23 +318,23 @@ const StartseitePremium: React.FC = () => {
           Genau daran war der erste Entwurf unsichtbar. */}
       <section data-sc-act="flow" className="sc-section">
         <div className="sc-wrap">
-          <p className="sc-label" data-sc-cue="0 0.35">{t('prem.wer_titel')}</p>
+          <p className="sc-label" data-sc-cue="0">{t('prem.wer_titel')}</p>
           <div className="gitter" style={{ marginTop: 34 }}>
-            <div data-sc-cue="0.05 0.5">
-              <p className="sc-display sc-display--lg zahl" data-sc-count={`0 ${mitglieder}`}>0</p>
+            <div data-sc-cue="0.04">
+              <p className="sc-display sc-display--lg zahl" data-sc-count={`0 ${mitglieder}`} data-sc-count-at="0.06 0.3">0</p>
               <p className="sc-body">{t('prem.mitglieder')}</p>
             </div>
-            <div data-sc-cue="0.15 0.6">
-              <p className="sc-display sc-display--lg zahl" data-sc-count={`0 ${diaspora}`}>0</p>
+            <div data-sc-cue="0.08">
+              <p className="sc-display sc-display--lg zahl" data-sc-count={`0 ${diaspora}`} data-sc-count-at="0.06 0.3">0</p>
               <p className="sc-body">{t('prem.diaspora')}</p>
             </div>
             {beitraege && beitraege.stellung !== 'AUS' && Number(beitraege.anzahl) > 0 && (
-              <div data-sc-cue="0.25 0.7">
+              <div data-sc-cue="0.12">
                 <p className="sc-display sc-display--lg zahl"
                    /* Immer die Anzahl: sie benennt niemanden, und ein
                       Widerspruch darf den Rueckhalt des Vereins nicht
                       kleiner aussehen lassen. */
-                   data-sc-count={`0 ${beitraege.anzahl}`}>0</p>
+                   data-sc-count={`0 ${beitraege.anzahl}`} data-sc-count-at="0.06 0.3">0</p>
                 <p className="sc-body">{t('prem.beitraege', { jahr: beitraege.jahr })}</p>
               </div>
             )}
@@ -287,7 +349,7 @@ const StartseitePremium: React.FC = () => {
             <div className="sc-copy sc-copy--lead" style={{ top: '14vh' }}>
               <p className="sc-label">{t('prem.wofuer')}</p>
             </div>
-            <div className="band" data-sc-pan="0.66">
+            <div className="band" data-sc-pan="0">
               {missionen.map((m: any, i: number) => (
                 <figure key={i}>
                   {m.image && <img src={m.image} alt="" onError={onImageError} />}
@@ -305,13 +367,13 @@ const StartseitePremium: React.FC = () => {
       {/* 4 · Was als naechstes ansteht. Entfaellt ohne Anlaesse -- ein leerer
           Akt waere schlimmer als keiner. */}
       {anlaesse.length > 0 && (
-        <section data-sc-act="pin" data-sc-span="2.2" data-sc-drift="#0b0c10">
+        <section data-sc-act="pin" data-sc-span="1.6">
           <div data-sc-stage>
             <div className="sc-copy sc-copy--center">
-              <p className="sc-label" data-sc-cue="0 0.35">{t('prem.naechstes')}</p>
+              <p className="sc-label" data-sc-cue="0 1 0 0.15">{t('prem.naechstes')}</p>
               <div className="gitter" style={{ marginTop: 30 }}>
                 {anlaesse.map((a: any, i: number) => (
-                  <div className="karte" key={a.id} data-sc-cue={`${0.08 + i * 0.12} ${0.55 + i * 0.12}`}>
+                  <div className="karte" key={a.id} data-sc-cue={`${0.04 + i * 0.06} 0.95 0.25 0.15`}>
                     <p className="sc-label" style={{ marginBottom: 8 }}>
                       {new Date(a.date).toLocaleDateString(sprache === 'sq' ? 'sq-AL' : 'de-CH',
                         { day: '2-digit', month: 'long' })}
@@ -330,10 +392,10 @@ const StartseitePremium: React.FC = () => {
           Kern, und inhaltlich gehoert die Bitte ans Ende. */}
       <section data-sc-act="flow" className="sc-section schluss">
         <div className="sc-wrap" style={{ textAlign: 'center' }}>
-          <h2 className="sc-display sc-display--lg" data-sc-cue="0 0.6" data-sc-kinetic="words">
+          <h2 className="sc-display sc-display--lg" data-sc-cue="0" data-sc-kinetic="words">
             {warum || t('prem.schluss_titel')}
           </h2>
-          <div className="marke-zeile" data-sc-cue="0.2 0.8"
+          <div className="marke-zeile" data-sc-cue="0.1"
                style={{ justifyContent: 'center', marginTop: 30 }}>
             <Link to="/register" className="knopf">{t('hero.cta.register')}</Link>
             <Link to="/spenden" className="knopf knopf--leise">{t('nav.spenden')}</Link>

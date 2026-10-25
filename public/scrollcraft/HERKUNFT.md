@@ -35,6 +35,17 @@ Angebracht sind daher vier Stellen, alle mit `Zusatz` kommentiert:
 4. `api.destroy()` setzt den Schalter, haengt die Zuhoerer ab, nimmt die
    Instanz aus `ScrollCraft.instances` und entfernt `sc-ready`
 
+Seit 25.10.2026 (Pruefung nach emilkowalski/skills review-animations) dazu:
+
+5. die fuenf `prime`-Zuhoerer (`touchstart`, `touchend`, `pointerdown`,
+   `click`, `scroll`) laufen ebenfalls ueber `scLauscher()` -- ohne Videos
+   wurden sie nie abgehaengt, jedes Einhaengen liess fuenf liegen
+6. der `fonts.ready`-Rueckruf tut nach `destroy()` nichts mehr
+7. `--sc-p` wird nur geschrieben, wenn der Akt `data-sc-expose-p` traegt;
+   je Bild auf jeden Akt geschrieben, rechnete der Browser die Stile aller
+   Nachkommen neu, obwohl die Seite den Wert nirgends liest
+8. `destroy()` entfernt auch `--sc-canvas` vom `<html>`
+
 Nachgemessen im Browser: nach `destroy()` stehen 0 Instanzen, `sc-ready` ist
 weg, der Fortschrittsbalken reagiert nicht mehr auf Scrollen, und ein
 erneutes `mount()` ergibt wieder genau eine Instanz statt zwei.
