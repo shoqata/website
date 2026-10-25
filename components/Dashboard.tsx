@@ -55,6 +55,7 @@ import { onImageError } from '../lib/imageFallback';
 import MeineFamilie from './MeineFamilie';
 import AenderungMelden from './AenderungMelden';
 import MeineAnlaesse from './MeineAnlaesse';
+import { AusweisKarte } from './Mitgliederausweis';
 import { supabase as sbClient } from '../services/supabase-bridge';
 // Kuerzel aus dem Vereinsnamen, z. B. "Shoqata Koretini" -> "SK".
 const initialsOf = (name: string) =>
@@ -671,6 +672,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                     </div>
                 </div>
             )}
+
+            <AusweisKarte user={user} />
 
             {/* Payment History List */}
             <div className="bg-white p-8 rounded-[2.5rem] border border-stone-100 shadow-sm">

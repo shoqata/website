@@ -94,6 +94,7 @@ const NachrichtSeite = React.lazy(() => import('./components/NachrichtSeite'));
 const AboutUsPage = React.lazy(() => import('./components/AboutUsPage'));
 const ChronikSeite = React.lazy(() => import('./components/ChronikSeite'));
 const KontaktSeite = React.lazy(() => import('./components/KontaktSeite'));
+const AusweisPruefen = React.lazy(() => import('./components/Mitgliederausweis').then(m => ({ default: m.AusweisPruefen })));
 const NachbarschaftSeite = React.lazy(() => import('./components/NachbarschaftSeite'));
 const NachbarschaftenUebersicht = React.lazy(() => import('./components/NachbarschaftSeite').then(m => ({ default: m.NachbarschaftenUebersicht })));
 const FutsalPage = React.lazy(() => import('./components/FutsalPage'));
@@ -656,6 +657,7 @@ const AppContent: React.FC = () => {
                             : z === 'ZEIGEN' ? <ChronikSeite />
                             : <Navigate to="/" replace />)
                       (seitenZustand(websiteModule, 'WEBSITE', istPlattformDomain))} />
+                    <Route path="/ausweis/:id" element={<AusweisPruefen />} />
                     <Route path="/kontakt" element={
                       ((z) => z === 'LAEDT' ? <PageLoader />
                             : z === 'ZEIGEN' ? <KontaktSeite />

@@ -4,6 +4,7 @@ import { supabase } from '../services/supabase-bridge';
 import { useTranslation } from '../context/LanguageContext';
 import { useFeedback } from '../context/FeedbackContext';
 import { useTenant } from '../context/TenantContext';
+import Jahresbericht from './Jahresbericht';
 
 // Generalversammlung von A bis Z: vorbereiten (Traktanden), einladen (an
 // alle mit E-Mail), am Abend Praesenz und Ergebnisse festhalten, Protokoll
@@ -186,6 +187,7 @@ const AdminVersammlung: React.FC = () => {
         </div>
         <button onClick={neu} className="knopf-primaer px-5 py-2.5 text-white rounded-xl text-xs font-bold flex items-center gap-2"><Plus size={14} /> {t('gv.neu')}</button>
       </div>
+      <Jahresbericht />
       {!liste.length ? (
         <div className="p-10 bg-stone-50 rounded-3xl border border-stone-100 text-center text-sm text-stone-500">{t('gv.leer')}</div>
       ) : (

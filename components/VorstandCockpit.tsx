@@ -3,6 +3,8 @@ import { Inbox, Gavel, CalendarDays, Newspaper, AlertTriangle, CheckCircle2, Use
 import { supabase } from '../services/supabase-bridge';
 import { useTranslation } from '../context/LanguageContext';
 import { isOverdue } from '../lib/memberQuality';
+import { anstehend, type Anlass } from '../lib/jubilaeen';
+import { Cake, Award, Mail } from 'lucide-react';
 
 // Cockpit fuer den Vorstand: was heute Aufmerksamkeit braucht, auf einen
 // Blick. Jede Kachel zaehlt nur; gearbeitet wird in den Bereichen darunter.
@@ -12,6 +14,7 @@ type Kachel = { k: string; icon: React.ReactNode; zahl: number | string; text: s
 const VorstandCockpit: React.FC = () => {
   const { t } = useTranslation();
   const [kacheln, setKacheln] = useState<Kachel[] | null>(null);
+  const [feiern, setFeiern] = useState<Anlass[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -25,6 +28,8 @@ const VorstandCockpit: React.FC = () => {
         supabase.from('payments').select('status, dueDate'),
         supabase.from('users').select('id', { count: 'exact', head: true }).eq('membershipStatus', 'PENDING'),
       ]);
+      const { data: leute } = await supabase.from('users').select('id, displayName, email, birthdate, joinedAt, membershipStatus');
+      setFeiern(anstehend((leute ?? []) as any[]));
       const neue = neu.count ?? 0;
       const offen = (aend.data ?? []).filter((z: any) => z.status === 'OFFEN').length;
       const naechste = (gv.data ?? [])[0] as any;
@@ -62,6 +67,24 @@ const VorstandCockpit: React.FC = () => {
           </div>
         ))}
       </div>
+      {feiern.length > 0 && (
+        <div className="mt-3 p-4 bg-white border border-stone-100 rounded-2xl">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-2">{t('cockpit.feiern', { count: feiern.length })}</p>
+          <div className="flex flex-wrap gap-2">
+            {feiern.slice(0, 20).map(f => (
+              <span key={f.id + f.art} className="inline-flex items-center gap-2 pl-3 pr-1.5 py-1.5 rounded-xl bg-stone-50 text-xs">
+                {f.art === 'GEBURTSTAG' ? <Cake size={13} className="text-pink-600" /> : <Award size={13} className="text-amber-600" />}
+                <b className="text-stone-700">{f.name}</b>
+                <span className="text-stone-500">{f.datum.toLocaleDateString('de-CH', { weekday: 'short', day: 'numeric', month: 'numeric' })} · {f.art === 'GEBURTSTAG' ? t('cockpit.wird', { jahre: f.jahre }) : t('cockpit.jahre_dabei', { jahre: f.jahre })}</span>
+                {f.email && !f.email.endsWith('.legacy') && (
+                  <a href={`mailto:${f.email}?subject=${encodeURIComponent(f.art === 'GEBURTSTAG' ? t('cockpit.gruss_geb') : t('cockpit.gruss_jub', { jahre: f.jahre }))}`}
+                     title={t('cockpit.gratulieren')} className="w-6 h-6 rounded-lg bg-white border border-stone-200 flex items-center justify-center text-stone-500 hover:text-stone-900"><Mail size={12} /></a>
+                )}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

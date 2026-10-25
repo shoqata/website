@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import JahresWechsel from './JahresWechsel';
 import { useVereinsjahre } from '../lib/useVereinsjahre';
 import CountrySelect from './ui/CountrySelect';
-import { 
+import { Landmark, 
   CreditCard, 
   Plus, 
   Search, 
@@ -64,6 +64,7 @@ import AdminRechnungsdesigner from './AdminRechnungsdesigner';
 import PostGuthabenDialog from './PostGuthabenDialog';
 import RechnungsAssistent from './RechnungsAssistent';
 import Rechnungsblatt from './Rechnungsblatt';
+import Bankabgleich from './Bankabgleich';
 import { layoutLesen, VORGABE, type Rechnungslayout } from '../lib/rechnungslayout';
 
 interface AdminFinanceProps {
@@ -160,7 +161,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear, jah
     // Das Layout der Rechnung. Wird es im Designer geaendert, aendert sich
     // die gedruckte Rechnung mit -- sonst waere der Designer Zierde.
     const [rechnungslayout, setRechnungslayout] = useState<Rechnungslayout>(VORGABE);
-    const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'INVOICES' | 'DUNNING' | 'BUDGET' | 'DESIGN' | 'SETTINGS'>('OVERVIEW');
+    const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'INVOICES' | 'BANK' | 'DUNNING' | 'BUDGET' | 'DESIGN' | 'SETTINGS'>('OVERVIEW');
 
     // Data
     const [payments, setPayments] = useState<Payment[]>([]);
@@ -944,6 +945,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear, jah
             <div className="flex border-b border-stone-100 bg-stone-50/50 overflow-x-auto">
                 <button onClick={() => setActiveTab('OVERVIEW')} className={`px-8 py-5 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'OVERVIEW' ? 'border-primary text-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)]' : 'border-transparent text-stone-400 hover:text-stone-900 hover:bg-stone-50'}`}><LayoutDashboard size={18}/> {t('admin.finance.overview')}</button>
                 <button onClick={() => setActiveTab('INVOICES')} className={`px-8 py-5 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'INVOICES' ? 'border-primary text-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)]' : 'border-transparent text-stone-400 hover:text-stone-900 hover:bg-stone-50'}`}><FileText size={18}/> {t('admin.finance.invoices')}</button>
+                <button onClick={() => setActiveTab('BANK')} className={`px-8 py-5 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'BANK' ? 'border-primary text-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)]' : 'border-transparent text-stone-400 hover:text-stone-900 hover:bg-stone-50'}`}><Landmark size={18}/> {t('bank.tab')}</button>
                 <button onClick={() => setActiveTab('DUNNING')} className={`px-8 py-5 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'DUNNING' ? 'border-primary text-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)]' : 'border-transparent text-stone-400 hover:text-stone-900 hover:bg-stone-50'}`}><BellRing size={18}/> {t('admin.finance.dunning')}{overduePayments.length > 0 && <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full ml-1">{overduePayments.length}</span>}</button>
                 <button onClick={() => setActiveTab('BUDGET')} className={`px-8 py-5 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'BUDGET' ? 'border-primary text-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)]' : 'border-transparent text-stone-400 hover:text-stone-900 hover:bg-stone-50'}`}><Calculator size={18}/> {t('admin.finance.budget')}</button>
                 <button onClick={() => setActiveTab('DESIGN')} className={`px-8 py-5 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'DESIGN' ? 'border-primary text-primary bg-[color:color-mix(in_srgb,var(--primary)_5%,transparent)]' : 'border-transparent text-stone-400 hover:text-stone-900 hover:bg-stone-50'}`}><LayoutTemplate size={18}/> {t('admin.finance.design')}</button>
@@ -1020,6 +1022,8 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear, jah
                         <AdminRechnungsdesigner />
                     </div>
                 )}
+
+                {activeTab === 'BANK' && <Bankabgleich />}
 
                 {activeTab === 'BUDGET' && (
                     <div className="space-y-6">
