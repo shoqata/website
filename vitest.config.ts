@@ -22,6 +22,8 @@ export default defineConfig({
     globals: true,
     // Die Unit-Tests liegen unter tests/unit; src/ gibt es in diesem Projekt nicht.
     include: ['tests/unit/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    // Die Datenbanktests starten je ein Postgres im Prozess (PGlite).
+    testTimeout: 30000,
     exclude: ['node_modules', 'dist', '.idea', '.git', '.cache', 'tests/e2e', 'tests/security'],
   },
 });
