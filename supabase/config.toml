@@ -22,3 +22,8 @@ verify_jwt = false
 # Zeitplan nie an.
 [functions.pingen-versand]
 verify_jwt = false
+
+# Aufgerufen von der Datenbank (pg_net), nicht von einem angemeldeten
+# Benutzer. Geprueft wird stattdessen x-push-token gegen platform_secrets.
+[functions.push-senden]
+verify_jwt = false

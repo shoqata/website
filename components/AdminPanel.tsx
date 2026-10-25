@@ -3,6 +3,7 @@ import { useJahresauswahl } from '../lib/useVereinsjahre';
 import BetreuerAuswahl from './BetreuerAuswahl';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import AdminSpenden from './AdminSpenden';
+import AdminAufnahmen from './AdminAufnahmen';
 import AdminVideos from './AdminVideos';
 import AdminProzesse from './AdminProzesse';
 import { useModule } from '../lib/useModule';
@@ -540,6 +541,7 @@ const AdminPanel: React.FC = () => {
 
                         {activeTab === 'USERS' && (
                             <div className="space-y-6">
+                                <AdminAufnahmen />
                                 <NeueAnmeldungen users={users} onOeffnen={(u) => { setSelectedUser(u); setUserDrawerTab('GENERAL'); setIsUserDrawerOpen(true); }} />
                                 <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-4 rounded-3xl border border-stone-100 shadow-sm">
                                     <div className="flex gap-2 w-full md:w-auto">

@@ -3,20 +3,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import TwintKnopf from './TwintKnopf';
 import CountrySelect from './ui/CountrySelect';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, ArrowRight, ArrowLeft, User, Phone, Home, MapPin, Heart, CheckCircle2, ShieldCheck, Loader2, Search, X, Flag, Lock, Eye, EyeOff, Camera, FileText } from 'lucide-react';
+import { Mail, ArrowRight, ArrowLeft, User, Phone, Home, MapPin, Heart, CheckCircle2, ShieldCheck, Loader2, Search, X, Flag, Camera, FileText } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from '../context/LanguageContext';
-import { bewertePasswort } from '../lib/passwortStaerke';
 
 // Anmeldung und Datenzugriff -- laeuft ueber Supabase; die Namen
 // stammen noch aus der Firebase-Zeit und sind nur die Schnittstelle.
-import { auth, db } from '../services/datenzugriff';
-import { 
-  createUserWithEmailAndPassword, 
-  sendEmailVerification, 
-  signOut,
-} from '@/services/supabase-bridge';
-import { collection, getDocs, query, orderBy, doc, setDoc } from '@/services/supabase-bridge';
+import { db } from '../services/datenzugriff';
+import { collection, getDocs, query, orderBy, supabase } from '@/services/supabase-bridge';
 import { zielErreicht } from '@/lib/zaehler';
 import { Neighborhood } from '../types';
 
@@ -29,11 +23,9 @@ const RegistrationWizard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   
   const [formData, setFormData] = useState({
     email: '',
-    password: '',
     salutation: '',
     firstName: '',
     lastName: '',
@@ -71,72 +63,28 @@ const RegistrationWizard: React.FC = () => {
     if (step > 1) setStep(step - 1);
   };
 
+  // Ein Antrag, kein Konto. Der Vorstand prueft ihn -- auch, ob die Person
+  // schon Mitglied ist -- gibt frei und richtet danach den Zugang ein.
+  // Bisher entstand hier sofort ein Konto mit eigener Mitgliederzeile, und
+  // wer schon Mitglied war, stand danach doppelt im Verein.
   const handleSubmit = async () => {
     setIsLoading(true);
     setError(null);
-
     try {
-      // 1. Create User with Email and Password
-      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-      const user = userCredential.user;
-
-      // 2. Save Profile Data to Firestore
-      const profileData = {
-        email: formData.email,
-        role: 'MEMBER',
-        salutation: formData.salutation,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        displayName: `${formData.firstName} ${formData.lastName}`,
-        phone: formData.phone,
-        street: formData.street,
-        zip: formData.zip,
-        city: formData.city,
-        country: formData.country,
-        address: `${formData.street}, ${formData.zip} ${formData.city}, ${formData.country}`,
-        neighborhoodId: formData.neighborhoodId,
-        invoiceDeliveryMethod: formData.invoiceDeliveryMethod, // Save preference
-        membershipStatus: 'PENDING',
-        joinedAt: new Date().toISOString(),
-        profileComplete: true,
-        photoFileName: formData.photoFileName || ''
-      };
-      
-      await setDoc(doc(db, 'users', user.uid), profileData);
-
-      // Willkommensnachricht einreihen -- noch angemeldet, denn gleich
-      // unten wird abgemeldet, und die Funktion in der Datenbank laesst
-      // nur das Mitglied selbst oder die Vereinsleitung durch.
-      //
-      // Verschickt wird nichts: der Postausgang nimmt sie und entscheidet
-      // ueber den Weg. Scheitert das Einreihen, bleibt die Anmeldung
-      // trotzdem gueltig -- eine missglueckte Begruessung darf keine
-      // Aufnahme rueckgaengig machen.
-      try {
-        const { supabase } = await import('@/services/supabase-bridge');
-        const { error: wErr } = await supabase.rpc('willkommen_einreihen',
-          { p_member: user.uid });
-        if (wErr) console.error('[Registrierung] Willkommensnachricht:', wErr.message);
-      } catch (wErr) {
-        console.error('[Registrierung] Willkommensnachricht:', wErr);
-      }
-
-      // 3. Send Email Verification
-      await sendEmailVerification(user);
-
-      // 4. Sign out automatically as per request
-      await signOut(auth);
-      
+      const { error: fehler } = await supabase.rpc('aufnahme_beantragen', {
+        p_vorname: formData.firstName, p_nachname: formData.lastName, p_email: formData.email,
+        p_telefon: formData.phone || null, p_anrede: formData.salutation || null,
+        p_strasse: formData.street || null, p_plz: formData.zip || null, p_ort: formData.city || null,
+        p_land: formData.country || null, p_nachbarschaft: formData.neighborhoodId || null,
+        p_rechnungsweg: formData.invoiceDeliveryMethod, p_sprache: null,
+      });
+      if (fehler) throw fehler;
       // Die Anmeldung ist durch -- als Ziel vermerken.
       void zielErreicht('ANMELDUNG');
       setStep(4);
     } catch (err: any) {
       console.error(err);
-      if (err.code === 'auth/email-already-in-use') {
-        setError(t('common.error') + ": Email used.");
-      } else {
-        setError(err.message || t('common.error'));
-      }
+      setError(err?.message || t('common.error'));
     } finally {
       setIsLoading(false);
     }
@@ -151,11 +99,7 @@ const RegistrationWizard: React.FC = () => {
 
   // Das Passwort ist seit dem Entfernen der Google-Anmeldung der einzige Weg
   // herein. Sechs Zeichen waren dafuer zu wenig.
-  const bewertung = useMemo(
-    () => bewertePasswort(formData.password, [formData.email, formData.firstName, formData.lastName]),
-    [formData.password, formData.email, formData.firstName, formData.lastName]
-  );
-  const isStep1Valid = !!formData.email && bewertung.genuegt;
+  const isStep1Valid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(formData.email.trim());
   const isStep2Valid = formData.salutation && formData.firstName && formData.lastName && formData.phone;
   const isStep3Valid = formData.street && formData.zip && formData.city && formData.country && formData.neighborhoodId;
 
@@ -233,56 +177,7 @@ const RegistrationWizard: React.FC = () => {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-[10px] font-bold text-stone-400 mb-3 uppercase tracking-widest">{t('login.password.label')}</label>
-                    <div className="relative">
-                      <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-stone-300" size={20} />
-                      <input 
-                        type={showPassword ? "text" : "password"} autoComplete="new-password" 
-                        required
-                        value={formData.password}
-                        onChange={(e) => setFormData({...formData, password: e.target.value})}
-                        placeholder={t('ph.password')}
-                        className="w-full pl-16 pr-14 py-5 bg-stone-50 border-2 border-stone-100 rounded-2xl outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] transition text-lg font-medium"
-                      />
-                      <button 
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-6 top-1/2 -translate-y-1/2 text-stone-300 hover:text-stone-500 transition-colors"
-                      >
-                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                      </button>
-                    </div>
-
-                    {/* Rueckmeldung waehrend der Eingabe, nicht erst beim
-                        Absenden. Wer erst nach dem Klick erfaehrt, dass sein
-                        Passwort nicht genuegt, haengt eine Ziffer an und ist
-                        damit keinen Schritt weiter. */}
-                    {formData.password.length > 0 && (
-                      <div className="mt-3">
-                        <div className="flex gap-1.5 mb-2" aria-hidden="true">
-                          {[1, 2, 3, 4].map((i) => (
-                            <span key={i} className="h-1 flex-1 rounded-sm transition-colors"
-                              style={{ background:
-                                i > bewertung.balken ? '#e7e5e4'
-                                : bewertung.genuegt ? (bewertung.balken >= 4 ? '#059669' : '#10b981')
-                                : '#f59e0b' }} />
-                          ))}
-                        </div>
-                        <p className="text-xs font-bold" style={{
-                          color: bewertung.genuegt ? '#047857' : '#b45309' }}>
-                          {t('pw.strength_' + bewertung.staerke.toLowerCase())}
-                        </p>
-                        {bewertung.hinweise.length > 0 && (
-                          <ul className="mt-1.5 space-y-0.5">
-                            {bewertung.hinweise.map((h) => (
-                              <li key={h} className="text-xs text-stone-500 leading-relaxed">· {t(h)}</li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  <p className="text-sm text-stone-500 leading-relaxed">{t('wizard.ohne_passwort')}</p>
                   <p className="text-sm text-stone-400 italic text-center">{t('auth.has_account')} <Link to="/login" className="text-primary font-bold hover:underline">{t('nav.login')}</Link></p>
                 </div>
               </motion.div>
@@ -488,17 +383,17 @@ const RegistrationWizard: React.FC = () => {
                   <ShieldCheck size={48} />
                   <div className="absolute inset-0 bg-green-500/10 rounded-3xl animate-ping" />
                 </div>
-                <h3 className="text-4xl font-display font-bold mb-4 italic text-stone-900">{t('wizard.success.title')}</h3>
-                <p className="text-stone-500 text-lg leading-relaxed max-w-sm mx-auto mb-10 italic">
-                  {t('wizard.success.desc')} <br/>
-                  <span className="font-bold text-stone-900 border-b-2 border-rose-100">{formData.email}</span>. 
+                <h3 className="text-4xl font-display font-bold mb-4 italic text-stone-900">{t('wizard.antrag.titel')}</h3>
+                <p className="text-stone-500 text-lg leading-relaxed max-w-sm mx-auto mb-10">
+                  {t('wizard.antrag.text')}{' '}
+                  <span className="font-bold text-stone-900 [overflow-wrap:anywhere]">{formData.email}</span>
                 </p>
                 <div className="w-full max-w-md mb-8 text-left"><TwintKnopf text={t('twint.beitrag')} /></div>
                 <Link 
-                  to="/login" 
+                  to="/" 
                   className="bg-primary text-white px-10 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-xl shadow-rose-200 hover:scale-105 transition"
                 >
-                  <ArrowLeft size={20} /> {t('login.submit')}
+                  <ArrowLeft size={20} /> {t('nav.home')}
                 </Link>
               </motion.div>
             )}

@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, CalendarDays, CheckCheck, FileText, HandHeart, Megaphone, Newspaper, AlertCircle } from 'lucide-react';
+import { Bell, BellRing, CalendarDays, CheckCheck, FileText, HandHeart, Megaphone, Newspaper, AlertCircle, UserPlus, Loader2 } from 'lucide-react';
 import { supabase } from '../services/supabase-bridge';
 import { useTranslation } from '../context/LanguageContext';
 import { EASE_OUT } from '../lib/bewegung';
+import { pushStand, pushAn, pushAus, PushStand } from '../lib/push';
 
 // Das Benachrichtigungscenter: die Glocke in der Leiste.
 //
@@ -25,6 +26,7 @@ const SYMBOL: Record<string, React.ReactNode> = {
   VERANSTALTUNG: <CalendarDays size={16} />,
   NEUIGKEIT: <Newspaper size={16} />,
   AUFRUF: <Megaphone size={16} />,
+  AUFNAHME: <UserPlus size={16} />,
 };
 
 const vorWann = (iso: string, sprache: string) => {
@@ -84,6 +86,17 @@ const Benachrichtigungen: React.FC = () => {
   }, [offen]);
 
   const ungelesen = eintraege.filter(e => !e.gelesen_am).length;
+
+  // Push auf den Sperrbildschirm: Stand beim Oeffnen pruefen.
+  const [push, setPush] = useState<PushStand | null>(null);
+  const [pushLaeuft, setPushLaeuft] = useState(false);
+  useEffect(() => { if (offen) pushStand().then(setPush).catch(() => setPush('nicht-moeglich')); }, [offen]);
+  const pushUmschalten = async () => {
+    setPushLaeuft(true);
+    try { setPush(push === 'an' ? await pushAus() : await pushAn()); }
+    catch { setPush(await pushStand().catch(() => 'nicht-moeglich' as PushStand)); }
+    finally { setPushLaeuft(false); }
+  };
 
   const gelesen = async (ids?: string[]) => {
     const jetzt = new Date().toISOString();
@@ -156,6 +169,23 @@ const Benachrichtigungen: React.FC = () => {
                 </button>
               ))}
             </div>
+
+            {push && push !== 'nicht-moeglich' && (
+              <div className="px-4 py-3 border-t border-stone-100 bg-stone-50/80 flex items-center gap-3">
+                <BellRing size={16} className={push === 'an' ? 'text-primary shrink-0' : 'text-stone-400 shrink-0'} />
+                <p className="text-xs text-stone-600 flex-1 leading-snug">
+                  {push === 'an' ? t('push.an') : push === 'ios-installieren' ? t('push.ios') : push === 'verweigert' ? t('push.verweigert') : t('push.frage')}
+                </p>
+                {(push === 'an' || push === 'aus') && (
+                  <button onClick={pushUmschalten} disabled={pushLaeuft}
+                          className={`shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold inline-flex items-center gap-1.5 disabled:opacity-50
+                                      ${push === 'an' ? 'text-stone-500 hover:text-stone-900' : 'bg-stone-900 text-white'}`}>
+                    {pushLaeuft && <Loader2 size={11} className="animate-spin" />}
+                    {push === 'an' ? t('push.ausschalten') : t('push.einschalten')}
+                  </button>
+                )}
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
