@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import { supabase, doc, getDoc, db } from '../services/supabase-bridge';
 import { useTranslation } from '../context/LanguageContext';
 import SwissQRBill from './SwissQRBill';
+import TwintKnopf from './TwintKnopf';
 import type { QrBillData } from '../services/qrBillService';
 import CountrySelect from './ui/CountrySelect';
 
@@ -127,6 +128,7 @@ const SpendenSeite: React.FC = () => {
           </div>
           <h1 className="font-display font-bold italic text-3xl text-stone-900 mb-3">{t('spende.danke_titel')}</h1>
           <p className="text-stone-500 text-sm leading-relaxed mb-8 max-w-xl">{t('spende.danke_text')}</p>
+          <div className="mb-6"><TwintKnopf text={t('twint.spende')} /></div>
 
           {beleg ? (
             <>

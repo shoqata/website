@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
+import TwintKnopf from './TwintKnopf';
 import CountrySelect from './ui/CountrySelect';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, ArrowRight, ArrowLeft, User, Phone, Home, MapPin, Heart, CheckCircle2, ShieldCheck, Loader2, Search, X, Flag, Lock, Eye, EyeOff, Camera, FileText } from 'lucide-react';
@@ -491,6 +492,7 @@ const RegistrationWizard: React.FC = () => {
                   {t('wizard.success.desc')} <br/>
                   <span className="font-bold text-stone-900 border-b-2 border-rose-100">{formData.email}</span>. 
                 </p>
+                <div className="w-full max-w-md mb-8 text-left"><TwintKnopf text={t('twint.beitrag')} /></div>
                 <Link 
                   to="/login" 
                   className="bg-primary text-white px-10 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-xl shadow-rose-200 hover:scale-105 transition-all"

@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { vereinsbildHochladen, type BildZweck } from '../lib/bildPruefen';
 import { useTranslation } from '../context/LanguageContext';
 import MemberPicker from './ui/MemberPicker';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -231,13 +232,12 @@ const AdminWebsite: React.FC = () => {
       if (!file) return;
       setIsUploading(true);
       try {
-          const storageRef = ref(storage, `${path}/${Date.now()}_${file.name}`);
-          const snapshot = await uploadBytes(storageRef, file);
-          const url = await getDownloadURL(snapshot.ref);
+          // Ueber die Bildpruefung (bild-pruefen): neu erzeugt aus Pixeln.
+          const url = await vereinsbildHochladen(file, path as BildZweck);
           callback(url);
       } catch (err: any) { 
           console.error(err);
-          showAlert({ type: 'error', message: t('web.upload_failed') });
+          showAlert({ type: 'error', message: err?.message || t('web.upload_failed') });
       } finally { 
           setIsUploading(false); 
       }
@@ -339,9 +339,7 @@ const AdminWebsite: React.FC = () => {
       if (!file) return;
       setIsUploading(true);
       try {
-          const storageRef = ref(storage, `board/${Date.now()}_${file.name}`);
-          const snapshot = await uploadBytes(storageRef, file);
-          const url = await getDownloadURL(snapshot.ref);
+          const url = await vereinsbildHochladen(file, 'board');
           setNewBoardMember(prev => ({ ...prev, image: url }));
       } catch (err: any) {
         console.error('[AdminWebsite] Bild konnte nicht hochgeladen werden:', err);
@@ -453,7 +451,7 @@ const AdminWebsite: React.FC = () => {
                                     <button onClick={() => handleManualLink('logo')} className="text-[10px] font-bold bg-white border border-stone-200 px-3 py-1.5 rounded-lg hover:bg-stone-50 transition-colors flex items-center gap-1"><LinkIcon size={12}/> {t('web.image_url')}</button>
                                     <button onClick={() => fileInputRef.current?.click()} className="text-[10px] font-bold bg-stone-100 px-3 py-1.5 rounded-lg hover:bg-stone-200 transition-colors flex items-center gap-1"><Upload size={12}/> {t('web.upload')}</button>
                                 </div>
-                                <input type="file" ref={fileInputRef} hidden accept="image/*" onChange={(e) => handleFileUpload(e, 'branding', (url) => updateField('logoUrl', url))} />
+                                <input type="file" ref={fileInputRef} hidden accept="image/*" onChange={(e) => handleFileUpload(e, 'logo', (url) => updateField('logoUrl', url))} />
                             </div>
                             
                             <div className="pt-4 border-t border-stone-100">

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Inbox, Gavel, CalendarDays, Newspaper, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Inbox, Gavel, CalendarDays, Newspaper, AlertTriangle, CheckCircle2, UserPlus } from 'lucide-react';
 import { supabase } from '../services/supabase-bridge';
 import { useTranslation } from '../context/LanguageContext';
 import { isOverdue } from '../lib/memberQuality';
@@ -17,19 +17,22 @@ const VorstandCockpit: React.FC = () => {
     (async () => {
       const heute = new Date().toISOString().slice(0, 10);
       const in30 = new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10);
-      const [aend, gv, ev, news, pay] = await Promise.all([
+      const [aend, gv, ev, news, pay, neu] = await Promise.all([
         supabase.rpc('aenderungen_lesen', { p_alle: true }),
         supabase.from('versammlungen').select('titel, datum, status').gte('datum', heute).order('datum').limit(1),
         supabase.from('events').select('id, title, date, status').gte('date', heute).lte('date', in30),
         supabase.from('news').select('id, status'),
         supabase.from('payments').select('status, dueDate'),
+        supabase.from('users').select('id', { count: 'exact', head: true }).eq('membershipStatus', 'PENDING'),
       ]);
+      const neue = neu.count ?? 0;
       const offen = (aend.data ?? []).filter((z: any) => z.status === 'OFFEN').length;
       const naechste = (gv.data ?? [])[0] as any;
       const anlaesse = (ev.data ?? []).filter((e: any) => e.status === 'PUBLISHED');
       const entwuerfe = (news.data ?? []).filter((n: any) => n.status === 'DRAFT').length;
       const ueberfaellig = (pay.data ?? []).filter((p: any) => isOverdue(p)).length;
       setKacheln([
+        { k: 'neu', icon: <UserPlus size={18} />, zahl: neue, text: t('neu.titel'), dringend: neue > 0 },
         { k: 'aend', icon: <Inbox size={18} />, zahl: offen, text: t('cockpit.aenderungen'), dringend: offen > 0 },
         { k: 'ueber', icon: <AlertTriangle size={18} />, zahl: ueberfaellig, text: t('cockpit.ueberfaellig'), dringend: ueberfaellig > 0 },
         { k: 'gv', icon: <Gavel size={18} />, zahl: naechste ? new Date(naechste.datum + 'T12:00:00').toLocaleDateString('de-CH', { day: 'numeric', month: 'short' }) : '—',
@@ -49,7 +52,7 @@ const VorstandCockpit: React.FC = () => {
         <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400">{t('cockpit.titel')}</p>
         {allesGut && <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1"><CheckCircle2 size={12} /> {t('cockpit.alles_gut')}</span>}
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
         {kacheln.map(k => (
           <div key={k.k} className={`p-5 rounded-2xl border ${k.dringend ? 'bg-amber-50 border-amber-200' : 'bg-white border-stone-100'}`}>
             <div className={`mb-3 ${k.dringend ? 'text-amber-600' : 'text-stone-400'}`}>{k.icon}</div>

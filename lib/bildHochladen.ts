@@ -1,13 +1,8 @@
-import { storage } from '../services/datenzugriff';
-import { ref, uploadBytes, getDownloadURL } from '@/services/supabase-bridge';
+import { vereinsbildHochladen, type BildZweck } from './bildPruefen';
 
-// Ein Bild in den Speicher laden und seine oeffentliche Adresse holen --
-// dieselben drei Schritte wie im Website-Editor, an einer Stelle.
-// Leerzeichen und Umlaute im Dateinamen ergaeben Adressen, die je nach
-// Browser anders kodiert werden; darum wird der Name vereinfacht.
-export async function bildHochladen(datei: File, ordner: string): Promise<string> {
-  const name = datei.name.toLowerCase().replace(/[^a-z0-9.]+/g, '-').replace(/^-+|-+$/g, '') || 'bild';
-  const ziel = ref(storage, `${ordner}/${Date.now()}_${name}`);
-  const stand = await uploadBytes(ziel, datei);
-  return getDownloadURL(stand.ref);
+// Website-Bild hochladen: laeuft ueber die Pruefung (bild-pruefen), die das
+// Bild aus seinen Pixeln neu erzeugt -- Skripte, Metadaten und angehaengte
+// Daten bleiben dabei zurueck. Der Ordnername von frueher ist der Zweck.
+export async function bildHochladen(datei: File, ordner: BildZweck): Promise<string> {
+  return vereinsbildHochladen(datei, ordner);
 }

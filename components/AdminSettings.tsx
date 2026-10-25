@@ -4,6 +4,7 @@ import AdminPostausgang from './AdminPostausgang';
 import AdminTexte from './AdminTexte';
 import AdminRollenverwaltung from './AdminRollenverwaltung';
 import AdminUebergabe from './AdminUebergabe';
+import AenderungsProtokoll from './AenderungsProtokoll';
 import AdminFloky from './AdminFloky';
 import AdminVereinsjahr from './AdminVereinsjahr';
 import { Link } from 'react-router-dom';
@@ -601,6 +602,7 @@ const AdminSettings: React.FC = () => {
                 <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500">Rollenverwaltung</h3>
                 <AdminRollenverwaltung />
                 <AdminUebergabe />
+                <AenderungsProtokoll limit={100} />
             </section>
 
         </div>

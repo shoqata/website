@@ -11,7 +11,7 @@ import { supabase } from '@/services/supabase-bridge';
 // ist Bequemlichkeit, die Sicherheit liegt dort -- was im Browser
 // geschieht, laesst sich umgehen.
 
-const MAX_SEITE = 1920;
+const MAX_SEITE = 2400;
 
 export async function bildVerkleinern(datei: File): Promise<Blob> {
   if (!/^image\/(jpeg|png|webp)$/i.test(datei.type)) {
@@ -40,6 +40,26 @@ export async function nachbarschaftsbildHochladen(datei: File, nachbarschaft: st
   const form = new FormData();
   form.append('nachbarschaft', nachbarschaft);
   form.append('bild', new File([klein], 'bild.jpg', { type: 'image/jpeg' }));
+  return pruefenLassen(form);
+}
+
+// Website-Bilder des Vereins. Das Logo geht unverkleinert als PNG/JPEG
+// durch (Durchsichtigkeit bleibt), alles andere wird vorher verkleinert.
+export type BildZweck = 'logo' | 'branding' | 'hero' | 'live' | 'board' | 'news' | 'chronik' | 'seiten';
+export async function vereinsbildHochladen(datei: File, zweck: BildZweck): Promise<string> {
+  const form = new FormData();
+  form.append('zweck', zweck);
+  if (zweck === 'logo' && /^image\/(png|jpeg)$/i.test(datei.type)) {
+    if (datei.size > 8 * 1024 * 1024) throw new Error('Das Logo ist grösser als 8 MB.');
+    form.append('bild', datei);
+  } else {
+    const klein = await bildVerkleinern(datei);
+    form.append('bild', new File([klein], 'bild.jpg', { type: 'image/jpeg' }));
+  }
+  return pruefenLassen(form);
+}
+
+async function pruefenLassen(form: FormData): Promise<string> {
   const { data, error } = await supabase.functions.invoke('bild-pruefen', { body: form });
   if (error) {
     // Die Meldung der Funktion steht im Koerper der Antwort.

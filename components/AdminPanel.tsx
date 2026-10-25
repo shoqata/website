@@ -14,6 +14,8 @@ import MitgliedFamilie from './MitgliedFamilie';
 import DatenSchnellkorrektur from './DatenSchnellkorrektur';
 import AenderungenVerwaltung from './AenderungenVerwaltung';
 import AdminVersammlung from './AdminVersammlung';
+import AenderungsProtokoll from './AenderungsProtokoll';
+import NeueAnmeldungen from './NeueAnmeldungen';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Activity as ActivityIcon, AlertCircle, AlertTriangle, AlignLeft, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ArrowUpDown, AtSign, Ban, BarChart2, BarChart3, Bell, Blocks, BookOpen, Briefcase, Calendar, CalendarDays, CheckCircle2, CheckSquare, ChevronLeft, ChevronRight, ClipboardCheck, ClipboardList, Clock, Coins, Command, Copy, CreditCard, Crown, Database, DollarSign, Download, ExternalLink, Eye, FileEdit, FileInput, FileText, Files, Film, Filter, Globe, Hash, Heart, History, Home, Image as LucideImage, ImageIcon, Info, Kanban, KeyRound, Layout, LayoutDashboard, LayoutGrid, LayoutList, Link as LinkIcon, ListFilter, Loader2, Lock, LogOut, Mail, Map, MapPin, MapPinned, Megaphone, Menu, MessageSquare, MoreHorizontal, MoreVertical, MousePointer2, Newspaper, PanelLeftClose, PanelLeftOpen, Phone, PieChart as LucidePieChart, Plus, Printer, Receipt, RefreshCw, Save, Search, Send, Settings, Shield, ShieldAlert, Sliders, Sparkles, Square, StickyNote, Tag, Target, ToggleLeft, ToggleRight, Trash2, TrendingUp, Unlock, Upload, User as UserIcon, UserCheck, UserCheck2, UserCog, UserMinus, UserPlus, UserPlus2, Users, Users2, Wallet, X, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -535,6 +537,7 @@ const AdminPanel: React.FC = () => {
 
                         {activeTab === 'USERS' && (
                             <div className="space-y-6">
+                                <NeueAnmeldungen users={users} onOeffnen={(u) => { setSelectedUser(u); setUserDrawerTab('GENERAL'); setIsUserDrawerOpen(true); }} />
                                 <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-4 rounded-3xl border border-stone-100 shadow-sm">
                                     <div className="flex gap-2 w-full md:w-auto">
                                         <div className="relative flex-1 md:w-64"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={16}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('admin.members.search')} className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)]" /></div>
@@ -1175,6 +1178,10 @@ const AdminPanel: React.FC = () => {
                                       </div>
                                   </div>
                               </div>
+                          )}
+
+                          {userDrawerTab === 'HISTORY' && selectedUser.id && (
+                              <AenderungsProtokoll key={selectedUser.id} mitglied={selectedUser.id} />
                           )}
 
                           {userDrawerTab === 'HISTORY' && (

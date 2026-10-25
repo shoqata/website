@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { vereinsbildHochladen } from '../lib/bildPruefen';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Calendar, Users, Plus, Save, Trash2, CheckCircle2, X, Bold, Italic, List, AlignLeft, User, Upload, Briefcase, UserPlus, CheckSquare, ArrowRight, Loader2, Link as LinkIcon, AlertCircle, Printer, Share2, Download, Eye, RefreshCw } from 'lucide-react';
 import { db, storage, auth } from '../services/datenzugriff';
@@ -314,9 +315,7 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
         const file = e.target.files?.[0];
         if (!file) return;
         try {
-            const storageRef = ref(storage, `board/${Date.now()}_${file.name}`);
-            const snapshot = await uploadBytes(storageRef, file);
-            const url = await getDownloadURL(snapshot.ref);
+            const url = await vereinsbildHochladen(file, 'board');
             setNewBoardMember(prev => ({ ...prev, image: url }));
         } catch (err: any) {
             // Frueher verschwand der Fehler auf der Konsole: der Knopf blieb

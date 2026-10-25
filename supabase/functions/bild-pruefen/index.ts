@@ -1,6 +1,8 @@
 // Ein Bild pruefen, neu erzeugen und ablegen.
 //
-// Fuer die Bilder der Nachbarschaften (spaeter fuer weitere). Ablauf:
+// Fuer die Bilder der Nachbarschaften und alle Website-Bilder des Vereins
+// (Feld "zweck": logo, branding, hero, live, board, news, chronik, seiten).
+// Das Logo bleibt PNG (Durchsichtigkeit), alles andere wird JPEG. Ablauf:
 //   1. Angemeldet? Darf der Aufrufer fuer diese Nachbarschaft Bilder
 //      hinzufuegen? (nachbarschaft_bild_erlaubt, mit seinem eigenen Token)
 //   2. Groesse: hoechstens 8 MB.
@@ -66,12 +68,18 @@ Deno.serve(async (req) => {
   let form: FormData;
   try { form = await req.formData(); } catch { return json({ fehler: "Anfrage nicht lesbar." }, 400); }
   const nachbarschaft = String(form.get("nachbarschaft") ?? "").trim();
+  const zweck = String(form.get("zweck") ?? "").trim();
   const datei = form.get("bild");
-  if (!nachbarschaft || !(datei instanceof File)) return json({ fehler: "Nachbarschaft und Bild fehlen." }, 400);
-  if (!/^[A-Za-z0-9_-]{1,80}$/.test(nachbarschaft)) return json({ fehler: "Unbekannte Nachbarschaft." }, 400);
+  if ((!nachbarschaft && !zweck) || !(datei instanceof File)) return json({ fehler: "Zweck und Bild fehlen." }, 400);
+  if (nachbarschaft && !/^[A-Za-z0-9_-]{1,80}$/.test(nachbarschaft)) return json({ fehler: "Unbekannte Nachbarschaft." }, 400);
+  if (!nachbarschaft && !/^[a-z]{1,20}$/.test(zweck)) return json({ fehler: "Unbekannter Zweck." }, 400);
 
-  const { data: verein, error: rechtFehler } = await alsAufrufer.rpc("nachbarschaft_bild_erlaubt", { p_nachbarschaft: nachbarschaft });
+  const { data: verein, error: rechtFehler } = nachbarschaft
+    ? await alsAufrufer.rpc("nachbarschaft_bild_erlaubt", { p_nachbarschaft: nachbarschaft })
+    : await alsAufrufer.rpc("vereinsbild_erlaubt", { p_zweck: zweck });
   if (rechtFehler || !verein) return json({ fehler: rechtFehler?.message || "Nicht berechtigt." }, 403);
+  const alsPng = !nachbarschaft && zweck === "logo";
+  const maxSeite = nachbarschaft ? MAX_SEITE : alsPng ? 1024 : 2400;
 
   if (datei.size > MAX_BYTES) return json({ fehler: "Das Bild ist zu gross (höchstens 8 MB)." }, 413);
   const roh = new Uint8Array(await datei.arrayBuffer());
@@ -83,29 +91,33 @@ Deno.serve(async (req) => {
   try {
     const bild = await decode(roh);
     if (!(bild instanceof Image)) return json({ fehler: "Bewegte Bilder sind nicht erlaubt." }, 415);
-    if (bild.width < 32 || bild.height < 32) return json({ fehler: "Das Bild ist zu klein." }, 415);
+    if (bild.width < (alsPng ? 16 : 32) || bild.height < (alsPng ? 16 : 32)) return json({ fehler: "Das Bild ist zu klein." }, 415);
     if (bild.width * bild.height > 60_000_000) return json({ fehler: "Das Bild hat zu viele Pixel." }, 413);
     const laengste = Math.max(bild.width, bild.height);
-    if (laengste > MAX_SEITE) {
-      if (bild.width >= bild.height) bild.resize(MAX_SEITE, Image.RESIZE_AUTO);
-      else bild.resize(Image.RESIZE_AUTO, MAX_SEITE);
+    if (laengste > maxSeite) {
+      if (bild.width >= bild.height) bild.resize(maxSeite, Image.RESIZE_AUTO);
+      else bild.resize(Image.RESIZE_AUTO, maxSeite);
     }
     breite = bild.width; hoehe = bild.height;
-    neu = await bild.encodeJPEG(82);
+    neu = alsPng ? await bild.encode(6) : await bild.encodeJPEG(82);
   } catch (_e) {
     return json({ fehler: "Die Datei ist kein lesbares Bild und wurde abgewiesen." }, 415);
   }
 
   const admin = createClient(url, geheimschluessel(), { auth: { persistSession: false } });
-  const ordner = `geprueft/nachbarschaften/${verein}/${nachbarschaft}`;
-  const { data: vorhanden } = await admin.storage.from("uploads").list(ordner, { limit: 100 });
-  if ((vorhanden?.length ?? 0) >= MAX_DATEIEN_JE_ORDNER) {
-    return json({ fehler: "Zu viele Bilder in kurzer Zeit für diese Nachbarschaft." }, 429);
+  // Vereinsbilder je Tag in einem Ordner; 100 je Tag und Zweck genuegen.
+  const ordner = nachbarschaft
+    ? `geprueft/nachbarschaften/${verein}/${nachbarschaft}`
+    : `geprueft/verein/${verein}/${zweck}/${new Date().toISOString().slice(0, 10)}`;
+  const grenze = nachbarschaft ? MAX_DATEIEN_JE_ORDNER : 100;
+  const { data: vorhanden } = await admin.storage.from("uploads").list(ordner, { limit: grenze + 1 });
+  if ((vorhanden?.length ?? 0) >= grenze) {
+    return json({ fehler: "Zu viele Bilder in kurzer Zeit." }, 429);
   }
 
-  const pfad = `${ordner}/${crypto.randomUUID()}.jpg`;
+  const pfad = `${ordner}/${crypto.randomUUID()}.${alsPng ? "png" : "jpg"}`;
   const { error: abFehler } = await admin.storage.from("uploads")
-    .upload(pfad, neu, { contentType: "image/jpeg", upsert: false, cacheControl: "31536000" });
+    .upload(pfad, neu, { contentType: alsPng ? "image/png" : "image/jpeg", upsert: false, cacheControl: "31536000" });
   if (abFehler) return json({ fehler: "Ablegen fehlgeschlagen: " + abFehler.message }, 500);
 
   const { data: oeff } = admin.storage.from("uploads").getPublicUrl(pfad);
