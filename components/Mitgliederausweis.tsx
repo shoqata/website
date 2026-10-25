@@ -6,10 +6,14 @@ import { supabase } from '../services/supabase-bridge';
 import { useTranslation } from '../context/LanguageContext';
 import { useTenant } from '../context/TenantContext';
 import type { UserProfile } from '../types';
+import { datumLesen } from '../lib/datumLesen';
 
 // Mitgliederausweis im Mitgliederbereich. Der QR-Code fuehrt auf
 // /ausweis/<nummer>; dort sieht nur Vorstand oder Vertreter, ob die Person
 // Mitglied ist und den Beitrag bezahlt hat (ausweis_pruefen).
+
+// joinedAt kommt als Text, Date oder Firestore-artiger Zeitstempel.
+const jahrVon = (v: any): number | null => datumLesen(v)?.getFullYear() ?? null;
 
 export const AusweisKarte: React.FC<{ user: UserProfile }> = ({ user }) => {
   const { t } = useTranslation();
@@ -25,7 +29,7 @@ export const AusweisKarte: React.FC<{ user: UserProfile }> = ({ user }) => {
         <div className="min-w-0">
           <p className="text-lg font-bold truncate">{user.displayName}</p>
           <p className="text-[11px] font-mono text-white/70">Nr. {user.id.slice(0, 8).toUpperCase()}</p>
-          {(user as any).joinedAt && <p className="text-[11px] text-white/70">{t('ausweis.seit')} {new Date((user as any).joinedAt).getFullYear()}</p>}
+          {jahrVon((user as any).joinedAt) && <p className="text-[11px] text-white/70">{t('ausweis.seit')} {jahrVon((user as any).joinedAt)}</p>}
         </div>
         <div className="bg-white p-2 rounded-xl shrink-0"><QRCodeSVG value={link} size={88} level="M" /></div>
       </div>
@@ -59,7 +63,7 @@ export const AusweisPruefen: React.FC = () => {
           <p className={`text-2xl font-bold mb-1 ${gueltig ? 'text-emerald-700' : 'text-rose-700'}`}>{gueltig ? t('ausweis.gueltig') : t('ausweis.ungueltig')}</p>
           {d.gefunden && <>
             <p className="text-lg font-bold text-stone-900">{d.name}</p>
-            <p className="text-sm text-stone-500">{d.nachbarschaft || ''}{d.seit ? ` · ${t('ausweis.seit')} ${new Date(d.seit).getFullYear()}` : ''}</p>
+            <p className="text-sm text-stone-500">{d.nachbarschaft || ''}{jahrVon(d.seit) ? ` · ${t('ausweis.seit')} ${jahrVon(d.seit)}` : ''}</p>
             <p className={`mt-4 inline-block px-4 py-2 rounded-xl text-sm font-bold ${d.bezahlt ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
               {d.bezahlt ? t('ausweis.bezahlt', { jahr: d.jahr }) : t('ausweis.offen', { jahr: d.jahr })}
             </p>

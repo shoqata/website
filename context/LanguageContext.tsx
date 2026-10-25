@@ -837,7 +837,7 @@ const translations: Translations = {
   'bank.datei': { de: 'Datei wählen', en: 'Choose file', sq: 'Zgjidh skedarin' },
   'bank.keine': { de: 'In der Datei stehen keine Gutschriften.', en: 'The file contains no credits.', sq: 'Skedari nuk ka kreditime.' },
   'bank.zusammenfassung': { de: '{count} Gutschriften · {zugeordnet} zugeordnet · {schon} schon gebucht · {offen} offen', en: '{count} credits · {zugeordnet} matched · {schon} already booked · {offen} open', sq: '{count} kreditime · {zugeordnet} të përputhura · {schon} të regjistruara · {offen} të hapura' },
-  'bank.knopf': { de: '{count} Zahlungen verbuchen', en: 'Book {count} payments', sq: 'Regjistro {count} pagesa' },
+  'bank.knopf': { de: '{count} Zahlung(en) verbuchen', en: 'Book {count} payment(s)', sq: 'Regjistro {count} pagesa' },
   'bank.verbuchen': { de: 'Zahlungen verbuchen', en: 'Book payments', sq: 'Regjistro pagesat' },
   'bank.frage': { de: '{count} Zahlungseingänge über zusammen CHF {summe} werden verbucht. Die Rechnungen gelten danach als bezahlt (oder angezahlt).', en: '{count} receipts totalling CHF {summe} will be booked. The invoices then count as paid (or partly paid).', sq: '{count} pagesa me gjithsej CHF {summe} do të regjistrohen.' },
   'bank.fertig': { de: '{count} Zahlungen verbucht.', en: '{count} payments booked.', sq: '{count} pagesa u regjistruan.' },

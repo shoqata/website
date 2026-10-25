@@ -24,6 +24,11 @@ export type Rolle = 'ELTERNTEIL' | 'PARTNER' | 'KIND' | 'GESCHWISTER';
 export const weiblich = (anrede?: string | null): boolean | null =>
   anrede === 'Znj.' ? true : anrede === 'Z.' ? false : null;
 
+// "Familie Krasniqi" statt "Familie Familie Krasniqi", wenn der Name
+// das Wort schon enthaelt.
+export const familienTitel = (name: string, wort = 'Familie') =>
+  new RegExp(`^${wort}\\b`, 'i').test(name.trim()) ? name.trim() : `${wort} ${name.trim()}`;
+
 export function useStammbaum() {
   const [leute, setLeute] = useState<Person[]>([]);
   const [laedt, setLaedt] = useState(true);

@@ -3,7 +3,7 @@ import { Loader2, Pencil, Users2, ArrowRight, X } from 'lucide-react';
 import { useTranslation } from '../context/LanguageContext';
 import Familienbaum, { generationen } from './Familienbaum';
 import StammbaumPerson from './StammbaumPerson';
-import { useStammbaum } from '../lib/stammbaum';
+import { useStammbaum, familienTitel } from '../lib/stammbaum';
 
 // Reiter "Familie" beim Mitglied: wo es im Stammbaum steht, als Bild, und
 // Verwandte direkt hier hinzufuegen oder loesen -- ohne den Umweg ueber die
@@ -58,7 +58,7 @@ const MitgliedFamilie: React.FC<{
               ) : ids.length ? (
                 <button onClick={() => !nurLesen && setName(ich.familienname ?? kopf)} className="text-left group">
                   <p className="font-bold text-stone-800 group-hover:opacity-60">
-                    {ich.familienname ? `${t('stamm.familie')} ${ich.familienname}` : (kopf || t('stamm.ohne_namen'))}
+                    {ich.familienname ? familienTitel(ich.familienname, t('stamm.familie')) : (kopf || t('stamm.ohne_namen'))}
                     {!nurLesen && <Pencil size={12} className="inline ml-2 mb-0.5 text-stone-300" />}
                   </p>
                 </button>

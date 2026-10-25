@@ -4,6 +4,7 @@ import { supabase } from '../services/supabase-bridge';
 import { useTranslation } from '../context/LanguageContext';
 import { useTenant } from '../context/TenantContext';
 import { billingYearOf } from '../lib/memberQuality';
+import { datumLesen } from '../lib/datumLesen';
 
 // Zahlen fuer den Jahresbericht der Generalversammlung, als druckbare Seite
 // (Drucken -> als PDF sichern): Mitglieder, Beitraege, Nachbarschaften,
@@ -29,8 +30,8 @@ const Jahresbericht: React.FC = () => {
       ]);
       const leute = (u ?? []) as any[];
       const aktiv = leute.filter(x => x.membershipStatus !== 'INACTIVE');
-      const neu = aktiv.filter(x => x.joinedAt && new Date(x.joinedAt).getFullYear() === jahr).length;
-      const vorher = aktiv.filter(x => x.joinedAt && new Date(x.joinedAt).getFullYear() < jahr).length;
+      const neu = aktiv.filter(x => datumLesen(x.joinedAt)?.getFullYear() === jahr).length;
+      const vorher = aktiv.filter(x => (datumLesen(x.joinedAt)?.getFullYear() ?? 9999) < jahr).length;
       const rechn = ((p ?? []) as any[]).filter(x => billingYearOf(x) === jahr && x.status !== 'CANCELLED');
       const gestellt = rechn.reduce((a, x) => a + Number(x.amount || 0), 0);
       const bezahlt = rechn.filter(x => x.status === 'PAID').reduce((a, x) => a + Number(x.amount || 0), 0);

@@ -16,6 +16,8 @@ import AenderungenVerwaltung from './AenderungenVerwaltung';
 import AdminVersammlung from './AdminVersammlung';
 import AenderungsProtokoll from './AenderungsProtokoll';
 import NeueAnmeldungen from './NeueAnmeldungen';
+import VorstandCockpit from './VorstandCockpit';
+import { datumLesen } from '../lib/datumLesen';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Activity as ActivityIcon, AlertCircle, AlertTriangle, AlignLeft, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ArrowUpDown, AtSign, Ban, BarChart2, BarChart3, Bell, Blocks, BookOpen, Briefcase, Calendar, CalendarDays, CheckCircle2, CheckSquare, ChevronLeft, ChevronRight, ClipboardCheck, ClipboardList, Clock, Coins, Command, Copy, CreditCard, Crown, Database, DollarSign, Download, ExternalLink, Eye, FileEdit, FileInput, FileText, Files, Film, Filter, Globe, Hash, Heart, History, Home, Image as LucideImage, ImageIcon, Info, Kanban, KeyRound, Layout, LayoutDashboard, LayoutGrid, LayoutList, Link as LinkIcon, ListFilter, Loader2, Lock, LogOut, Mail, Map, MapPin, MapPinned, Megaphone, Menu, MessageSquare, MoreHorizontal, MoreVertical, MousePointer2, Newspaper, PanelLeftClose, PanelLeftOpen, Phone, PieChart as LucidePieChart, Plus, Printer, Receipt, RefreshCw, Save, Search, Send, Settings, Shield, ShieldAlert, Sliders, Sparkles, Square, StickyNote, Tag, Target, ToggleLeft, ToggleRight, Trash2, TrendingUp, Unlock, Upload, User as UserIcon, UserCheck, UserCheck2, UserCog, UserMinus, UserPlus, UserPlus2, Users, Users2, Wallet, X, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -520,6 +522,7 @@ const AdminPanel: React.FC = () => {
                       />
                   ) : (
                       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                        {activeTab === 'ANALYTICS' && <VorstandCockpit />}
                         {activeTab === 'ANALYTICS' && <AdminAnalytics payments={payments} users={users} neighborhoods={neighborhoods} selectedYear={selectedYear} />}
                         
                         {activeTab === 'DATA_QUALITY' && (
@@ -991,8 +994,7 @@ const AdminPanel: React.FC = () => {
                                         selectedUser.membershipStatus === 'ACTIVE' ? 'text-emerald-600' : 'text-amber-600')}
                                   {feld(t('field.role'), selectedUser.role)}
                                   {feld(t('field.category'), (selectedUser as any).membershipCategory)}
-                                  {feld(t('field.member_since'), (selectedUser as any).joinedAt
-                                        ? new Date((selectedUser as any).joinedAt).toLocaleDateString('de-CH') : '')}
+                                  {feld(t('field.member_since'), datumLesen((selectedUser as any).joinedAt)?.toLocaleDateString('de-CH') ?? '')}
                                   {feld(t('field.email'), selectedUser.email)}
                                   {feld(t('field.phone'), selectedUser.phone)}
                                   {feld(t('admin.tab.neighborhoods'), lagje?.name)}

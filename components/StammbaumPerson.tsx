@@ -3,7 +3,7 @@ import { Search, UserMinus, Plus, X, Loader2 } from 'lucide-react';
 import { useTranslation } from '../context/LanguageContext';
 import { useFeedback } from '../context/FeedbackContext';
 import { verwandteVon } from '../lib/verwandtschaft';
-import { direkteBeziehungen, weiblich, type Rolle, type useStammbaum } from '../lib/stammbaum';
+import { direkteBeziehungen, weiblich, familienTitel, type Rolle, type useStammbaum } from '../lib/stammbaum';
 
 // Die Verwandtschaft einer Person: was erfasst ist (einzeln loesbar), was
 // sich daraus ergibt, und Verwandte hinzufuegen per Klick -- ohne Ziehen,
@@ -116,7 +116,7 @@ const StammbaumPerson: React.FC<{
                     <span className="block text-sm font-bold text-stone-700 truncate">{l.name}</span>
                     <span className="block text-[10px] text-stone-400 truncate">
                       {l.nachbarschaft || '—'}{l.geburtsdatum ? ` · ${l.geburtsdatum}` : ''}
-                      {l.familienname ? ` · ${t('stamm.familie')} ${l.familienname}` : ''}
+                      {l.familienname ? ` · ${familienTitel(l.familienname, t('stamm.familie'))}` : ''}
                     </span>
                   </span>
                   {sb.arbeitet ? <Loader2 size={14} className="animate-spin text-stone-300" /> : <Plus size={14} className="text-stone-400 shrink-0" />}

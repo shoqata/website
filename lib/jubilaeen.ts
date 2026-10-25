@@ -21,7 +21,7 @@ export function anstehend(
       const jahre = d.getFullYear() - Number(g[1]);
       if (d < ende && jahre > 0 && jahre < 120) raus.push({ id: p.id, name: p.displayName || '', email: p.email, art: 'GEBURTSTAG', datum: d, jahre });
     }
-    const j = (p.joinedAt || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+    const j = (typeof p.joinedAt === 'string' ? p.joinedAt : '').match(/^(\d{4})-(\d{2})-(\d{2})/);
     if (j) {
       const d = naechster(Number(j[2]) - 1, Number(j[3]));
       const jahre = d.getFullYear() - Number(j[1]);

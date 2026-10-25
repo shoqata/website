@@ -5,7 +5,7 @@ import { useTranslation } from '../context/LanguageContext';
 import { useModule } from '../lib/useModule';
 import Familienbaum, { type Knoten } from './Familienbaum';
 import { netzAus, verwandteVon, type Kante } from '../lib/verwandtschaft';
-import { weiblich } from '../lib/stammbaum';
+import { weiblich, familienTitel } from '../lib/stammbaum';
 
 // "Meine Familie" im Mitgliederbereich: nur lesen, nur die eigene Familie,
 // nur Name und Geburtsjahr (meine_familie()). Aenderungen meldet das
@@ -59,7 +59,7 @@ const MeineFamilie: React.FC<{ onMelden?: () => void }> = ({ onMelden }) => {
           <div className="w-10 h-10 rounded-xl bg-stone-100 text-stone-500 flex items-center justify-center"><Users2 size={18} /></div>
           <div>
             <h3 className="font-bold text-stone-900">
-              {ich?.familienname ? `${t('stamm.familie')} ${ich.familienname}` : t('meinefam.titel')}
+              {ich?.familienname ? familienTitel(ich.familienname, t('stamm.familie')) : t('meinefam.titel')}
             </h3>
             <p className="text-xs text-stone-400">
               {zeilen.length > 1 ? `${zeilen.length} ${t('stamm.personen')}` : t('meinefam.leer')}
