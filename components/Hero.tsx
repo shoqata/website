@@ -9,7 +9,9 @@ import { collection, query, where, onSnapshot, doc, getDoc, getDocs, supabase } 
 import { SolidarityEvent, UserProfile, GlobalPaymentSettings } from '../types';
 import { Marquee } from './ui/Marquee';
 import HyperTextParagraph from './ui/HyperText';
-import { QRCodeSVG } from 'qrcode.react';
+// Der QR-Code steht nur im TWINT-Fenster -- erst laden, wenn es aufgeht,
+// nicht fuer jeden Besuch der Startseite.
+const QRCodeSVG = React.lazy(() => import('qrcode.react').then(m => ({ default: m.QRCodeSVG })));
 
 import { onImageError } from '../lib/imageFallback';
 const DEFAULT_HERO_IMAGES = [
@@ -437,7 +439,7 @@ const Hero: React.FC = () => {
                       </div>
 
                       <div className="bg-stone-50 p-6 rounded-[2rem] border border-stone-100 shadow-inner mb-8 inline-block">
-                          <QRCodeSVG value={paymentSettings.twintUrl} size={180} level="M" />
+                          <React.Suspense fallback={<div style={{ width: 180, height: 180 }} />}><QRCodeSVG value={paymentSettings.twintUrl} size={180} level="M" /></React.Suspense>
                       </div>
 
                       <a href={paymentSettings.twintUrl} target="_blank" rel="noreferrer" className="w-full bg-[#eb3333] text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-[#d62d2d] transition shadow-xl">

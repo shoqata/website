@@ -34,7 +34,6 @@ import { useReiterKennzeichen } from './lib/useReiterKennzeichen';
 import { HashRouter as Router, Routes, Route, Link, useLocation, Navigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { ArrowRight, Building2, Calendar, ChevronDown, Film, Globe, Hammer, Heart, Home, Info, LayoutDashboard, Loader2, LogIn, LogOut, Mail, MapPin, Maximize, Menu, Newspaper, QrCode, Settings, ShieldCheck, Smartphone, Sparkles, Trophy, UserPlus, X, Zap } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
 
 // Supabase Auth (replaces Firebase Auth)
 import { 
