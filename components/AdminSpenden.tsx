@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import AdminSpendenaufrufe from './AdminSpendenaufrufe';
+import Jahresbescheinigungen from './Jahresbescheinigungen';
 import { Heart, Loader2, AlertTriangle, Check, FileText, Search, Download } from 'lucide-react';
 import { collection, onSnapshot, query, orderBy, supabase } from '../services/supabase-bridge';
 import { db } from '../services/supabase-bridge';
@@ -153,6 +154,8 @@ const AdminSpenden: React.FC = () => {
   return (
     <div className="space-y-8">
       <AdminSpendenaufrufe />
+
+      <Jahresbescheinigungen spenden={spenden as any} verein={verein} />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="bg-white p-5 rounded-2xl border border-stone-100">
