@@ -1,4 +1,5 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { geheimschluessel } from "../_shared/schluessel.ts";
 
 // Briefe an Pingen uebergeben.
 //
@@ -165,7 +166,7 @@ Deno.serve(async (req) => {
   const marke_kopf = req.headers.get("x-cron-token") ?? "";
   const dienst = createClient(
     Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    geheimschluessel(),
     { auth: { persistSession: false } },
   );
   let erlaubt = !!cronToken && marke_kopf === cronToken;
@@ -227,7 +228,7 @@ Deno.serve(async (req) => {
 
   const admin = createClient(
     Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    geheimschluessel(),
     { auth: { persistSession: false } },
   );
 
