@@ -1069,7 +1069,15 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings, systemGelad
                     <div className="h-px bg-stone-100 my-2" />
                     {user ? (
                         <>
-                            <Link to="/dashboard" className="flex items-center gap-4 p-4 bg-stone-900 text-white rounded-2xl shadow-lg"><LayoutDashboard size={20} /><span className="font-bold">{t('nav.dashboard')}</span></Link>
+                            <Link to="/dashboard" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-4 p-4 bg-stone-900 text-white rounded-2xl shadow-lg"><LayoutDashboard size={20} /><span className="font-bold">{t('nav.dashboard')}</span></Link>
+                            {/* Verwaltung und Plattform standen nur in der Leiste oben rechts,
+                                die auf dem Handy ausgeblendet ist -- dort kam man nicht hin. */}
+                            {istAdmin && (
+                              <Link to="/admin" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-4 p-4 bg-stone-100 text-stone-900 rounded-2xl"><ShieldCheck size={20} /><span className="font-bold">{t('nav.admin')}</span></Link>
+                            )}
+                            {werIch?.ist_betreiber && (
+                              <Link to="/super-admin" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-4 p-4 bg-stone-100 text-stone-900 rounded-2xl"><Building2 size={20} /><span className="font-bold">{t('nav.platform')}</span></Link>
+                            )}
                             <button onClick={handleSignOut} className="flex items-center gap-4 p-4 text-stone-400 justify-center font-bold text-sm"><LogOut size={16} /> {t('nav.signout')}</button>
                         </>
                     ) : (
