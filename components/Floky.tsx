@@ -384,6 +384,16 @@ const Floky: React.FC = () => {
     });
   };
 
+  // Der Nach-oben-Knopf sitzt an derselben Ecke. Hier kennzeichnen, ob
+  // Floky da ist (und ob aufgeklappt) -- index.html setzt den Knopf dann
+  // darueber oder blendet ihn aus. Sonst lagen beide uebereinander.
+  useEffect(() => {
+    const h = document.documentElement;
+    if (darf === true) h.dataset.floky = offen ? 'offen' : 'knopf';
+    else delete h.dataset.floky;
+    return () => { delete h.dataset.floky; };
+  }, [darf, offen]);
+
   if (darf !== true) return null;
 
   if (!offen) return (

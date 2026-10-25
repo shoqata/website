@@ -134,6 +134,15 @@
         html[data-nav-unten] footer { padding-bottom: 8rem; }
         html[data-nav-unten] .ueber-leiste { bottom: calc(6.5rem + env(safe-area-inset-bottom)) !important; }
       }
+      /* Floky und der Nach-oben-Knopf teilen sich die Ecke unten rechts.
+         Ist Floky da (Floky.tsx setzt data-floky), steht der Knopf
+         darueber und buendig mit Floky; ist Floky aufgeklappt, verdeckt
+         das Fenster die Ecke -- dann weg mit dem Knopf. */
+      html[data-floky="knopf"] .nach-oben { right: 1.5rem !important; bottom: calc(max(1.5rem, env(safe-area-inset-bottom)) + 4rem) !important; }
+      @media (max-width: 767px) {
+        html[data-floky="knopf"][data-nav-unten] .nach-oben { bottom: calc(6.5rem + env(safe-area-inset-bottom) + 4rem) !important; }
+      }
+      html[data-floky="offen"] .nach-oben { display: none !important; }
       .glass {
         background: rgba(255, 255, 255, 0.4);
         backdrop-filter: blur(12px);
