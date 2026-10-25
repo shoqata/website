@@ -7,7 +7,7 @@ import NachbarschaftProfilEditor from './NachbarschaftProfilEditor';
 // Auf jeder Nachbarschaftskarte (Verwaltung, Vertreterbereich): ist die
 // Nachbarschaft auf der Website zu sehen, und der Weg zur Vorstellung.
 
-const NbWebsiteLeiste: React.FC<{ nb: { id: string; name: string } }> = ({ nb }) => {
+const NbWebsiteLeiste: React.FC<{ nb: { id: string; name: string }; darfBilder?: boolean }> = ({ nb, darfBilder }) => {
   const { showAlert } = useFeedback();
   const [sichtbar, setSichtbar] = useState<boolean | null>(null);
   const [arbeitet, setArbeitet] = useState(false);
@@ -39,7 +39,7 @@ const NbWebsiteLeiste: React.FC<{ nb: { id: string; name: string } }> = ({ nb })
         className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-stone-900 text-white">
         <Globe size={13} /> Vorstellung
       </button>
-      {offen && <NachbarschaftProfilEditor nb={nb} onClose={() => setOffen(false)} onGespeichert={laden} />}
+      {offen && <NachbarschaftProfilEditor nb={nb} darfBilder={darfBilder} onClose={() => setOffen(false)} onGespeichert={laden} />}
     </div>
   );
 };

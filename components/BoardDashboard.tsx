@@ -1,6 +1,8 @@
 
 import { useJahresauswahl } from '../lib/useVereinsjahre';
 import NachrichtenVerwaltung from './NachrichtenVerwaltung';
+import NbWebsiteLeiste from './NbWebsiteLeiste';
+import AdminNeighborhoodEditor from './AdminNeighborhoodEditor';
 import { useModule } from '../lib/useModule';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from '../context/LanguageContext';
@@ -61,6 +63,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([]);
+  const [nbBearbeiten, setNbBearbeiten] = useState<Partial<Neighborhood> | null>(null);
   const [meetings, setMeetings] = useState<BoardMeeting[]>([]);
   
   // UI State
@@ -720,6 +723,47 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
             </div>
 
         </div>
+
+        {/* Nachbarschaften verwalten. Der Vorstand gehoert laut Datenbank zur
+            Verwaltung (is_member_manager) -- die Masken dafuer lagen aber nur
+            unter /admin, wohin er nicht kommt. Dieselben Masken hier. */}
+        <div className="bg-white p-8 rounded-[2.5rem] border border-stone-100 shadow-sm">
+            <div className="flex items-center justify-between gap-4 flex-wrap mb-6">
+                <h3 className="text-xl font-bold flex items-center gap-2"><MapPin size={20} className="text-primary"/> {t('board.nb_verwalten')}</h3>
+                <button onClick={() => setNbBearbeiten({ name: '', status: 'ACTIVE' } as any)}
+                    className="px-4 py-2 bg-stone-900 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 hover:bg-stone-700">
+                    <Plus size={13}/> {t('admin.nb.new')}
+                </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {neighborhoods.map(n => (
+                    <div key={n.id} className="p-5 rounded-2xl border border-stone-100">
+                        <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                                <p className="font-bold text-stone-900 truncate">{n.name}</p>
+                                <p className="text-[11px] text-stone-400 mt-0.5">
+                                    {users.filter(u => u.neighborhoodId === n.id).length} {t('nb.mitglieder')}
+                                </p>
+                            </div>
+                            <button onClick={() => setNbBearbeiten(n)} title={t('common.edit')}
+                                className="p-2 text-stone-400 hover:text-stone-900 bg-white border border-stone-200 rounded-lg shrink-0">
+                                <FileEdit size={14}/>
+                            </button>
+                        </div>
+                        <NbWebsiteLeiste nb={{ id: n.id, name: n.name }} darfBilder />
+                    </div>
+                ))}
+                {neighborhoods.length === 0 && <p className="text-stone-400 italic">{t('board.no_entries')}</p>}
+            </div>
+        </div>
+        {nbBearbeiten && (
+            <AdminNeighborhoodEditor
+                neighborhood={nbBearbeiten}
+                users={users}
+                memberCount={users.filter(u => u.neighborhoodId === nbBearbeiten.id).length}
+                onClose={() => setNbBearbeiten(null)}
+            />
+        )}
 
         {/* Neuigkeiten. Der Vorstand durfte sie laut Datenbank schon immer
             schreiben, hatte aber keine Maske: die liegt unter /admin, und

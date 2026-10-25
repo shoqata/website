@@ -1731,6 +1731,7 @@ const translations: Translations = {
   'nb.weitere': { en: "More neighbourhoods", de: "Weitere Nachbarschaften", sq: "Lagje të tjera" },
   'nb.noch_kein_text': { en: "This neighbourhood will introduce itself here soon.", de: "Diese Nachbarschaft stellt sich hier bald vor.", sq: "Kjo lagje do të prezantohet këtu së shpejti." },
   'nb.website_von': { en: "{name} on the website", de: "{name} auf der Website", sq: "{name} në faqe" },
+  'board.nb_verwalten': { en: "Manage neighbourhoods", de: "Nachbarschaften verwalten", sq: "Menaxho lagjet" },
   'about.badge': { en: 'Global network', de: 'Globales Netzwerk', sq: 'Rrjet global' },
   'about.title': { en: 'About us', de: 'Über uns', sq: 'Rreth Nesh' },
   'about.intro': { en: 'The association is a bridge between the home village and the diaspora. We are committed to developing our community through concrete projects and solidarity.', de: 'Der Verein ist die Brücke zwischen der Heimat und der Diaspora. Wir setzen uns mit konkreten Projekten und Solidarität für die Entwicklung unserer Gemeinschaft ein.', sq: 'Shoqata është urë lidhëse mes vendlindjes dhe diasporës. Ne jemi të përkushtuar për zhvillimin e komunitetit tonë përmes projekteve konkrete dhe solidaritetit.' },

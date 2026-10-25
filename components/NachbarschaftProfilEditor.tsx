@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { X, Loader2, Save, Upload, Trash2, ArrowLeft, ArrowRight, Eye, EyeOff, ExternalLink, MapPin } from 'lucide-react';
 import { supabase } from '@/services/supabase-bridge';
 import { useFeedback } from '../context/FeedbackContext';
-import { bildHochladen } from '../lib/bildHochladen';
+import { nachbarschaftsbildHochladen } from '../lib/bildPruefen';
 import { GebietZeichnen, type Flaeche } from './NachbarschaftKarte';
 import type { NbBild, Punkt } from '../lib/nachbarschaften';
 
@@ -13,8 +13,12 @@ import type { NbBild, Punkt } from '../lib/nachbarschaften';
 type Sprache = 'de' | 'sq' | 'en';
 const SPRACHEN: [Sprache, string][] = [['de', 'Deutsch'], ['sq', 'Shqip'], ['en', 'English']];
 
-const NachbarschaftProfilEditor: React.FC<{ nb: { id: string; name: string }; onClose: () => void; onGespeichert?: () => void }> =
-  ({ nb, onClose, onGespeichert }) => {
+// darfBilder: nur Administration und Vorstand. Die Datenbank prueft es
+// selbst (nachbarschaft_bild_erlaubt); die Maske blendet den Teil fuer
+// Vertreter nur aus, statt ihnen einen Knopf zu zeigen, der abgewiesen wird.
+const MAX_BILDER = 5;
+const NachbarschaftProfilEditor: React.FC<{ nb: { id: string; name: string }; onClose: () => void; onGespeichert?: () => void; darfBilder?: boolean }> =
+  ({ nb, onClose, onGespeichert, darfBilder = false }) => {
   const { showAlert } = useFeedback();
   const [geladen, setGeladen] = useState(false);
   const [sichtbar, setSichtbar] = useState(false);
@@ -113,39 +117,56 @@ const NachbarschaftProfilEditor: React.FC<{ nb: { id: string; name: string }; on
             </div>
 
             <div>
-              <label className={marke}>Bilder ({bilder.length}/24)</label>
+              <label className={marke}>Bilder ({bilder.length}/{MAX_BILDER})</label>
+              {!darfBilder && (
+                <p className="text-[11px] text-stone-500 mb-3">Bilder fügen Administration und Vorstand hinzu.</p>
+              )}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {bilder.map((b, i) => (
                   <div key={b.url + i} className="relative group rounded-xl overflow-hidden border border-stone-200 bg-stone-50">
                     <img src={b.url} alt="" className="w-full aspect-[4/3] object-cover" />
                     {i === 0 && <span className="absolute top-2 left-2 text-[9px] font-bold uppercase tracking-widest bg-white/90 px-1.5 py-0.5 rounded">Titelbild</span>}
-                    <div className="absolute top-2 right-2 flex gap-1">
-                      <button onClick={() => schieben(i, -1)} disabled={i === 0} className="w-7 h-7 bg-white/90 rounded-lg flex items-center justify-center disabled:opacity-30"><ArrowLeft size={13} /></button>
-                      <button onClick={() => schieben(i, 1)} disabled={i === bilder.length - 1} className="w-7 h-7 bg-white/90 rounded-lg flex items-center justify-center disabled:opacity-30"><ArrowRight size={13} /></button>
-                      <button onClick={() => setBilder(bilder.filter((_, n) => n !== i))} className="w-7 h-7 bg-white/90 rounded-lg flex items-center justify-center text-red-600"><Trash2 size={13} /></button>
-                    </div>
-                    <input value={b.text?.[sprache] || ''} placeholder={`Bildtext (${sprache})`}
-                      onChange={e => setBilder(bilder.map((x, n) => n === i ? { ...x, text: { ...x.text, [sprache]: e.target.value } } : x))}
-                      className="w-full p-2 text-[11px] bg-white border-t border-stone-200 outline-none" />
+                    {darfBilder && (
+                      <div className="absolute top-2 right-2 flex gap-1">
+                        <button onClick={() => schieben(i, -1)} disabled={i === 0} className="w-7 h-7 bg-white/90 rounded-lg flex items-center justify-center disabled:opacity-30"><ArrowLeft size={13} /></button>
+                        <button onClick={() => schieben(i, 1)} disabled={i === bilder.length - 1} className="w-7 h-7 bg-white/90 rounded-lg flex items-center justify-center disabled:opacity-30"><ArrowRight size={13} /></button>
+                        <button onClick={() => setBilder(bilder.filter((_, n) => n !== i))} className="w-7 h-7 bg-white/90 rounded-lg flex items-center justify-center text-red-600"><Trash2 size={13} /></button>
+                      </div>
+                    )}
+                    {darfBilder && (
+                      <input value={b.text?.[sprache] || ''} placeholder={`Bildtext (${sprache})`}
+                        onChange={e => setBilder(bilder.map((x, n) => n === i ? { ...x, text: { ...x.text, [sprache]: e.target.value } } : x))}
+                        className="w-full p-2 text-[11px] bg-white border-t border-stone-200 outline-none" />
+                    )}
                   </div>
                 ))}
-                {bilder.length < 24 && (
-                  <label className={`aspect-[4/3] border-2 border-dashed border-stone-200 rounded-xl flex flex-col items-center justify-center gap-1 text-stone-400 text-xs font-bold cursor-pointer hover:border-stone-300 ${laedt ? 'opacity-50 pointer-events-none' : ''}`}>
-                    {laedt ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />} Bilder hochladen
-                    <input type="file" accept="image/*" multiple hidden onChange={async e => {
-                      const dateien = [...(e.target.files || [])].slice(0, 24 - bilder.length); e.target.value = '';
+                {darfBilder && bilder.length < MAX_BILDER && (
+                  <label className={`aspect-[4/3] border-2 border-dashed border-stone-200 rounded-xl flex flex-col items-center justify-center gap-1 text-stone-400 text-xs font-bold cursor-pointer hover:border-stone-300 text-center px-3 ${laedt ? 'opacity-50 pointer-events-none' : ''}`}>
+                    {laedt ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
+                    {laedt ? 'Wird verkleinert und geprüft …' : 'Bilder hochladen'}
+                    <input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden onChange={async e => {
+                      const dateien = [...(e.target.files || [])].slice(0, MAX_BILDER - bilder.length); e.target.value = '';
                       if (!dateien.length) return;
                       setLaedt(true);
-                      try {
-                        const neu: NbBild[] = [];
-                        for (const d of dateien) neu.push({ url: await bildHochladen(d, `nachbarschaften/${nb.id}`) });
-                        setBilder(b => [...b, ...neu]);
-                      } catch (err: any) { showAlert({ type: 'error', message: err?.message || 'Hochladen fehlgeschlagen.' }); }
-                      finally { setLaedt(false); }
+                      const fehler: string[] = [];
+                      for (const d of dateien) {
+                        try {
+                          const url = await nachbarschaftsbildHochladen(d, nb.id);
+                          setBilder(b => b.length < MAX_BILDER ? [...b, { url }] : b);
+                        } catch (err: any) { fehler.push(`${d.name}: ${err?.message || 'abgewiesen'}`); }
+                      }
+                      setLaedt(false);
+                      if (fehler.length) showAlert({ type: 'error', message: fehler.join('\n') });
                     }} />
                   </label>
                 )}
               </div>
+              {darfBilder && (
+                <p className="text-[10px] text-stone-400 mt-2 leading-relaxed">
+                  Höchstens {MAX_BILDER} Bilder. Jedes Bild wird verkleinert, auf dem Server geprüft und neu erzeugt —
+                  versteckter Inhalt und Standortdaten werden dabei entfernt. Erst „Speichern“ übernimmt die Bilder.
+                </p>
+              )}
             </div>
 
             <div>
