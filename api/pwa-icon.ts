@@ -7,7 +7,7 @@
 // Flaeche sicher sichtbar ist.
 import sharp from 'sharp';
 import opentype from 'opentype.js';
-import { markeFuer } from './_verein';
+import { markeFuer } from './_verein.js';  // Endung noetig: das Projekt ist ein ES-Modul, Vercel buendelt nicht
 
 const GROESSEN = new Set([32, 64, 180, 192, 512]);
 

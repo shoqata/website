@@ -4,7 +4,7 @@
 // eigene Farbe, eigenes Symbol (aus dem Logo, sonst ein Anfangsbuchstabe).
 // Ein festes manifest.json ginge nicht -- alle Vereine teilen sich denselben
 // Build.
-import { markeFuer } from './_verein';
+import { markeFuer } from './_verein.js';  // Endung noetig: das Projekt ist ein ES-Modul, Vercel buendelt nicht
 
 export async function GET(request: Request) {
   const host = request.headers.get('x-forwarded-host') || request.headers.get('host') || new URL(request.url).host;
