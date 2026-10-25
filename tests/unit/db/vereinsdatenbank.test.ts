@@ -102,7 +102,8 @@ describe('Zeitgesteuerte Neuigkeiten', () => {
     expect(await titel('Sofort')).toBe(1);
   });
   it('ist als geplanter Auftrag eingetragen', async () => {
-    expect(await zahl(`select count(*)::int n from cron.job where jobname = 'neuigkeiten_melden'`)).toBe(1);
+    const job = (await db.query<any>(`select schedule from cron.job where jobname = 'neuigkeiten_melden'`)).rows;
+    expect(job).toEqual([{ schedule: '*/30 * * * *' }]);
   });
 });
 

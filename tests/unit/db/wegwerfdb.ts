@@ -96,4 +96,5 @@ export const MIGRATIONEN_HEUTE = [
   '20261128120000', // aufnahmeantraege
   '20261128130000', // push_nachrichten
   '20261128140000', // neuigkeiten_zeitgesteuert
+  '20261128150000', // neuigkeiten_halbstuendlich
 ];
