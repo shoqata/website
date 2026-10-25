@@ -118,7 +118,7 @@ const AdminNeighborhoodEditor: React.FC<Props> = ({ neighborhood, users, memberC
     <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-stone-900/60 backdrop-blur-sm">
       <motion.div
         initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-        className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90dvh]"
       >
         <div className="p-6 border-b border-stone-100 flex justify-between items-center bg-stone-50">
           <h3 className="font-bold text-xl text-stone-900 flex items-center gap-2">

@@ -733,7 +733,7 @@ const AdminBoard: React.FC<AdminBoardProps> = ({ users }) => {
             <AnimatePresence>
                 {showPreview && selectedMeeting && (
                     <div className="fixed inset-0 z-[400] bg-stone-900/80 backdrop-blur-md flex items-center justify-center p-4">
-                        <motion.div initial={{opacity:0, scale:0.95}} animate={{opacity:1, scale:1}} exit={{opacity:0, scale:0.95}} className="bg-white h-[90vh] w-full max-w-4xl rounded-2xl flex flex-col overflow-hidden">
+                        <motion.div initial={{opacity:0, scale:0.95}} animate={{opacity:1, scale:1}} exit={{opacity:0, scale:0.95}} className="bg-white h-[90dvh] w-full max-w-4xl rounded-2xl flex flex-col overflow-hidden">
                             {/* Toolbar */}
                             <div className="bg-stone-50 border-b border-stone-200 p-4 flex justify-between items-center shrink-0">
                                 <h3 className="font-bold text-stone-800">{t('minutes.preview')}</h3>

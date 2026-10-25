@@ -533,7 +533,7 @@ const RepresentativeDashboard: React.FC<RepresentativeDashboardProps> = ({ user 
         <AnimatePresence>
             {showMemberModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/80 backdrop-blur-sm p-4">
-                    <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl relative overflow-y-auto max-h-[90vh]">
+                    <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl relative overflow-y-auto max-h-[90dvh]">
                         <button onClick={() => setShowMemberModal(false)} className="absolute top-4 right-4 p-2 bg-stone-100 rounded-full text-stone-500"><X size={18}/></button>
                         
                         <h3 className="text-xl font-bold text-stone-900 mb-6">{t('rep.register_member')}</h3>
@@ -579,7 +579,7 @@ const RepresentativeDashboard: React.FC<RepresentativeDashboardProps> = ({ user 
         <AnimatePresence>
             {showExpenseModal && (
                 <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-stone-900/80 backdrop-blur-sm p-4">
-                    <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl relative overflow-y-auto max-h-[90vh]">
+                    <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl relative overflow-y-auto max-h-[90dvh]">
                         <button onClick={() => setShowExpenseModal(false)} className="absolute top-4 right-4 p-2 bg-stone-100 rounded-full text-stone-500"><X size={18}/></button>
                         
                         <h3 className="text-xl font-bold text-stone-900 mb-6">{t('rep.new_expense')}</h3>

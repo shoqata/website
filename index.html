@@ -3,7 +3,11 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover: ohne das ist env(safe-area-inset-*) immer 0, und
+         die Leisten liegen unter Notch und Home-Balken.
+         interactive-widget: die Tastatur verkleinert die Seite statt sie zu ueberdecken. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+    <meta name="theme-color" content="#faf9f6" />
     <title>Koretini</title>
     <script>
       // Wem gehoert diese Adresse?
@@ -111,7 +115,7 @@
       @media (max-width: 767px) {
         html[data-nav-unten] main { padding-bottom: 6rem; }
         html[data-nav-unten] footer { padding-bottom: 8rem; }
-        html[data-nav-unten] .ueber-leiste { bottom: 6.5rem !important; }
+        html[data-nav-unten] .ueber-leiste { bottom: calc(6.5rem + env(safe-area-inset-bottom)) !important; }
       }
       .glass {
         background: rgba(255, 255, 255, 0.4);
@@ -128,7 +132,11 @@
         background-color: var(--primary);
         box-shadow: 0 18px 36px -14px color-mix(in srgb, var(--primary) 45%, transparent);
       }
-      .knopf-primaer:hover { background-color: var(--primary-hover); }
+      /* Hover nur mit Maus -- auf dem Handy bliebe ein angetippter Knopf
+         sonst in der Hover-Farbe stehen (wie hoverOnlyWhenSupported fuer Tailwind). */
+      @media (hover: hover) and (pointer: fine) {
+        .knopf-primaer:hover { background-color: var(--primary-hover); }
+        }
       .feld-primaer:focus {
         border-color: color-mix(in srgb, var(--primary) 32%, transparent);
       }

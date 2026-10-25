@@ -60,8 +60,8 @@ const CookieConsent: React.FC = () => {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
           className={istPlattform
-            ? 'fixed bottom-0 left-0 right-0 md:bottom-6 md:left-auto md:right-6 md:max-w-[420px] z-[1000]'
-            : 'fixed bottom-6 left-6 right-6 md:left-auto md:max-w-md z-[1000]'}
+            ? 'fixed bottom-0 left-0 right-0 pb-[env(safe-area-inset-bottom)] md:pb-0 md:bottom-6 md:left-auto md:right-6 md:max-w-[420px] z-[1000]'
+            : 'fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] left-6 right-6 md:left-auto md:max-w-md z-[1000]'}
         >
           {istPlattform ? (
             /* ---------------------------------------- Betreiberdarstellung */

@@ -5,7 +5,7 @@ import { useTranslation } from '../context/LanguageContext';
 const Fallback: React.FC<{ onRetry: () => void }> = ({ onRetry }) => {
   const { t } = useTranslation();
   return (
-    <div className="min-h-[60vh] flex items-center justify-center px-6 py-16">
+    <div className="min-h-[60dvh] flex items-center justify-center px-6 py-16">
       <div className="max-w-md text-center">
         <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-primary">
           <AlertTriangle size={22} />

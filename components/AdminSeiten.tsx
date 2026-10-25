@@ -238,7 +238,7 @@ const AdminSeiten: React.FC = () => {
         {/* -------------------------------------------------- Vorschau */}
         <div className="lg:sticky lg:top-6 self-start">
           <p className={`${marke} mb-3`}>So sieht es aus</p>
-          <div className="bg-white rounded-3xl border border-stone-200 p-8 max-h-[70vh] overflow-y-auto">
+          <div className="bg-white rounded-3xl border border-stone-200 p-8 max-h-[70dvh] overflow-y-auto">
             <h1 className="text-3xl font-display font-bold italic text-stone-900 mb-8">
               {offen.titel[sprache] || offen.titel.de || 'Ohne Titel'}
             </h1>

@@ -219,7 +219,7 @@ const BoardMinutesEditor: React.FC<Props> = ({ meeting, open, boardUsers, onClos
   return (
     <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 md:p-6 bg-stone-900/70 backdrop-blur-sm">
       <motion.div initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-        className="bg-white w-full max-w-3xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+        className="bg-white w-full max-w-3xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[92dvh]">
 
         <div className="p-6 border-b border-stone-100 flex justify-between items-center bg-stone-50">
           <div>

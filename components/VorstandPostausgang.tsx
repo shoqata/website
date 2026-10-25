@@ -150,7 +150,7 @@ const VorstandPostausgang: React.FC<Props> = ({ mitglieder, nachbarschaften, onC
   return (
     <div className="fixed inset-0 z-[70] bg-stone-900/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-6">
       <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
-        className="bg-white w-full sm:max-w-4xl max-h-[92vh] rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl flex flex-col overflow-hidden">
+        className="bg-white w-full sm:max-w-4xl max-h-[92dvh] rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl flex flex-col overflow-hidden">
 
         <div className="p-6 border-b border-stone-100 flex items-start justify-between gap-4">
           <div>

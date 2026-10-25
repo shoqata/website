@@ -222,7 +222,7 @@ const RegistrationWizard: React.FC = () => {
                     <div className="relative">
                       <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-stone-300" size={20} />
                       <input 
-                        type="email" 
+                        type="email" autoComplete="email"
                         required
                         value={formData.email}
                         onChange={(e) => setFormData({...formData, email: e.target.value})}
@@ -237,7 +237,7 @@ const RegistrationWizard: React.FC = () => {
                     <div className="relative">
                       <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-stone-300" size={20} />
                       <input 
-                        type={showPassword ? "text" : "password"} 
+                        type={showPassword ? "text" : "password"} autoComplete="new-password" 
                         required
                         value={formData.password}
                         onChange={(e) => setFormData({...formData, password: e.target.value})}
@@ -338,7 +338,7 @@ const RegistrationWizard: React.FC = () => {
                       <div className="relative">
                         <Phone className="absolute left-6 top-1/2 -translate-y-1/2 text-stone-300" size={20} />
                         <input 
-                          type="tel" 
+                          type="tel" autoComplete="tel"
                           value={formData.phone}
                           onChange={(e) => setFormData({...formData, phone: e.target.value})}
                           placeholder={t('ph.phone')}

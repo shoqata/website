@@ -46,7 +46,7 @@ const Journal: React.FC = () => {
     <div ref={wurzel} className="sc-seite journal">
       <style>{`
         .journal { ${DUNKLER_GRUND}
-          background: var(--sc-canvas); color: var(--sc-ink); min-height:100vh; }
+          background: var(--sc-canvas); color: var(--sc-ink); min-height:100svh; }
         ${LEISTE_DUNKEL}
         .journal .spur { position:relative; max-width:46rem; margin:0 auto;
           padding:0 1.5rem 8rem; }

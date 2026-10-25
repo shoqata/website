@@ -810,7 +810,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                             </div>
                         )}
 
-                        <div className="space-y-3 bg-stone-50 p-6 rounded-2xl border border-stone-100 max-h-[42vh] overflow-y-auto custom-scrollbar">
+                        <div className="space-y-3 bg-stone-50 p-6 rounded-2xl border border-stone-100 max-h-[42dvh] overflow-y-auto custom-scrollbar">
                             <div>
                                 <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">{t('field.email')}</label>
                                 <input value={memberForm?.email ?? ''} onChange={e => setMemberForm({ ...(memberForm || {}), email: e.target.value })}
@@ -923,7 +923,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
         <AnimatePresence>
             {showInvoiceListModal && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-stone-900/60 backdrop-blur-sm">
-                    <motion.div initial={{scale:0.95, opacity:0}} animate={{scale:1, opacity:1}} exit={{scale:0.95, opacity:0}} className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col max-h-[80vh]">
+                    <motion.div initial={{scale:0.95, opacity:0}} animate={{scale:1, opacity:1}} exit={{scale:0.95, opacity:0}} className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col max-h-[80dvh]">
                         <div className={`p-6 flex justify-between items-center ${showInvoiceListModal === 'PAID' ? 'bg-emerald-50' : 'bg-amber-50'}`}>
                             <h3 className={`font-bold text-lg flex items-center gap-2 ${showInvoiceListModal === 'PAID' ? 'text-emerald-800' : 'text-amber-800'}`}>
                                 {showInvoiceListModal === 'PAID' ? <CheckCircle2 size={20}/> : <AlertCircle size={20}/>}
@@ -1007,7 +1007,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
             {zeigeNachbarschaften && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-stone-900/60 backdrop-blur-sm">
                     <motion.div initial={{scale:0.95, opacity:0}} animate={{scale:1, opacity:1}} exit={{scale:0.95, opacity:0}}
-                        className="bg-white w-full max-w-3xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+                        className="bg-white w-full max-w-3xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[85dvh]">
                         <div className="p-6 flex justify-between items-center bg-stone-900 text-white">
                             <h3 className="font-bold text-lg flex items-center gap-2">
                                 <MapPin size={20}/> {t('admin.tab.neighborhoods')} ({selectedYear})
@@ -1112,7 +1112,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
         <AnimatePresence>
             {selectedMeeting && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-stone-900/60 backdrop-blur-sm">
-                    <motion.div initial={{scale:0.95, opacity:0}} animate={{scale:1, opacity:1}} exit={{scale:0.95, opacity:0}} className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+                    <motion.div initial={{scale:0.95, opacity:0}} animate={{scale:1, opacity:1}} exit={{scale:0.95, opacity:0}} className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[85dvh]">
                         <div className="p-6 border-b border-stone-100 flex justify-between items-center bg-stone-50">
                             <div>
                                 <h3 className="font-bold text-lg text-stone-900">{selectedMeeting.title}</h3>
@@ -1186,7 +1186,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                         initial={{ scale: 0.95, opacity: 0 }} 
                         animate={{ scale: 1, opacity: 1 }} 
                         exit={{ scale: 0.95, opacity: 0 }}
-                        className="bg-white w-full max-w-xl rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh]"
+                        className="bg-white w-full max-w-xl rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col max-h-[90dvh]"
                     >
                         <div className="p-6 border-b border-stone-100 flex justify-between items-center bg-stone-50">
                             <h3 className="font-bold text-xl text-stone-900 flex items-center gap-2">

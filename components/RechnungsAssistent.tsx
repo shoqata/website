@@ -196,7 +196,7 @@ const RechnungsAssistent: React.FC<{
   return (
     <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center sm:p-6 bg-stone-900/80 backdrop-blur-md">
       <motion.div initial={{ scale: 0.97, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-        className="bg-white w-full sm:max-w-3xl rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
+        className="bg-white w-full sm:max-w-3xl rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl flex flex-col max-h-[92dvh] overflow-hidden">
         {/* Kopf mit Schritten */}
         <div className="p-6 border-b border-stone-100">
           <div className="flex items-start justify-between gap-3">

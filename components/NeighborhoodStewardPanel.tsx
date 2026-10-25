@@ -397,12 +397,12 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
   const marke = 'text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1.5';
 
   if (laedt) {
-    return <div className="min-h-[60vh] flex items-center justify-center"><Loader2 className="animate-spin text-primary" size={32} /></div>;
+    return <div className="min-h-[60dvh] flex items-center justify-center"><Loader2 className="animate-spin text-primary" size={32} /></div>;
   }
 
   if (!meine.length) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center p-6">
+      <div className="min-h-[60dvh] flex items-center justify-center p-6">
         <div className="max-w-md text-center space-y-3">
           <Home className="mx-auto text-stone-300" size={40} />
           <p className="text-stone-500 text-sm leading-relaxed">{t('steward.none')}</p>
@@ -721,7 +721,7 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
       {bearbeitet && (
         <div className="fixed inset-0 z-[400] flex items-center justify-center p-6 bg-stone-900/70 backdrop-blur-sm">
           <motion.div initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-            className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90dvh]">
             <div className="p-6 border-b border-stone-100 flex justify-between items-center bg-stone-50">
               <h3 className="font-bold text-lg text-stone-900 flex items-center gap-2">
                 <MapPin size={18} className="text-primary" /> {bearbeitet.displayName}

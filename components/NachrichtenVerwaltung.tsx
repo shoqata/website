@@ -140,7 +140,7 @@ const NachrichtenVerwaltung: React.FC<{ karte?: boolean }> = ({ karte }) => {
 
       {offen && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 md:p-6 bg-stone-900/60 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+          <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[92dvh]">
             <div className="p-6 border-b border-stone-100 flex justify-between items-center bg-stone-50">
               <h3 className="font-bold text-xl text-stone-900 flex items-center gap-2"><Newspaper className="text-blue-600" /> {t('admin.news.details')}</h3>
               <button onClick={() => setOffen(null)} className="p-2 hover:bg-stone-200 rounded-full text-stone-500"><X size={20} /></button>

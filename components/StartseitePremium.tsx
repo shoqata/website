@@ -165,7 +165,7 @@ const StartseitePremium: React.FC = () => {
           --sc-accent-ink: #0b0c10;
           background: var(--sc-canvas);
           color: var(--sc-ink);
-          min-height: 100vh;
+          min-height: 100svh;
         }
         /* Die Leiste steht ausserhalb dieser Seite, deshalb ueber das
            Kennzeichen am Wurzelelement statt ueber .sc-seite. */

@@ -59,8 +59,11 @@ html[data-design-seite] main :is(.bg-rose-50, .bg-rose-100) { background-color: 
 
 html[data-design-seite] main :is(.rounded-\[3rem\], .rounded-\[2\.5rem\], .rounded-\[2rem\], .rounded-3xl) { border-radius: var(--d-radius-gross); }
 html[data-design-seite] main :is(.rounded-2xl, .rounded-xl) { border-radius: var(--d-radius); }
-html[data-design-seite] main :is(.shadow-sm, .shadow, .shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl,
-  .hover\:shadow-xl:hover, .hover\:shadow-2xl:hover, .hover\:shadow-lg:hover) { box-shadow: var(--d-schatten); }
+html[data-design-seite] main :is(.shadow-sm, .shadow, .shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl) { box-shadow: var(--d-schatten); }
+/* Hover-Regeln hier nur mit Maus, wie Tailwinds hoverOnlyWhenSupported --
+   sonst hoben diese Zeilen das wieder auf, und angetippte Elemente blieben
+   auf dem Handy im Hover-Zustand stehen. */
+@media (hover: hover) and (pointer: fine) { html[data-design-seite] main :is(.hover\:shadow-xl:hover, .hover\:shadow-2xl:hover, .hover\:shadow-lg:hover) { box-shadow: var(--d-schatten); } }
 
 /* Felder: auf dunklem Grund sonst schwarze Schrift auf schwarzer Flaeche. */
 html[data-design-seite] main :is(input, select, textarea) { color: var(--d-tinte); }
@@ -102,7 +105,7 @@ html[data-design]:not([data-design="KLASSISCH"]) :is(nav, aside) .glass {
 html[data-design]:not([data-design="KLASSISCH"]) :is(nav, aside) .glass :is(a, button):not(.bg-primary):not(.bg-stone-900) { color: var(--d-leiste-tinte); }
 html[data-design]:not([data-design="KLASSISCH"]) :is(nav, aside) .glass .font-display { color: var(--d-leiste-tinte); }
 html[data-design]:not([data-design="KLASSISCH"]) :is(nav, aside) .glass .bg-white { background-color: color-mix(in srgb, var(--d-leiste-tinte) 9%, transparent); box-shadow: none; }
-html[data-design]:not([data-design="KLASSISCH"]) :is(nav, aside) .glass .hover\:bg-white\/50:hover { background-color: color-mix(in srgb, var(--d-leiste-tinte) 6%, transparent); }
+@media (hover: hover) and (pointer: fine) { html[data-design]:not([data-design="KLASSISCH"]) :is(nav, aside) .glass .hover\:bg-white\/50:hover { background-color: color-mix(in srgb, var(--d-leiste-tinte) 6%, transparent); } }
 html[data-design]:not([data-design="KLASSISCH"]) nav .bg-white\/95 { background: var(--d-grund); color: var(--d-tinte); border-color: var(--d-linie); }
 html[data-design]:not([data-design="KLASSISCH"]) nav .bg-white\/95 .bg-stone-50 { background: var(--d-flaeche-2); }
 html[data-design]:not([data-design="KLASSISCH"]) nav .bg-white\/95 .bg-stone-100 { background: var(--d-linie); }
@@ -157,7 +160,7 @@ html[data-design="MAGAZIN"] footer.bg-secondary { box-shadow: inset 0 3px 0 var(
 html[data-design="KOMPAKT"] footer.bg-secondary { border-top-color: var(--d-linie); }
 html:is([data-design="MAGAZIN"], [data-design="KOMPAKT"]) footer.bg-secondary :is(.text-white\/50, .text-white\/60) { color: var(--d-tinte-2); }
 html:is([data-design="MAGAZIN"], [data-design="KOMPAKT"]) footer.bg-secondary :is(.text-white\/30) { color: var(--d-tinte-3); }
-html:is([data-design="MAGAZIN"], [data-design="KOMPAKT"]) footer.bg-secondary .hover\:text-white:hover { color: var(--d-tinte); }
+@media (hover: hover) and (pointer: fine) { html:is([data-design="MAGAZIN"], [data-design="KOMPAKT"]) footer.bg-secondary .hover\:text-white:hover { color: var(--d-tinte); } }
 html:is([data-design="MAGAZIN"], [data-design="KOMPAKT"]) footer.bg-secondary .border-white\/10 { border-color: var(--d-linie); }
 html:is([data-design="MAGAZIN"], [data-design="KOMPAKT"]) footer.bg-secondary .italic { font-style: normal; }
 html:is([data-design="ERZAEHLUNG"], [data-design="BUEHNE"], [data-design="JOURNAL"]) footer.bg-secondary {
@@ -177,12 +180,12 @@ html[data-design-seite] main .bg-stone-200.w-px { background-color: var(--d-lini
    halb durchsichtig -- fuer ein Feld ueber dem Seiteninhalt waere das
    unlesbar. */
 .nav-tafel { background: #ffffff; border-color: #f5f5f4; color: #1c1917; }
-.nav-tafel .nav-tafel-eintrag:hover { background: #f5f5f4; }
+@media (hover: hover) and (pointer: fine) { .nav-tafel .nav-tafel-eintrag:hover { background: #f5f5f4; } }
 .nav-tafel .nav-tafel-aktiv { background: #fafaf9; }
 .nav-tafel .nav-tafel-leise { color: #78716c; }
 html[data-design]:not([data-design="KLASSISCH"]) .nav-tafel { background: var(--d-grund); border-color: var(--d-linie); color: var(--d-tinte); }
 html[data-design]:not([data-design="KLASSISCH"]) .nav-tafel :is(a, button) { color: var(--d-tinte) !important; }
-html[data-design]:not([data-design="KLASSISCH"]) .nav-tafel .nav-tafel-eintrag:hover { background: var(--d-flaeche-2); }
+@media (hover: hover) and (pointer: fine) { html[data-design]:not([data-design="KLASSISCH"]) .nav-tafel .nav-tafel-eintrag:hover { background: var(--d-flaeche-2); } }
 html[data-design]:not([data-design="KLASSISCH"]) .nav-tafel .nav-tafel-aktiv { background: var(--d-flaeche); }
 html[data-design]:not([data-design="KLASSISCH"]) .nav-tafel .nav-tafel-leise { color: var(--d-tinte-2); }
 html[data-design="MAGAZIN"] .nav-tafel { border-radius: 0; border-color: var(--d-tinte); box-shadow: none; }

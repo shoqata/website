@@ -33,7 +33,7 @@ const Buehne: React.FC = () => {
     <div ref={wurzel} className="sc-seite buehne">
       <style>{`
         .buehne { ${DUNKLER_GRUND}
-          background: var(--sc-canvas); color: var(--sc-ink); min-height: 100vh; }
+          background: var(--sc-canvas); color: var(--sc-ink); min-height: 100svh; }
         ${LEISTE_DUNKEL}
         .buehne .buehne-stage { overflow:hidden; }
         .buehne .bild-voll { position:absolute; inset:0; width:100%; height:100%;

@@ -239,7 +239,7 @@ const ProfileSetup: React.FC<{ user: UserProfile, onComplete: (u: UserProfile) =
                       <Phone size={14} className="text-primary" /> {t('setup.phone.label')}
                     </label>
                     <input 
-                      type="tel" 
+                      type="tel" autoComplete="tel"
                       value={formData.phone}
                       onChange={(e) => setFormData({...formData, phone: e.target.value})}
                       placeholder={t('ph.phone')}

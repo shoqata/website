@@ -137,7 +137,7 @@ const MailDialog: React.FC<{ meeting: any; boardUsers: UserProfile[]; onClose: (
 
   return (
     <div className="fixed inset-0 z-[450] flex items-end sm:items-center justify-center sm:p-6 bg-stone-900/60 backdrop-blur-sm" onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} className="bg-white w-full sm:max-w-lg rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div onClick={e => e.stopPropagation()} className="bg-white w-full sm:max-w-lg rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl p-6 space-y-4 max-h-[90dvh] overflow-y-auto">
         <div className="flex items-start justify-between">
           <h3 className="font-bold text-lg text-stone-900 flex items-center gap-2"><Mail size={18} /> {t('minutes.send_mail')}</h3>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-stone-100"><X size={18} /></button>

@@ -37,9 +37,9 @@ type Gespraech = { id: string; titel: string | null; archiviert: boolean; geaend
 // Drei Groessen. Der Browser merkt sie sich -- ein Fenster, das bei jedem
 // Besuch wieder klein ist, wird bei jedem Besuch wieder vergroessert.
 const GROESSEN = {
-  klein: 'w-[min(26rem,calc(100vw-3rem))] h-[min(34rem,calc(100vh-6rem))]',
-  gross: 'w-[min(42rem,calc(100vw-3rem))] h-[min(48rem,calc(100vh-6rem))]',
-  voll:  'w-[calc(100vw-3rem)] h-[calc(100vh-4rem)]',
+  klein: 'w-[min(26rem,calc(100vw-3rem))] h-[min(34rem,calc(100dvh-6rem))]',
+  gross: 'w-[min(42rem,calc(100vw-3rem))] h-[min(48rem,calc(100dvh-6rem))]',
+  voll:  'w-[calc(100vw-3rem)] h-[calc(100dvh-4rem)]',
 } as const;
 type Groesse = keyof typeof GROESSEN;
 
@@ -388,7 +388,7 @@ const Floky: React.FC = () => {
 
   if (!offen) return (
     <button onClick={() => setOffen(true)}
-      className="ueber-leiste fixed bottom-6 right-6 z-40 flex items-center gap-2 bg-stone-900 text-white
+      className="ueber-leiste fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-6 z-40 flex items-center gap-2 bg-stone-900 text-white
                  pl-4 pr-5 py-3 rounded-2xl shadow-2xl hover:bg-stone-800 transition-colors">
       <Sparkles size={16} className="text-[color:var(--primary)]" />
       <span className="text-xs font-bold uppercase tracking-widest">{name}</span>
@@ -398,7 +398,7 @@ const Floky: React.FC = () => {
   const sichtbar = gespraeche.filter(g => g.archiviert === zeigeArchiv);
 
   return (
-    <div className={`ueber-leiste fixed bottom-6 right-6 z-40 bg-white rounded-3xl shadow-2xl
+    <div className={`ueber-leiste fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-6 z-40 bg-white rounded-3xl shadow-2xl
                      border border-stone-200 flex overflow-hidden transition-all
                      ${GROESSEN[groesse]}`}>
 

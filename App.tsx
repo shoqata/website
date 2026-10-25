@@ -916,7 +916,7 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings, systemGelad
   );
   const sprachen = (
     <div className="flex gap-1 bg-stone-100/50 p-1 rounded-lg">
-      {['sq', 'de', 'en'].map(l => ( <button key={l} onClick={() => setLanguage(l as any)} className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${language === l ? 'bg-white text-primary' : 'text-stone-400'}`}>{l}</button> ))}
+      {['sq', 'de', 'en'].map(l => ( <button key={l} onClick={() => setLanguage(l as any)} className={`min-w-[40px] min-h-[40px] md:min-w-0 md:min-h-0 px-2 py-1 rounded-md text-[10px] font-bold uppercase ${language === l ? 'bg-white text-primary' : 'text-stone-400'}`}>{l}</button> ))}
     </div>
   );
 
@@ -986,7 +986,7 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings, systemGelad
       </nav>
     )}
 
-    <nav className={`fixed top-0 left-0 right-0 z-50 p-4 md:p-6 select-none ${seitenleiste ? 'md:hidden' : ''}`}>
+    <nav className={`fixed top-0 left-0 right-0 z-50 p-4 md:p-6 pt-[max(1rem,env(safe-area-inset-top))] md:pt-[max(1.5rem,env(safe-area-inset-top))] select-none ${seitenleiste ? 'md:hidden' : ''}`}>
       <div className="max-w-7xl mx-auto glass rounded-2xl flex items-center justify-between px-4 py-2 shadow-lg relative">
         <Link to="/" className="flex items-center gap-3 pr-4 group relative z-50">
           {logo(false)}
@@ -1037,7 +1037,7 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings, systemGelad
 
         <AnimatePresence>
             {isMenuOpen && (
-                <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute top-full left-0 right-0 mt-3 mx-2 p-4 bg-white/95 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-white/20 md:hidden flex flex-col gap-2 z-40">
+                <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute top-full left-0 right-0 mt-3 mx-2 p-4 bg-white/95 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-white/20 md:hidden flex flex-col gap-2 z-40 max-h-[calc(100dvh-7rem)] overflow-y-auto overscroll-contain">
                     {/* Mit der Leiste unten stehen die ersten drei schon dort. */}
                     {(() => {
                       const schonUnten = new Set(leisteUnten ? (kopf || []).slice(0, 3).map(e => e.schluessel) : []);

@@ -116,7 +116,7 @@ const EigeneSeite: React.FC = () => {
 
   // undefined = laedt noch, null = gibt es nicht.
   if (seite === undefined) {
-    return <div className="min-h-[60vh] flex items-center justify-center">
+    return <div className="min-h-[60dvh] flex items-center justify-center">
       <div className="w-6 h-6 border-2 border-stone-200 border-t-stone-900 rounded-full animate-spin" />
     </div>;
   }

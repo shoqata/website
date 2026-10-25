@@ -1254,7 +1254,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear, jah
             <AnimatePresence>
                 {showCreateModal && (
                     <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-stone-900/80 backdrop-blur-md">
-                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white w-full max-w-2xl rounded-[2rem] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white w-full max-w-2xl rounded-[2rem] overflow-hidden shadow-2xl flex flex-col max-h-[90dvh]">
                             <div className="p-6 border-b border-stone-100 flex justify-between items-center">
                                 <h3 className="text-xl font-bold">{t('admin.finance.create')}</h3>
                                 <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-stone-100 rounded-full"><X size={20}/></button>
@@ -1343,7 +1343,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear, jah
                 )}
                 {viewInvoice && paymentSettings && (
                     <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-stone-900/80 backdrop-blur-md">
-                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-stone-100 w-full max-w-4xl rounded-[2rem] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-stone-100 w-full max-w-4xl rounded-[2rem] overflow-hidden shadow-2xl flex flex-col max-h-[90dvh]">
                             <div className="p-4 border-b border-stone-200 flex justify-between items-center bg-white"><h3 className="font-bold text-stone-800">{t('admin.finance.preview_invoice', { number: viewInvoice.invoiceNumber || '' })}</h3><div className="flex gap-2"><button onClick={handleDownloadPdf} className="px-4 py-2 bg-stone-900 text-white rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-black transition-colors"><Download size={14} /> {t('admin.finance.download_pdf')}</button><button onClick={() => setViewInvoice(null)} className="p-2 hover:bg-stone-100 rounded-lg text-stone-500"><X size={20}/></button></div></div>
                             <div className="flex-1 overflow-y-auto p-8 flex justify-center custom-scrollbar">
                                 <div id="invoice-preview-content" className="bg-white shadow-xl w-[210mm] min-h-[297mm] p-[20mm] text-stone-900 relative flex flex-col">

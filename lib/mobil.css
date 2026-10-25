@@ -28,3 +28,26 @@ a, button, [role="button"], label, summary, select { touch-action: manipulation;
     transition-duration: 0.01ms !important; scroll-behavior: auto !important;
   }
 }
+
+/* Querformat: iOS vergroessert sonst die Schrift von sich aus. */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+/* Knoepfe, die nur beim Ueberfahren mit der Maus erscheinen
+   (opacity-0 group-hover:opacity-100), blieben auf dem Handy unsichtbar --
+   antippen liessen sie sich trotzdem. Ohne Maus also immer zeigen. */
+@media (hover: none) {
+  .group .group-hover\:opacity-100 { opacity: 1; }
+}
+
+/* Rueckmeldung beim Antippen. Hover gibt es auf dem Handy nicht, das
+   Aufblitzen ist abgeschaltet -- ohne das hier zeigte ein Tipp gar nichts. */
+@media (hover: none) {
+  button:not(:disabled):active, a:active, [role="button"]:active { opacity: .7; transition: opacity 100ms; }
+}
+
+/* Langes Druecken auf einen Knopf markiert sonst seine Beschriftung. */
+button, [role="button"], .knopf-primaer { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+
+/* Am Ende einer Liste in Dialog oder Menue nicht die Seite dahinter
+   weiterscrollen. Die Seite selbst bleibt frei (Ziehen zum Neuladen). */
+.overflow-y-auto, .overflow-auto { overscroll-behavior: contain; }

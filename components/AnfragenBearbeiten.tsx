@@ -216,7 +216,7 @@ const Detail: React.FC<{
     <div className="fixed inset-0 z-[200] flex items-end md:items-center justify-center md:p-6 bg-stone-900/60 backdrop-blur-sm" onClick={onClose}>
       <motion.div initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0 }}
         onClick={e => e.stopPropagation()}
-        className="bg-white w-full max-w-3xl max-h-[92vh] overflow-y-auto rounded-t-[2rem] md:rounded-[2.5rem] shadow-2xl">
+        className="bg-white w-full max-w-3xl max-h-[92dvh] overflow-y-auto rounded-t-[2rem] md:rounded-[2.5rem] shadow-2xl">
 
         {/* Kopf */}
         <div className="sticky top-0 bg-white/95 backdrop-blur z-10 px-6 md:px-8 pt-6 pb-4 border-b border-stone-100">

@@ -51,7 +51,7 @@ async function belegHochladen(datei: File): Promise<string> {
 
 const Fenster: React.FC<{ titel: string; onClose: () => void; children: React.ReactNode }> = ({ titel, onClose, children }) => (
   <div className="fixed inset-0 z-[200] bg-black/40 flex items-end md:items-center justify-center p-0 md:p-6" onClick={onClose}>
-    <div className="bg-white w-full md:max-w-lg rounded-t-[2rem] md:rounded-[2rem] p-6 md:p-8 space-y-5 max-h-[92vh] overflow-y-auto"
+    <div className="bg-white w-full md:max-w-lg rounded-t-[2rem] md:rounded-[2rem] p-6 md:p-8 space-y-5 max-h-[92dvh] overflow-y-auto"
          onClick={e => e.stopPropagation()}>
       <div className="flex items-center justify-between gap-4">
         <h3 className="text-xl font-bold text-stone-900">{titel}</h3>

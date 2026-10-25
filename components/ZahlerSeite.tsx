@@ -41,18 +41,18 @@ const ZahlerSeite: React.FC = () => {
     });
   }, [jahr]);
 
-  if (!liste) return <div className="min-h-[60vh] flex items-center justify-center"><Loader2 className="animate-spin text-primary" size={32} /></div>;
+  if (!liste) return <div className="min-h-[60dvh] flex items-center justify-center"><Loader2 className="animate-spin text-primary" size={32} /></div>;
 
   if (liste.sichtbar === 'AUS') {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center p-6 pt-32">
+      <div className="min-h-[60dvh] flex items-center justify-center p-6 pt-32">
         <p className="text-stone-500 text-sm">{t('zl.aus')}</p>
       </div>
     );
   }
   if (liste.gesperrt) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center p-6 pt-32">
+      <div className="min-h-[60dvh] flex items-center justify-center p-6 pt-32">
         <div className="max-w-md text-center space-y-4">
           <Lock className="mx-auto text-stone-300" size={40} />
           <p className="text-stone-600 text-sm leading-relaxed">{t('zl.nur_mitglieder')}</p>

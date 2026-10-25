@@ -369,7 +369,7 @@ const AdminWebsite: React.FC = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[calc(100vh-140px)]">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[calc(100dvh-140px)]">
       {/* CMS Sidebar */}
       {/* Im Seiten-Reiter die volle Breite: der Editor hat seine eigene
           Vorschau, und die Geraetevorschau rechts zeigt die STARTSEITE --

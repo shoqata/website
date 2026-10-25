@@ -102,7 +102,7 @@ const JahresWechsel: React.FC<{
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-stone-900/80 backdrop-blur-md">
-      <div className="bg-white w-full max-w-5xl rounded-[2rem] shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
+      <div className="bg-white w-full max-w-5xl rounded-[2rem] shadow-2xl flex flex-col max-h-[92dvh] overflow-hidden">
         <div className="p-6 border-b border-stone-100 flex justify-between items-start gap-4">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Jahreswechsel</p>

@@ -44,7 +44,7 @@ const NachbarschaftSeite: React.FC = () => {
   }, [gross, n?.id]);
 
   if (alle === null) return (
-    <div className="min-h-[60vh] flex items-center justify-center">
+    <div className="min-h-[60dvh] flex items-center justify-center">
       <div className="w-6 h-6 border-2 border-stone-200 border-t-stone-900 rounded-full animate-spin" />
     </div>
   );
@@ -58,7 +58,7 @@ const NachbarschaftSeite: React.FC = () => {
   return (
     <div className="bg-[#faf9f6] min-h-screen pb-24">
       {/* Titelbild */}
-      <div className="relative h-[52vh] min-h-[22rem] overflow-hidden">
+      <div className="relative h-[52dvh] min-h-[22rem] overflow-hidden">
         {bilder[0] ? (
           <img src={bilder[0].url} alt={n.name} onError={onImageError} className="w-full h-full object-cover" />
         ) : (
@@ -129,7 +129,7 @@ const NachbarschaftSeite: React.FC = () => {
             </>
           )}
           <figure onClick={e => e.stopPropagation()} className="max-w-5xl">
-            <img src={bilder[gross].url} alt="" className="max-h-[80vh] w-auto mx-auto rounded-xl" />
+            <img src={bilder[gross].url} alt="" className="max-h-[80dvh] w-auto mx-auto rounded-xl" />
             {loc(bilder[gross].text) && <figcaption className="text-white/80 text-sm text-center mt-3">{loc(bilder[gross].text)}</figcaption>}
           </figure>
         </div>

@@ -211,7 +211,7 @@ const VorstandWizard: React.FC<Props> = ({ mitglieder, nachbarschaften, onClose,
   return (
     <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-stone-900/70 backdrop-blur-sm">
       <motion.div initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-        className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90dvh]">
 
         {/* ------------------------------------------------------ Wahl */}
         {weg === 'WAHL' && (

@@ -713,7 +713,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             
             {offenesProtokoll && (
                 <div className="fixed inset-0 z-[400] flex items-center justify-center p-6 bg-stone-900/70 backdrop-blur-sm">
-                    <div className="bg-white w-full max-w-2xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[88vh]">
+                    <div className="bg-white w-full max-w-2xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[88dvh]">
                         <div className="p-6 border-b border-stone-100 bg-stone-50 flex justify-between items-start gap-4">
                             <div>
                                 <h3 className="font-bold text-lg text-stone-900">{offenesProtokoll.title}</h3>
@@ -1133,7 +1133,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                         </button>
                     </div>
                     
-                    <div className="p-8 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                    <div className="p-8 space-y-6 max-h-[70dvh] overflow-y-auto custom-scrollbar">
                         {(() => {
                             const missing = [];
                             if (!managedData.phone) missing.push(t('field.phone'));
@@ -1320,7 +1320,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                     initial={{ scale: 0.95, opacity: 0 }} 
                     animate={{ scale: 1, opacity: 1 }} 
                     exit={{ scale: 0.95, opacity: 0 }}
-                    className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh]"
+                    className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col max-h-[90dvh]"
                 >
                     <div className="p-6 border-b border-stone-100 flex justify-between items-center bg-stone-50">
                         <h3 className="font-bold text-xl text-stone-900 flex items-center gap-2">
@@ -1490,7 +1490,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                     initial={{ scale: 0.95, opacity: 0 }} 
                     animate={{ scale: 1, opacity: 1 }} 
                     exit={{ scale: 0.95, opacity: 0 }}
-                    className="bg-stone-100 w-full max-w-4xl rounded-[2rem] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+                    className="bg-stone-100 w-full max-w-4xl rounded-[2rem] overflow-hidden shadow-2xl flex flex-col max-h-[90dvh]"
                 >
                     <div className="p-4 border-b border-stone-200 flex justify-between items-center bg-white">
                         <h3 className="font-bold text-stone-800">Fatura #{viewInvoice.invoiceNumber}</h3>

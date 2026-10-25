@@ -45,7 +45,7 @@ const AenderungMelden: React.FC<{ onClose: () => void; startArt?: Art }> = ({ on
 
   return (
     <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-stone-900/70 backdrop-blur-sm" onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div onClick={e => e.stopPropagation()} className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90dvh]">
         <div className="p-6 border-b border-stone-100 flex items-start justify-between gap-4">
           <div>
             <h3 className="font-bold text-lg text-stone-900">{t('aend.titel')}</h3>

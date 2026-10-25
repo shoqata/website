@@ -67,7 +67,7 @@ const NachbarschaftProfilEditor: React.FC<{ nb: { id: string; name: string }; on
 
   return (
     <div className="fixed inset-0 z-[300] flex items-center justify-center p-3 md:p-6 bg-stone-900/60 backdrop-blur-sm">
-      <div className="bg-white w-full max-w-3xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[94vh]">
+      <div className="bg-white w-full max-w-3xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[94dvh]">
         <div className="p-5 border-b border-stone-100 flex justify-between items-center bg-stone-50 gap-3">
           <div>
             <h3 className="font-bold text-lg text-stone-900">{nb.name}</h3>

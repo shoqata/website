@@ -766,7 +766,7 @@ const AdminPanel: React.FC = () => {
       <AnimatePresence>
         {showEventModal && editingEvent && (
             <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-stone-900/60 backdrop-blur-sm">
-                <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white w-full max-w-xl rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh]">
+                <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white w-full max-w-xl rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col max-h-[90dvh]">
                     <div className="p-6 border-b border-stone-100 flex justify-between items-center bg-stone-50">
                         <h3 className="font-bold text-xl text-stone-900 flex items-center gap-2"><Calendar className="text-primary"/> {t('admin.events.details')}</h3>
                         <button onClick={() => setShowEventModal(false)} className="p-2 hover:bg-stone-200 rounded-full text-stone-500 transition-colors"><X size={20}/></button>

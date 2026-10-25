@@ -260,7 +260,7 @@ const LoginPage: React.FC = () => {
                         <div className="relative">
                           <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-stone-300" size={20} />
                           <input 
-                            type="email" 
+                            type="email" autoComplete="email"
                             required 
                             placeholder={t('login.email.placeholder')}
                             value={email} 
@@ -283,7 +283,7 @@ const LoginPage: React.FC = () => {
                         <div className="relative">
                           <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-stone-300" size={20} />
                           <input 
-                            type={showPassword ? "text" : "password"} 
+                            type={showPassword ? "text" : "password"} autoComplete="current-password" 
                             required 
                             placeholder={t('ph.password')}
                             value={password} 
@@ -318,7 +318,7 @@ const LoginPage: React.FC = () => {
                         <div className="relative">
                           <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-stone-300" size={20} />
                           <input 
-                            type="email" 
+                            type="email" autoComplete="email"
                             required 
                             placeholder={t('login.email.placeholder')}
                             value={email} 
@@ -363,7 +363,7 @@ const LoginPage: React.FC = () => {
                     <div className="relative">
                       <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-stone-300" size={20} />
                       <input 
-                        type="email" 
+                        type="email" autoComplete="email"
                         required 
                         placeholder={t('login.email.placeholder')}
                         value={email} 
