@@ -20,7 +20,7 @@ type Liste = {
 };
 
 const Balken: React.FC<{ bezahlt: number; gesamt: number }> = ({ bezahlt, gesamt }) => {
-  const anteil = gesamt > 0 ? Math.round((bezahlt / gesamt) * 100) : 0;
+  const anteil = gesamt > 0 ? Math.floor((bezahlt / gesamt) * 100) : 0;
   return (
     <div className="h-2.5 bg-stone-100 rounded-full overflow-hidden">
       <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${anteil}%` }} />
@@ -63,7 +63,7 @@ const ZahlerSeite: React.FC = () => {
   }
 
   const gesamt = liste.gesamt || 0, bezahlt = liste.bezahlt || 0;
-  const anteil = gesamt > 0 ? Math.round((bezahlt / gesamt) * 100) : 0;
+  const anteil = gesamt > 0 ? Math.floor((bezahlt / gesamt) * 100) : 0;
 
   return (
     <div className="max-w-5xl mx-auto px-6 pt-32 pb-20 space-y-10">
@@ -100,14 +100,14 @@ const ZahlerSeite: React.FC = () => {
                   <p className="font-bold text-stone-900">{n.name}</p>
                   <p className="text-sm text-stone-500 shrink-0">
                     <span className="font-bold text-emerald-700">{n.bezahlt}</span> / {n.gesamt}
-                    <span className="ml-2 text-stone-400">{n.gesamt ? Math.round((n.bezahlt / n.gesamt) * 100) : 0}%</span>
+                    <span className="ml-2 text-stone-400">{n.gesamt ? Math.floor((n.bezahlt / n.gesamt) * 100) : 0}%</span>
                   </p>
                 </div>
                 <Balken bezahlt={n.bezahlt} gesamt={n.gesamt} />
                 {liste.namen_an && (n.namen || []).length > 0 && (
                   <div className="flex flex-wrap gap-1.5 pt-1">
-                    {(n.namen || []).map(x => (
-                      <span key={x} className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 text-xs font-bold flex items-center gap-1">
+                    {(n.namen || []).map((x, i) => (
+                      <span key={`${x}-${i}`} className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 text-xs font-bold flex items-center gap-1 min-w-0 [overflow-wrap:anywhere]">
                         <BadgeCheck size={12} /> {x}
                       </span>
                     ))}
@@ -121,8 +121,8 @@ const ZahlerSeite: React.FC = () => {
 
       {liste.namen_an && !liste.nachbarschaften_an && (liste.namen || []).length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {(liste.namen || []).map(x => (
-            <span key={x} className="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 text-sm font-bold flex items-center gap-1.5">
+          {(liste.namen || []).map((x, i) => (
+            <span key={`${x}-${i}`} className="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 text-sm font-bold flex items-center gap-1.5 min-w-0 [overflow-wrap:anywhere]">
               <BadgeCheck size={14} /> {x}
             </span>
           ))}

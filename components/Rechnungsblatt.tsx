@@ -2,6 +2,12 @@ import React from 'react';
 import SwissQRBill from './SwissQRBill';
 import { QrBillData } from '../services/qrBillService';
 import { BLATT, ZAHLTEIL, type Feld, type Rechnungslayout } from '../lib/rechnungslayout';
+
+// Betrag im Zahlteil, wie die SIX-Richtlinie ihn will: Tausender mit
+// Leerzeichen, Punkt vor den Rappen ("1 250 000.50"). toFixed allein
+// schrieb "1250000.50".
+const qrBetrag = (n: number | string) =>
+  Number(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 import { onImageError } from '../lib/imageFallback';
 
 // Das Rechnungsblatt -- gezeichnet aus dem Layout, nicht aus festem Markup.
@@ -129,13 +135,13 @@ const Rechnungsblatt: React.FC<{
             <tr className="border-b border-stone-200">
               <td className="py-2 align-top">{daten.beschriftung.was === '' ? '' : daten.beschreibung}</td>
               <td className="py-2 text-right tabular-nums whitespace-nowrap">
-                {daten.waehrung} {Number(daten.betrag).toFixed(2)}
+                {daten.waehrung} {qrBetrag(daten.betrag)}
               </td>
             </tr>
             <tr>
               <td className="py-2 font-bold">{/* Summenzeile */}</td>
               <td className="py-2 text-right font-bold tabular-nums whitespace-nowrap">
-                {daten.waehrung} {Number(daten.betrag).toFixed(2)}
+                {daten.waehrung} {qrBetrag(daten.betrag)}
               </td>
             </tr>
           </tbody>

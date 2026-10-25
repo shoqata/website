@@ -24,27 +24,63 @@ type Verein = {
 const datum = (s?: string | null) =>
   s ? new Date(s).toLocaleDateString('de-CH', { day: '2-digit', month: 'long', year: 'numeric' }) : '';
 
+// Laendercodes ausschreiben. Ein Spender in Pristina bekommt sonst "XK"
+// unter seine Adresse -- die Post versteht das, eine Steuerbehoerde nicht
+// unbedingt.
+const landName = (code?: string | null) => {
+  if (!code) return null;
+  if (code.length !== 2) return code;
+  try { return new Intl.DisplayNames(['de-CH'], { type: 'region' }).of(code.toUpperCase()) || code; }
+  catch { return code; }
+};
+
+// Helvetica, die in jsPDF eingebaute Schrift, kennt nur Latin-1: ë und ç
+// gehen, aber aus "Wiśniewska" wird "Wi[niewska" und aus "Đorđević"
+// Zeichensalat. Auf einem Beleg mit dem Namen des Spenders ist das kein
+// Schoenheitsfehler. Noto Sans deckt Latein, Kyrillisch und Griechisch ab
+// und wird erst geladen, wenn tatsaechlich eine Bescheinigung entsteht.
+async function schriftEinbetten(pdf: any) {
+  const base64 = async (url: string) => {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`Schrift ${url} nicht geladen (${r.status})`);
+    const bytes = new Uint8Array(await r.arrayBuffer());
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    return btoa(bin);
+  };
+  const [normal, fett] = await Promise.all([
+    base64('/fonts/NotoSans-Regular.ttf'), base64('/fonts/NotoSans-Bold.ttf'),
+  ]);
+  pdf.addFileToVFS('NotoSans-Regular.ttf', normal);
+  pdf.addFont('NotoSans-Regular.ttf', 'Noto', 'normal');
+  pdf.addFileToVFS('NotoSans-Bold.ttf', fett);
+  pdf.addFont('NotoSans-Bold.ttf', 'Noto', 'bold');
+}
+
 export async function spendenbescheinigungErzeugen(spende: Spende, verein: Verein) {
   // Beide Ausfuehrungen nehmen: im Browser liefert jspdf den Konstruktor
-  // als Standard-Export, unter Node als benannten. Nur einen zu nehmen
-  // heisst, sich auf eine Umgebung festzulegen -- und die Pruefung lief
-  // prompt in "jsPDF is not a constructor".
+  // als Standard-Export, unter Node als benannten.
   const modul: any = await import('jspdf');
   const jsPDF = modul.jsPDF ?? modul.default;
   const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
+  await schriftEinbetten(pdf);
+  const SCHRIFT = 'Noto';
 
   const links = 25;
   const breite = 210 - 2 * links;
   let y = 28;
 
-  const zeile = (text: string, groesse = 10, fett = false, abstand = 6) => {
-    pdf.setFont('helvetica', fett ? 'bold' : 'normal');
+  // Jede Zeile bricht um. Name, Strasse und Zweck kommen aus einem
+  // oeffentlichen Formular ohne Laengengrenze -- ungebrochen liefen sie
+  // ueber den Papierrand.
+  const zeile = (text: string, groesse = 10, fett = false, abstand = 6, b = breite, x = links) => {
+    pdf.setFont(SCHRIFT, fett ? 'bold' : 'normal');
     pdf.setFontSize(groesse);
-    pdf.text(text, links, y);
-    y += abstand;
+    const zeilen: string[] = pdf.splitTextToSize(text, b);
+    zeilen.forEach((z, i) => { pdf.text(z, x, y); y += i < zeilen.length - 1 ? groesse * 0.45 : abstand; });
   };
   const absatz = (text: string, groesse = 10, abstand = 5.4) => {
-    pdf.setFont('helvetica', 'normal');
+    pdf.setFont(SCHRIFT, 'normal');
     pdf.setFontSize(groesse);
     pdf.splitTextToSize(text, breite).forEach((z: string) => { pdf.text(z, links, y); y += abstand; });
   };
@@ -58,9 +94,9 @@ export async function spendenbescheinigungErzeugen(spende: Spende, verein: Verei
   y += 14;
 
   // --- Empfaenger -------------------------------------------------------
-  zeile(spende.name || '', 11, false, 5.2);
-  [spende.strasse, [spende.plz, spende.ort].filter(Boolean).join(' '),
-   spende.land && spende.land !== 'CH' ? spende.land : null]
+  const land = spende.land && spende.land !== 'CH' && spende.land.toLowerCase() !== 'schweiz'
+    ? landName(spende.land) : null;
+  [spende.name, spende.strasse, [spende.plz, spende.ort].filter(Boolean).join(' '), land]
     .filter(Boolean).forEach(t => zeile(String(t), 11, false, 5.2));
   y += 18;
 
@@ -68,23 +104,21 @@ export async function spendenbescheinigungErzeugen(spende: Spende, verein: Verei
   zeile('Spendenbescheinigung', 17, true, 12);
 
   // --- Der Kern ---------------------------------------------------------
-  absatz(`Wir bestätigen, von ${spende.name} die nachstehend aufgeführte Zuwendung `
-       + `erhalten zu haben. Es wurde dafür keine Gegenleistung erbracht.`);
+  absatz(`Wir bestätigen, von ${spende.name || 'der zuwendenden Person'} die nachstehend `
+       + `aufgeführte Zuwendung erhalten zu haben. Es wurde dafür keine Gegenleistung erbracht.`);
   y += 6;
 
   const feld = (bezeichnung: string, wert: string, fett = false) => {
-    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9); pdf.setTextColor(110);
+    pdf.setFont(SCHRIFT, 'normal'); pdf.setFontSize(9); pdf.setTextColor(110);
     pdf.text(bezeichnung, links, y);
-    pdf.setFont('helvetica', fett ? 'bold' : 'normal');
-    pdf.setFontSize(fett ? 13 : 10.5); pdf.setTextColor(20);
-    pdf.text(wert, links + 48, y);
     pdf.setTextColor(20);
-    y += fett ? 9 : 7;
+    zeile(wert, fett ? 13 : 10.5, fett, fett ? 9 : 7, breite - 48, links + 48);
   };
 
-  feld('Betrag', `${Number(spende.betrag).toLocaleString('de-CH', { minimumFractionDigits: 2 })} ${spende.waehrung}`, true);
-  feld('Eingegangen am', datum(spende.eingegangen_am));
-  feld('Referenz', spende.referenz);
+  feld('Betrag', `${Number(spende.betrag).toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${spende.waehrung}`, true);
+  // Leere Zeilen weglassen statt ein Etikett ohne Wert zu drucken.
+  if (spende.eingegangen_am) feld('Eingegangen am', datum(spende.eingegangen_am));
+  if (spende.referenz) feld('Referenz', spende.referenz);
   if (spende.zweck) feld('Zweck', spende.zweck);
 
   y += 10;
@@ -107,8 +141,14 @@ export async function spendenbescheinigungErzeugen(spende: Spende, verein: Verei
   pdf.line(links, y, links + 70, y);
   y += 5;
   pdf.setFontSize(8.5); pdf.setTextColor(110);
-  pdf.text(verein.name || '', links, y);
+  zeile(verein.name || '', 8.5, false, 4, 70);
 
-  const sauber = (spende.name || 'Spender').replace(/[^A-Za-zÄÖÜäöü0-9]+/g, '_');
-  pdf.save(`Spendenbescheinigung_${sauber}_${spende.referenz}.pdf`);
+  // Akzente abstreifen statt Buchstaben zu verlieren: aus "Žaklina" wurde
+  // sonst "_aklina".
+  // Đ, ł, ß zerfallen nicht in Buchstabe + Akzent und brauchen eine Zuordnung.
+  const sauber = (spende.name || 'Spender')
+    .replace(/[Đđ]/g, m => m === 'Đ' ? 'Dj' : 'dj').replace(/[Łł]/g, m => m === 'Ł' ? 'L' : 'l').replace(/ß/g, 'ss')
+    .normalize('NFKD').replace(/\p{M}/gu, '')
+    .replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '') || 'Spender';
+  pdf.save(`Spendenbescheinigung_${sauber}_${spende.referenz || 'ohne_Referenz'}.pdf`);
 }

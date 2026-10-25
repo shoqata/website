@@ -910,7 +910,7 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings, systemGelad
   };
 
   const logo = (gross: boolean) => branding.logoUrl ? (
-    <img src={branding.logoUrl} style={{ height: branding.logoHeight || '2.5rem' }} className="w-auto object-contain" alt="Logo"  onError={onImageError}/>
+    <img src={branding.logoUrl} style={{ height: branding.logoHeight || '2.5rem' }} className="w-auto max-w-[55vw] md:max-w-[280px] object-contain" alt="Logo"  onError={onImageError}/>
   ) : (
     <div className={`bg-primary ${gross ? 'p-2.5' : 'p-2'} rounded-xl text-white shadow-lg`}><Heart size={24} fill="white" /></div>
   );
@@ -1136,10 +1136,10 @@ const ConditionalFooter = ({ branding, user, systemSettings, systemGeladen }: an
                    fremde Adresse angezeigt. Eine erfundene Angabe ist
                    schlechter als keine. */}
                {loc(branding.footerAddress) && (
-                 <p className="flex items-center gap-3"><MapPin size={18} className="text-primary" /> {loc(branding.footerAddress)}</p>
+                 <p className="flex items-center gap-3"><MapPin size={18} className="text-primary shrink-0" /> <span className="min-w-0 [overflow-wrap:anywhere]">{loc(branding.footerAddress)}</span></p>
                )}
                {loc(branding.footerEmail) && (
-                 <p className="flex items-center gap-3"><Mail size={18} className="text-primary" /> {loc(branding.footerEmail)}</p>
+                 <p className="flex items-center gap-3"><Mail size={18} className="text-primary shrink-0" /> <span className="min-w-0 [overflow-wrap:anywhere]">{loc(branding.footerEmail)}</span></p>
                )}
                {!loc(branding.footerAddress) && !loc(branding.footerEmail) && (
                  <p className="text-white/30 text-sm italic">{t('footer.contact.none')}</p>

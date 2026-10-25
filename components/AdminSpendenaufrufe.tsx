@@ -200,7 +200,7 @@ const AdminSpendenaufrufe: React.FC = () => {
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div className="flex-1 min-w-[220px]">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <p className="font-bold text-stone-900 text-sm">{a.titel}</p>
+                      <p className="font-bold text-stone-900 text-sm [overflow-wrap:anywhere]">{a.titel}</p>
                       <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded ${
                         a.status === 'OEFFENTLICH' ? 'bg-emerald-50 text-emerald-600'
                         : a.status === 'BEENDET' ? 'bg-stone-800 text-stone-200'

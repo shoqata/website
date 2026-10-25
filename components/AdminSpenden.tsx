@@ -17,11 +17,17 @@ import { doc, getDoc } from '../services/supabase-bridge';
 
 type Spende = {
   id: string; betrag: number; waehrung: string; name: string | null;
-  email: string | null; strasse: string | null; plz: string | null; ort: string | null;
+  email: string | null; strasse: string | null; plz: string | null; ort: string | null; land: string | null;
   anonym: boolean; nachricht: string | null; zweck: string | null;
   referenz: string | null; status: string; weg: string | null;
   eingegangen_am: string | null; bescheinigt_am: string | null; erfasst_am: string;
 };
+
+// "50.—" nur bei ganzen Franken. Mit Rappen ergab das angehaengte ".—"
+// sonst "0.05.—" oder "1'250'000.5.—".
+const betragText = (n: number) => Number.isInteger(n)
+  ? `${n.toLocaleString('de-CH')}.—`
+  : n.toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const AdminSpenden: React.FC = () => {
   const { t } = useTranslation();
@@ -59,7 +65,7 @@ const AdminSpenden: React.FC = () => {
   const bescheinigungLaden = async (s: Spende) => {
     try {
       await spendenbescheinigungErzeugen({
-        name: s.name, strasse: s.strasse, plz: s.plz, ort: s.ort, land: null,
+        name: s.name, strasse: s.strasse, plz: s.plz, ort: s.ort, land: s.land,
         betrag: Number(s.betrag), waehrung: s.waehrung,
         referenz: s.referenz || '', eingegangen_am: s.eingegangen_am, zweck: s.zweck,
       }, verein);
@@ -127,9 +133,15 @@ const AdminSpenden: React.FC = () => {
         .some(x => String(x).toLowerCase().includes(suche.trim().toLowerCase()))),
     [spenden, filter, suche]);
 
-  const summe = useMemo(() => spenden
-    .filter(s => s.status === 'BEZAHLT')
-    .reduce((n, s) => n + Number(s.betrag || 0), 0), [spenden]);
+  // Je Waehrung getrennt: CHF und EUR zusammengezaehlt ergaeben eine Zahl,
+  // die es nirgends gibt.
+  const summen = useMemo(() => {
+    const m = new Map<string, number>();
+    spenden.filter(s => s.status === 'BEZAHLT')
+      .forEach(s => m.set(s.waehrung || 'CHF', (m.get(s.waehrung || 'CHF') || 0) + Number(s.betrag || 0)));
+    if (!m.size) m.set('CHF', 0);
+    return [...m.entries()].sort(([a], [b]) => a === 'CHF' ? -1 : b === 'CHF' ? 1 : a.localeCompare(b));
+  }, [spenden]);
   const offen = spenden.filter(s => s.status === 'OFFEN').length;
 
   if (laedt) return (
@@ -145,7 +157,11 @@ const AdminSpenden: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="bg-white p-5 rounded-2xl border border-stone-100">
           <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-1">{t('spenden.eingegangen')}</p>
-          <p className="text-2xl font-bold text-stone-900 tabular-nums">{summe.toLocaleString('de-CH')}.—</p>
+          {summen.map(([w, n], i) => (
+            <p key={w} className={`${i ? 'text-base' : 'text-2xl'} font-bold text-stone-900 tabular-nums`}>
+              {i || w !== 'CHF' ? `${w} ` : ''}{betragText(Math.round(n * 100) / 100)}
+            </p>
+          ))}
         </div>
         <div className="bg-white p-5 rounded-2xl border border-stone-100">
           <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-1">{t('spenden.offen')}</p>
@@ -197,7 +213,7 @@ const AdminSpenden: React.FC = () => {
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <span className="font-bold text-stone-900 text-sm">
+                    <span className="font-bold text-stone-900 text-sm min-w-0 [overflow-wrap:anywhere]">
                       {s.anonym ? t('spenden.anonym') : (s.name || '—')}
                     </span>
                     <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded ${
@@ -210,7 +226,7 @@ const AdminSpenden: React.FC = () => {
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-stone-400">
+                  <p className="text-xs text-stone-400 [overflow-wrap:anywhere]">
                     {s.zweck ? `${s.zweck} · ` : ''}{s.email || ''}
                   </p>
                   {s.email && (
@@ -224,13 +240,13 @@ const AdminSpenden: React.FC = () => {
                     <p className="font-mono text-[10px] text-stone-300 mt-1 break-all">{s.referenz}</p>
                   )}
                   {s.nachricht && (
-                    <p className="text-xs text-stone-500 italic mt-2 max-w-lg">»{s.nachricht}«</p>
+                    <p className="text-xs text-stone-500 italic mt-2 max-w-lg [overflow-wrap:anywhere]">»{s.nachricht}«</p>
                   )}
                 </div>
 
                 <div className="flex items-center gap-3 shrink-0">
                   <span className="text-lg font-bold text-stone-900 tabular-nums">
-                    {Number(s.betrag).toLocaleString('de-CH')}.—
+                    {s.waehrung && s.waehrung !== 'CHF' ? `${s.waehrung} ` : ''}{betragText(Number(s.betrag))}
                   </span>
                   {s.status === 'OFFEN' ? (
                     <div className="flex gap-1.5">
@@ -242,12 +258,12 @@ const AdminSpenden: React.FC = () => {
                         </button>
                       ))}
                     </div>
-                  ) : !s.anonym && !s.bescheinigt_am ? (
+                  ) : !s.anonym && s.name && !s.bescheinigt_am ? (
                     <button onClick={() => handeln(s, 'BESCHEINIGT')} disabled={arbeitet === s.id}
                             className="px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest bg-stone-900 text-white hover:bg-black disabled:opacity-50 inline-flex items-center gap-1.5">
                       <FileText size={10} /> {t('spenden.bescheinigen')}
                     </button>
-                  ) : s.bescheinigt_am && !s.anonym ? (
+                  ) : s.bescheinigt_am && !s.anonym && s.name ? (
                     // Eine einmal ausgestellte Bescheinigung muss sich noch
                     // einmal holen lassen: Papier geht verloren, und der
                     // Spender fragt Monate spaeter danach.

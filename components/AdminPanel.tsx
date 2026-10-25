@@ -548,8 +548,8 @@ const AdminPanel: React.FC = () => {
                                     </div>
                                     <button onClick={() => { setSelectedUser({ id: '', email: '', role: UserRole.MEMBER, membershipStatus: 'PENDING', joinedAt: new Date().toISOString(), tenantId: tenant?.id ?? '' }); setUserDrawerTab('GENERAL'); setIsUserDrawerOpen(true); }} className="bg-stone-900 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-black transition-all shadow-lg"><UserPlus size={16}/> {t('admin.members.add_new')}</button>
                                 </div>
-                                <div className="bg-white rounded-[2.5rem] border border-stone-100 shadow-sm overflow-hidden">
-                                    <table className="w-full text-left">
+                                <div className="bg-white rounded-[2.5rem] border border-stone-100 shadow-sm overflow-hidden overflow-x-auto">
+                                    <table className="w-full text-left min-w-[36rem]">
                                         <thead className="bg-stone-50 text-[10px] font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100">
                                             <tr><th className="px-6 py-4">{t('field.member')}</th><th className="px-6 py-4">{t('admin.members.neighborhood')}</th><th className="px-6 py-4">{t('field.status')}</th><th className="px-6 py-4 text-right">{t('common.actions')}</th></tr>
                                         </thead>
@@ -560,15 +560,15 @@ const AdminPanel: React.FC = () => {
                                                 <tr key={u.id} onClick={() => { setSelectedUser(u); setUserDrawerTab('GENERAL'); setIsUserDrawerOpen(true); }} className="hover:bg-stone-50/50 transition-colors group cursor-pointer">
                                                     <td className="px-6 py-4">
                                                         <div className="flex items-center gap-3">
-                                                            <div className="w-10 h-10 rounded-full bg-stone-100 overflow-hidden flex items-center justify-center font-bold text-stone-400">
-                                                                {u.photoFileName ? <img src={u.photoFileName} className="w-full h-full object-cover" onError={onImageError}/> : u.displayName?.charAt(0)}
+                                                            <div className="w-10 h-10 shrink-0 rounded-full bg-stone-100 overflow-hidden flex items-center justify-center font-bold text-stone-400">
+                                                                {u.photoFileName ? <img src={u.photoFileName} className="w-full h-full object-cover" onError={onImageError}/> : (Array.from(u.displayName || '?')[0])}
                                                             </div>
-                                                            <div>
-                                                                <p className="font-bold text-stone-900 flex items-center gap-2">
+                                                            <div className="min-w-0">
+                                                                <p className="font-bold text-stone-900 flex items-center gap-2 flex-wrap [overflow-wrap:anywhere]">
                                                                     {u.displayName}
                                                                     {isLegacyEmail && <span className="px-1.5 py-0.5 bg-red-100 text-red-600 rounded text-[9px] uppercase tracking-wider font-bold flex items-center gap-1" title={t('admin.members.invalid_email_title')}><AlertTriangle size={10}/> {t('admin.members.invalid_email')}</span>}
                                                                 </p>
-                                                                <p className={`text-[10px] uppercase ${isLegacyEmail ? 'text-red-400 font-bold' : 'text-stone-400'}`}>{u.email}</p>
+                                                                <p className={`text-[10px] uppercase [overflow-wrap:anywhere] ${isLegacyEmail ? 'text-red-400 font-bold' : 'text-stone-400'}`}>{u.email}</p>
                                                             </div>
                                                         </div>
                                                     </td>

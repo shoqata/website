@@ -58,7 +58,15 @@ const SpendenSeite: React.FC = () => {
       .catch(() => {});
   }, []);
 
-  const endbetrag = eigener.trim() !== '' ? Number(eigener) : (betrag === '' ? 0 : betrag);
+  // So, wie man in der Schweiz Betraege schreibt: "50,50", "1'000", "50.-".
+  // Number() machte daraus NaN, und der Spender las "Betrag fehlt".
+  // Auf Rappen gerundet -- "0.001" ist kein Betrag.
+  const eigenerBetrag = (() => {
+    const roh = eigener.replace(/['’\s]/g, '').replace(',', '.').replace(/[.\-–—]+$/, '');
+    const n = Number(roh);
+    return Number.isFinite(n) ? Math.round(n * 100) / 100 : NaN;
+  })();
+  const endbetrag = eigener.trim() !== '' ? eigenerBetrag : (betrag === '' ? 0 : betrag);
 
   const senden = async () => {
     setFehler(null);
@@ -208,7 +216,7 @@ const SpendenSeite: React.FC = () => {
                             <div className="h-full bg-primary rounded-full" style={{ width: `${teil}%` }} />
                           </div>
                           <p className="text-[11px] text-stone-400 mt-1.5 tabular-nums">
-                            {Number(a.gesammelt || 0).toLocaleString('de-CH')} von {ziel.toLocaleString('de-CH')} {a.waehrung}
+                            {Number(a.gesammelt || 0).toLocaleString('de-CH')} {t('spende.von')} {ziel.toLocaleString('de-CH')} {a.waehrung}
                           </p>
                         </>
                       )}
@@ -237,24 +245,24 @@ const SpendenSeite: React.FC = () => {
               <p className="text-xs text-stone-400 leading-relaxed">{t('spende.warum_adresse')}</p>
               <div>
                 <label className={marke}>{t('field.name')}</label>
-                <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className={feld} />
+                <input autoComplete="name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className={feld} />
               </div>
               <div>
                 <label className={marke}>{t('field.email')}</label>
-                <input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className={feld} />
+                <input autoComplete="email" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className={feld} />
               </div>
               <div>
                 <label className={marke}>{t('field.street')}</label>
-                <input value={form.strasse} onChange={e => setForm({ ...form, strasse: e.target.value })} className={feld} />
+                <input autoComplete="street-address" value={form.strasse} onChange={e => setForm({ ...form, strasse: e.target.value })} className={feld} />
               </div>
               <div className="flex gap-3">
                 <div className="w-28">
                   <label className={marke}>{t('field.zip')}</label>
-                  <input value={form.plz} onChange={e => setForm({ ...form, plz: e.target.value })} className={feld} />
+                  <input autoComplete="postal-code" inputMode="numeric" value={form.plz} onChange={e => setForm({ ...form, plz: e.target.value })} className={feld} />
                 </div>
                 <div className="flex-1">
                   <label className={marke}>{t('field.city')}</label>
-                  <input value={form.ort} onChange={e => setForm({ ...form, ort: e.target.value })} className={feld} />
+                  <input autoComplete="address-level2" value={form.ort} onChange={e => setForm({ ...form, ort: e.target.value })} className={feld} />
                 </div>
               </div>
               <div>

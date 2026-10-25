@@ -966,6 +966,7 @@ const translations: Translations = {
   'spende.intro': { de: 'Jeder Franken fliesst in die Vorhaben des Vereins. Sie erhalten einen Einzahlungsschein mit Referenznummer — damit ordnet sich Ihre Zahlung von selbst zu.', en: 'Every franc goes into the association\u2019s projects. You receive a payment slip with a reference number, so your payment reconciles itself.', sq: 'Çdo frang shkon në projektet e shoqatës. Merrni një fletëpagesë me numër reference — kështu pagesa juaj njihet vetvetiu.' },
   'spende.betrag': { de: 'Betrag', en: 'Amount', sq: 'Shuma' },
   'spende.eigener_betrag': { de: 'anderer Betrag', en: 'other amount', sq: 'shumë tjetër' },
+  'spende.von': { de: 'von', en: 'of', sq: 'nga' },
   'spende.zweck': { de: 'Wofür? (freiwillig)', en: 'What for? (optional)', sq: 'Për çfarë? (vullnetare)' },
   'spende.zweck_platzhalter': { de: 'z. B. Ambulanz, Schule, Wasser', en: 'e.g. clinic, school, water', sq: 'p.sh. ambulanca, shkolla, uji' },
   'spende.zweck_allgemein': { de: 'Spende', en: 'Donation', sq: 'Donacion' },
