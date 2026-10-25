@@ -8,6 +8,14 @@
          interactive-widget: die Tastatur verkleinert die Seite statt sie zu ueberdecken. -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
     <meta name="theme-color" content="#faf9f6" />
+    <!-- Jede Vereinsdomain ist ihre eigene App: Manifest und Symbole kommen
+         je Domain aus api/manifest und api/pwa-icon (Name, Farbe, Logo). -->
+    <link rel="manifest" href="/api/manifest" />
+    <link rel="icon" type="image/png" sizes="64x64" href="/api/pwa-icon?s=64" />
+    <link rel="apple-touch-icon" href="/api/pwa-icon?s=180" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>Koretini</title>
     <script>
       // Wem gehoert diese Adresse?

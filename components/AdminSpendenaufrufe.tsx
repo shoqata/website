@@ -60,7 +60,7 @@ const AdminSpendenaufrufe: React.FC = () => {
       titel: form.titel.trim(),
       text: form.text?.trim() || null,
       ziel_betrag: form.ziel_betrag === '' ? null : Number(form.ziel_betrag),
-      waehrung: form.waehrung || 'CHF',
+      waehrung: 'CHF',
       beginnt_am: form.beginnt_am || null,
       endet_am: form.endet_am || null,
     };
@@ -156,11 +156,11 @@ const AdminSpendenaufrufe: React.FC = () => {
                 onChange={e => setForm({ ...form, ziel_betrag: e.target.value })}
                 className={feld} placeholder="8000" />
             </div>
+            {/* Keine Waehrungswahl: Spenden laufen in CHF, wie Konto und
+                QR-Rechnung des Vereins (Migration spenden_nur_chf). */}
             <div>
               <label className={marke}>{t('field.currency')}</label>
-              <select value={form.waehrung} onChange={e => setForm({ ...form, waehrung: e.target.value })} className={feld}>
-                <option value="CHF">CHF</option><option value="EUR">EUR</option>
-              </select>
+              <p className={`${feld} text-stone-500`}>CHF</p>
             </div>
             <div>
               <label className={marke}>{t('aufruf.beginn')}</label>

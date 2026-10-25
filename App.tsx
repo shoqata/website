@@ -118,6 +118,8 @@ const PlatformHome = React.lazy(() => import('./components/PlatformHome'));
  
 import CookieConsent from './components/CookieConsent'; 
 import BetreuungHinweis from './components/BetreuungHinweis';
+import Benachrichtigungen from './components/Benachrichtigungen';
+import AppInstallieren from './components/AppInstallieren';
 import BackToTop from './components/BackToTop';
 
 import { AntiScrapeProtection } from './components/AntiScrapeProtection';
@@ -521,6 +523,13 @@ const AppContent: React.FC = () => {
     if (istPlattformDomain !== false) return;   // Betreiberseite setzt ihn selbst
     const name = loc((branding as any).associationName);
     if (name && document.title !== name) document.title = name;
+    // Name unter dem Symbol, wenn jemand die Seite auf iOS zum Home-
+    // Bildschirm hinzufuegt (Android nimmt ihn aus dem Manifest).
+    if (name) {
+      let m = document.querySelector('meta[name="apple-mobile-web-app-title"]') as HTMLMetaElement | null;
+      if (!m) { m = document.createElement('meta'); m.name = 'apple-mobile-web-app-title'; document.head.appendChild(m); }
+      m.content = name;
+    }
   }, [branding, istPlattformDomain]);
 
   const werHier = useWerBinIch(!!user);
@@ -949,6 +958,7 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings, systemGelad
             {sprachen}
             {user ? (
               <div className="flex items-center gap-2">
+                <Benachrichtigungen />
                 <Link to="/dashboard" className="flex-1 flex items-center gap-2 px-3 py-2.5 bg-stone-900 text-white rounded-xl text-sm font-bold"><LayoutDashboard size={15} /> {t('nav.dashboard')}</Link>
                 {istAdmin && <Link to="/admin" className="w-10 h-10 bg-stone-900 text-white rounded-xl flex items-center justify-center"><ShieldCheck size={16} /></Link>}
                 {werIch?.ist_betreiber && (
@@ -1011,6 +1021,7 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings, systemGelad
 
         <div className="flex items-center gap-2 md:gap-4 z-50">
           {sprachen}
+          {user && <Benachrichtigungen />}
           <div className="hidden md:flex items-center gap-3 pl-2">
               {user ? (
                 <>
@@ -1067,6 +1078,7 @@ const Navigation: React.FC<any> = ({ user, branding, systemSettings, systemGelad
                             <Link to="/register" className="w-full py-4 text-center font-bold text-white bg-primary rounded-2xl shadow-lg">{t('nav.join')}</Link>
                         </div>
                     )}
+                    <AppInstallieren />
                 </motion.div>
             )}
         </AnimatePresence>
