@@ -54,6 +54,8 @@ import { missingFieldKeys, feeStateFor } from '../lib/memberQuality';
 import { onImageError } from '../lib/imageFallback';
 import MeineFamilie from './MeineFamilie';
 import AenderungMelden from './AenderungMelden';
+import MeineAnlaesse from './MeineAnlaesse';
+import { supabase as sbClient } from '../services/supabase-bridge';
 // Kuerzel aus dem Vereinsnamen, z. B. "Shoqata Koretini" -> "SK".
 const initialsOf = (name: string) =>
   name.trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || 'V';
@@ -622,6 +624,24 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                         >
                             <QrCode size={18}/> {t('dash.payment.qr')}
                         </button>
+                        {/* Twint, wenn der Verein einen Link hinterlegt hat. */}
+                        {paymentSettings?.twintUrl && (
+                            <a href={paymentSettings.twintUrl} target="_blank" rel="noopener noreferrer"
+                               className="mt-3 w-full py-3.5 bg-[#eb3333] text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-[#d62d2d] transition-all">
+                                {t('dash.twint')}
+                            </a>
+                        )}
+                        {/* Ich habe bezahlt: der Vorstand prueft den Eingang. */}
+                        <button
+                            onClick={async () => {
+                                const ok = await showConfirm({ title: t('dash.bezahlt_titel'), message: t('dash.bezahlt_frage'), confirmText: t('dash.bezahlt_knopf'), type: 'primary' });
+                                if (!ok) return;
+                                const { error } = await sbClient.rpc('aenderung_melden', { p_art: 'ZAHLUNG', p_daten: { payment: activeInvoice.id, datum: new Date().toISOString().slice(0, 10) } });
+                                showAlert(error ? { type: 'error', message: error.message } : { type: 'success', message: t('dash.bezahlt_gemeldet') });
+                            }}
+                            className="mt-3 w-full py-3 text-stone-300 hover:text-white text-xs font-bold underline underline-offset-4">
+                            {t('dash.bezahlt_knopf')}
+                        </button>
                     </div>
                 </motion.div>
             ) : hasCurrentYearInvoice ? (
@@ -883,6 +903,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                     </div>
                 </motion.div>
             </div>
+
+            <MeineAnlaesse user={user} />
 
             {/* Meine Familie (nur lesen) und Aenderungen melden */}
             <MeineFamilie onMelden={() => setAendernOffen(true)} />

@@ -1,4 +1,5 @@
 
+import { icsHerunterladen } from '../lib/kalender';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, MapPin, Clock, ChevronRight, Heart, X, CheckCircle2, User, Mail, Phone, Loader2, Info, Trophy, ArrowRight } from 'lucide-react';
@@ -215,6 +216,8 @@ const EventsPage: React.FC = () => {
                               </div>
                               <h3 className="text-2xl font-bold text-stone-900 mb-2">{t('common.success')}</h3>
                               <p className="text-stone-500 mb-8">{t('events.reg.done', { event: selectedEvent.title })}</p>
+                              <button onClick={() => icsHerunterladen({ id: selectedEvent.id, title: selectedEvent.title, date: selectedEvent.date, time: selectedEvent.time, location: selectedEvent.location, description: selectedEvent.description }, `${window.location.origin}/events`)}
+                                      className="w-full py-3 mb-2 bg-white border border-stone-200 text-stone-700 rounded-xl font-bold">{t('anl.kalender')}</button>
                               <button onClick={() => setSelectedEvent(null)} className="w-full py-3 bg-stone-900 text-white rounded-xl font-bold">{t('events.reg.close')}</button>
                           </div>
                       ) : (

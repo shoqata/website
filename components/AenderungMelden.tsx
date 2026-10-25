@@ -8,7 +8,7 @@ import { useFeedback } from '../context/FeedbackContext';
 // Verwandte), Sonstiges. Der Vorstand uebernimmt sie mit einem Klick
 // (AenderungenVerwaltung).
 
-type Art = 'ADRESSE' | 'FAMILIE' | 'SONSTIGES';
+type Art = 'ADRESSE' | 'FAMILIE' | 'SONSTIGES' | 'ZAHLUNG';
 type Meldung = { id: string; art: Art; daten: any; status: string; erstellt_am: string; notiz: string | null };
 
 const ARTEN: { art: Art; icon: React.ReactNode }[] = [
@@ -96,7 +96,7 @@ const AenderungMelden: React.FC<{ onClose: () => void; startArt?: Art }> = ({ on
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-stone-700">{t(`aend.art.${m.art}`)} · {t(`aend.status.${m.status}`)}</p>
                     <p className="text-stone-500 truncate">
-                      {m.art === 'ADRESSE' ? [m.daten.street, [m.daten.zip, m.daten.city].filter(Boolean).join(' ')].filter(Boolean).join(', ') : m.daten.text}
+                      {m.art === 'ZAHLUNG' ? `CHF ${Number(m.daten.betrag || 0).toFixed(2)} · ${m.daten.rechnung || ''}` : m.art === 'ADRESSE' ? [m.daten.street, [m.daten.zip, m.daten.city].filter(Boolean).join(' ')].filter(Boolean).join(', ') : m.daten.text}
                     </p>
                     {m.notiz && <p className="text-stone-400 italic mt-1">{m.notiz}</p>}
                   </div>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Home, Users2, MessageSquare, Check, X, Loader2, Inbox } from 'lucide-react';
+import { Home, Users2, MessageSquare, Check, X, Loader2, Inbox, Banknote } from 'lucide-react';
 import { supabase } from '../services/supabase-bridge';
 import { useTranslation } from '../context/LanguageContext';
 import { useFeedback } from '../context/FeedbackContext';
@@ -9,11 +9,11 @@ import { useFeedback } from '../context/FeedbackContext';
 // (Reiter Familie) eintragen, dann als erledigt markieren.
 
 type Zeile = {
-  id: string; mitglied: string; name: string; art: 'ADRESSE' | 'FAMILIE' | 'SONSTIGES';
+  id: string; mitglied: string; name: string; art: 'ADRESSE' | 'FAMILIE' | 'SONSTIGES' | 'ZAHLUNG';
   daten: any; status: string; erstellt_am: string; bisher: any;
 };
 
-const SYMBOL = { ADRESSE: <Home size={16} />, FAMILIE: <Users2 size={16} />, SONSTIGES: <MessageSquare size={16} /> };
+const SYMBOL = { ADRESSE: <Home size={16} />, FAMILIE: <Users2 size={16} />, SONSTIGES: <MessageSquare size={16} />, ZAHLUNG: <Banknote size={16} /> };
 
 export function useOffeneAenderungen() {
   const [zeilen, setZeilen] = useState<Zeile[] | null>(null);
@@ -62,6 +62,8 @@ const AenderungenVerwaltung: React.FC<{ onOeffnen?: (mitglied: string) => void; 
                     <p className="text-stone-400 line-through">{adresse(z.bisher) || '—'}</p>
                     <p className="text-stone-800 font-bold">{adresse(z.daten)}{z.daten.ab ? ` (${t('aend.ab')} ${z.daten.ab})` : ''}</p>
                   </div>
+                ) : z.art === 'ZAHLUNG' ? (
+                  <p className="text-xs text-stone-600 mt-1">{t('aend.zahlung_text', { betrag: Number(z.daten.betrag || 0).toFixed(2), rechnung: z.daten.rechnung || '—', datum: z.daten.datum || '' })}</p>
                 ) : <p className="text-xs text-stone-600 mt-1 whitespace-pre-line">{z.daten.text}</p>}
               </div>
               <div className="flex items-center gap-2">
