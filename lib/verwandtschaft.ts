@@ -102,17 +102,22 @@ function generationswort(d: number, weiblich: boolean | null): string {
   // d = 1 Eltern, 2 Grosseltern, 3 Urgrosseltern …
   if (d === 1) return weiblich === true ? 'Mutter' : weiblich === false ? 'Vater' : 'Elternteil';
   const stamm = weiblich === true ? 'mutter' : weiblich === false ? 'vater' : 'elternteil';
-  return 'Ur'.repeat(Math.max(0, d - 2)) + 'Gross' + stamm;
+  return d === 2 ? 'Gross' + stamm : 'Ur'.repeat(d - 2) + 'gross' + stamm;
 }
 
-function abkommenswort(d: number): string {
-  if (d === 1) return 'Kind';
-  return 'Ur'.repeat(Math.max(0, d - 2)) + 'Enkelkind';
+function abkommenswort(d: number, weiblich: boolean | null = null): string {
+  if (d === 1) return weiblich === true ? 'Tochter' : weiblich === false ? 'Sohn' : 'Kind';
+  const wort = weiblich === true ? 'Enkelin' : weiblich === false ? 'Enkel' : 'Enkelkind';
+  return d === 2 ? wort : 'Ur'.repeat(d - 2) + wort.toLowerCase();
 }
+
+// Ein Wort je Geschlecht; unbekannt ergibt die Doppelform.
+const je = (w: boolean | null, frau: string, mann: string) =>
+  w === true ? frau : w === false ? mann : `${mann}/${frau}`;
 
 // Der Grad zwischen zwei Personen, oder null wenn keine Blutsverwandtschaft
-// besteht.
-export function gradZwischen(netz: Netz, a: string, b: string): Grad | null {
+// besteht. w: ist b weiblich (aus der Anrede), null wenn unbekannt.
+export function gradZwischen(netz: Netz, a: string, b: string, w: boolean | null = null): Grad | null {
   if (a === b) return null;
 
   const va = vorfahren(netz, a);
@@ -129,10 +134,10 @@ export function gradZwischen(netz: Netz, a: string, b: string): Grad | null {
 
   // Gerade Linie: einer ist Vorfahre des anderen.
   if (besterA === 0) return {
-    id: b, bezeichnung: abkommenswort(besterB), gruppe: 'abstammung', entfernung: besterB,
+    id: b, bezeichnung: abkommenswort(besterB, w), gruppe: 'abstammung', entfernung: besterB,
   };
   if (besterB === 0) return {
-    id: b, bezeichnung: generationswort(besterA, null), gruppe: 'abstammung', entfernung: besterA,
+    id: b, bezeichnung: generationswort(besterA, w), gruppe: 'abstammung', entfernung: besterA,
   };
 
   // Geschwister.
@@ -153,18 +158,19 @@ export function gradZwischen(netz: Netz, a: string, b: string): Grad | null {
                  && echteEltern(va) >= 2 && echteEltern(vb) >= 2;
     return {
       id: b,
-      bezeichnung: halb ? 'Halbgeschwister' : 'Geschwister',
+      bezeichnung: w === null ? (halb ? 'Halbgeschwister' : 'Geschwister')
+                              : (halb ? 'Halb' + je(w, 'schwester', 'bruder') : je(w, 'Schwester', 'Bruder')),
       gruppe: 'kern', entfernung: 1,
     };
   }
 
   // Onkel/Tante und Neffe/Nichte.
   if (besterA === 1) return {
-    id: b, bezeichnung: besterB === 2 ? 'Neffe/Nichte' : `Gross-Neffe/Nichte (${besterB - 1}×)`,
+    id: b, bezeichnung: besterB === 2 ? je(w, 'Nichte', 'Neffe') : `Gross-${je(w, 'Nichte', 'Neffe')} (${besterB - 1}×)`,
     gruppe: 'seitenlinie', entfernung: besterB,
   };
   if (besterB === 1) return {
-    id: b, bezeichnung: besterA === 2 ? 'Onkel/Tante' : `Gross-Onkel/Tante (${besterA - 1}×)`,
+    id: b, bezeichnung: besterA === 2 ? je(w, 'Tante', 'Onkel') : `Gross-${je(w, 'Tante', 'Onkel')} (${besterA - 1}×)`,
     gruppe: 'seitenlinie', entfernung: besterA,
   };
 
@@ -172,7 +178,7 @@ export function gradZwischen(netz: Netz, a: string, b: string): Grad | null {
   // dem Unterschied der beiden Abstaende.
   const grad = Math.min(besterA, besterB) - 1;
   const entfernt = Math.abs(besterA - besterB);
-  const wort = `Cousin/Cousine ${ORDNUNGSZAHL[grad] ?? grad + '.'} Grades`;
+  const wort = `${je(w, 'Cousine', 'Cousin')} ${ORDNUNGSZAHL[grad] ?? grad + '.'} Grades`;
   return {
     id: b,
     bezeichnung: entfernt ? `${wort}, ${entfernt}× entfernt` : wort,
@@ -182,19 +188,21 @@ export function gradZwischen(netz: Netz, a: string, b: string): Grad | null {
 
 // Alle Verwandten einer Person, benannt und sortiert -- nah zuerst.
 export function verwandteVon(
-  netz: Netz, person: string, alle: string[], namen: Map<string, string>
+  netz: Netz, person: string, alle: string[], namen: Map<string, string>,
+  weiblichVon: (id: string) => boolean | null = () => null,
 ): Grad[] {
   const raus: Grad[] = [];
 
   for (const q of netz.partner.get(person) ?? []) {
-    raus.push({ id: q, bezeichnung: 'Partner/in', gruppe: 'kern', entfernung: 0 });
+    const w = weiblichVon(q);
+    raus.push({ id: q, bezeichnung: w === null ? 'Partner/in' : w ? 'Partnerin' : 'Partner', gruppe: 'kern', entfernung: 0 });
   }
 
   for (const anderer of alle) {
     if (anderer === person) continue;
     if (anderer.startsWith('\u0000')) continue;   // Platzhalter sind keine Personen
     if ((netz.partner.get(person) ?? new Set()).has(anderer)) continue;
-    const g = gradZwischen(netz, person, anderer);
+    const g = gradZwischen(netz, person, anderer, weiblichVon(anderer));
     if (g) { raus.push(g); continue; }
 
     // Angeheiratet: keine Blutsverwandtschaft, aber Partner einer

@@ -1,4 +1,5 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { X } from 'lucide-react';
 
 // Zeichnet eine Familie als Baum.
 //
@@ -26,6 +27,15 @@ export type Knoten = {
   // Ausdrueckliche Geschwister. Gebraucht, wenn die Eltern nicht erfasst
   // sind -- sonst gaebe es niemanden, ueber den sich zwei verbinden liessen.
   geschwister: { id: string; name: string }[];
+  // 'Znj.' / 'Z.' -- nur fuer die Farbe des Kreises, unbekannt bleibt grau.
+  anrede?: string | null;
+};
+
+const initialen = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2)
+  .map(w => w[0]?.toUpperCase() ?? '').join('') || '?';
+const jahr = (d: string | null) => {
+  const m = d?.match(/(\d{4})/);
+  return m ? m[1] : null;
 };
 
 // Generation je Person.
@@ -79,7 +89,7 @@ export function generationen(leute: Knoten[]): Map<string, number> {
   return ebene;
 }
 
-const BREITE = 168;
+const BREITE = 184;
 const HOEHE = 52;
 const LUECKE = 28;      // zwischen zwei Kaesten derselben Generation
 const PAARLUECKE = 22;  // zwischen zwei Partnern -- enger, sie gehoeren zusammen,
@@ -106,7 +116,13 @@ const Familienbaum: React.FC<{
   // Auf der Betreiberseite ist das noetig -- dort steht der Baum in einem
   // festen Rahmen, und ein abgeschnittener Kasten sieht nach Fehler aus.
   einpassen?: boolean;
-}> = ({ leute, onAblegen, onWaehlen, gewaehltId = null, t3 = (s) => s, einpassen = false }) => {
+  // Die Person, um die es geht (beim Mitglied): bekommt einen Ring.
+  fokusId?: string | null;
+  // Kreuz am Kasten: aus dem Bild bzw. aus dem Stammbaum nehmen.
+  onEntfernen?: (id: string) => void;
+  entfernenText?: string;
+}> = ({ leute, onAblegen, onWaehlen, gewaehltId = null, t3 = (s) => s, einpassen = false,
+        fokusId = null, onEntfernen, entfernenText }) => {
   const huelle = useRef<HTMLDivElement>(null);
   const [faktor, setFaktor] = useState(1);
   const [markiert, setMarkiert] = useState<string | null>(null);
@@ -298,7 +314,7 @@ const Familienbaum: React.FC<{
     if (id === markiert) return true;
     const m = leute.find(l => l.person === markiert);
     if (!m) return true;
-    return [...m.eltern, ...m.partner, ...m.kinder].some(x => x.id === id);
+    return [...m.eltern, ...m.partner, ...m.kinder, ...m.geschwister].some(x => x.id === id);
   };
 
   const rand = 16;
@@ -362,15 +378,20 @@ const Familienbaum: React.FC<{
           const s = plan.pos.get(p.person)!;
           const hell = verbunden(p.person);
           const gewaehlt = p.person === gewaehltId;
+          const fokus = p.person === fokusId;
+          const w = p.anrede === 'Znj.' ? 'w' : p.anrede === 'Z.' ? 'm' : null;
+          const j = jahr(p.geburtsdatum);
           return (
             <div key={p.person}
-                 className="absolute rounded-[10px] border transition-opacity select-none"
+                 className="absolute group rounded-[12px] border transition-opacity select-none flex items-center gap-2.5 px-2.5"
                  style={{
                    left: s.x + rand, top: s.y + rand, width: BREITE, height: HOEHE,
                    opacity: hell ? 1 : 0.28,
                    background: gewaehlt ? 'var(--primary)' : '#ffffff',
-                   borderColor: gewaehlt ? 'var(--primary)' : '#e7e5e4',
-                   cursor: onAblegen ? 'grab' : 'default',
+                   borderColor: gewaehlt || fokus ? 'var(--primary)' : '#e7e5e4',
+                   borderWidth: fokus && !gewaehlt ? 2 : 1,
+                   boxShadow: fokus ? '0 0 0 4px color-mix(in srgb, var(--primary) 15%, transparent)' : '0 1px 2px rgba(0,0,0,.04)',
+                   cursor: onAblegen ? 'grab' : onWaehlen ? 'pointer' : 'default',
                  }}
                  draggable={!!onAblegen}
                  onDragStart={(e) => { e.dataTransfer.setData('text/plain', p.person); setZieht(p.person); }}
@@ -378,12 +399,28 @@ const Familienbaum: React.FC<{
                  onMouseEnter={() => interaktiv && setMarkiert(p.person)}
                  onMouseLeave={() => interaktiv && setMarkiert(null)}
                  onClick={() => onWaehlen?.(gewaehlt ? null : p.person)}>
-              <p className="px-3 pt-2 text-[12px] font-bold truncate"
-                 style={{ color: gewaehlt ? '#fff' : '#44403c' }}>{p.name}</p>
-              <p className="px-3 text-[10px]"
-                 style={{ color: gewaehlt ? 'rgba(255,255,255,.75)' : '#a8a29e' }}>
-                {p.geburtsdatum || '—'}
-              </p>
+              <span className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold"
+                    style={{
+                      background: gewaehlt ? 'rgba(255,255,255,.2)' : w === 'w' ? '#fce7f3' : w === 'm' ? '#e0f2fe' : '#f5f5f4',
+                      color: gewaehlt ? '#fff' : w === 'w' ? '#be185d' : w === 'm' ? '#0369a1' : '#78716c',
+                    }}>{initialen(p.name)}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[12px] font-bold truncate leading-tight"
+                      style={{ color: gewaehlt ? '#fff' : '#292524' }}>{p.name}</span>
+                <span className="block text-[10px] leading-tight mt-0.5"
+                      style={{ color: gewaehlt ? 'rgba(255,255,255,.75)' : '#a8a29e' }}>
+                  {j ? `* ${j}` : '—'}
+                </span>
+              </span>
+              {onEntfernen && !zieht && (
+                <button type="button" title={entfernenText}
+                        onClick={(e) => { e.stopPropagation(); onEntfernen(p.person); }}
+                        className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-white border border-stone-200 text-stone-400
+                                   hover:text-rose-600 hover:border-rose-300 flex items-center justify-center
+                                   opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity shadow-sm">
+                  <X size={11} />
+                </button>
+              )}
 
               {/* Ablegeflaechen. Sie erscheinen nur waehrend eines Zuges und
                   nur an fremden Kaesten -- auf sich selbst kann niemand

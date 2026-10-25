@@ -10,6 +10,7 @@ import PaketSperre, { VollMarke } from './PaketSperre';
 import { useTenant } from '../context/TenantContext';
 import Marktplatz from './Marktplatz';
 import AdminStammbaum from './AdminStammbaum';
+import MitgliedFamilie from './MitgliedFamilie';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Activity as ActivityIcon, AlertCircle, AlertTriangle, AlignLeft, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ArrowUpDown, AtSign, Ban, BarChart2, BarChart3, Bell, Blocks, BookOpen, Briefcase, Calendar, CalendarDays, CheckCircle2, CheckSquare, ChevronLeft, ChevronRight, ClipboardCheck, ClipboardList, Clock, Coins, Command, Copy, CreditCard, Crown, Database, DollarSign, Download, ExternalLink, Eye, FileEdit, FileInput, FileText, Files, Film, Filter, Globe, Hash, Heart, History, Home, Image as LucideImage, ImageIcon, Info, Kanban, KeyRound, Layout, LayoutDashboard, LayoutGrid, LayoutList, Link as LinkIcon, ListFilter, Loader2, Lock, LogOut, Mail, Map, MapPin, MapPinned, Megaphone, Menu, MessageSquare, MoreHorizontal, MoreVertical, MousePointer2, Newspaper, PanelLeftClose, PanelLeftOpen, Phone, PieChart as LucidePieChart, Plus, Printer, Receipt, RefreshCw, Save, Search, Send, Settings, Shield, ShieldAlert, Sliders, Sparkles, Square, StickyNote, Tag, Target, ToggleLeft, ToggleRight, Trash2, TrendingUp, Unlock, Upload, User as UserIcon, UserCheck, UserCheck2, UserCog, UserMinus, UserPlus, UserPlus2, Users, Users2, Wallet, X, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -127,7 +128,7 @@ const AdminPanel: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [pwResetFor, setPwResetFor] = useState<any>(null);
   const [isUserDrawerOpen, setIsUserDrawerOpen] = useState(false);
-  const [userDrawerTab, setUserDrawerTab] = useState<'GENERAL' | 'ADDRESS' | 'FINANCE' | 'HISTORY' | 'INTERNAL'>('GENERAL');
+  const [userDrawerTab, setUserDrawerTab] = useState<'GENERAL' | 'ADDRESS' | 'FAMILY' | 'FINANCE' | 'HISTORY' | 'INTERNAL'>('GENERAL');
   
   // Content Modals & Drawers
   const [showEventModal, setShowEventModal] = useState(false);
@@ -931,13 +932,15 @@ const AdminPanel: React.FC = () => {
 
                           {/* Inner Tabs */}
                           <div className="flex mt-8 gap-4 border-b border-white/10">
-                              {(['GENERAL', 'ADDRESS', 'FINANCE', 'HISTORY', 'INTERNAL'] as const).map(tab => (
+                              {(['GENERAL', 'ADDRESS', 'FAMILY', 'FINANCE', 'HISTORY', 'INTERNAL'] as const)
+                                  .filter(tab => tab !== 'FAMILY' || (!!selectedUser.id && modulAktiv('STAMMBAUM')))
+                                  .map(tab => (
                                   <button 
                                     key={tab} 
                                     onClick={() => setUserDrawerTab(tab)}
                                     className={`pb-3 text-[10px] font-bold uppercase tracking-widest transition-colors relative ${userDrawerTab === tab ? 'text-primary' : 'text-stone-400 hover:text-white'}`}
                                   >
-                                      {tab === 'GENERAL' ? t('admin.drawer.identity') : tab === 'ADDRESS' ? t('admin.drawer.address') : tab === 'FINANCE' ? t('admin.drawer.finance') : tab === 'HISTORY' ? t('admin.drawer.history') : t('admin.drawer.internal')}
+                                      {tab === 'GENERAL' ? t('admin.drawer.identity') : tab === 'ADDRESS' ? t('admin.drawer.address') : tab === 'FAMILY' ? t('admin.drawer.family') : tab === 'FINANCE' ? t('admin.drawer.finance') : tab === 'HISTORY' ? t('admin.drawer.history') : t('admin.drawer.internal')}
                                       {userDrawerTab === tab && <motion.div layoutId="drawerTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
                                   </button>
                               ))}
@@ -1075,19 +1078,25 @@ const AdminPanel: React.FC = () => {
                               </div>
                           )}
 
+                          {userDrawerTab === 'FAMILY' && selectedUser.id && modulAktiv('STAMMBAUM') && (
+                              <MitgliedFamilie key={selectedUser.id} mitglied={selectedUser.id}
+                                  onOeffnen={(id) => { const u = users.find(x => x.id === id); if (u) setSelectedUser(u); }}
+                                  onZumStammbaum={() => { setIsUserDrawerOpen(false); setActiveTab('STAMMBAUM'); }} />
+                          )}
+
                           {userDrawerTab === 'FINANCE' && (
                               <div className="space-y-8">
                                   <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-4">
                                       <div><label className="text-[10px] font-bold text-stone-400 uppercase block mb-1">{t('admin.members.billing_group')}</label><select value={selectedUser.billingGroup || 'STANDARD'} onChange={e => setSelectedUser({...selectedUser, billingGroup: e.target.value as any})} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl outline-none font-bold text-sm"><option value="STANDARD">{t('admin.members.billing.standard')}</option><option value="KOSOVO">{t('admin.members.billing.kosovo')}</option><option value="REDUCED">{t('admin.members.billing.reduced')}</option></select></div>
                                       <div><label className="text-[10px] font-bold text-stone-400 uppercase block mb-1">{t('admin.members.custom_fee')}</label><div className="relative"><input type="number" value={selectedUser.customAnnualFee || ''} onChange={e => setSelectedUser({...selectedUser, customAnnualFee: parseFloat(e.target.value)})} className="w-full pl-4 pr-12 py-4 bg-stone-50 border border-stone-200 rounded-xl outline-none font-mono font-bold" /><span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-stone-400">CHF</span></div></div>
                                   </div>
-                                  <div className="bg-stone-900 text-white p-6 rounded-2xl shadow-xl flex items-center justify-between">
+                                  {!modulAktiv('STAMMBAUM') && <div className="bg-stone-900 text-white p-6 rounded-2xl shadow-xl flex items-center justify-between">
                                       <div className="flex items-center gap-4">
                                           <div className="p-3 bg-white/10 rounded-xl"><Hash size={20}/></div>
                                           <div><p className="text-[10px] text-stone-400 uppercase font-bold tracking-widest">{t('admin.members.family_id')}</p><p className="font-mono font-bold text-lg">{selectedUser.familyId || t('admin.members.no_family_id')}</p></div>
                                       </div>
                                       <button onClick={async () => { const id = await showPrompt({ title: t('admin.members.family_id'), message: t('admin.members.family_id_prompt') }); if(id) setSelectedUser({...selectedUser, familyId: id}); }} className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-[10px] font-bold uppercase transition-colors">{t('common.edit')}</button>
-                                  </div>
+                                  </div>}
 
                                   <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm">
                                       <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-4 flex items-center gap-2"><FileText size={14}/> {t('admin.invoice.new')}</h4>
