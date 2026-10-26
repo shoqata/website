@@ -17,7 +17,9 @@ import { DEMO_ROLLEN, type DemoRolle } from '../lib/useDemoRolle';
 const DemoRollenschalter: React.FC<{
   rolle: DemoRolle | null;
   setRolle: (r: DemoRolle | null) => void;
-}> = ({ rolle, setRolle }) => {
+  // Restzeit eines Interessenten-Testzugangs; null fuer alle anderen.
+  testzugang?: string | null;
+}> = ({ rolle, setRolle, testzugang = null }) => {
   const [offen, setOffen] = useState(true);
   const navigate = useNavigate();
 
@@ -31,7 +33,7 @@ const DemoRollenschalter: React.FC<{
       onClick={() => setOffen(true)}
       className="fixed bottom-4 left-4 z-[9998] flex items-center gap-2 bg-stone-900 text-white
                  px-3 py-2 rounded-xl shadow-lg text-[10px] font-bold uppercase tracking-widest">
-      <Eye size={13} /> Demo
+      <Eye size={13} /> {testzugang ?? 'Demo'}
     </button>
   );
 
@@ -42,6 +44,7 @@ const DemoRollenschalter: React.FC<{
         <div className="flex items-center justify-between gap-3 mb-2.5">
           <span className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-stone-400">
             <Eye size={13} /> Ansicht als
+            {testzugang && <span className="text-emerald-300 normal-case tracking-normal">· {testzugang}</span>}
           </span>
           <button onClick={() => setOffen(false)}
             className="text-stone-500 hover:text-white" aria-label="Leiste einklappen">
@@ -64,7 +67,7 @@ const DemoRollenschalter: React.FC<{
             <button onClick={() => { setRolle(null); navigate('/admin'); }}
               className="px-3 py-2 rounded-xl text-xs font-bold text-stone-400
                          hover:text-white flex items-center gap-1.5">
-              <ChevronUp size={13} /> Zurück zum Betreiber
+              <ChevronUp size={13} /> {testzugang ? 'Zurück zur Administration' : 'Zurück zum Betreiber'}
             </button>
           )}
         </div>

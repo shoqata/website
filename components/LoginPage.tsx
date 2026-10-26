@@ -76,7 +76,10 @@ const LoginPage: React.FC = () => {
     if (msg.includes('banned') || err?.code === 'user_banned') {
       // Paket Light: nur die Administration meldet sich an. Die Sperre
       // steht im Anmeldesystem, hier nur der verstaendliche Satz dazu.
-      setError(t('light.nur_admin'));
+      // Im Demoverein kann es auch ein abgelaufener Testzugang sein.
+      setError(window.location.hostname.startsWith('demo.')
+        ? 'Dieser Zugang ist gesperrt: Entweder ist Ihr Testzugang abgelaufen, oder im Paket Light meldet sich nur die Administration an. Für eine Verlängerung melden Sie sich bei uns.'
+        : t('light.nur_admin'));
     } else if (msg.includes('Invalid login credentials') || msg.includes('invalid_credentials')) {
       setError("E-Mail oder Passwort falsch.");
     } else if (msg.includes('Email not confirmed')) {

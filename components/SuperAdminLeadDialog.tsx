@@ -5,6 +5,7 @@ import { db } from '../services/datenzugriff';
 import { doc, updateDoc, deleteDoc } from '@/services/supabase-bridge';
 import { useTranslation } from '../context/LanguageContext';
 import { useFeedback } from '../context/FeedbackContext';
+import SuperAdminDemoZugang from './SuperAdminDemoZugang';
 
 const STAGES = ['LEAD', 'TALKS', 'ONBOARDING', 'WON', 'LOST'] as const;
 
@@ -137,6 +138,9 @@ const SuperAdminLeadDialog: React.FC<Props> = ({ lead, onClose }) => {
             <textarea value={form.note || ''} onChange={set('note')} rows={6}
                       className={field + ' resize-none'} placeholder={t('sa.lead_note_ph')} />
           </div>
+
+          <SuperAdminDemoZugang leadId={lead.id} gespeicherteEmail={lead.email ?? null}
+                                formEmail={form.email ?? null} kontakt={lead.contactName ?? null} />
 
           <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-stone-100">
             <div className="flex flex-wrap gap-3">

@@ -4,6 +4,7 @@ import './lib/design.css';
 import './lib/mobil.css';
 import { useWerBinIch, type WerBinIch } from './lib/useWerBinIch';
 import { useDemoRolle } from './lib/useDemoRolle';
+import { useDemoZugang, restzeit } from './lib/useDemoZugang';
 import { usePaket } from './lib/usePaket';
 const DemoRollenschalter = React.lazy(() => import('./components/DemoRollenschalter'));
 const SpendenSeite = React.lazy(() => import('./components/SpendenSeite'));
@@ -544,6 +545,8 @@ const AppContent: React.FC = () => {
   // Die App entscheidet ueberall anhand von user.role, welche Oberflaeche
   // jemand bekommt. Genau dort setzt der Schalter an: eine ueberschriebene
   // Rolle, sonst der echte Nutzer unveraendert.
+  // Testzugang eines Interessenten: Restzeit fuer das Band unten links.
+  const testzugang = useDemoZugang(!!user, werHier?.verein ?? null);
   const sichtUser = (demo.rolleFuerApp && user)
     ? ({ ...user, role: demo.rolleFuerApp } as typeof user)
     : user;
@@ -816,8 +819,16 @@ const AppContent: React.FC = () => {
                 nicht auftauchen. */}
             {demo.erlaubt && paket !== 'LIGHT' && (
               <React.Suspense fallback={null}>
-                <DemoRollenschalter rolle={demo.rolle} setRolle={demo.setRolle} />
+                <DemoRollenschalter rolle={demo.rolle} setRolle={demo.setRolle}
+                                    testzugang={testzugang ? restzeit(testzugang) : null} />
               </React.Suspense>
+            )}
+            {/* Ohne Rollenschalter (Paket Light) steht die Restzeit allein. */}
+            {testzugang && !(demo.erlaubt && paket !== 'LIGHT') && (
+              <div className="fixed bottom-4 left-4 z-[9998] bg-stone-900 text-white px-3 py-2 rounded-xl
+                              shadow-lg text-[10px] font-bold uppercase tracking-widest pointer-events-none">
+                {restzeit(testzugang)}
+              </div>
             )}
             {/* Floky. Die Maske prueft selbst ueber floky_darf(), ob das
                 Modul gebucht ist und die Rolle einen Assistenten bekommt --
