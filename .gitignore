@@ -40,3 +40,7 @@ migrated_prompt_history/
 
 # Mitgliederlisten mit Personendaten, nur lokal
 *.local.csv
+
+# Rohaufnahmen fuer die Praesentation (2x, gross) -- eingebaut werden die
+# Ausschnitte in design/bilder/rollen/folie, siehe design/bilder/einbauen.py
+design/bilder/rollen/*.png
