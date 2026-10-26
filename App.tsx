@@ -532,7 +532,12 @@ const AppContent: React.FC = () => {
   }, [branding, istPlattformDomain]);
 
   const werHier = useWerBinIch(!!user);
-  const demo = useDemoRolle(!!werHier?.ist_betreiber, werHier?.verein ?? null);
+  // Umschalten duerfen im Demo-Verein der Betreiber und die Administration
+  // des Demo-Vereins -- etwa um Bildschirmfotos fuer Praesentationen zu
+  // machen, ohne dass der Betreiber selbst einem Verein angehoeren muss.
+  const demo = useDemoRolle(
+    !!werHier?.ist_betreiber || ['ADMIN', 'SUPER_ADMIN'].includes(werHier?.rolle ?? ''),
+    werHier?.verein ?? null);
   // Paket Light: keine Rollen-Zugaenge -- weder Anmeldung (gesperrt im
   // Anmeldesystem) noch Rollenschalter noch Registrierung.
   const paket = usePaket();
@@ -806,7 +811,7 @@ const AppContent: React.FC = () => {
                 er vollstaendige Menues und ueberall 0 Zeilen. */}
             <BetreuungHinweis user={user} />
             {/* Der Rollenschalter der Vorfuehrung. useDemoRolle gibt
-                erlaubt nur im Demo-Verein und nur dem Betreiber zurueck --
+                erlaubt nur im Demo-Verein (Betreiber oder dessen Admin) zurueck --
                 in einer echten Vereinsoberflaeche kann die Leiste damit
                 nicht auftauchen. */}
             {demo.erlaubt && paket !== 'LIGHT' && (

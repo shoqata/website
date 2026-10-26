@@ -15,7 +15,9 @@ import { useCallback, useEffect, useState } from 'react';
 // verwechselt, haelt eine Vorfuehrung fuer einen Sicherheitsnachweis.
 //
 // Zwei Bedingungen, beide notwendig:
-//   * nur der Plattformbetreiber,
+//   * der Plattformbetreiber oder die Administration des Demo-Vereins
+//     (die sieht dort ohnehin alles -- der Schalter schraenkt die Ansicht
+//     nur ein, er erweitert keine Rechte),
 //   * nur im Demo-Verein.
 // Damit kann der Schalter in keiner echten Vereinsoberflaeche auftauchen,
 // auch nicht versehentlich.
