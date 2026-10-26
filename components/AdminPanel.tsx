@@ -495,7 +495,7 @@ const AdminPanel: React.FC = () => {
                     {leisteSchmal ? <PanelLeftOpen size={16}/> : <PanelLeftClose size={16}/>}
                   </button>
                   <div className="hidden sm:flex gap-1 bg-stone-100 p-1 rounded-xl">
-                    {([['bequem','Bequem'],['kompakt','Kompakt']] as const).map(([w, n]) => (
+                    {([['bequem', t('admin.dichte.bequem')],['kompakt', t('admin.dichte.kompakt')]] as const).map(([w, n]) => (
                       <button key={w} onClick={() => setDichte(w)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${dichte === w ? 'bg-white shadow-sm text-primary' : 'text-stone-400'}`}>{n}</button>
                     ))}
