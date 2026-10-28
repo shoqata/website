@@ -5,6 +5,8 @@ import { useTranslation } from '../context/LanguageContext';
 import { useFeedback } from '../context/FeedbackContext';
 import { useTenant } from '../context/TenantContext';
 import Jahresbericht from './Jahresbericht';
+import { einladungMail, einladungText, einladungBrief, type Absender } from '../lib/gvEinladung';
+import { einstellungLaden, alsText } from '../lib/einstellungen';
 
 // Generalversammlung von A bis Z: vorbereiten (Traktanden), einladen (an
 // alle mit E-Mail), am Abend Praesenz und Ergebnisse festhalten, Protokoll
@@ -48,6 +50,19 @@ const AdminVersammlung: React.FC = () => {
   const [stimmberechtigt, setStimmberechtigt] = useState(0);
   const [suche, setSuche] = useState('');
   const verein = tenant?.name || 'Verein';
+  // Briefkopf der Einladung: Name und Logo aus dem Branding, Adresse aus
+  // den Zahlungsangaben, Farbe wie auf der Website des Vereins.
+  const [absender, setAbsender] = useState<Absender>({ verein });
+  useEffect(() => {
+    Promise.all([einstellungLaden('branding').catch(() => ({})), einstellungLaden('payment').catch(() => ({}))])
+      .then(([b, z]: any[]) => setAbsender({
+        verein: alsText(b?.associationName) || verein,
+        logo: b?.logoUrl || tenant?.logoUrl || null,
+        farbe: getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || tenant?.primaryColor || null,
+        strasse: z?.street || null, plz: z?.zip || null, ort: z?.city || null,
+        email: z?.email || b?.email || null,
+      }));
+  }, [verein]);
 
   const laden = async () => {
     const { data } = await supabase.from('versammlungen').select('*').order('datum', { ascending: false });
@@ -101,14 +116,7 @@ const AdminVersammlung: React.FC = () => {
     if (error) showAlert({ type: 'error', message: error.message });
   };
 
-  const einladungHtml = (x: Versammlung) => `
-    <p>Liebe Mitglieder</p>
-    <p>Wir laden Sie herzlich zur <b>${esc(x.titel)}</b> ein.</p>
-    <p><b>${esc(datumText(x.datum))}${x.zeit ? `, ${esc(x.zeit)} Uhr` : ''}</b>${x.ort ? `<br>${esc(x.ort)}` : ''}</p>
-    <p><b>Traktanden</b></p>
-    <ol>${x.traktanden.map(tr => `<li>${esc(tr.titel)}</li>`).join('')}</ol>
-    <p>Anträge zuhanden der Versammlung richten Sie bitte schriftlich an den Vorstand.</p>
-    <p>Wir freuen uns auf Ihre Teilnahme.<br>Der Vorstand von ${esc(verein)}</p>`;
+  const einladungHtml = (x: Versammlung) => einladungMail(x, absender);
 
   const protokollErstellen = (x: Versammlung) => {
     const quote = stimmberechtigt ? Math.round(praesenz.size / stimmberechtigt * 100) : 0;
@@ -144,7 +152,7 @@ const AdminVersammlung: React.FC = () => {
     if (!ok) return;
     const html = art === 'EINLADUNG' ? einladungHtml(v)
       : `<p>Liebe Mitglieder</p><p>Nachstehend finden Sie das Protokoll der ${esc(v.titel)}.</p><pre style="font-family:inherit;white-space:pre-wrap">${esc(v.protokoll || '')}</pre><p>Der Vorstand von ${esc(verein)}</p>`;
-    const text = html.replace(/<li>/g, '- ').replace(/<br>/g, '\n').replace(/<\/p>|<\/li>/g, '\n').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
+    const text = art === 'EINLADUNG' ? einladungText(v, absender) : html.replace(/<li>/g, '- ').replace(/<br>/g, '\n').replace(/<\/p>|<\/li>/g, '\n').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
     setArbeitet(true);
     const { data, error } = await supabase.rpc('versammlung_versenden', {
       p_id: v.id, p_art: art,
@@ -164,6 +172,17 @@ const AdminVersammlung: React.FC = () => {
     if (!w) return;
     w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(titel)}</title><style>body{font:14px/1.6 system-ui,sans-serif;max-width:720px;margin:40px auto;padding:0 20px;white-space:pre-wrap}</style></head><body>${esc(text)}</body></html>`);
     w.document.close(); w.focus(); w.print();
+  };
+
+  // Der Brief bringt eigene Schriften mit; gedruckt wird erst, wenn sie da
+  // sind -- sonst kommt er in der Ersatzschrift aus dem Drucker.
+  const briefDrucken = (html: string) => {
+    const w = window.open('', '_blank');
+    if (!w) return;
+    w.document.write(html);
+    w.document.close();
+    const los = () => { w.focus(); w.print(); };
+    (w.document as any).fonts?.ready ? (w.document as any).fonts.ready.then(() => setTimeout(los, 150)) : setTimeout(los, 600);
   };
 
   const praesenzliste = () => v && drucken(
@@ -274,7 +293,7 @@ const AdminVersammlung: React.FC = () => {
           <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-stone-100">
             <button onClick={() => versenden('EINLADUNG')} disabled={arbeitet}
                     className="knopf-primaer px-5 py-3 text-white rounded-xl text-sm font-bold flex items-center gap-2"><Send size={15} /> {v.eingeladen_am ? t('gv.nochmals_einladen') : t('gv.einladen')}</button>
-            <button onClick={() => drucken(einladungHtml(v).replace(/<li>/g, '\n- ').replace(/<br>/g, '\n').replace(/<\/p>/g, '\n').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&'), v.titel)}
+            <button onClick={() => briefDrucken(einladungBrief(v, absender))}
                     className="px-5 py-3 bg-white border border-stone-200 rounded-xl text-sm font-bold flex items-center gap-2"><Printer size={15} /> {t('gv.einladung_drucken')}</button>
             {v.eingeladen_am && <span className="text-xs text-emerald-700 flex items-center gap-1.5"><CheckCircle2 size={13} /> {t('gv.eingeladen_am', { datum: new Date(v.eingeladen_am).toLocaleDateString('de-CH') })}</span>}
           </div>
