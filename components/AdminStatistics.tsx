@@ -19,6 +19,7 @@ import {
   Search,
 } from 'lucide-react';
 import { useTranslation } from '../context/LanguageContext';
+import AdminJahresvergleich from './AdminJahresvergleich';
 
 interface AdminStatisticsProps {
   users: UserProfile[];
@@ -31,6 +32,8 @@ const AdminStatistics: React.FC<AdminStatisticsProps> = ({ users, payments, neig
   const { t } = useTranslation();
   const [memberFilter, setMemberFilter] = useState<'ALL' | 'LATE' | 'UNPAID'>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
+  // Ein Jahr im Detail oder alle Jahre nebeneinander.
+  const [ansicht, setAnsicht] = useState<'JAHR' | 'VERGLEICH'>('JAHR');
 
   // Filter payments by year first if provided
   const yearPayments = useMemo(() => {
@@ -152,7 +155,18 @@ const AdminStatistics: React.FC<AdminStatisticsProps> = ({ users, payments, neig
 
   return (
     <div className="space-y-8">
-        
+        <div className="flex bg-stone-50 p-1 rounded-xl border border-stone-200 w-fit">
+            {(['JAHR', 'VERGLEICH'] as const).map(a => (
+                <button key={a} onClick={() => setAnsicht(a)}
+                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition ${ansicht === a ? 'bg-white shadow-sm text-stone-900' : 'text-stone-400'}`}>
+                    {a === 'JAHR' ? `${t('jv.ein_jahr')} ${selectedYear ?? ''}` : t('jv.titel')}
+                </button>
+            ))}
+        </div>
+
+        {ansicht === 'VERGLEICH'
+          ? <AdminJahresvergleich users={users} payments={payments} neighborhoods={neighborhoods} />
+          : <>
         {/* KPI Row */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="bg-white p-6 rounded-3xl border border-stone-100 shadow-sm">
@@ -315,6 +329,7 @@ const AdminStatistics: React.FC<AdminStatisticsProps> = ({ users, payments, neig
                 )}
             </div>
         </div>
+          </>}
     </div>
   );
 };
