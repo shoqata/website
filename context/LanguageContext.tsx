@@ -1793,6 +1793,7 @@ const translations: Translations = {
   // --- ADMIN STATISTICS ---
   'admin.stats.revenue': { en: 'Revenue', de: 'Einnahmen', sq: 'Të Hyrat' },
   'jv.titel': { de: 'Jahresvergleich', en: 'Year comparison', sq: 'Krahasimi i viteve' },
+  'jv.kurz': { de: 'Alle Jahre nebeneinander — Zahlquote, Einnahmen, Offenes, je Nachbarschaft.', en: 'All years side by side — payment rate, income, open amounts, by neighbourhood.', sq: 'Të gjitha vitet krah për krah — kuota e pagesës, të hyrat, të hapurat, sipas lagjes.' },
   'jv.ein_jahr': { de: 'Jahr', en: 'Year', sq: 'Viti' },
   'jv.erklaerung': { de: 'Alle Vereinsjahre nebeneinander, mit der Veränderung zum Vorjahr. Als Mitglied zählt, wer im Jahr eine Beitragsrechnung bekam — ein Austrittsdatum wird nicht geführt.', en: 'All association years side by side, with the change from the year before. A member counts for a year if they received a membership invoice that year — exit dates are not recorded.', sq: 'Të gjitha vitet e shoqatës krah për krah, me ndryshimin nga viti i kaluar. Si anëtar llogaritet kush mori një faturë kuote në atë vit — data e daljes nuk regjistrohet.' },
   'jv.laufend': { de: 'läuft noch', en: 'in progress', sq: 'në vazhdim' },

@@ -52,6 +52,8 @@ import { onImageError } from '../lib/imageFallback';
 import AenderungenVerwaltung from './AenderungenVerwaltung';
 import VorstandCockpit from './VorstandCockpit';
 import AdminVersammlung from './AdminVersammlung';
+import AdminJahresvergleich from './AdminJahresvergleich';
+import { ChevronDown as Aufklappen } from 'lucide-react';
 interface BoardDashboardProps {
   user: UserProfile;
 }
@@ -93,6 +95,8 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
   const [rechnungsSuche, setRechnungsSuche] = useState('');
   const [zeigeNachbarschaften, setZeigeNachbarschaften] = useState(false);
   const [nbSuche, setNbSuche] = useState('');
+  // Zugeklappt: die Seite ist lang, und der Vergleich wird nicht taeglich gebraucht.
+  const [vergleichOffen, setVergleichOffen] = useState(false);
 
   // FETCH DATA
   useEffect(() => {
@@ -686,6 +690,24 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                 )}
             </div>
 
+        </div>
+
+        {/* Jahresvergleich -- dieselbe Ansicht wie im Admin unter Statistik.
+            Der Vorstand liest die Rechnungen ohnehin schon (siehe oben). */}
+        <div className="mb-8">
+            <button type="button" onClick={() => setVergleichOffen(o => !o)} aria-expanded={vergleichOffen}
+                className="w-full bg-white px-8 py-6 rounded-[2.5rem] border border-stone-100 shadow-sm flex items-center justify-between text-left hover:border-stone-200 transition-colors">
+                <span>
+                    <span className="block text-xl font-bold text-stone-900">{t('jv.titel')}</span>
+                    <span className="block text-sm text-stone-500">{t('jv.kurz')}</span>
+                </span>
+                <Aufklappen size={20} className={`text-stone-400 transition-transform ${vergleichOffen ? 'rotate-180' : ''}`} />
+            </button>
+            {vergleichOffen && (
+                <div className="mt-6">
+                    <AdminJahresvergleich users={users} payments={payments} neighborhoods={neighborhoods} />
+                </div>
+            )}
         </div>
 
         {/* Generalversammlung */}
