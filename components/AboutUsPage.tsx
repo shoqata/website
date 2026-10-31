@@ -7,7 +7,8 @@ import {
 import { db } from '../services/datenzugriff';
 import { collection, onSnapshot, doc } from '@/services/supabase-bridge';
 import { UserProfile, BoardMember } from '../types';
-import { Globe } from './Globe';
+import { TestimonialGlobe, type GlobeTestimonial } from './ui/testimonial-globe';
+import { laenderZaehlen, heimatLesen } from '../lib/weltkarte';
 import { useTranslation } from '../context/LanguageContext';
 import { TestimonialSlider, Review } from './ui/TestimonialSlider';
 import { SeitenInhalt } from './EigeneSeite';
@@ -24,21 +25,6 @@ import { onImageError } from '../lib/imageFallback';
 // aus einem Satz und einem Globus. Jetzt bringt sie mit, was schon da ist
 // (Zahlen, Vorstand, Chronik), und der Verein kann Abschnitte umstellen,
 // ausblenden und eigene dazwischenschieben (Website -> Ueber uns).
-
-// Koordinaten fuer den Globus: ein Punkt je Mitglied mit bekanntem Ort.
-const LOCATION_MAP: Record<string, [number, number]> = {
-  'koretin': [42.54, 21.58], 'kamenice': [42.57, 21.58], 'gjilan': [42.46, 21.46],
-  'prishtine': [42.66, 21.16], 'zurich': [47.37, 8.54], 'zürich': [47.37, 8.54],
-  'geneva': [46.20, 6.14], 'bern': [46.94, 7.44], 'basel': [47.55, 7.59],
-  'st. gallen': [47.42, 9.37], 'lausanne': [46.51, 6.63], 'munich': [48.13, 11.58],
-  'berlin': [52.52, 13.40], 'vienna': [48.20, 16.37], 'london': [51.50, -0.12],
-  'new york': [40.71, -74.00], 'paris': [48.85, 2.35], 'brussels': [50.85, 4.35],
-  'rome': [41.90, 12.49],
-  'switzerland': [46.81, 8.22], 'schweiz': [46.81, 8.22], 'zvicer': [46.81, 8.22],
-  'germany': [51.16, 10.45], 'deutschland': [51.16, 10.45],
-  'kosovo': [42.60, 20.90], 'österreich': [47.52, 14.55], 'austria': [47.52, 14.55],
-  'frankreich': [46.23, 2.21], 'belgien': [50.50, 4.47],
-};
 
 const SYMBOL: Record<string, React.ReactNode> = {
   ZIEL: <Target size={22} />, GEMEINSCHAFT: <Users size={22} />, TRANSPARENZ: <ShieldCheck size={22} />,
@@ -90,25 +76,11 @@ const AboutUsPage: React.FC = () => {
     return () => { unsubBranding(); unsubUsers(); unsubNb(); unsubBoard?.(); };
   }, []);
 
-  const globusPunkte = useMemo(() => {
-    const p: { location: [number, number]; size: number }[] = [{ location: [42.54, 21.58], size: 0.1 }];
-    for (const u of mitglieder) {
-      const stadt = u.city?.toLowerCase().trim();
-      const land = u.country?.toLowerCase().trim();
-      if (stadt && LOCATION_MAP[stadt]) p.push({ location: LOCATION_MAP[stadt], size: 0.05 });
-      else if (land && LOCATION_MAP[land]) {
-        // Fester Versatz je Mitglied statt Zufall: sonst springen die Punkte
-        // bei jedem Neuladen.
-        const [a, b] = LOCATION_MAP[land];
-        const h = [...u.id].reduce((s, c) => (s * 31 + c.charCodeAt(0)) % 1000, 7);
-        p.push({ location: [a + (h % 100) / 100 - 0.5, b + Math.floor(h / 10) / 100 - 0.5], size: 0.05 });
-      }
-    }
-    return p;
-  }, [mitglieder]);
-
   const laender = useMemo(() =>
     new Set(mitglieder.map(u => (u.country || '').trim().toLowerCase()).filter(Boolean)).size, [mitglieder]);
+
+  // Weltkarte: je Land gezaehlt, nie je Person (lib/weltkarte.ts).
+  const welt = useMemo(() => laenderZaehlen(mitglieder, language), [mitglieder, language]);
 
   const gruendung: number | null = Number(branding.gruendungsjahr) || (chronik?.length ? chronik[0].jahr : null);
   const zahlen = [
@@ -166,22 +138,89 @@ const AboutUsPage: React.FC = () => {
                   </div>
                 )}
               </div>
-            ) : (
-              <div className="relative h-[420px] md:h-[560px] flex items-center justify-center">
-                <Globe markers={globusPunkte} />
-                {loc(branding.footerAddress) && (
-                  <div className="absolute bottom-6 left-6 bg-white/80 backdrop-blur-md p-6 rounded-3xl shadow-xl border border-white max-w-xs">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white"><MapPin size={16} /></div>
-                      <p className="font-bold text-sm text-stone-900">{loc(branding.footerAddress)}</p>
-                    </div>
-                    <p className="text-xs text-stone-500 italic">{t('about.map.center_desc')}</p>
-                  </div>
-                )}
+            ) : loc(branding.footerAddress) ? (
+              // Ohne Bild stand hier bis zum 31.10.2026 der Globus. Er hat
+              // jetzt einen eigenen Abschnitt ("Weltkarte"); hier bleibt die
+              // Adresse.
+              <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-stone-100 max-w-sm lg:justify-self-end">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white"><MapPin size={16} /></div>
+                  <p className="font-bold text-sm text-stone-900">{loc(branding.footerAddress)}</p>
+                </div>
+                <p className="text-xs text-stone-500 italic">{t('about.map.center_desc')}</p>
               </div>
-            )}
+            ) : null}
           </div>
         );
+
+      case 'weltkarte': {
+        const liste = welt.laender;
+        if (liste.length === 0) return null;
+        const heimat = heimatLesen(a.heimat);
+        const gesamt = liste.reduce((n, l) => n + l.anzahl, 0);
+        const max = Math.max(...liste.map(l => l.anzahl));
+        // Mittlere Breite, nach Anzahl gewichtet; daraus die Neigung.
+        const breite = liste.reduce((n, l) => n + l.lat * l.anzahl, 0) / gesamt;
+        const neigung = Math.max(0.15, Math.min(0.85, (breite * Math.PI) / 180 * 0.95));
+        const aufzaehlen = (w: string[]) => new Intl.ListFormat(language, { type: 'conjunction' }).format(w);
+        const items: GlobeTestimonial[] = [
+          ...(heimat ? [{
+            id: 'heimat', name: heimat.name, lat: heimat.lat, lng: heimat.lng, tone: 2 as const,
+            badge: <Home size={16} />, role: t('about.weltkarte.heimat_rolle'), city: '', weight: 6,
+            quote: t('about.weltkarte.heimat_text', { ort: heimat.name, laender: String(liste.length) }),
+            label: `${heimat.name}: ${t('about.weltkarte.heimat_rolle')}`,
+          }] : []),
+          ...liste.map(l => {
+            const wer = l.anzahl === 1 ? t('about.weltkarte.mitglied') : t('about.weltkarte.mitglieder', { n: String(l.anzahl) });
+            const anteil = Math.round((l.anzahl / gesamt) * 100);
+            return {
+              id: l.code, name: l.name, lat: l.lat, lng: l.lng, tone: 1 as const,
+              badge: String(l.anzahl), role: wer, country: l.code, weight: Math.sqrt(l.anzahl),
+              city: anteil < 1 ? '< 1 %' : `${anteil} %`,
+              quote: l.anzahl === 1 ? t('about.weltkarte.land_eins', { land: l.name })
+                : l.staedte.length ? t('about.weltkarte.land_staedte', { n: String(l.anzahl), land: l.name, staedte: aufzaehlen(l.staedte) })
+                : t('about.weltkarte.land', { n: String(l.anzahl), land: l.name }),
+              label: `${l.name}: ${wer}`,
+            };
+          }),
+        ];
+        // Auf dem Globus selbst: die echte Lage, Groesse nach Anzahl; vom
+        // Heimatort ein Bogen zu jedem Land, das nicht gleich daneben liegt.
+        const markers = [
+          ...liste.map(l => ({ location: [l.lat, l.lng] as [number, number], size: 0.03 + 0.05 * Math.sqrt(l.anzahl / max) })),
+          ...(heimat ? [{ location: [heimat.lat, heimat.lng] as [number, number], size: 0.05 }] : []),
+        ];
+        const arcs = heimat ? liste
+          .filter(l => Math.hypot(l.lat - heimat.lat, l.lng - heimat.lng) > 3)
+          .map(l => ({ from: [heimat.lat, heimat.lng] as [number, number], to: [l.lat, l.lng] as [number, number] })) : [];
+        return (
+          <TestimonialGlobe
+            items={items}
+            variant="fact"
+            markers={markers}
+            arcs={arcs}
+            eyebrow={t('about.weltkarte.marke')}
+            heading={titelVon(a, vorgabe('weltkarte'))}
+            headingClassName="font-display font-bold italic text-stone-900"
+            caption={t('about.weltkarte.text')}
+            stats={[
+              { value: gesamt, label: t('about.weltkarte.mit_land') },
+              { value: liste.length, label: t('about.stats.laender') },
+            ]}
+            autoplay
+            interval={4500}
+            // Auf die Laender ausgerichtet: geneigt bis etwa zu ihrer
+            // mittleren Breite, leicht vergroessert. Bei Mitgliedern rund
+            // um den Globus waere die Vorgabe (flach, ganz) besser.
+            tilt={neigung}
+            zoom={1.2}
+            size={520}
+            pinSize={36}
+            labels={{ previous: t('about.weltkarte.zurueck'), next: t('about.weltkarte.weiter'), pin: '' }}
+            className="rounded-[2.5rem]"
+          />
+        );
+      }
 
       case 'zahlen':
         if (zahlen.length === 0) return null;

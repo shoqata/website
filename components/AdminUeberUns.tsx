@@ -103,6 +103,23 @@ const Aufbau: React.FC<Props> = ({ branding, setBranding, sprache }) => {
                     placeholder={fest ? t(fest.titel) : 'Unser Dorf'} />
                   {fest && <p className="text-[10px] text-stone-400 mt-1">Leer lassen für die vorgegebene Überschrift.</p>}
                 </div>
+                {a.art === 'weltkarte' && (
+                  <div>
+                    <label className={`${marke} block mb-1.5`}>Heimatort</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-[2fr_1fr_1fr] gap-2">
+                      <input className={feld} value={a.heimat?.name ?? ''} placeholder="Name, z. B. Koretin"
+                        onChange={e => aendern(a.id, { heimat: { ...a.heimat, name: e.target.value } })} />
+                      <input className={feld} inputMode="decimal" value={a.heimat?.lat ?? ''} placeholder="Breite, z. B. 42.54"
+                        onChange={e => aendern(a.id, { heimat: { ...a.heimat, lat: e.target.value } })} />
+                      <input className={feld} inputMode="decimal" value={a.heimat?.lng ?? ''} placeholder="Länge, z. B. 21.58"
+                        onChange={e => aendern(a.id, { heimat: { ...a.heimat, lng: e.target.value } })} />
+                    </div>
+                    <p className="text-[10px] text-stone-400 mt-1">
+                      Von hier aus führen Bögen zu jedem Land. Breite und Länge zeigt Google Maps nach einem
+                      Rechtsklick auf den Ort. Leer lassen: keine Bögen, kein Heimat-Pin.
+                    </p>
+                  </div>
+                )}
                 {a.art === 'eigen' && (
                   <BausteinEditor sprache={sprache} bloecke={(a.bloecke ?? []) as any}
                     onChange={bloecke => aendern(a.id, { bloecke })} />

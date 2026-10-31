@@ -15,7 +15,7 @@ import type { Baustein } from '../components/BausteinEditor';
 export type Sprachfeld = { de?: string; sq?: string; en?: string } | string;
 
 export type FesterAbschnitt =
-  'einleitung' | 'zahlen' | 'werte' | 'geschichte' | 'ziele' | 'vorstand' | 'mitmachen';
+  'einleitung' | 'weltkarte' | 'zahlen' | 'werte' | 'geschichte' | 'ziele' | 'vorstand' | 'mitmachen';
 
 export type Abschnitt = {
   id: string;
@@ -25,10 +25,13 @@ export type Abschnitt = {
   titel?: Sprachfeld;
   /** Nur bei art 'eigen'. */
   bloecke?: Baustein[];
+  /** Nur bei art 'weltkarte': Ausgangsort der Boegen, z. B. das Heimatdorf. */
+  heimat?: { name?: string; lat?: number | string; lng?: number | string };
 };
 
 export const FESTE: { art: FesterAbschnitt; name: string; titel: string; hinweis: string }[] = [
-  { art: 'einleitung', name: 'Einleitung',      titel: 'about.title',          hinweis: 'Titel, Text und Globus oder Bild' },
+  { art: 'einleitung', name: 'Einleitung',      titel: 'about.title',          hinweis: 'Titel, Text und Bild' },
+  { art: 'weltkarte',  name: 'Weltkarte',       titel: 'about.weltkarte.titel', hinweis: 'Globus: Mitglieder je Land, Bögen vom Heimatort' },
   { art: 'zahlen',     name: 'Zahlen',          titel: 'about.zahlen.titel',   hinweis: 'Mitglieder, Nachbarschaften, Länder, Jahre — und eigene' },
   { art: 'werte',      name: 'Werte',           titel: 'about.werte.titel',    hinweis: 'Karten mit dem, wofür der Verein steht' },
   { art: 'geschichte', name: 'Geschichte',      titel: 'about.geschichte.titel', hinweis: 'Meilensteine aus der Chronik' },
@@ -37,12 +40,20 @@ export const FESTE: { art: FesterAbschnitt; name: string; titel: string; hinweis
   { art: 'mitmachen',  name: 'Mitmachen',       titel: 'about.mitmachen.titel', hinweis: 'Aufruf zum Beitritt und Kontakt' },
 ];
 
-// Gespeicherte Reihenfolge zuerst, was fehlt (neu dazugekommen) hinten an.
+// Gespeicherte Reihenfolge zuerst; was fehlt (neu dazugekommen), wird eingereiht.
 export function abschnitte(gespeichert: any): Abschnitt[] {
   const liste: Abschnitt[] = Array.isArray(gespeichert?.abschnitte)
     ? gespeichert.abschnitte.filter((a: any) => a && typeof a.id === 'string' && a.art) : [];
   const da = new Set(liste.map(a => a.art));
-  for (const f of FESTE) if (!da.has(f.art)) liste.push({ id: f.art, art: f.art, an: true });
+  // Ein neu dazugekommener fester Abschnitt kommt hinter seinen Vorgaenger
+  // in FESTE, nicht ans Ende: die Weltkarte gehoert unter die Einleitung,
+  // nicht unter "Mitmachen".
+  FESTE.forEach((f, i) => {
+    if (da.has(f.art)) return;
+    const vor = i > 0 ? liste.findIndex(a => a.art === FESTE[i - 1].art) : -1;
+    liste.splice(vor >= 0 ? vor + 1 : liste.length, 0, { id: f.art, art: f.art, an: true });
+    da.add(f.art);
+  });
   return liste;
 }
 

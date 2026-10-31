@@ -76,7 +76,22 @@
         future: { hoverOnlyWhenSupported: true },
         /* Kurven aus lib/bewegung.ts: ease-out-strong zum Erscheinen,
            drawer fuer Schubladen. Die Tailwind-Vorgaben sind zu weich. */
-        theme: { extend: { transitionTimingFunction: {
+        theme: { extend: {
+          /* Farbnamen fuer components/ui (shadcn-Schreibweise). Belegt sind
+             sie nur innerhalb einer Komponente, die sie setzt -- siehe
+             [data-slot="testimonial-globe"] unten. Kanaele statt Farbwert,
+             damit Deckkraft wie bg-foreground/50 funktioniert. */
+          colors: {
+            background: 'rgb(var(--ui-background) / <alpha-value>)',
+            foreground: 'rgb(var(--ui-foreground) / <alpha-value>)',
+            card: { DEFAULT: 'rgb(var(--ui-card) / <alpha-value>)', foreground: 'rgb(var(--ui-foreground) / <alpha-value>)' },
+            muted: { DEFAULT: 'rgb(var(--ui-muted) / <alpha-value>)', foreground: 'rgb(var(--ui-muted-foreground) / <alpha-value>)' },
+            border: 'rgb(var(--ui-border) / <alpha-value>)',
+            ring: 'rgb(var(--ui-foreground) / <alpha-value>)',
+            'chart-1': 'var(--ui-chart-1)', 'chart-2': 'var(--ui-chart-2)', 'chart-3': 'var(--ui-chart-3)',
+            'chart-4': 'var(--ui-chart-4)', 'chart-5': 'var(--ui-chart-5)',
+          },
+          transitionTimingFunction: {
           'out-strong': 'cubic-bezier(0.23, 1, 0.32, 1)',
           'in-out-strong': 'cubic-bezier(0.77, 0, 0.175, 1)',
           'drawer': 'cubic-bezier(0.32, 0.72, 0, 1)',
@@ -115,6 +130,25 @@
       :root[data-domain="unbekannt"] {
         --accent: #ffffff;
         --kontrast: #1c1917;
+      }
+      /* Weltkarte (components/ui/testimonial-globe.tsx): Steingrau der Seite,
+         Akzent ist die Vereinsfarbe. --color-* liest die Komponente fuer
+         Verlaeufe und den Globus selbst. */
+      [data-slot="testimonial-globe"] {
+        --ui-background: 250 249 246;
+        --ui-foreground: 28 25 23;
+        --ui-card: 255 255 255;
+        --ui-muted: 245 245 244;
+        --ui-muted-foreground: 120 113 108;
+        --ui-border: 231 229 228;
+        --ui-chart-1: var(--primary);
+        --ui-chart-2: #1c1917;
+        --ui-chart-3: var(--primary);
+        --ui-chart-4: #f59e0b;
+        --ui-chart-5: var(--primary);
+        --color-background: rgb(var(--ui-background));
+        --color-foreground: rgb(var(--ui-foreground));
+        --color-chart-1: var(--primary);
       }
       body {
         font-family: 'Inter', sans-serif;
