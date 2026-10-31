@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { oeffentlich } from '../../lib/zaehler';
+import { oeffentlich, pfadKuerzen } from '../../lib/zaehler';
 
 // Welche Seiten gezaehlt werden, ist keine Nebensache: bei sechs
 // angemeldeten Konten und wenigen Besuchern kippen die eigenen Klicks
@@ -33,5 +33,21 @@ describe('Welche Pfade gezählt werden', () => {
     expect(oeffentlich('/adminstrasse')).toBe(true);
     expect(oeffentlich('/logins-info')).toBe(true);
     expect(oeffentlich('/registerkarte')).toBe(true);
+  });
+});
+
+describe('Zugänge werden gekürzt', () => {
+  it('Token und Kennungen verschwinden aus dem Pfad', () => {
+    expect(pfadKuerzen('/treffen/abc123')).toBe('/treffen/*');
+    expect(pfadKuerzen('/heft/xyz')).toBe('/heft/*');
+    expect(pfadKuerzen('/ausweis/0b6f-uuid')).toBe('/ausweis/*');
+    expect(pfadKuerzen('/drucksachen/42')).toBe('/drucksachen/*');
+  });
+
+  it('andere Pfade bleiben, nur Abfrage und Anker fallen weg', () => {
+    expect(pfadKuerzen('/news/7')).toBe('/news/7');
+    expect(pfadKuerzen('/treffen')).toBe('/treffen');
+    expect(pfadKuerzen('/spenden?betrag=50')).toBe('/spenden');
+    expect(pfadKuerzen('/heftig')).toBe('/heftig');
   });
 });

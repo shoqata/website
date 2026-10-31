@@ -6,8 +6,8 @@ import { Link } from 'react-router-dom';
 
 import { useTranslation } from '../context/LanguageContext';
 import { useIstPlattformDomain } from '../lib/useIstPlattformDomain';
-import { zustimmungSchluessel } from '../lib/werbemessung';
-import { ZUSTIMMUNG_EREIGNIS } from '../lib/useWerbemessung';
+import { zustimmungLesen, zustimmungSpeichern, werbeCookiesLoeschen, messungGeladen } from '../lib/werbemessung';
+import { ZUSTIMMUNG_EREIGNIS, EINSTELLUNGEN_EREIGNIS } from '../lib/useWerbemessung';
 import { TINTE, BLAU, NEBEL, SCHIEFER, MONO } from './platform/farben';
 
 // Der Hinweis erscheint auf beiden Domains, aber nicht in derselben Sprache
@@ -21,29 +21,37 @@ const CookieConsent: React.FC = () => {
   const istPlattform = useIstPlattformDomain();
   const [isVisible, setIsVisible] = useState(false);
 
-  // Eigener Schluessel je Darstellung. localStorage ist ohnehin pro Herkunft
-  // getrennt, die Trennung ist also nicht noetig, aber ehrlich: ein Eintrag
-  // namens "koretini" auf unityhub.li waere schlicht falsch beschriftet.
-  // Der Schluessel steht in lib/werbemessung -- dort wird er auch
-  // gelesen. Zwei Schreibweisen derselben Zeichenkette heisst: eine
-  // wird irgendwann geaendert und die andere nicht, und dann fragt der
-  // Hinweis ewig weiter oder die Messung laeuft trotz Ablehnung.
-  const schluessel = zustimmungSchluessel(istPlattform === true);
-
+  // Der Schluessel je Darstellung steht in lib/werbemessung -- dort wird
+  // er auch gelesen. Zwei Schreibweisen derselben Zeichenkette heisst:
+  // eine wird irgendwann geaendert und die andere nicht, und dann fragt
+  // der Hinweis ewig weiter oder die Messung laeuft trotz Ablehnung.
   useEffect(() => {
     // Solange nicht feststeht, wem die Adresse gehoert, wird nichts gezeigt --
     // sonst erschiene der Hinweis im falschen Gewand und wechselte danach.
     if (istPlattform === null) return;
-    const consent = localStorage.getItem(schluessel);
-    if (!consent) {
+    // Auch eine Antwort zu einer aelteren Fassung gilt als keine Antwort.
+    if (!zustimmungLesen(istPlattform)) {
       const timer = setTimeout(() => setIsVisible(true), 2000);
       return () => clearTimeout(timer);
     }
-  }, [istPlattform, schluessel]);
+  }, [istPlattform]);
+
+  // "Cookie-Einstellungen" in der Fusszeile oeffnet den Hinweis erneut.
+  useEffect(() => {
+    const oeffnen = () => setIsVisible(true);
+    window.addEventListener(EINSTELLUNGEN_EREIGNIS, oeffnen);
+    return () => window.removeEventListener(EINSTELLUNGEN_EREIGNIS, oeffnen);
+  }, []);
 
   const entscheide = (wert: 'accepted' | 'declined') => {
-    localStorage.setItem(schluessel, wert);
+    if (istPlattform === null) return;
+    const widerrufen = zustimmungSpeichern(istPlattform, wert);
     setIsVisible(false);
+    if (widerrufen) {
+      werbeCookiesLoeschen();
+      // Ein geladenes Pixel misst weiter, bis die Seite neu geladen ist.
+      if (messungGeladen()) { location.reload(); return; }
+    }
     // Damit die Zustimmung SOFORT wirkt und nicht erst beim naechsten
     // Besuch: sonst fehlte genau der Besuch in der Auswertung, in dem
     // sich jemand meldet.

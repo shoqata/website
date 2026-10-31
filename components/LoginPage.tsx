@@ -98,7 +98,6 @@ const LoginPage: React.FC = () => {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      console.log("[Auth] Supabase password login successful for:", email);
       navigate('/dashboard');
     } catch (err: any) {
       console.error("[Auth] Password login failed:", err);

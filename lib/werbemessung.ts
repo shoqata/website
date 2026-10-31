@@ -72,11 +72,64 @@ export function darfMessen(l: Lage): Entscheid {
 export const zustimmungSchluessel = (istPlattform: boolean): string =>
   istPlattform ? 'cookie-consent-unityhub' : 'cookie-consent-koretini';
 
+// Die Fassung des Hinweises. Erhoehen, sobald sich aendert, WOZU
+// zugestimmt wird (ein neuer Dienst, ein neuer Zweck): eine Zustimmung
+// gilt nur fuer das, was beim Klick dastand. Danach fragt der Hinweis
+// alle erneut.
+export const ZUSTIMMUNG_VERSION = 1;
+
+type Stand = { wert: 'accepted' | 'declined'; version: number; zeit: string };
+
+const standSchluessel = (istPlattform: boolean) => zustimmungSchluessel(istPlattform) + '-stand';
+
 export function zustimmungLesen(istPlattform: boolean | null): Zustimmung {
   if (istPlattform === null || typeof localStorage === 'undefined') return null;
-  const w = localStorage.getItem(zustimmungSchluessel(istPlattform));
-  return w === 'accepted' || w === 'declined' ? w : null;
+  try {
+    const w = localStorage.getItem(zustimmungSchluessel(istPlattform));
+    if (w !== 'accepted' && w !== 'declined') return null;
+    // Antworten von vor der Versionierung haben keinen Stand -- sie
+    // stammen aus Fassung 1.
+    const roh = localStorage.getItem(standSchluessel(istPlattform));
+    const version = roh ? Number((JSON.parse(roh) as Stand).version) : 1;
+    return version === ZUSTIMMUNG_VERSION ? w : null;
+  } catch {
+    return null;
+  }
 }
+
+// Die Antwort ablegen: der Wert selbst und daneben, wann und zu welcher
+// Fassung. Gibt zurueck, ob eine Zustimmung damit zurueckgenommen wurde.
+export function zustimmungSpeichern(istPlattform: boolean, wert: 'accepted' | 'declined'): boolean {
+  const vorher = zustimmungLesen(istPlattform);
+  try {
+    localStorage.setItem(zustimmungSchluessel(istPlattform), wert);
+    const stand: Stand = { wert, version: ZUSTIMMUNG_VERSION, zeit: new Date().toISOString() };
+    localStorage.setItem(standSchluessel(istPlattform), JSON.stringify(stand));
+  } catch { /* ohne Speicher gilt die Antwort nur fuer diesen Besuch */ }
+  return vorher === 'accepted' && wert === 'declined';
+}
+
+// Was die beiden Dienste im Browser hinterlassen. Beim Widerruf wird es
+// entfernt -- ein Widerruf, nach dem die Kennung weiterlebt, hiesse nur,
+// dass sie beim naechsten Laden wieder auftaucht.
+const WERBE_COOKIES = /^(_fbp|_fbc|_gcl_|_ga|_gid|_gat)/;
+
+export function werbeCookiesLoeschen(): void {
+  if (typeof document === 'undefined') return;
+  const host = location.hostname;
+  const bereiche = ['', host, '.' + host, '.' + host.split('.').slice(-2).join('.')];
+  for (const teil of document.cookie.split(';')) {
+    const name = teil.split('=')[0].trim();
+    if (!WERBE_COOKIES.test(name)) continue;
+    for (const b of bereiche) {
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/${b ? '; domain=' + b : ''}`;
+    }
+  }
+}
+
+// Ist schon ein Skript geladen? Dann hilft beim Widerruf nur ein
+// Neuladen: ein geladenes Pixel laesst sich nicht wieder entfernen.
+export const messungGeladen = (): boolean => geladen.meta || geladen.google;
 
 // ------------------------------------------------------------ Laden
 //

@@ -27,7 +27,7 @@ import { useIstPlattformDomain } from './lib/useIstPlattformDomain';
 import { useStartseitenVorlage } from './lib/useStartseitenVorlage';
 import { useOeffentlicheModule } from './lib/useOeffentlicheModule';
 import { seitenZustand } from './lib/modulgate';
-import { useWerbemessung } from './lib/useWerbemessung';
+import { useWerbemessung, zustimmungOeffnen } from './lib/useWerbemessung';
 import { useSpendenseiteSichtbar } from './lib/useSpendenseiteSichtbar';
 import { useKopfzeile, navLayout, zeigtOben, zeigtFuss, navGruppen, navBaum, mitVorschlag } from './components/kopfzeile';
 import { KopfGruppe, GruppenTitel } from './components/NavGruppen';
@@ -1202,6 +1202,9 @@ const ConditionalFooter = ({ branding, user, systemSettings, systemGeladen }: an
               ? ` ${loc((branding as any).associationName)}. `
               : ' · '}
             {t('footer.rights')}</p>
+          <button type="button" onClick={zustimmungOeffnen} className="uppercase tracking-widest hover:text-white transition-colors">
+            {t('cookie.settings')}
+          </button>
         </div>
       </div>
     </footer>

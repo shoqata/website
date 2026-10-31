@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { darfMessen, zustimmungSchluessel } from '../../lib/werbemessung';
 
 const IDS = { metaPixel: '123456789', googleAds: 'AW-987654321' };
@@ -111,5 +111,38 @@ describe('Wie eine Anfrage gemeldet wird', () => {
   it('meldet an beide, wenn beide geladen sind', () => {
     expect(anfragePlan({ meta: true, google: true }, 'AW-1/x').map(m => m.ziel))
       .toEqual(['meta', 'google']);
+  });
+});
+
+import { zustimmungLesen, zustimmungSpeichern, ZUSTIMMUNG_VERSION } from '../../lib/werbemessung';
+
+describe('Zustimmung: Fassung und Widerruf', () => {
+  const k = zustimmungSchluessel(true);
+  beforeEach(() => localStorage.clear());
+
+  it('eine alte Antwort ohne Stand gilt als Fassung 1', () => {
+    localStorage.setItem(k, 'accepted');
+    expect(zustimmungLesen(true)).toBe(ZUSTIMMUNG_VERSION === 1 ? 'accepted' : null);
+  });
+
+  it('eine Antwort zu einer anderen Fassung gilt als keine', () => {
+    localStorage.setItem(k, 'accepted');
+    localStorage.setItem(k + '-stand', JSON.stringify({ wert: 'accepted', version: ZUSTIMMUNG_VERSION + 1, zeit: '' }));
+    expect(zustimmungLesen(true)).toBeNull();
+  });
+
+  it('Speichern legt Fassung und Zeit ab', () => {
+    zustimmungSpeichern(true, 'accepted');
+    const stand = JSON.parse(localStorage.getItem(k + '-stand')!);
+    expect(stand.version).toBe(ZUSTIMMUNG_VERSION);
+    expect(stand.wert).toBe('accepted');
+    expect(zustimmungLesen(true)).toBe('accepted');
+  });
+
+  it('nur Ablehnen nach Zustimmen ist ein Widerruf', () => {
+    expect(zustimmungSpeichern(true, 'declined')).toBe(false);
+    expect(zustimmungSpeichern(true, 'accepted')).toBe(false);
+    expect(zustimmungSpeichern(true, 'declined')).toBe(true);
+    expect(zustimmungLesen(true)).toBe('declined');
   });
 });

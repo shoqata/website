@@ -651,6 +651,7 @@ const translations: Translations = {
   'cookie.more': { en: 'Read more at', de: 'Mehr dazu unter', sq: 'Lexoni më shumë te' },
   'cookie.accept': { en: 'Accept', de: 'Annehmen', sq: 'Pranoj' },
   'cookie.decline': { en: 'Decline', de: 'Ablehnen', sq: 'Refuzoj' },
+  'cookie.settings': { en: 'Cookie settings', de: 'Cookie-Einstellungen', sq: 'Cilësimet e cookies' },
   'stamm.bauen_hinweis': { de: 'Geben Sie jeder Person eine Rolle — Elternteil oder Kind. Der Baum rechts zeigt sofort, was daraus wird. Ein Klick legt alle Beziehungen auf einmal an; Geschwister ergeben sich von selbst.', en: 'Give each person a role — parent or child. The tree on the right shows the result immediately. One click creates all relations at once; siblings follow by themselves.', sq: 'Jepini çdo personi një rol — prind ose fëmijë. Pema djathtas e tregon menjëherë rezultatin. Një klikim krijon të gjitha lidhjet njëherësh; vëllezërit dalin vetvetiu.' },
   'stamm.rolle_eltern': { de: 'Elternteil', en: 'Parent', sq: 'Prind' },
   'stamm.rolle_kind': { de: 'Kind', en: 'Child', sq: 'Fëmijë' },

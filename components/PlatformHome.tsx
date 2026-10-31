@@ -10,6 +10,7 @@ import Konstellation from './platform/Konstellation';
 import Kontaktformular from './platform/Kontaktformular';
 import Wortmarke, { Knotenpunkt } from './platform/Wortmarke';
 import Treffen from './platform/Treffen';
+import { zustimmungOeffnen } from '../lib/useWerbemessung';
 
 interface Props { user: UserProfile | null; }
 
@@ -367,7 +368,14 @@ const PlatformHome: React.FC<Props> = ({ user }) => {
                 UNITYHUB.LI
               </span>
             </span>
-            <span style={{ fontSize: 13, color: NEBEL }}>{t('plat.footer_note')}</span>
+            <span className="inline-flex flex-wrap items-center gap-5">
+              <button type="button" onClick={zustimmungOeffnen}
+                      className="underline-offset-4 hover:underline hover:text-white transition-colors"
+                      style={{ fontSize: 13, color: NEBEL }}>
+                {t('cookie.settings')}
+              </button>
+              <span style={{ fontSize: 13, color: NEBEL }}>{t('plat.footer_note')}</span>
+            </span>
           </div>
         </div>
       </section>

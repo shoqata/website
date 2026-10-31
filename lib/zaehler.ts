@@ -24,6 +24,20 @@ const AUSGENOMMEN = [
 export const oeffentlich = (pfad: string): boolean =>
   !AUSGENOMMEN.some(a => pfad === a || pfad.startsWith(a + '/'));
 
+// Pfade, deren zweiter Teil ein Zugang ist: ein Token, das die Seite
+// ohne Anmeldung oeffnet, oder die Kennung eines Mitglieds. Gezaehlt
+// werden sie trotzdem -- aber nur der Anfang. Sonst stuende das Token in
+// der Statistik, die die Vereinsadministration liest, und ein Aufruf von
+// /ausweis/<id> verriete, wessen Ausweis gezeigt wurde.
+// Dieselbe Liste steht als Ausloeser an der Tabelle (seitenaufrufe_pfad_kuerzen).
+const MIT_ZUGANG = ['/treffen', '/heft', '/ausweis', '/drucksachen'];
+
+export const pfadKuerzen = (pfad: string): string => {
+  const ohne = pfad.split(/[?#]/)[0];
+  const a = MIT_ZUGANG.find(x => ohne.startsWith(x + '/'));
+  return a ? a + '/*' : ohne;
+};
+
 type Lauf = { id: string | null; seit: number; sichtbar: number; pfad: string };
 let lauf: Lauf | null = null;
 
@@ -62,6 +76,7 @@ export async function aufrufZaehlen(
   pfad: string, titel?: string, ziel?: string,
 ): Promise<boolean> {
   if (!oeffentlich(pfad)) return false;
+  pfad = pfadKuerzen(pfad);
 
   // Vorherigen Aufruf abschliessen, bevor der neue beginnt.
   if (lauf && lauf.pfad !== pfad) await dauerSenden();
@@ -95,7 +110,7 @@ export async function aufrufZaehlen(
  * zuordnen lassen, auf dem es geschah.
  */
 export async function zielErreicht(name: string, pfad?: string): Promise<void> {
-  const p = pfad ?? (typeof location !== 'undefined' ? location.hash.replace(/^#/, '') || '/' : '/');
+  const p = pfadKuerzen(pfad ?? (typeof location !== 'undefined' ? location.hash.replace(/^#/, '') || '/' : '/'));
   try {
     const { supabase } = await import('@/services/supabase-bridge');
     await supabase.rpc('seitenaufruf_zaehlen', {
