@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Loader2, AlertTriangle, Check, Mail, TrendingUp, Clock, RefreshCw, Lock,
+  Loader2, AlertTriangle, Check, Mail, TrendingUp, Clock, RefreshCw, Lock, Gift,
 } from 'lucide-react';
 import { supabase } from '@/services/supabase-bridge';
 import { useTranslation } from '../../context/LanguageContext';
@@ -64,6 +64,11 @@ const Brieftarife: React.FC = () => {
   const [eingabe, setEingabe] = useState<Record<string, { aufpreis: string; fest: string }>>({});
   const [speichert, setSpeichert] = useState('');
   const [gesichert, setGesichert] = useState('');
+  // Gutschrift: ein Verein hat bar oder auf anderem Weg bezahlt, der
+  // Betreiber bucht die Briefe gut. Keine Rechnung -- bezahlt ist schon.
+  const [gut, setGut] = useState({ verein: '', menge: '', preis: '', grund: '' });
+  const [gutLaeuft, setGutLaeuft] = useState(false);
+  const [gutMeldung, setGutMeldung] = useState('');
 
   const modulName = (m: string) => {
     const n = t(`tarif.modul.${m}`);
@@ -117,6 +122,22 @@ const Brieftarife: React.FC = () => {
     setSpeichert('');
     if (error) { setFehler(error.message); return; }
     setGesichert(verein);
+    laden();
+  };
+
+  const gutschreiben = async () => {
+    const menge = zahl(gut.menge);
+    if (!gut.verein || !menge) return;
+    setGutLaeuft(true); setFehler(''); setGutMeldung('');
+    const { data, error } = await supabase.rpc('post_kontingent_gutschreiben', {
+      p_verein: gut.verein, p_menge: Math.round(menge),
+      p_grund: gut.grund.trim() || null, p_preis: zahl(gut.preis),
+    });
+    setGutLaeuft(false);
+    if (error) { setFehler(error.message); return; }
+    const name = tarife.find(x => x.r_verein === gut.verein)?.r_name ?? gut.verein;
+    setGutMeldung(t('tarif.gut_erfolg', { anzahl: (data as any)?.gutgeschrieben ?? menge, name, stand: (data as any)?.stand ?? '?' }));
+    setGut({ verein: gut.verein, menge: '', preis: '', grund: '' });
     laden();
   };
 
@@ -281,6 +302,52 @@ const Brieftarife: React.FC = () => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div className="p-6 bg-white/5 border border-white/10 rounded-2xl space-y-4">
+        <div className="flex items-start gap-3">
+          <Gift size={18} className="text-stone-400 shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-bold text-white">{t('tarif.gut_titel')}</h3>
+            <p className="text-xs text-stone-400 mt-1 leading-relaxed">{t('tarif.gut_text')}</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+          <label className="md:col-span-2 text-[10px] font-bold text-stone-500 uppercase tracking-widest space-y-1.5">
+            <span>{t('tarif.sp.verein')}</span>
+            <select value={gut.verein} onChange={ev => setGut({ ...gut, verein: ev.target.value })}
+              className="w-full p-2.5 bg-stone-900 border border-white/10 rounded-lg text-sm text-white normal-case tracking-normal font-normal outline-none focus:border-white/30">
+              <option value="">—</option>
+              {tarife.map(x => (
+                <option key={x.r_verein} value={x.r_verein}>
+                  {x.r_name} · {t('tarif.gut_stand', { stand: margeJeVerein[x.r_verein]?.r_stand ?? 0 })}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-[10px] font-bold text-stone-500 uppercase tracking-widest space-y-1.5">
+            <span>{t('tarif.gut_menge')}</span>
+            <input type="number" min="1" max="10000" step="1" value={gut.menge}
+              onChange={ev => setGut({ ...gut, menge: ev.target.value })}
+              className="w-full p-2.5 bg-white/5 border border-white/10 rounded-lg text-sm font-mono text-white outline-none focus:border-white/30"/>
+          </label>
+          <label className="text-[10px] font-bold text-stone-500 uppercase tracking-widest space-y-1.5">
+            <span>{t('tarif.gut_preis')}</span>
+            <input type="number" min="0" step="0.05" value={gut.preis} placeholder="—"
+              onChange={ev => setGut({ ...gut, preis: ev.target.value })}
+              className="w-full p-2.5 bg-white/5 border border-white/10 rounded-lg text-sm font-mono text-white placeholder:text-stone-600 outline-none focus:border-white/30"/>
+          </label>
+          <button onClick={gutschreiben} disabled={gutLaeuft || !gut.verein || !zahl(gut.menge)}
+            className="px-4 py-2.5 bg-rose-600 text-white rounded-lg text-xs font-bold hover:bg-rose-700 disabled:opacity-30 disabled:hover:bg-rose-600 inline-flex items-center justify-center gap-1.5">
+            {gutLaeuft && <Loader2 size={13} className="animate-spin" />} {t('tarif.gut_knopf')}
+          </button>
+        </div>
+        <input value={gut.grund} onChange={ev => setGut({ ...gut, grund: ev.target.value })}
+          placeholder={t('tarif.gut_grund')} maxLength={200}
+          className="w-full p-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder:text-stone-600 outline-none focus:border-white/30"/>
+        {gutMeldung && (
+          <p className="text-sm text-emerald-300 flex items-center gap-2"><Check size={14} /> {gutMeldung}</p>
+        )}
       </div>
 
       <div className="p-5 bg-white/5 border border-white/10 rounded-2xl text-xs text-stone-400 leading-relaxed space-y-2">
