@@ -122,16 +122,32 @@ export async function erzeugeRechnungPdf(
   absender.forEach(t => { pdf.text(String(t), L, y); y += 4; });
 
   // --------------------------------------------------------- Empfaenger
-  y = 52;
+  //
+  // Die Adresse muss im Fenster stehen, das Pingen fuer ein Couvert mit
+  // Fenster links vorgibt (alles in mm, von oben links):
+  //
+  //   Frankierbereich   x 20  y 40  b 89.5  h 47.5   -- sonst LEER
+  //   Adressbereich     x 22  y 60  b 85.5  h 25.5   -- nur die Adresse
+  //
+  // Der erste Brief stand mit der Adresse bei y 52 im Frankierbereich und
+  // mit dem Rechnungstitel bei y 86 im Adressbereich. Pingen fand keine
+  // Adresse und hielt den Brief an. Darum: Adresse ab y 65 bei x 24 --
+  // die Oberlaenge der ersten Zeile liegt so knapp unter 62 --, fuenf
+  // Zeilen passen bis y 85; alles Weitere erst unter dem Frankierbereich.
+  const AX = 24, AY = 65, AUNTEN = 85;
+  y = AY;
   schrift(10.5, false);
-  pdf.text(d.empfaenger.name, L, y); y += 5;
+  const anschrift = [
+    d.empfaenger.adresse,
+    [d.empfaenger.plz, d.empfaenger.ort].filter(Boolean).join(' '),
+  ].filter(Boolean).map(String);
+  pdf.text(d.empfaenger.name, AX, y, { maxWidth: 82 }); y += 5;
   schrift(10, false);
-  [d.empfaenger.adresse, [d.empfaenger.plz, d.empfaenger.ort].filter(Boolean).join(' ')]
-    .filter(Boolean)
-    .forEach(t => { pdf.text(String(t), L, y); y += 5; });
+  anschrift.forEach(t => { if (y <= AUNTEN) { pdf.text(t, AX, y, { maxWidth: 82 }); y += 5; } });
 
   // ------------------------------------------------------------ Kopf
-  y = 86;
+  // Unter dem Frankierbereich (endet bei y 87.5), mit Abstand.
+  y = 100;
   zeile(`Rechnung ${d.nummer}`, L, 16, true);
   y += 2;
   schrift(9.5, false, true);
