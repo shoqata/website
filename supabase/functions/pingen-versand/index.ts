@@ -50,9 +50,19 @@ const clientSecret = (Deno.env.get("PINGEN_CLIENT_SECRET") ?? "").trim();
 const organisation = (Deno.env.get("PINGEN_ORG") ?? "").trim();
 const cronToken = (Deno.env.get("CRON_TOKEN") ?? "").trim();
 
+// Der Knopf "Zugang pruefen" und das Anstossen kommen aus dem Browser.
+// Ohne diese Kopfzeilen scheitert schon die Vorabfrage (OPTIONS), und der
+// Browser meldet nur "Failed to send a request" -- der Zeitplan ruft
+// serverseitig auf und merkt davon nichts.
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-token",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 const json = (koerper: unknown, status = 200) =>
   new Response(JSON.stringify(koerper), {
-    status, headers: { "Content-Type": "application/json" },
+    status, headers: { ...CORS, "Content-Type": "application/json" },
   });
 
 // ------------------------------------------------------------- Zugang
@@ -153,6 +163,7 @@ const vonBase64 = (b64: string): Uint8Array => {
 };
 
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ error: "Nur POST." }, 405);
 
   // Derselbe Riegel wie beim Mailversand. Drei Wege herein:
