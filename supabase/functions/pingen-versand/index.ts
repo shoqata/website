@@ -138,11 +138,11 @@ async function briefAnlegen(tok: string, z: any, url: string, sig: string): Prom
           delivery_product: z.produkt,
           print_mode: z.duplex ? "duplex" : "simplex",
           print_spectrum: z.farbe,
-          meta_data: {
-            // Damit die Statusmeldung spaeter zugeordnet werden kann,
-            // auch wenn unsere Kennung verloren ginge.
-            recipient: { name: String(z.empfaenger ?? "").slice(0, 120) },
-          },
+          // Kein meta_data. Pingen nimmt es nur vollstaendig an --
+          // Empfaenger UND Absender mit Strasse, Nummer, PLZ, Ort, Land --
+          // und lehnte unseren blossen Namen mit "meta_data/street
+          // missing" ab. Die Adresse liest Pingen aus dem PDF; zugeordnet
+          // wird ueber die Brief-ID, die wir in post_ausgang ablegen.
         },
       },
     }),
