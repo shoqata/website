@@ -3,7 +3,7 @@ import { VERTRETER_FELD_KEYS } from '../lib/vertreterfelder';
 import { motion } from 'framer-motion';
 import {
   Home, Users, Receipt, Search, Save, Loader2, CheckCircle2, Clock, Pencil,
-  AlertTriangle, Phone, Mail, MapPin, Send, X, ShieldAlert, Download, Banknote, UserPlus, MessageCircle,
+  AlertTriangle, Phone, Mail, MapPin, Send, X, ShieldAlert, Download, Banknote, UserPlus, MessageCircle, Printer,
 } from 'lucide-react';
 import { db } from '../services/datenzugriff';
 import {
@@ -69,6 +69,8 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
   const [kassiert, setKassiert] = useState<UserProfile | null>(null);
   const [erfasst, setErfasst] = useState(false);
   const [rechnungLaeuft, setRechnungLaeuft] = useState<string | null>(null);
+  // Sammeldruck: wie weit, von wie vielen.
+  const [sammel, setSammel] = useState<{ fertig: number; von: number } | null>(null);
   const [familien, setFamilien] = useState<{ id: string; name: string }[]>([]);
   // Was dieser Verein seinen Verantwortlichen erlaubt. Ein Feld
   // anzuzeigen, das die Datenbank hinterher zurueckweist, waere eine
@@ -228,16 +230,75 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
     return gebaut;
   };
 
+  const pdfVon = async (r: Payment): Promise<{ bytes: Uint8Array; name: string }> => {
+    const { anhaenge } = await rechnungBauen(r);
+    const a = anhaenge[0];
+    if (!a) throw new Error('Das PDF liess sich nicht erzeugen.');
+    return { bytes: Uint8Array.from(atob(a.content), c => c.charCodeAt(0)), name: a.filename };
+  };
+
+  // Ansehen und drucken im eigenen Reiter: der PDF-Betrachter des Browsers
+  // druckt verlaesslicher als jedes eingebettete Fenster. Der Reiter wird
+  // SOFORT beim Klick geoeffnet und erst danach befuellt -- ein Reiter,
+  // der erst nach dem Erzeugen aufgeht, faellt dem Popup-Blocker zum Opfer.
+  const imReiter = (reiter: Window | null, bytes: Uint8Array) => {
+    const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/pdf' }));
+    if (reiter) reiter.location.href = url; else window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  };
+
+  const rechnungAnsehen = async (r: Payment) => {
+    const reiter = window.open('', '_blank');
+    setRechnungLaeuft(r.id!);
+    try {
+      imReiter(reiter, (await pdfVon(r)).bytes);
+    } catch (e: any) {
+      reiter?.close();
+      showAlert({ type: 'error', message: e?.message || '?' });
+    } finally { setRechnungLaeuft(null); }
+  };
+
+  // Alle offenen Rechnungen der Nachbarschaft als EIN Dokument -- einmal
+  // drucken statt dreissigmal. Eine Rechnung, die sich nicht bauen laesst
+  // (etwa ohne Zahlungsverbindung), haelt die anderen nicht auf; sie wird
+  // am Ende genannt.
+  const alleOffenenDrucken = async () => {
+    const liste = offen;
+    if (!liste.length) return;
+    const reiter = window.open('', '_blank');
+    setSammel({ fertig: 0, von: liste.length });
+    const fehlt: string[] = [];
+    try {
+      const { PDFDocument } = await import('pdf-lib');
+      const ganz = await PDFDocument.create();
+      for (let i = 0; i < liste.length; i++) {
+        const r = liste[i];
+        try {
+          const teil = await PDFDocument.load((await pdfVon(r)).bytes);
+          const seiten = await ganz.copyPages(teil, teil.getPageIndices());
+          seiten.forEach(s => ganz.addPage(s));
+        } catch (e: any) {
+          fehlt.push(`${nameVon(r.userId)}: ${e?.message || '?'}`);
+        }
+        setSammel({ fertig: i + 1, von: liste.length });
+      }
+      if (!ganz.getPageCount()) throw new Error(fehlt.join('\n') || 'Keine Rechnung liess sich erzeugen.');
+      imReiter(reiter, await ganz.save());
+      if (fehlt.length) showAlert({ type: 'error',
+        message: t('steward.print_missing', { anzahl: fehlt.length }) + '\n' + fehlt.join('\n') });
+    } catch (e: any) {
+      reiter?.close();
+      showAlert({ type: 'error', message: e?.message || '?' });
+    } finally { setSammel(null); }
+  };
+
   const rechnungAlsPdf = async (r: Payment) => {
     setRechnungLaeuft(r.id!);
     try {
-      const { anhaenge } = await rechnungBauen(r);
-      const a = anhaenge[0];
-      if (!a) throw new Error('Das PDF liess sich nicht erzeugen.');
-      const bytes = Uint8Array.from(atob(a.content), c => c.charCodeAt(0));
-      const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+      const a = await pdfVon(r);
+      const url = URL.createObjectURL(new Blob([a.bytes as BlobPart], { type: 'application/pdf' }));
       const link = document.createElement('a');
-      link.href = url; link.download = a.filename; link.click();
+      link.href = url; link.download = a.name; link.click();
       setTimeout(() => URL.revokeObjectURL(url), 2000);
     } catch (e: any) {
       showAlert({ type: 'error', message: e?.message || '?' });
@@ -668,8 +729,22 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
           <div className="p-4 bg-stone-50 border border-stone-200 rounded-2xl text-xs text-stone-600 leading-relaxed">
             {t('steward.invoice_hint')}
           </div>
+          {offen.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-white border border-stone-200 rounded-2xl">
+              <p className="text-sm text-stone-700">
+                {t('steward.open_count', { anzahl: offen.length })}
+              </p>
+              <button onClick={alleOffenenDrucken} disabled={!!sammel}
+                className="px-4 py-2.5 bg-stone-900 text-white rounded-xl font-bold text-xs flex items-center gap-2 hover:bg-stone-700 transition-colors disabled:opacity-60">
+                {sammel ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}
+                {sammel ? t('steward.print_progress', { fertig: sammel.fertig, von: sammel.von })
+                        : t('steward.print_all_open', { anzahl: offen.length })}
+              </button>
+            </div>
+          )}
           {rechnungen.length === 0 && <p className="text-sm text-stone-400 italic p-4">{t('steward.no_invoices')}</p>}
-          {rechnungen.map(r => (
+          {/* Offene zuerst: um die geht es. */}
+          {[...offen, ...bezahlt].map(r => (
             <div key={r.id} className="bg-white border border-stone-100 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4">
               <div className="min-w-0">
                 <p className="font-bold text-stone-900 truncate">{nameVon(r.userId)}</p>
@@ -687,6 +762,11 @@ const NeighborhoodStewardPanel: React.FC<Props> = ({ user }) => {
                     <span className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase bg-amber-50 text-amber-700 flex items-center gap-1.5">
                       <Clock size={12} /> {t('steward.open')}
                     </span>
+                    <button onClick={() => rechnungAnsehen(r)} disabled={rechnungLaeuft === r.id}
+                      title={t('steward.invoice_view_hint')}
+                      className="px-3 py-2 border border-stone-200 text-stone-600 rounded-xl font-bold text-xs flex items-center gap-1.5 hover:border-stone-400 transition-colors disabled:opacity-50">
+                      <Printer size={12} /> {t('steward.invoice_view')}
+                    </button>
                     <button onClick={() => rechnungAlsPdf(r)} disabled={rechnungLaeuft === r.id}
                       title={t('steward.invoice_pdf_hint')}
                       className="px-3 py-2 border border-stone-200 text-stone-600 rounded-xl font-bold text-xs flex items-center gap-1.5 hover:border-stone-400 transition-colors disabled:opacity-50">
