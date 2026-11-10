@@ -40,10 +40,14 @@ import {
   CreditCard,
   Plus,
   FileEdit,
-  Loader2
+  Loader2,
+  Printer
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFeedback } from '../context/FeedbackContext';
+import PostGuthabenDialog from './PostGuthabenDialog';
+import { briefEinreihen, postArbeiterAnstossen, postDatenAus } from '../lib/postversand';
+import { supabase } from '../services/supabase-bridge';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 
 import { neighborhoodCity } from '../lib/neighborhood';
@@ -226,6 +230,39 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
               </p>
           </div>
       );
+  };
+
+  // Briefe per Post (Pingen). Ob der Vorstand das darf, entscheidet die
+  // Vereinsadministration unter Rollen; die Datenbank prueft es in
+  // post_einreihen noch einmal -- der Knopf hier ist nur die Anzeige.
+  const [briefrecht, setBriefrecht] = useState(false);
+  const [briefDialog, setBriefDialog] = useState<Payment[] | null>(null);
+  const [briefLaeuft, setBriefLaeuft] = useState('');
+  React.useEffect(() => {
+    supabase.rpc('vorstand_briefrecht').then(({ data }) => setBriefrecht(!!data), () => setBriefrecht(false));
+  }, []);
+
+  const briefeAufgeben = async (liste: Payment[]) => {
+    setBriefLaeuft(liste.length === 1 ? liste[0].id! : 'ALLE');
+    let gut = 0;
+    const probleme: string[] = [];
+    // Einer nach dem anderen: jedes PDF wird im Browser erzeugt, und
+    // post_einreihen soll keine dreissig gleichzeitig bekommen.
+    for (const p of liste) {
+      const { empfaengerName, anschrift, daten } = postDatenAus(p, users, saetze || {}, saetze?.accountHolder || '');
+      if (!empfaengerName || !anschrift.adresse || !anschrift.ort) {
+        probleme.push(t('post.keine_adresse', { name: empfaengerName || t('field.recipient') }));
+        continue;
+      }
+      try { await briefEinreihen(p.id!, daten); gut++; }
+      catch (e: any) { probleme.push(`${empfaengerName}: ${e?.message || t('post.nicht_eingereiht')}`); }
+    }
+    setBriefLaeuft('');
+    if (gut) postArbeiterAnstossen(5).catch(() => { /* geht beim naechsten Lauf */ });
+    showAlert({
+      type: probleme.length ? 'error' : 'success',
+      message: [t('board.briefe_eingereiht', { anzahl: gut }), ...probleme].join('\n'),
+    });
   };
 
   React.useEffect(() => {
@@ -955,6 +992,15 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                         </div>
 
                         <div className="px-6 pt-5">
+                            {showInvoiceListModal === 'OPEN' && briefrecht && rechnungenImFenster.length > 0 && (
+                                <div className="flex justify-end mb-3">
+                                    <button onClick={() => setBriefDialog(rechnungenImFenster)} disabled={!!briefLaeuft}
+                                        className="px-4 py-2 bg-stone-900 text-white rounded-xl text-xs font-bold hover:bg-stone-800 disabled:opacity-40 flex items-center gap-2">
+                                        {briefLaeuft === 'ALLE' ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}
+                                        {t('board.alle_als_brief', { anzahl: rechnungenImFenster.length })}
+                                    </button>
+                                </div>
+                            )}
                             <div className="relative">
                                 <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400"/>
                                 <input autoFocus value={rechnungsSuche} onChange={e => setRechnungsSuche(e.target.value)}
@@ -1003,7 +1049,14 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                                                     )}
                                                 </td>
                                                 {showInvoiceListModal === 'OPEN' && (
-                                                    <td className="py-3 text-right">
+                                                    <td className="py-3 text-right whitespace-nowrap">
+                                                        {briefrecht && (
+                                                            <button onClick={() => setBriefDialog([inv])} disabled={!!briefLaeuft}
+                                                                title={t('post.als_brief')}
+                                                                className="mr-2 p-1.5 bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100 disabled:opacity-40 inline-flex align-middle">
+                                                                {briefLaeuft === inv.id ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}
+                                                            </button>
+                                                        )}
                                                         <button onClick={() => handleMarkPaid(inv)}
                                                             className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg font-bold text-[11px] hover:bg-emerald-700 transition-colors">
                                                             {t('board.mark_paid')}
@@ -1023,6 +1076,12 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                 </div>
             )}
         </AnimatePresence>
+
+        {briefDialog && (
+            <PostGuthabenDialog anzahl={briefDialog.length}
+                onAbbrechen={() => setBriefDialog(null)}
+                onAufgeben={() => { const l = briefDialog; setBriefDialog(null); briefeAufgeben(l); }} />
+        )}
 
         {/* Uebersicht aller Nachbarschaften */}
         <AnimatePresence>

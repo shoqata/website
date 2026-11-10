@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Loader2, ShieldCheck, ShieldOff, AlertTriangle, Check } from 'lucide-react';
+import { Loader2, ShieldCheck, ShieldOff, AlertTriangle, Check, Printer } from 'lucide-react';
 import { supabase } from '@/services/supabase-bridge';
 
 // Schreibrecht des Vorstands.
@@ -20,15 +20,21 @@ const AdminVorstandsrechte: React.FC = () => {
   const [arbeitet, setArbeitet] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
   const [gespeichert, setGespeichert] = useState(false);
+  // Briefe per Post (Pingen): eigener Schalter, Standard aus -- ein Brief
+  // kostet Porto, und "darf Daten aendern" heisst nicht "darf Geld ausgeben".
+  const [briefe, setBriefe] = useState(false);
+  const [briefArbeitet, setBriefArbeitet] = useState(false);
 
   useEffect(() => {
     let lebt = true;
     (async () => {
-      const [{ data: stand }, { data: wer }] = await Promise.all([
+      const [{ data: stand }, { data: wer }, { data: brief }] = await Promise.all([
         supabase.rpc('vorstand_schreibrecht'),
         supabase.rpc('wer_bin_ich'),
+        supabase.rpc('vorstand_briefrecht'),
       ]);
       if (!lebt) return;
+      setBriefe(!!brief);
       setAn(stand === null || stand === undefined ? true : !!stand);
       const w = Array.isArray(wer) ? wer[0] : wer;
       // Nur Administration und Betreiber. Die eigentliche Pruefung macht
@@ -46,6 +52,14 @@ const AdminVorstandsrechte: React.FC = () => {
     if (error) { setFehler(error.message); return; }
     setAn(!!data);
     setGespeichert(true); setTimeout(() => setGespeichert(false), 2000);
+  };
+
+  const briefeSchalten = async (neu: boolean) => {
+    setBriefArbeitet(true); setFehler(null);
+    const { data, error } = await supabase.rpc('vorstand_briefrecht_setzen', { p_an: neu });
+    setBriefArbeitet(false);
+    if (error) { setFehler(error.message); return; }
+    setBriefe(!!data);
   };
 
   if (an === null) return (
@@ -89,6 +103,44 @@ const AdminVorstandsrechte: React.FC = () => {
                 {arbeitet && an !== w ? <Loader2 size={12} className="animate-spin" />
                   : gespeichert && an === w ? <span className="flex items-center gap-1"><Check size={12} /> {n}</span>
                   : n}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400 shrink-0">
+            nur die Vereinsadministration
+          </span>
+        )}
+      </div>
+
+      <div className="flex items-start justify-between gap-6 flex-wrap pt-4 border-t border-stone-200">
+        <div className="max-w-xl">
+          <p className="text-sm font-bold text-stone-800 flex items-center gap-2">
+            <Printer size={15} className={briefe ? 'text-emerald-600' : 'text-stone-400'} />
+            Der Vorstand darf Rechnungen per Post versenden
+          </p>
+          <p className="text-[11px] text-stone-500 leading-relaxed mt-2">
+            {briefe
+              ? 'Im Vorstandsbereich erscheint bei offenen Rechnungen „Als Brief“ und „Alle per Post“. Die Briefe gehen über Pingen und verbrauchen das Briefkontingent des Vereins.'
+              : 'Briefe per Post kann nur die Vereinsadministration aufgeben.'}
+          </p>
+          {briefe && !an && (
+            <p className="text-[11px] text-amber-700 leading-relaxed mt-2">
+              Wirkt erst, wenn der Vorstand auch Daten ändern darf (oben).
+            </p>
+          )}
+          <p className="text-[11px] text-stone-400 leading-relaxed mt-2">
+            Kontingent nachkaufen bleibt in jedem Fall der Vereinsadministration vorbehalten.
+          </p>
+        </div>
+
+        {darfAendern ? (
+          <div className="flex gap-1 bg-white p-1 rounded-xl border border-stone-200 shrink-0">
+            {([[true, 'Darf versenden'], [false, 'Nur Administration']] as const).map(([w, n]) => (
+              <button key={String(w)} onClick={() => briefeSchalten(w)} disabled={briefArbeitet}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition disabled:opacity-40 ${
+                  briefe === w ? 'bg-stone-900 text-white' : 'text-stone-400 hover:text-stone-700'}`}>
+                {briefArbeitet && briefe !== w ? <Loader2 size={12} className="animate-spin" /> : n}
               </button>
             ))}
           </div>

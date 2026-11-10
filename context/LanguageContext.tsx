@@ -305,6 +305,8 @@ const translations: Translations = {
     sq: 'Çdo rishikim ruan formulimin e mëparshëm. Versionet e mëparshme nuk mund të ndryshohen — pikërisht kjo i bën ato dëshmi.'
   },
   'board.action': { en: 'Action', de: 'Aktion', sq: 'Veprimi' },
+  'board.alle_als_brief': { de: 'Alle {anzahl} per Post', en: 'All {anzahl} by post', sq: 'Të {anzahl} me postë' },
+  'board.briefe_eingereiht': { de: '{anzahl} Brief(e) aufgegeben — sie gehen innerhalb von 10 Minuten an Pingen.', en: '{anzahl} letter(s) queued — they go to Pingen within 10 minutes.', sq: '{anzahl} letër/a u dorëzuan — shkojnë te Pingen brenda 10 minutash.' },
   'board.mark_paid': { en: 'Mark as paid', de: 'Als bezahlt buchen', sq: 'Shëno si të paguar' },
   'board.mark_paid_confirm': {
     en: 'Book {amount} from {name} as paid? This changes the books.',

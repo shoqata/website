@@ -130,6 +130,52 @@ export type Eingereiht = {
   hinweis: string;
 };
 
+// Was fuer einen Brief gebraucht wird: Empfaenger, Anschrift und die Daten
+// fuer das PDF. Gemeinsam fuer Admin-Finanzen und Vorstand -- zwei Fassungen
+// liefen sonst auseinander, und eine davon druckte die alte Strasse.
+export function postDatenAus(
+  payment: any, users: any[], paymentSettings: any, invoiceAssociation: string,
+): { empfaengerName: string; anschrift: { adresse?: string; plz?: string; ort?: string; land?: string }; daten: any } {
+    let empfaengerName = '';
+    let anschrift: { adresse?: string; plz?: string; ort?: string; land?: string } = {};
+    if (payment.userId === 'EXTERNAL' || !payment.userId) {
+        const c: any = payment.customRecipient || {};
+        empfaengerName = c.name || '';
+        anschrift = { adresse: c.address || c.street, plz: c.zip, ort: c.city, land: c.country };
+    } else {
+        const u: any = users.find(user => user.id === payment.userId);
+        empfaengerName = u?.displayName || '';
+        // address vor street, wie die QR-Rechnung: sonst steht auf
+        // dem Brief die alte Strasse.
+        anschrift = { adresse: u?.address || u?.street, plz: u?.zip,
+                      ort: u?.city, land: u?.country };
+    }
+    return {
+        empfaengerName, anschrift,
+        daten: {
+            nummer: payment.invoiceNumber || '',
+            datum: (payment as any).issuedAt || new Date().toISOString(),
+            faellig: payment.dueDate || null,
+            betrag: Number(payment.amount || 0),
+            waehrung: (payment.currency as 'CHF' | 'EUR') || 'CHF',
+            zweck: payment.description || '',
+            referenz: payment.reference || payment.invoiceNumber || undefined,
+            verein: {
+                name: paymentSettings.accountHolder || invoiceAssociation,
+                adresse: paymentSettings.street, plz: paymentSettings.zip,
+                ort: paymentSettings.city, land: paymentSettings.country,
+                iban: paymentSettings.iban, qrIban: paymentSettings.qrIban,
+                bic: paymentSettings.bic, bank: paymentSettings.bankName,
+                paypal: paymentSettings.paypalEmail, twint: paymentSettings.twintNumber,
+            },
+            empfaenger: {
+                name: empfaengerName, adresse: anschrift.adresse,
+                plz: anschrift.plz, ort: anschrift.ort, land: anschrift.land,
+            },
+        },
+    };
+}
+
 export async function briefEinreihen(
   paymentId: string,
   daten: RechnungDaten,
