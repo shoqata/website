@@ -708,7 +708,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear, jah
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [pendingEmailPayments, users]);
 
-    const handleSendBulkEmails = async (liste: Payment[] = pendingEmailPayments) => {
+    const handleSendBulkEmails = async (liste: Payment[] = pendingEmailPayments, hinweis = '') => {
         if (liste.length === 0) return;
 
         // Einmal vorher pruefen statt hundertmal dieselbe Fehlermeldung.
@@ -720,7 +720,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear, jah
             return;
         }
 
-        const confirmed = await showConfirm({ title: t('mail.bulk.title'), message: t('mail.bulk.text', { count: liste.length }), confirmText: t('mail.bulk.confirm'), type: 'primary' });
+        const confirmed = await showConfirm({ title: t('mail.bulk.title'), message: t('mail.bulk.text', { count: liste.length }) + (hinweis ? ' ' + hinweis : ''), confirmText: t('mail.bulk.confirm'), type: 'primary' });
         if (!confirmed) return;
         setIsSendingEmails(true);
         // Gezaehlt wird, was wirklich durchging. "Sent emails successfully"
@@ -730,6 +730,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear, jah
             (await handleSendInvoiceEmail(payment, () => {})) ? gut++ : schlecht++;
         }
         setIsSendingEmails(false);
+        mailsLaden();
         const bereit = await postausgangBereit();
         showAlert({ type: schlecht ? 'error' : 'success',
             message: schlecht
@@ -949,6 +950,73 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear, jah
             }
         }
     };
+    // Mehrere Rechnungen auf einmal: auswaehlen, dann senden, als Brief
+    // aufgeben oder als bezahlt buchen. Gezaehlt und gehandelt wird nur
+    // ueber das, was im aktuellen Filter sichtbar ist -- eine Auswahl,
+    // die man nicht mehr sieht, darf nichts ausloesen.
+    const [auswahl, setAuswahl] = useState<Set<string>>(new Set());
+    const gewaehlt = useMemo(() => filteredPayments.filter(p => auswahl.has(p.id)), [filteredPayments, auswahl]);
+    const umschalten = (id: string) => setAuswahl(prev => {
+        const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+    const alleSichtbarenGewaehlt = filteredPayments.length > 0 && gewaehlt.length === filteredPayments.length;
+    const alleUmschalten = () => setAuswahl(alleSichtbarenGewaehlt ? new Set() : new Set(filteredPayments.map(p => p.id)));
+
+    const offenP = (p: Payment) => p.status !== 'PAID' && p.status !== 'CANCELLED';
+    const mailAdresse = (p: Payment) => (p.userId === 'EXTERNAL' || !p.userId)
+        ? (p.customRecipient?.email || '') : (users.find(u => u.id === p.userId)?.email || '');
+    // Wofuer jede Rechnung der Auswahl in Frage kommt. Die Knoepfe zeigen
+    // diese Zahlen, damit vor dem Klick klar ist, was geschieht.
+    const fuerMail = gewaehlt.filter(p => offenP(p) && hasUsableEmail({ email: mailAdresse(p) } as any));
+    const fuerBrief = gewaehlt.filter(p => offenP(p) && postStand(p).art === 'OFFEN');
+    const fuerBezahlt = gewaehlt.filter(p => offenP(p) && Number(p.amount || 0) - Number((p as any).bezahlt || 0) > 0);
+
+    const auswahlMailen = async () => {
+        const schon = fuerMail.filter(p => mails.get(p.id)?.status === 'SENT').length;
+        await handleSendBulkEmails(fuerMail, schon ? t('auswahl.mail_schon', { schon }) : '');
+        setAuswahl(new Set());
+    };
+    const auswahlBrief = () => { setPostDialog(fuerBrief); setAuswahl(new Set()); };
+
+    // Geld buchen ist kein Toast-Fall fuer zwanzig Rechnungen auf einmal:
+    // vorher fragen, mit Anzahl und Summe. Danach trotzdem Rueckgaengig --
+    // es nimmt genau die Eingaenge zurueck, die dieser Lauf angelegt hat.
+    const auswahlBezahlt = async () => {
+        const liste = fuerBezahlt;
+        if (!liste.length) return;
+        const summen = new Map<string, number>();
+        liste.forEach(p => summen.set(p.currency || 'CHF', (summen.get(p.currency || 'CHF') || 0)
+            + Number(p.amount || 0) - Number((p as any).bezahlt || 0)));
+        const summeText = [...summen].map(([w, b]) => `${w} ${b.toFixed(2)}`).join(' + ');
+        const ok = await showConfirm({ title: t('auswahl.bezahlt_frage_titel', { anzahl: liste.length }),
+            message: t('auswahl.bezahlt_frage_text', { anzahl: liste.length, summe: summeText }),
+            confirmText: t('auswahl.bezahlt_ja'), type: 'primary' });
+        if (!ok) return;
+        const eingaenge: string[] = [];
+        const fehler: string[] = [];
+        for (const p of liste) {
+            try {
+                eingaenge.push(await zahlungEingangErfassen(p.id,
+                    Number(p.amount || 0) - Number((p as any).bezahlt || 0), p.method));
+            } catch (e: any) { fehler.push(`${anschriftVon(p).name || p.invoiceNumber}: ${e?.message || '?'}`); }
+        }
+        setAuswahl(new Set());
+        if (fehler.length) {
+            showAlert({ type: 'error', title: t('auswahl.bezahlt_teil', { gut: eingaenge.length, alle: liste.length }),
+                message: fehler.slice(0, 5).join(' · ') + (fehler.length > 5 ? ' …' : '') });
+        }
+        if (eingaenge.length) showToast({
+            message: t('auswahl.bezahlt_ok', { anzahl: eingaenge.length, summe: summeText }),
+            undoLabel: t('erfolg.rueckgaengig'),
+            undo: async () => {
+                let zurueck = 0;
+                for (const id of eingaenge) { try { await zahlungEingangEntfernen(id); zurueck++; } catch { /* unten gemeldet */ } }
+                zurueck === eingaenge.length
+                    ? showToast({ message: t('auswahl.bezahlt_zurueck', { anzahl: zurueck }) })
+                    : showAlert({ type: 'error', message: t('auswahl.bezahlt_zurueck_teil', { zurueck, alle: eingaenge.length }) });
+            },
+        });
+    };
+
     const ppStandLaden = async () => {
         const { data, error } = await supabase.rpc('zahlungsgeheimnis_stand');
         if (!error) setPpStand(data);
@@ -1143,9 +1211,16 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear, jah
                     <div className="space-y-6">
                         <div className="flex flex-wrap justify-between items-center gap-4 bg-white p-4 rounded-3xl border border-stone-100 shadow-sm">
                             <div className="flex flex-wrap gap-2 w-full xl:w-auto"><div className="relative flex-1 min-w-[12rem] md:max-w-xs"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={16} /><input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t('common.search')} className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)]"/></div><div className="flex flex-wrap bg-stone-50 p-1 rounded-xl border border-stone-200">{FILTER.map(s => (<button key={s} onClick={() => setFilterStatus(s)} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 whitespace-nowrap ${filterStatus === s ? 'bg-white shadow-sm text-stone-900' : 'text-stone-400 hover:text-stone-600'}`}>{s === 'TO_PRINT' ? <><Printer size={12}/> {t('admin.finance.to_print')}</> : s === 'ALL' ? t('status.all') : s === 'PAID' ? t('board.paid') : s === 'PENDING' ? t('status.pending') : t('admin.finance.overdue')}<span className={`tabular-nums ${s === 'OVERDUE' && filterAnzahl[s] ? 'text-red-600' : 'text-stone-400'}`}>{filterAnzahl[s] ?? 0}</span></button>))}</div>{filterStatus === 'TO_PRINT' && filteredPayments.some(p => postStand(p).art === 'OFFEN' && p.status !== 'PAID') && (<button onClick={() => setPostDialog(filteredPayments.filter(p => postStand(p).art === 'OFFEN' && p.status !== 'PAID'))} disabled={postLaeuft !== ''} className="px-4 py-2.5 bg-stone-900 text-white rounded-xl text-xs font-bold hover:bg-stone-800 disabled:opacity-40 flex items-center gap-2 whitespace-nowrap">{postLaeuft === 'ALLE' ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}{t('post.alle_als_brief')}</button>)}</div>
-                            <div className="flex flex-wrap gap-2">{auslandEmailPayments.length > 0 && (<button onClick={() => handleSendBulkEmails(auslandEmailPayments)} disabled={isSendingEmails} title={t('mail.ausland_hint')} className="bg-white border border-blue-300 text-blue-700 px-5 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-blue-50 transition disabled:opacity-50">{isSendingEmails ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />} {t('mail.ausland', { count: auslandEmailPayments.length })}</button>)}{pendingEmailPayments.length > 0 && (<button onClick={() => handleSendBulkEmails()} disabled={isSendingEmails} className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-blue-700 transition shadow-lg disabled:opacity-50">{isSendingEmails ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />} Send All Emails ({pendingEmailPayments.length})</button>)}<button onClick={() => setWechselJahr(naechstesWechselJahr)} title="Neues Vereinsjahr: Mitglieder aktualisieren, Rechnungen erstellen und senden" className="bg-white border border-stone-200 text-stone-700 px-5 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:border-stone-400 transition"><CalendarPlus size={16} /> Jahreswechsel {naechstesWechselJahr}</button><button onClick={() => setShowCreateModal(true)} className="bg-stone-900 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-black transition shadow-lg"><Plus size={16} /> {t('admin.finance.create')}</button></div>
+                            <div className="flex flex-wrap gap-2">{auslandEmailPayments.length > 0 && (<button onClick={() => handleSendBulkEmails(auslandEmailPayments)} disabled={isSendingEmails} title={t('mail.ausland_hint')} className="bg-white border border-blue-300 text-blue-700 px-5 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-blue-50 transition disabled:opacity-50">{isSendingEmails ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />} {t('mail.ausland', { count: auslandEmailPayments.length })}</button>)}{pendingEmailPayments.length > 0 && (<button onClick={() => handleSendBulkEmails()} disabled={isSendingEmails} className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-blue-700 transition shadow-lg disabled:opacity-50">{isSendingEmails ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />} {t('mail.alle_offenen', { count: pendingEmailPayments.length })}</button>)}<button onClick={() => setWechselJahr(naechstesWechselJahr)} title="Neues Vereinsjahr: Mitglieder aktualisieren, Rechnungen erstellen und senden" className="bg-white border border-stone-200 text-stone-700 px-5 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:border-stone-400 transition"><CalendarPlus size={16} /> Jahreswechsel {naechstesWechselJahr}</button><button onClick={() => setShowCreateModal(true)} className="bg-stone-900 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-black transition shadow-lg"><Plus size={16} /> {t('admin.finance.create')}</button></div>
                         </div>
-                        <div className="bg-white rounded-[2.5rem] border border-stone-100 shadow-sm overflow-auto max-h-[70vh] overscroll-contain">{filteredPayments.length === 0 && (<p className="p-10 text-center text-sm text-stone-400">{t('admin.finance.keine_im_filter')}</p>)}<table className={`w-full min-w-[64rem] text-left text-sm ${filteredPayments.length === 0 ? 'hidden' : ''}`}><thead className="bg-stone-50 text-stone-400 font-bold uppercase text-[10px] tracking-widest border-b border-stone-100 sticky top-0 z-10"><tr><th className="px-6 py-4">{t('admin.finance.invoiceNum')}</th><th className="px-6 py-4">{t('field.recipient')}</th><th className="px-6 py-4">{t('field.description')}</th><th className="px-6 py-4">{t('field.date')}</th><th className="px-6 py-4">{t('field.amount')}</th><th className="px-6 py-4">{t('admin.finance.method_via')}</th><th className="px-6 py-4">{t('field.status')}</th><th className="px-6 py-4 text-right">{t('common.actions')}</th></tr></thead><tbody className="divide-y divide-stone-50">{filteredPayments.map(p => { const recipientUser = users.find(u => u.id === p.userId); const recipientName = recipientUser?.displayName || p.customRecipient?.name || 'Unknown'; return (<tr key={p.id} className="hover:bg-stone-50 transition-colors group"><td className="px-6 py-4 font-mono text-xs text-stone-500">{p.invoiceNumber}</td><td className="px-6 py-4 font-bold text-stone-800">{recipientName}</td><td className="px-6 py-4 text-stone-600">{p.description}</td><td className="px-6 py-4 text-stone-500 text-xs">{p.timestamp?.toDate().toLocaleDateString()}</td><td className="px-6 py-4 font-mono font-bold">{p.amount.toFixed(2)} {p.currency}</td><td className="px-6 py-4"><div className="flex flex-col gap-1"><span className="text-[10px] font-bold text-stone-600 uppercase tracking-widest">{p.method === 'QR_BILL' ? 'Swiss QR' : p.method === 'GIRO_CODE' ? 'GiroCode' : p.method === 'PAYPAL' ? 'PayPal' : p.method}</span>{(() => { const st = postStand(p); const datum = st.am ? new Date(st.am).toLocaleDateString('de-CH') : ''; return st.art === 'KEIN' ? null
+                        {gewaehlt.length > 0 && (<div className="sticky top-2 z-20 flex flex-wrap items-center gap-2 bg-stone-900 text-white rounded-2xl px-4 py-3 shadow-xl">
+  <span className="text-sm font-bold mr-2">{t('auswahl.anzahl', { anzahl: gewaehlt.length })}</span>
+  <button onClick={auswahlMailen} disabled={!fuerMail.length || isSendingEmails} title={t('auswahl.mail_hinweis')} className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-sm font-bold flex items-center gap-2 disabled:opacity-40"><Send size={14}/> {t('auswahl.mail', { anzahl: fuerMail.length })}</button>
+  <button onClick={auswahlBrief} disabled={!fuerBrief.length || !!postLaeuft} title={t('auswahl.brief_hinweis')} className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-sm font-bold flex items-center gap-2 disabled:opacity-40"><Printer size={14}/> {t('auswahl.brief', { anzahl: fuerBrief.length })}</button>
+  <button onClick={auswahlBezahlt} disabled={!fuerBezahlt.length} className="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-sm font-bold flex items-center gap-2 disabled:opacity-40"><CheckCircle2 size={14}/> {t('auswahl.bezahlt', { anzahl: fuerBezahlt.length })}</button>
+  <button onClick={() => setAuswahl(new Set())} className="ml-auto px-3 py-2 rounded-xl text-sm text-stone-300 hover:text-white flex items-center gap-1"><X size={14}/> {t('auswahl.aufheben')}</button>
+</div>)}
+                        <div className="bg-white rounded-[2.5rem] border border-stone-100 shadow-sm overflow-auto max-h-[70vh] overscroll-contain">{filteredPayments.length === 0 && (<p className="p-10 text-center text-sm text-stone-400">{t('admin.finance.keine_im_filter')}</p>)}<table className={`w-full min-w-[64rem] text-left text-sm ${filteredPayments.length === 0 ? 'hidden' : ''}`}><thead className="bg-stone-50 text-stone-400 font-bold uppercase text-[10px] tracking-widest border-b border-stone-100 sticky top-0 z-10"><tr><th className="pl-6 py-4 w-8"><input type="checkbox" aria-label={t('auswahl.alle')} checked={alleSichtbarenGewaehlt} ref={el => { if (el) el.indeterminate = gewaehlt.length > 0 && !alleSichtbarenGewaehlt; }} onChange={alleUmschalten} className="w-4 h-4 accent-stone-900 cursor-pointer" /></th><th className="px-6 py-4">{t('admin.finance.invoiceNum')}</th><th className="px-6 py-4">{t('field.recipient')}</th><th className="px-6 py-4">{t('field.description')}</th><th className="px-6 py-4">{t('field.date')}</th><th className="px-6 py-4">{t('field.amount')}</th><th className="px-6 py-4">{t('admin.finance.method_via')}</th><th className="px-6 py-4">{t('field.status')}</th><th className="px-6 py-4 text-right">{t('common.actions')}</th></tr></thead><tbody className="divide-y divide-stone-50">{filteredPayments.map(p => { const recipientUser = users.find(u => u.id === p.userId); const recipientName = recipientUser?.displayName || p.customRecipient?.name || 'Unknown'; return (<tr key={p.id} className={`transition-colors group ${auswahl.has(p.id) ? 'bg-stone-100' : 'hover:bg-stone-50'}`}><td className="pl-6 py-4"><input type="checkbox" aria-label={p.invoiceNumber || recipientName} checked={auswahl.has(p.id)} onChange={() => umschalten(p.id)} className="w-4 h-4 accent-stone-900 cursor-pointer" /></td><td className="px-6 py-4 font-mono text-xs text-stone-500">{p.invoiceNumber}</td><td className="px-6 py-4 font-bold text-stone-800">{recipientName}</td><td className="px-6 py-4 text-stone-600">{p.description}</td><td className="px-6 py-4 text-stone-500 text-xs">{p.timestamp?.toDate().toLocaleDateString()}</td><td className="px-6 py-4 font-mono font-bold">{p.amount.toFixed(2)} {p.currency}</td><td className="px-6 py-4"><div className="flex flex-col gap-1"><span className="text-[10px] font-bold text-stone-600 uppercase tracking-widest">{p.method === 'QR_BILL' ? 'Swiss QR' : p.method === 'GIRO_CODE' ? 'GiroCode' : p.method === 'PAYPAL' ? 'PayPal' : p.method}</span>{(() => { const st = postStand(p); const datum = st.am ? new Date(st.am).toLocaleDateString('de-CH') : ''; return st.art === 'KEIN' ? null
   : st.art === 'VERSANDT' ? (<span className="flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded w-fit"><Printer size={10}/> {t('post.stand_versandt', { datum })}</span>)
   : st.art === 'WARTET' ? (<span className="flex items-center gap-1 text-[10px] font-bold text-sky-700 bg-sky-50 px-2 py-1 rounded w-fit"><Printer size={10}/> {t('post.stand_wartet')}</span>)
   : st.art === 'PROBLEM' ? (<span className="flex items-center gap-1 text-[10px] font-bold text-red-700 bg-red-50 px-2 py-1 rounded w-fit"><Printer size={10}/> {t('post.stand_problem')}</span>)
