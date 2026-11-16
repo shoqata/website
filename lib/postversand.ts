@@ -1,4 +1,5 @@
 import type { RechnungDaten } from './rechnungpdf';
+import { postTauglich } from './rechnungsregeln';
 
 // Eine Rechnung per Post aufgeben.
 //
@@ -166,7 +167,7 @@ export function postDatenAus(
                 ort: paymentSettings.city, land: paymentSettings.country,
                 iban: paymentSettings.iban, qrIban: paymentSettings.qrIban,
                 bic: paymentSettings.bic, bank: paymentSettings.bankName,
-                paypal: paymentSettings.paypalEmail, twint: paymentSettings.twintNumber,
+                paypal: paymentSettings.paypalEmail, paypalMe: paymentSettings.paypalMe, twint: paymentSettings.twintNumber,
             },
             empfaenger: {
                 name: empfaengerName, adresse: anschrift.adresse,
@@ -182,6 +183,13 @@ export async function briefEinreihen(
   o: EinreihOptionen = {},
 ): Promise<Eingereiht> {
   const e = zahlungsteilEntscheiden(o.zahlungsteil ?? null);
+
+  // Nur an eine vollstaendige Schweizer Adresse (lib/rechnungsregeln).
+  // Hier und nicht nur in den Knoepfen: jeder Weg zum Brief fuehrt durch
+  // diese Funktion -- Admin, Vorstand, Rechnungsassistent. Die Datenbank
+  // prueft dasselbe in post_einreihen noch einmal.
+  const adresse = postTauglich(daten.empfaenger as any);
+  if (!adresse.ok) throw new Error(adresse.text);
 
   // Vor dem PDF und vor dem Porto: traegt die Rechnung ueberhaupt
   // bezahlbare Angaben?

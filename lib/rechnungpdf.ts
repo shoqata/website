@@ -15,6 +15,7 @@
 // Schweiz heisst Swiss QR, alles andere heisst Bankverbindung und
 // PayPal. Eine QR-Rechnung nuetzt einer deutschen Bank nichts.
 
+import { paypalLink } from './rechnungsregeln';
 import { generateQrCodeContent, referenzBestimmen, formatIban, formatReference, istSchweiz }
   from '../services/qrBillService';
 
@@ -28,7 +29,7 @@ export type RechnungDaten = {
   verein: {
     name: string; adresse?: string; plz?: string; ort?: string; land?: string;
     iban?: string; qrIban?: string; bic?: string; bank?: string;
-    paypal?: string; twint?: string;
+    paypal?: string; paypalMe?: string; twint?: string;
   };
   empfaenger: {
     name: string; adresse?: string; plz?: string; ort?: string; land?: string;
@@ -263,10 +264,18 @@ export async function erzeugeRechnungPdf(
     angaben.push(`Verwendungszweck: ${d.nummer}`);
     angaben.forEach(t => { pdf.text(t, L, y); y += 5; });
 
-    if (d.verein.paypal) {
+    // PayPal mit Betrag, Waehrung und Vermerk. Vorher stand nur die
+    // Adresse da, und der Zahler tippte den Betrag selbst ein -- bei einer
+    // CHF-Rechnung ins Ausland meist die richtige Zahl in der falschen
+    // Waehrung.
+    const link = paypalLink(d.verein.paypalMe, d.betrag, d.waehrung);
+    if (d.verein.paypal || link) {
       y += 3;
       schrift(10, true); pdf.text('PayPal', L, y); y += 5;
-      schrift(9.5, false); pdf.text(d.verein.paypal, L, y); y += 5;
+      schrift(9.5, false);
+      if (link) { pdf.textWithLink(link.replace(/^https:\/\//, ''), L, y, { url: link }); y += 5; }
+      if (d.verein.paypal) { pdf.text(`An: ${d.verein.paypal}`, L, y); y += 5; }
+      pdf.text(`Betrag: ${d.waehrung} ${geld(d.betrag)} · Vermerk: ${d.nummer}`, L, y); y += 5;
     }
   }
 

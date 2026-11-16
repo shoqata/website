@@ -47,6 +47,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useFeedback } from '../context/FeedbackContext';
 import PostGuthabenDialog from './PostGuthabenDialog';
 import { briefEinreihen, postArbeiterAnstossen, postDatenAus } from '../lib/postversand';
+import { postTauglich } from '../lib/rechnungsregeln';
 import { supabase } from '../services/supabase-bridge';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 
@@ -238,6 +239,22 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
   const [briefrecht, setBriefrecht] = useState(false);
   const [briefDialog, setBriefDialog] = useState<Payment[] | null>(null);
   const [briefLaeuft, setBriefLaeuft] = useState('');
+  // Welche Rechnung hat schon einen Brief -- sonst schickt "alle als Brief"
+  // dieselben Rechnungen ein zweites Mal los und zaehlt die Ablehnung als Fehler.
+  const [briefe, setBriefe] = useState<Map<string, { zustand: string; am: string | null }>>(new Map());
+  const briefeLaden = React.useCallback(async () => {
+    const { data } = await supabase.from('post_ausgang')
+      .select('"paymentId", zustand, uebergeben_am, erstellt_am').neq('zustand', 'ABGEBROCHEN');
+    const m = new Map<string, { zustand: string; am: string | null }>();
+    (data ?? []).forEach((b: any) => m.set(b.paymentId, { zustand: b.zustand, am: b.uebergeben_am || b.erstellt_am }));
+    setBriefe(m);
+  }, []);
+  React.useEffect(() => { briefeLaden(); }, [briefeLaden]);
+  const briefMoeglich = (p: Payment) => {
+    if (briefe.has(p.id!)) return { ok: false, text: '' };
+    const { empfaengerName, anschrift } = postDatenAus(p, users, saetze || {}, saetze?.accountHolder || '');
+    return postTauglich({ name: empfaengerName, ...anschrift });
+  };
   React.useEffect(() => {
     supabase.rpc('vorstand_briefrecht').then(({ data }) => setBriefrecht(!!data), () => setBriefrecht(false));
   }, []);
@@ -250,14 +267,15 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
     // post_einreihen soll keine dreissig gleichzeitig bekommen.
     for (const p of liste) {
       const { empfaengerName, anschrift, daten } = postDatenAus(p, users, saetze || {}, saetze?.accountHolder || '');
-      if (!empfaengerName || !anschrift.adresse || !anschrift.ort) {
-        probleme.push(t('post.keine_adresse', { name: empfaengerName || t('field.recipient') }));
-        continue;
-      }
+      // Dieselbe Regel wie im Admin: nur eine vollstaendige Schweizer
+      // Adresse. Vorher genuegten Name, Strasse und Ort -- auch im Ausland.
+      const z = postTauglich({ name: empfaengerName, ...anschrift });
+      if (!z.ok) { probleme.push(`${empfaengerName || t('field.recipient')}: ${z.text}`); continue; }
       try { await briefEinreihen(p.id!, daten); gut++; }
       catch (e: any) { probleme.push(`${empfaengerName}: ${e?.message || t('post.nicht_eingereiht')}`); }
     }
     setBriefLaeuft('');
+    briefeLaden();
     if (gut) postArbeiterAnstossen(5).catch(() => { /* geht beim naechsten Lauf */ });
     showAlert({
       type: probleme.length ? 'error' : 'success',
@@ -992,9 +1010,9 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                         </div>
 
                         <div className="px-6 pt-5">
-                            {showInvoiceListModal === 'OPEN' && briefrecht && rechnungenImFenster.length > 0 && (
+                            {showInvoiceListModal === 'OPEN' && briefrecht && rechnungenImFenster.some(p => briefMoeglich(p).ok) && (
                                 <div className="flex justify-end mb-3">
-                                    <button onClick={() => setBriefDialog(rechnungenImFenster)} disabled={!!briefLaeuft}
+                                    <button onClick={() => setBriefDialog(rechnungenImFenster.filter(p => briefMoeglich(p).ok))} disabled={!!briefLaeuft}
                                         className="px-4 py-2 bg-stone-900 text-white rounded-xl text-xs font-bold hover:bg-stone-800 disabled:opacity-40 flex items-center gap-2">
                                         {briefLaeuft === 'ALLE' ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}
                                         {t('board.alle_als_brief', { anzahl: rechnungenImFenster.length })}
@@ -1050,7 +1068,18 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                                                 </td>
                                                 {showInvoiceListModal === 'OPEN' && (
                                                     <td className="py-3 text-right whitespace-nowrap">
-                                                        {briefrecht && (
+                                                        {briefe.has(inv.id!) && (
+                                                            <span className="mr-2 inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded align-middle">
+                                                                <Printer size={10} /> {briefe.get(inv.id!)!.zustand === 'WARTEND' ? t('post.stand_wartet')
+                                                                  : t('post.stand_versandt', { datum: briefe.get(inv.id!)!.am ? new Date(briefe.get(inv.id!)!.am!).toLocaleDateString('de-CH') : '' })}
+                                                            </span>
+                                                        )}
+                                                        {briefrecht && !briefe.has(inv.id!) && !briefMoeglich(inv).ok && (
+                                                            <span title={briefMoeglich(inv).text} className="mr-2 inline-flex items-center gap-1 text-[10px] font-bold text-red-700 bg-red-50 px-2 py-1 rounded align-middle cursor-help">
+                                                                <Printer size={10} /> {t('post.kein_brief')}
+                                                            </span>
+                                                        )}
+                                                        {briefrecht && briefMoeglich(inv).ok && (
                                                             <button onClick={() => setBriefDialog([inv])} disabled={!!briefLaeuft}
                                                                 title={t('post.als_brief')}
                                                                 className="mr-2 p-1.5 bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100 disabled:opacity-40 inline-flex align-middle">

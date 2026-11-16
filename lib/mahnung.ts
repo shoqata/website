@@ -88,7 +88,7 @@ export async function mahnungSenden(
       name: z.accountHolder || verein,
       adresse: z.street, plz: z.zip, ort: z.city, land: z.country,
       iban: z.iban, qrIban: z.qrIban, bic: z.bic, bank: z.bankName,
-      paypal: z.paypalEmail, twint: z.twintNumber,
+      paypal: z.paypalEmail, paypalMe: z.paypalMe, twint: z.twintNumber,
     },
     empfaenger: {
       name, adresse: mitglied?.street || zahlung.customRecipient?.street,

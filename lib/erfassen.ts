@@ -1,4 +1,5 @@
 import { hasUsableEmail } from './memberEmail';
+import { waehrungFuer } from './rechnungsregeln';
 import type { UserProfile } from '../types';
 
 // Die Schreibschicht wird in den beiden Schreibfunktionen geholt, nicht
@@ -248,7 +249,10 @@ export async function rechnungErfassen(
     userId: e.mitglied.id,
     neighborhoodId: (e.mitglied as any).neighborhoodId ?? null,
     amount: e.amount,
-    currency: e.currency || 'CHF',
+    // Ohne Angabe nach dem Wohnsitz: Ausland heisst Euro. Beide Aufrufer
+    // (Vorstand, Admin-Mitgliederkarte) gaben keine Waehrung mit, und die
+    // Rechnung stand damit immer in CHF -- auch nach Deutschland.
+    currency: e.currency || waehrungFuer((e.mitglied as any)?.country) || 'CHF',
     type: 'FEE',
     invoiceType: e.invoiceType || 'MEMBERSHIP',
     // Das Beitragsjahr fehlte im Adminweg. Ohne es faellt die Rechnung

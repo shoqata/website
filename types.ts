@@ -268,6 +268,10 @@ export interface FeeStructure {
     STANDARD: { amount: number, currency: string, label: string };
     KOSOVO: { amount: number, currency: string, label: string };
     REDUCED: { amount: number, currency: string, label: string };
+    // Beitrag bei Wohnsitz im Ausland -- immer Euro (lib/rechnungsregeln).
+    // Ohne diesen Eintrag wird fuer Mitglieder im Ausland keine Rechnung in
+    // CHF erstellt, sondern angehalten.
+    AUSLAND?: { amount: number, currency: string, label: string };
 }
 
 export interface GlobalPaymentSettings {
@@ -280,6 +284,7 @@ export interface GlobalPaymentSettings {
   city: string;
   country: string;
   paypalEmail: string;
+  paypalMe?: string; // PayPal.Me-Name: ergibt einen Zahllink mit Betrag
   currency: string;
   annualFeeAmount: number; // Legacy, keep for fallback
   fees?: FeeStructure; // New structure

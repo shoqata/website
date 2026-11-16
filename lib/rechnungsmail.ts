@@ -1,3 +1,4 @@
+import { paypalLink } from './rechnungsregeln';
 import { Payment } from '../types';
 import { istSchweiz } from '../services/qrBillService';
 import { erzeugeRechnungPdf } from './rechnungpdf';
@@ -66,7 +67,10 @@ export async function rechnungsmailBauen(a: {
           <div style="margin-top: 20px; padding: 15px; background-color: #f0f0f0; border-radius: 8px;">
               <h4 style="margin-top: 0;">${t('mail.pay.paypal')}</h4>
               <p>${t('mail.pay.paypal_intro')} <strong>${paymentSettings.paypalEmail}</strong></p>
-              <p>${t('mail.pay.paypal_reference')} <strong>${payment.invoiceNumber}</strong></p>
+              <p>${t('field.amount')}: <strong>${payment.currency || 'CHF'} ${Number(payment.amount || 0).toFixed(2)}</strong><br/>
+              ${t('mail.pay.paypal_reference')} <strong>${payment.invoiceNumber}</strong></p>
+              ${(() => { const l = paypalLink(paymentSettings.paypalMe, Number(payment.amount || 0), payment.currency || 'CHF'); return l
+                ? `<p><a href="${l}" style="display: inline-block; padding: 10px 20px; background-color: #0070ba; color: #fff; text-decoration: none; border-radius: 5px; font-weight: bold;">${t('mail.pay.paypal_button')}</a></p>` : ''; })()}
           </div>` : ''}
       `;
   }
@@ -114,7 +118,7 @@ export async function rechnungsmailBauen(a: {
               ort: paymentSettings.city, land: paymentSettings.country,
               iban: paymentSettings.iban, qrIban: paymentSettings.qrIban,
               bic: paymentSettings.bic, bank: paymentSettings.bankName,
-              paypal: paymentSettings.paypalEmail, twint: paymentSettings.twintNumber,
+              paypal: paymentSettings.paypalEmail, paypalMe: paymentSettings.paypalMe, twint: paymentSettings.twintNumber,
           },
           empfaenger: {
               name: recipientName, adresse: anschrift.adresse,

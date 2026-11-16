@@ -7,6 +7,7 @@ import {
 import { db } from '../services/datenzugriff';
 import { collection, doc, writeBatch, serverTimestamp, supabase } from '@/services/supabase-bridge';
 import { zustellweg } from '../lib/erfassen';
+import { postTauglich } from '../lib/rechnungsregeln';
 import { hasUsableEmail } from '../lib/memberEmail';
 import PostGuthabenDialog from './PostGuthabenDialog';
 import type { Payment, UserProfile } from '../types';
@@ -28,7 +29,9 @@ type Weg = 'EMAIL' | 'POST' | 'BOTH';
 type Zeile = {
   u: UserProfile; amount: number; currency: string; weg: Weg;
   ohneMail: boolean;     // wollte E-Mail, hat keine brauchbare -> Post
-  ohneAdresse: boolean;  // Brief noetig, aber keine vollstaendige Anschrift
+  ohneAdresse: boolean;  // Brief noetig, aber nicht zustellbar (Ausland, Land fehlt, unvollstaendig)
+  postGrund?: string;
+  fehler?: string;       // wird nicht erstellt (z. B. CHF bei Wohnsitz im Ausland)
 };
 type Ergebnis = {
   erstellt: { name: string; weg: Weg; betrag: string }[];
@@ -40,7 +43,11 @@ type Ergebnis = {
 
 const name = (u: any) => u?.displayName || `${u?.firstName || ''} ${u?.lastName || ''}`.trim() || u?.id;
 const geld = (n: number, w: string) => `${w} ${Number(n || 0).toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const hatAnschrift = (u: any) => !!((u?.address || u?.street) && u?.zip && u?.city);
+// Dieselbe Regel wie beim Aufgeben (lib/rechnungsregeln): nur eine
+// vollstaendige Schweizer Adresse. Vorher genuegte "Strasse, PLZ und Ort
+// stehen da" -- auch in Wels.
+const briefPruefung = (u: any) => postTauglich({
+  name: name(u), adresse: u?.address || u?.street, plz: u?.zip, ort: u?.city, land: u?.country });
 const in30Tagen = () => new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10);
 
 const WegMarke: React.FC<{ weg: Weg }> = ({ weg }) => (
@@ -52,7 +59,7 @@ const WegMarke: React.FC<{ weg: Weg }> = ({ weg }) => (
 
 const RechnungsAssistent: React.FC<{
   users: UserProfile[]; payments: Payment[]; jahr: number;
-  beitragVon: (u: UserProfile) => { amount: number; currency: string };
+  beitragVon: (u: UserProfile) => { amount: number; currency: string; fehler?: string };
   zahlart: (land?: string) => string;
   mailen: (p: Payment, melde: (g: string) => void) => Promise<boolean>;
   aufgeben: (p: Payment, melde: (g: string) => void) => Promise<boolean>;
@@ -83,15 +90,20 @@ const RechnungsAssistent: React.FC<{
     : users.filter(u => auswahl.has(u.id)), [modus, aktive, users, auswahl, schonBerechnet]);
   const uebersprungen = useMemo(() => kandidaten.filter(u => schonBerechnet.has(u.id)), [kandidaten, schonBerechnet]);
 
-  const zeilen: Zeile[] = useMemo(() => kandidaten.filter(u => !schonBerechnet.has(u.id)).map(u => {
-    const { amount, currency } = beitragVon(u);
+  const alleZeilen: Zeile[] = useMemo(() => kandidaten.filter(u => !schonBerechnet.has(u.id)).map(u => {
+    const { amount, currency, fehler } = beitragVon(u);
     const weg = zustellweg(u as any) as Weg;
+    const brief = briefPruefung(u);
     return {
-      u, amount, currency, weg,
+      u, amount, currency, weg, fehler,
       ohneMail: !hasUsableEmail(u as any) && (u as any).invoiceDeliveryMethod !== 'POST',
-      ohneAdresse: weg !== 'EMAIL' && !hatAnschrift(u),
+      ohneAdresse: weg !== 'EMAIL' && !brief.ok,
+      postGrund: brief.ok ? undefined : brief.text,
     };
   }), [kandidaten, schonBerechnet, beitragVon]);
+  // Erstellt wird nur, was stimmt; der Rest steht mit Grund daneben.
+  const zeilen = useMemo(() => alleZeilen.filter(z => !z.fehler), [alleZeilen]);
+  const gesperrt = useMemo(() => alleZeilen.filter(z => z.fehler), [alleZeilen]);
 
   const zahl = (w: Weg) => zeilen.filter(z => z.weg === w).length;
   const mitPost = zeilen.filter(z => z.weg !== 'EMAIL' && !z.ohneAdresse).length;
@@ -171,7 +183,10 @@ const RechnungsAssistent: React.FC<{
       } else e.mailAus = mails.length;
 
       // 3. Briefe
-      const briefe = paare.filter(x => x.z.weg !== 'EMAIL');
+      // Nicht zustellbare gar nicht erst aufgeben -- mit Grund melden.
+      paare.filter(x => x.z.weg !== 'EMAIL' && x.z.ohneAdresse)
+        .forEach(x => e.postFehler.push({ name: name(x.z.u), grund: x.z.postGrund || '' }));
+      const briefe = paare.filter(x => x.z.weg !== 'EMAIL' && !x.z.ohneAdresse);
       if (postJetzt && postModul) {
         setStand('Briefe werden eingereiht …');
         setFortschritt({ fertig: 0, gesamt: briefe.length });
@@ -291,7 +306,15 @@ const RechnungsAssistent: React.FC<{
               {zeilen.some(z => z.ohneAdresse) && (
                 <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-xs text-rose-800 flex gap-2">
                   <AlertTriangle size={14} className="shrink-0 mt-0.5" />
-                  {zeilen.filter(z => z.ohneAdresse).length} Rechnung(en) müssten per Post gehen, aber die Anschrift ist unvollständig. Sie werden erstellt, der Brief wird aber nicht aufgegeben. Ergänze die Adresse und gib ihn später auf.
+                  {zeilen.filter(z => z.ohneAdresse).length} Rechnung(en) müssten per Post gehen, aber ein Brief ist nicht möglich: Adresse im Ausland, kein Land eingetragen oder Anschrift unvollständig. Der Briefversand stellt nur in der Schweiz zu. Die Rechnungen werden erstellt, ein Brief wird nicht aufgegeben — bei Wohnsitz im Ausland braucht das Mitglied eine E-Mail-Adresse.
+                </div>
+              )}
+
+              {gesperrt.length > 0 && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-xs text-rose-800 flex gap-2">
+                  <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                  <span><b>{gesperrt.length} Rechnung(en) werden nicht erstellt:</b> {gesperrt[0].fehler}{' '}
+                    <span className="text-rose-700">({gesperrt.slice(0, 6).map(z => name(z.u)).join(', ')}{gesperrt.length > 6 ? ' …' : ''})</span></span>
                 </div>
               )}
 
@@ -302,7 +325,7 @@ const RechnungsAssistent: React.FC<{
                       <span className="font-bold text-stone-800 truncate block">{name(z.u)}</span>
                       {(z.ohneMail || z.ohneAdresse) && (
                         <span className={`text-[11px] ${z.ohneAdresse ? 'text-rose-600' : 'text-amber-700'}`}>
-                          {z.ohneAdresse ? 'Anschrift unvollständig — kein Brief möglich' : 'keine brauchbare E-Mail — geht per Post'}
+                          {z.ohneAdresse ? `Kein Brief möglich — ${z.postGrund}` : 'keine brauchbare E-Mail — geht per Post'}
                         </span>
                       )}
                     </span>

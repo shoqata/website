@@ -85,6 +85,9 @@ const AdminSettings: React.FC = () => {
                     STANDARD: { amount: 120, currency: 'CHF', label: t('admin.members.billing.standard'), ...data.fees?.STANDARD },
                     KOSOVO: { amount: 12, currency: 'EUR', label: t('admin.members.billing.kosovo'), ...data.fees?.KOSOVO },
                     REDUCED: { amount: 100, currency: 'EUR', label: t('admin.members.billing.reduced'), ...data.fees?.REDUCED },
+                    // Nur wenn gespeichert: ein erfundener Vorgabewert waere
+                    // ein Betrag, den niemand beschlossen hat.
+                    ...(data.fees?.AUSLAND ? { AUSLAND: { ...data.fees.AUSLAND, currency: 'EUR' } } : {}),
                 }
             }));
         }
@@ -538,6 +541,29 @@ const AdminSettings: React.FC = () => {
                                 <option value="CHF">CHF</option>
                                 <option value="EUR">EUR</option>
                             </select>
+                        </div>
+                    </div>
+
+                    {/* AUSLAND -- immer Euro */}
+                    <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200">
+                        <div className="mb-2">
+                            <span className="text-[10px] font-bold bg-sky-100 text-sky-700 px-2 py-1 rounded">{t('set.fee_ausland')}</span>
+                        </div>
+                        <p className="text-xs text-stone-400 mb-2">{t('set.fee_ausland_desc')}</p>
+                        <div className="flex gap-2 items-center">
+                            <input
+                                type="number" min={0} step="0.01"
+                                value={paymentSettings.fees?.AUSLAND?.amount ?? ''}
+                                placeholder={t('set.fee_ausland_leer')}
+                                onChange={e => {
+                                    const v = e.target.value === '' ? null : parseFloat(e.target.value);
+                                    const { AUSLAND: _alt, ...rest } = (paymentSettings.fees || {}) as any;
+                                    setPaymentSettings({ ...paymentSettings, fees: (v === null || !Number.isFinite(v) ? rest
+                                        : { ...rest, AUSLAND: { amount: v, currency: 'EUR', label: t('set.fee_ausland') } }) as any });
+                                }}
+                                className="w-full p-2 rounded-lg border border-stone-200 font-bold"
+                            />
+                            <span className="p-2 text-xs font-bold text-stone-500">EUR</span>
                         </div>
                     </div>
                 </div>
