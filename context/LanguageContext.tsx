@@ -2433,6 +2433,7 @@ const translations: Translations = {
   'admin.finance.enter_recipient': { en: 'Please enter a recipient name.', de: 'Bitte einen Empfängernamen eingeben.', sq: 'Ju lutem shënoni emrin e marrësit.' },
   'admin.finance.select_one_member': { en: 'Please select at least one member.', de: 'Bitte mindestens ein Mitglied auswählen.', sq: 'Ju lutem zgjidhni së paku një anëtar.' },
   'admin.finance.recent_activity': { en: 'Recent activity', de: 'Letzte Bewegungen', sq: 'Aktiviteti i fundit' },
+  'admin.finance.keine_im_filter': { en: 'No invoices in this view.', de: 'Keine Rechnungen in dieser Ansicht.', sq: 'Nuk ka fatura në këtë pamje.' },
   'admin.finance.to_print': { en: 'To print', de: 'Zu drucken', sq: 'Për të shtypur' },
   'admin.finance.method_via': { en: 'Method / via', de: 'Weg / Versand', sq: 'Mënyra / Dërgimi' },
   'admin.finance.post': { en: 'Post', de: 'Post', sq: 'Postë' },
