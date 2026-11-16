@@ -37,7 +37,7 @@ import { Landmark,
   CalendarPlus,
 } from 'lucide-react';
 import { db } from '../services/datenzugriff';
-import { supabase } from '@/services/supabase-bridge';
+import { supabase, zahlungEingangErfassen, zahlungEingangEntfernen } from '@/services/supabase-bridge';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, writeBatch, setDoc, getDoc } from '@/services/supabase-bridge';
 import { Payment, UserProfile, GlobalPaymentSettings, Account, JournalEntry } from '../types';
 import { useFeedback } from '../context/FeedbackContext';
@@ -157,7 +157,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear, jah
         if (jahreswechsel) { setWechselJahr(jahreswechsel); onJahreswechselGeoeffnet?.(); }
     }, [jahreswechsel]);
     const { t, loc } = useTranslation();
-    const { showAlert, showConfirm } = useFeedback();
+    const { showAlert, showConfirm, showToast } = useFeedback();
     
     // Tabs
     // Das Layout der Rechnung. Wird es im Designer geaendert, aendert sich
@@ -327,6 +327,28 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear, jah
         setBriefe(m);
     }, []);
     useEffect(() => { briefeLaden(); }, [briefeLaden]);
+
+    // Dasselbe fuer die E-Mail. Die Liste zeigte "E-Mail" -- den
+    // vorgesehenen Weg, nicht den gegangenen. Ob eine Rechnung schon
+    // hinausging, war nirgends nachzusehen. Seit sendEmail die Rechnung
+    // mitschreibt (paymentId), steht es in mail_queue; frueher
+    // verschickte Mails tragen keinen Bezug und bleiben unbekannt.
+    const [mails, setMails] = useState<Map<string, { status: string; am: string | null }>>(new Map());
+    const mailsLaden = React.useCallback(async () => {
+        const { data } = await supabase.from('mail_queue')
+            .select('"paymentId", status, "sentAt", "createdAt"')
+            .not('paymentId', 'is', null)
+            .order('createdAt', { ascending: true });
+        const m = new Map<string, { status: string; am: string | null }>();
+        // Aufsteigend gelesen: die juengste Mail je Rechnung gewinnt.
+        (data ?? []).forEach((r: any) => m.set(r.paymentId, { status: r.status, am: r.sentAt || r.createdAt }));
+        setMails(m);
+    }, []);
+    useEffect(() => { mailsLaden(); }, [mailsLaden]);
+
+    // Betrag so, wie er auf der Rechnung steht.
+    const betragText = (p: Payment) => `${p.currency || 'CHF'} ${Number(p.amount || 0).toFixed(2)}`;
+    const datumText = (d?: string | null) => d ? new Date(d).toLocaleDateString('de-CH') : '';
 
     // Die Anschrift so, wie sie auf dem Brief stuende -- dieselbe Quelle
     // wie das PDF (postDatenAus), damit Pruefung und Druck uebereinstimmen.
@@ -500,7 +522,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear, jah
                 entries: budgetData,
                 updatedAt: serverTimestamp()
             });
-            showAlert({ type: 'success', message: t('admin.finance.budget_saved', { year: selectedYear }) });
+            showToast({ message: t('admin.finance.budget_saved', { year: selectedYear }) });
         } catch (e) {
             showAlert({ type: 'error', message: t('admin.finance.save_failed') });
         } finally {
@@ -545,8 +567,24 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear, jah
             const association = loc(branding?.associationName) || paymentSettings.accountHolder || '';
             const { subject, html, anhaenge } = await rechnungsmailBauen({
                 payment, recipientName, anschrift, paymentSettings, association, t });
-            await sendEmail({ to: email, subject, html, attachments: anhaenge });
-            if (!melde) showAlert({ type: 'success', message: t('mail.sent_to', { email }) });
+            await sendEmail({ to: email, subject, html, attachments: anhaenge, paymentId: payment.id });
+            mailsLaden();
+            // Was, an wen, wann -- statt "Erfolg". Und ehrlich: ohne
+            // Postausgang ist die Mail eingereiht, nicht verschickt.
+            if (!melde) {
+                const bereit = await postausgangBereit();
+                showAlert({ type: bereit ? 'success' : 'warning',
+                    title: t(bereit ? 'erfolg.mail_titel' : 'erfolg.mail_wartet_titel', { name: recipientName }),
+                    message: t(bereit ? 'erfolg.mail_text' : 'erfolg.mail_wartet_text'),
+                    details: [
+                        { label: t('erfolg.betrag'), value: betragText(payment) },
+                        { label: t('erfolg.an'), value: email },
+                        { label: t('erfolg.nummer'), value: payment.invoiceNumber || '—' },
+                        ...(payment.dueDate ? [{ label: t('erfolg.faellig'), value: datumText(payment.dueDate) }] : []),
+                    ],
+                    action: { label: t('erfolg.ansehen'), onClick: () => setViewInvoice(payment) },
+                    buttonText: t('erfolg.zur_liste') });
+            }
             return true;
         } catch (error) {
             fehlerMelden(t('mail.send_failed'));
@@ -601,8 +639,19 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear, jah
             const e = await briefEinreihen(payment.id, daten as any);
             // Im Sammellauf schweigen: fuenfzig Meldungen sind keine
             // Rueckmeldung, sondern eine Wand. Am Ende steht eine Zahl.
-            if (!still) showAlert({ type: 'success', message:
-                t('post.eingereiht', { name: empfaengerName, kb: Math.round(e.bytes / 1024), hinweis: e.hinweis }) });
+            if (!still) {
+                const a = anschriftVon(payment);
+                showAlert({ type: 'success',
+                    title: t('erfolg.brief_titel', { name: empfaengerName }),
+                    message: t('erfolg.brief_text') + (e.hinweis ? ' ' + e.hinweis : ''),
+                    details: [
+                        { label: t('erfolg.betrag'), value: betragText(payment) },
+                        { label: t('erfolg.an'), value: [a.adresse, [a.plz, a.ort].filter(Boolean).join(' ')].filter(Boolean).join(', ') },
+                        { label: t('erfolg.nummer'), value: payment.invoiceNumber || '—' },
+                    ],
+                    action: { label: t('erfolg.ansehen'), onClick: () => setViewInvoice(payment) },
+                    buttonText: t('erfolg.zur_liste') });
+            }
             // Den Arbeiter anstossen, aber sein Scheitern nicht als
             // Scheitern des Briefes melden: der Brief liegt sicher.
             postArbeiterAnstossen(5).catch(() => { /* geht beim naechsten Lauf */ });
@@ -852,7 +901,54 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear, jah
     };
 
     const handleDelete = async (id: string) => { if (await showConfirm({ title: t('admin.finance.delete_invoice'), message: t('admin.confirm_delete'), type: 'danger' })) await deleteDoc(doc(db, 'payments', id)); };
-    const handleMarkPaid = async (payment: Payment) => { await updateDoc(doc(db, 'payments', payment.id), { status: 'PAID', paidAt: new Date().toISOString() }); showAlert({ type: 'success', message: t('admin.finance.marked_paid') }); };
+    // Als bezahlt buchen -- ueber einen Zahlungseingang, wie der Vorstand.
+    // Vorher setzte die Zeile nur status = PAID: der Eingang fehlte, und
+    // ein versehentlicher Klick liess sich nicht sauber zuruecknehmen
+    // (die Buchung im Journal blieb stehen). Jetzt ist der Eingang die
+    // Einheit, und "Rueckgaengig" entfernt ihn samt Buchung.
+    //
+    // Umkehrbar, darum ein Toast statt eines Dialogs, der "OK" verlangt.
+    const handleMarkPaid = async (payment: Payment) => {
+        const offen = Number(payment.amount || 0) - Number((payment as any).bezahlt || 0);
+        if (offen <= 0) return;
+        let eingang: string;
+        try {
+            eingang = await zahlungEingangErfassen(payment.id, offen, payment.method);
+        } catch (e: any) {
+            showAlert({ type: 'error', message: e?.message || t('admin.save_failed', { reason: '?' }) });
+            return;
+        }
+        const name = anschriftVon(payment).name || payment.invoiceNumber || '';
+        showToast({
+            message: t('erfolg.bezahlt', { name, betrag: `${payment.currency || 'CHF'} ${offen.toFixed(2)}` }),
+            undoLabel: t('erfolg.rueckgaengig'),
+            undo: async () => {
+                try {
+                    await zahlungEingangEntfernen(eingang);
+                    showToast({ message: t('erfolg.bezahlt_zurueck', { name }) });
+                } catch (e: any) {
+                    showAlert({ type: 'error', message: e?.message || '?' });
+                }
+            },
+        });
+
+        // Der seltene Erfolg: die letzte offene Rechnung des Jahres. Nur
+        // dann ein Fest, und nur einmal je Jahr -- sonst wird es Laerm.
+        const nochOffen = yearPayments.filter(x => x.id !== payment.id
+            && x.status !== 'PAID' && x.status !== 'CANCELLED').length;
+        if (nochOffen === 0 && yearPayments.length >= 5) {
+            const merker = `alle-bezahlt-${invoiceAssociation}-${selectedYear}`;
+            let schonGefeiert = false;
+            try { schonGefeiert = !!localStorage.getItem(merker); localStorage.setItem(merker, '1'); } catch { /* ohne Speicher: feiern */ }
+            if (!schonGefeiert) {
+                const summe = yearPayments.filter(x => x.status !== 'CANCELLED')
+                    .reduce((n, x) => n + Number(x.amount || 0), 0);
+                showAlert({ type: 'success',
+                    title: t('erfolg.alle_bezahlt_titel', { jahr: selectedYear }),
+                    message: t('erfolg.alle_bezahlt_text', { anzahl: yearPayments.length, summe: summe.toFixed(2) }) });
+            }
+        }
+    };
     const ppStandLaden = async () => {
         const { data, error } = await supabase.rpc('zahlungsgeheimnis_stand');
         if (!error) setPpStand(data);
@@ -876,7 +972,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear, jah
             // zurueckgelesen werden kann -- das ist kein Mangel, sondern
             // der Zweck.
             setPpClient(''); setPpSecret('');
-            showAlert({ type: 'success', message: 'Zugangsdaten gespeichert.' });
+            showToast({ message: 'Zugangsdaten gespeichert.' });
         } catch (e: any) {
             showAlert({ type: 'error', message: e?.message || '?' });
         } finally { setPpLaeuft(false); }
@@ -889,7 +985,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear, jah
         // haette es gemerkt.
         const { paypalSecret: _s, paypalClientId: _c, ...ohneGeheimnis } =
             paymentSettings as any;
-        await setDoc(doc(db, 'settings', 'payment'), ohneGeheimnis); showAlert({ type: 'success', message: t('admin.finance.settings_saved') }); } catch (e) { showAlert({ type: 'error', message: t('admin.finance.settings_failed') }); } };
+        await setDoc(doc(db, 'settings', 'payment'), ohneGeheimnis); showToast({ message: t('admin.finance.settings_saved') }); } catch (e) { showAlert({ type: 'error', message: t('admin.finance.settings_failed') }); } };
     // Die Mahnung verschickte bisher NICHTS. Sie setzte die Mahnstufe und
     // meldete "Reminder Level X sent." -- eine Erfolgsmeldung fuer etwas,
     // das nie passiert ist. Jetzt geht ein Brief hinaus, aus dem
@@ -1054,7 +1150,11 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear, jah
   : st.art === 'WARTET' ? (<span className="flex items-center gap-1 text-[10px] font-bold text-sky-700 bg-sky-50 px-2 py-1 rounded w-fit"><Printer size={10}/> {t('post.stand_wartet')}</span>)
   : st.art === 'PROBLEM' ? (<span className="flex items-center gap-1 text-[10px] font-bold text-red-700 bg-red-50 px-2 py-1 rounded w-fit"><Printer size={10}/> {t('post.stand_problem')}</span>)
   : st.art === 'OFFEN' ? (<span className="flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded w-fit"><Printer size={10}/> {p.status === 'PAID' ? t('admin.finance.post') : t('post.stand_offen')}</span>)
-  : (<span title={st.text} className="flex items-center gap-1 text-[10px] font-bold text-red-700 bg-red-50 px-2 py-1 rounded w-fit max-w-[16rem] whitespace-normal"><AlertTriangle size={10} className="shrink-0"/> {st.text}</span>); })()}{!waehrungStimmt(anschriftVon(p).land, p.currency) && p.status !== 'PAID' && (<span title={t('waehrung.falsch_text')} className="flex items-center gap-1 text-[10px] font-bold text-red-700 bg-red-50 px-2 py-1 rounded w-fit"><AlertTriangle size={10}/> {t('waehrung.falsch', { soll: waehrungFuer(anschriftVon(p).land) })}</span>)}{perMail(p) && (<span className="flex items-center gap-1 text-[10px] font-bold text-sky-700 bg-sky-50 px-2 py-1 rounded w-fit"><Mail size={10}/> {t('field.email')}</span>)}</div></td><td className="px-6 py-4">{(() => { const zu = isOverdue(p); return (<span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider whitespace-nowrap ${p.status === 'PAID' ? 'bg-green-100 text-green-700' : zu ? 'bg-red-100 text-red-700' : p.status === 'CANCELLED' ? 'bg-stone-100 text-stone-500' : 'bg-amber-100 text-amber-700'}`}>{p.status === 'PAID' ? t('board.paid') : zu ? t('admin.finance.overdue') : p.status === 'PENDING' ? t('status.pending') : p.status}</span>); })()}</td><td className="px-6 py-4 text-right"><div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">{perMail(p) && p.status !== 'PAID' && (<button onClick={() => handleSendInvoiceEmail(p)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"><Send size={14} /></button>)}{postStand(p).art === 'OFFEN' && p.status !== 'PAID' && (<button onClick={() => setPostDialog([p])} disabled={postLaeuft === p.id} title={t('post.als_brief')} className="p-2 bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100 disabled:opacity-40">{postLaeuft === p.id ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}</button>)}<button onClick={() => setViewInvoice(p)} className="p-2 bg-stone-100 text-stone-600 rounded-lg hover:bg-stone-200"><Eye size={14} /></button>{p.status !== 'PAID' && (<button onClick={() => handleMarkPaid(p)} className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100"><CheckCircle2 size={14} /></button>)}<button onClick={() => handleDelete(p.id)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100"><Trash2 size={14} /></button></div></td></tr>); })}</tbody></table></div>
+  : (<span title={st.text} className="flex items-center gap-1 text-[10px] font-bold text-red-700 bg-red-50 px-2 py-1 rounded w-fit max-w-[16rem] whitespace-normal"><AlertTriangle size={10} className="shrink-0"/> {st.text}</span>); })()}{!waehrungStimmt(anschriftVon(p).land, p.currency) && p.status !== 'PAID' && (<span title={t('waehrung.falsch_text')} className="flex items-center gap-1 text-[10px] font-bold text-red-700 bg-red-50 px-2 py-1 rounded w-fit"><AlertTriangle size={10}/> {t('waehrung.falsch', { soll: waehrungFuer(anschriftVon(p).land) })}</span>)}{(() => { const m = mails.get(p.id); if (!m && !perMail(p)) return null;
+  const art = m ? (m.status === 'SENT' ? 'VERSANDT' : m.status === 'FAILED' ? 'FEHLER' : 'WARTET') : 'OFFEN';
+  const farbe = art === 'VERSANDT' ? 'text-emerald-700 bg-emerald-50' : art === 'FEHLER' ? 'text-red-700 bg-red-50' : art === 'WARTET' ? 'text-sky-700 bg-sky-50' : 'text-amber-700 bg-amber-50';
+  const text = art === 'VERSANDT' ? t('mail.stand_versandt', { datum: datumText(m!.am) }) : art === 'FEHLER' ? t('mail.stand_fehler') : art === 'WARTET' ? t('mail.stand_wartet') : (p.status === 'PAID' ? t('field.email') : t('mail.stand_offen'));
+  return (<span title={art === 'OFFEN' && p.status !== 'PAID' ? t('mail.stand_offen_hinweis') : undefined} className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded w-fit ${farbe}`}><Mail size={10}/> {text}</span>); })()}</div></td><td className="px-6 py-4">{(() => { const zu = isOverdue(p); return (<span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider whitespace-nowrap ${p.status === 'PAID' ? 'bg-green-100 text-green-700' : zu ? 'bg-red-100 text-red-700' : p.status === 'CANCELLED' ? 'bg-stone-100 text-stone-500' : 'bg-amber-100 text-amber-700'}`}>{p.status === 'PAID' ? t('board.paid') : zu ? t('admin.finance.overdue') : p.status === 'PENDING' ? t('status.pending') : p.status}</span>); })()}</td><td className="px-6 py-4 text-right"><div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">{perMail(p) && p.status !== 'PAID' && (<button onClick={() => handleSendInvoiceEmail(p)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"><Send size={14} /></button>)}{postStand(p).art === 'OFFEN' && p.status !== 'PAID' && (<button onClick={() => setPostDialog([p])} disabled={postLaeuft === p.id} title={t('post.als_brief')} className="p-2 bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100 disabled:opacity-40">{postLaeuft === p.id ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}</button>)}<button onClick={() => setViewInvoice(p)} className="p-2 bg-stone-100 text-stone-600 rounded-lg hover:bg-stone-200"><Eye size={14} /></button>{p.status !== 'PAID' && (<button onClick={() => handleMarkPaid(p)} className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100"><CheckCircle2 size={14} /></button>)}<button onClick={() => handleDelete(p.id)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100"><Trash2 size={14} /></button></div></td></tr>); })}</tbody></table></div>
                     </div>
                 )}
 

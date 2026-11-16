@@ -18,6 +18,9 @@ interface EmailOptions {
     name: string;
     data: any;
   };
+  // Zu welcher Rechnung die Nachricht gehoert. Ohne diesen Bezug war nicht
+  // nachzusehen, ob eine Rechnung schon per E-Mail hinausging.
+  paymentId?: string;
 }
 
 // Eine Nachricht in die Warteschlange stellen.
@@ -69,6 +72,7 @@ export const sendEmail = async (options: EmailOptions) => {
       text,
       attachments: options.attachments || [],
       kind: options.template?.name ? String(options.template.name).toUpperCase() : 'GENERIC',
+      ...(options.paymentId ? { paymentId: options.paymentId } : {}),
       status: 'PENDING',
       scheduledFor: new Date().toISOString(),
       createdAt: serverTimestamp(),

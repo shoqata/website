@@ -37,7 +37,7 @@ vi.mock('@/services/supabase-bridge', () => {
 });
 vi.mock('../../services/datenzugriff', () => ({ db: {} }));
 vi.mock('../../context/FeedbackContext', () => ({
-  useFeedback: () => ({ showAlert: vi.fn(), showConfirm: vi.fn(), showPrompt: vi.fn() }),
+  useFeedback: () => ({ showAlert: vi.fn(), showConfirm: vi.fn(), showPrompt: vi.fn(), showToast: vi.fn() }),
 }));
 vi.mock('../../context/LanguageContext', () => ({
   useTranslation: () => ({ t: (k: string) => k, loc: (v: any) => (typeof v === 'string' ? v : ''), language: 'de' }),

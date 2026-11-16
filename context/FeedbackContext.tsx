@@ -18,6 +18,21 @@ interface AlertOptions {
   message: string;
   type?: AlertType;
   buttonText?: string;
+  // Was genau geschah: Betrag, Empfaenger, Nummer. "Erfolg!" allein sagt
+  // nicht, ob die richtige Rechnung an den richtigen Menschen ging.
+  details?: { label: string; value: string }[];
+  // Ein naechster Schritt neben dem Schliessen -- hoechstens einer, sonst
+  // ist es keine Empfehlung mehr, sondern ein Menue.
+  action?: { label: string; onClick: () => void };
+}
+
+// Fuer Umkehrbares: verschwindet von selbst und bietet "Rueckgaengig".
+// Eine Einstellung zu speichern verlangt keinen Klick auf "OK".
+interface ToastOptions {
+  message: string;
+  type?: 'success' | 'error';
+  undo?: () => void | Promise<void>;
+  undoLabel?: string;
 }
 
 interface ConfirmOptions {
@@ -40,6 +55,7 @@ interface FeedbackContextType {
   showAlert: (options: AlertOptions) => Promise<void>;
   showConfirm: (options: ConfirmOptions) => Promise<boolean>;
   showPrompt: (options: PromptOptions) => Promise<string | null>;
+  showToast: (options: ToastOptions) => void;
 }
 
 const FeedbackContext = createContext<FeedbackContextType | undefined>(undefined);
@@ -59,6 +75,19 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Prompt State
   const [promptState, setPromptState] = useState<{ isOpen: boolean; options: PromptOptions; value: string; resolve: (val: string | null) => void } | null>(null);
+
+  // Toast: eine Meldung zur Zeit. Eine neue ersetzt die alte, statt sich
+  // darueberzustapeln -- wer zehnmal "bezahlt" klickt, braucht nur die
+  // letzte Rueckgaengig-Moeglichkeit vor Augen.
+  const [toast, setToast] = useState<(ToastOptions & { id: number }) | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showToast = useCallback((options: ToastOptions) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    const id = Date.now();
+    setToast({ ...options, id });
+    // Mit Rueckgaengig etwas laenger: man muss lesen UND entscheiden.
+    toastTimer.current = setTimeout(() => setToast(null), options.undo ? 7000 : 3500);
+  }, []);
 
   const showAlert = useCallback((options: AlertOptions) => {
     return new Promise<void>((resolve) => {
@@ -120,7 +149,7 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   return (
-    <FeedbackContext.Provider value={{ showAlert, showConfirm, showPrompt }}>
+    <FeedbackContext.Provider value={{ showAlert, showConfirm, showPrompt, showToast }}>
       {children}
 
       {/* ALERT MODAL */}
@@ -138,15 +167,56 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             >
               {getIcon(alertState.options.type)}
               {alertState.options.title && <h3 className="text-xl font-bold text-stone-900 mb-2">{alertState.options.title}</h3>}
-              <p className="text-stone-500 mb-8">{alertState.options.message}</p>
+              <p className={`text-stone-500 ${alertState.options.details?.length ? 'mb-4' : 'mb-8'}`}>{alertState.options.message}</p>
+              {!!alertState.options.details?.length && (
+                <dl className="mb-6 text-left text-sm rounded-xl border border-stone-100 divide-y divide-stone-100">
+                  {alertState.options.details.map(d => (
+                    <div key={d.label} className="flex justify-between gap-4 px-4 py-2">
+                      <dt className="text-stone-400 shrink-0">{d.label}</dt>
+                      <dd className="font-semibold text-stone-800 text-right break-all">{d.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+              {alertState.options.action && (
+                <button
+                  onClick={() => { const a = alertState.options.action!; closeAlert(); a.onClick(); }}
+                  className="w-full mb-2 bg-[color:var(--primary,#1c1917)] text-white font-bold py-3 rounded-xl hover:opacity-90 transition"
+                >
+                  {alertState.options.action.label}
+                </button>
+              )}
               <button 
                 onClick={closeAlert}
-                className="w-full bg-stone-900 text-white font-bold py-3 rounded-xl hover:bg-stone-800 transition-colors"
+                className={alertState.options.action
+                  ? 'w-full text-stone-600 font-bold py-3 rounded-xl hover:bg-stone-100 transition-colors'
+                  : 'w-full bg-stone-900 text-white font-bold py-3 rounded-xl hover:bg-stone-800 transition-colors'}
               >
                 {alertState.options.buttonText || 'OK'}
               </button>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* TOAST */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div key={toast.id} role="status" aria-live="polite"
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 16 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9000] w-[calc(100%-2rem)] max-w-md bg-stone-900 text-white rounded-2xl shadow-2xl px-4 py-3 flex items-center gap-3">
+            {toast.type === 'error'
+              ? <AlertCircle size={18} className="text-red-400 shrink-0" />
+              : <CheckCircle2 size={18} className="text-emerald-400 shrink-0" />}
+            <p className="text-sm flex-1">{toast.message}</p>
+            {toast.undo && (
+              <button onClick={async () => { const u = toast.undo!; setToast(null); await u(); }}
+                className="text-sm font-bold text-emerald-300 hover:text-emerald-200 px-2 py-1 rounded-lg shrink-0">
+                {toast.undoLabel || 'Undo'}
+              </button>
+            )}
+            <button onClick={() => setToast(null)} aria-label="Schliessen" className="text-stone-400 hover:text-white shrink-0"><X size={16} /></button>
+          </motion.div>
         )}
       </AnimatePresence>
 
