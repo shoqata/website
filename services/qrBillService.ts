@@ -97,6 +97,7 @@ export const normalizeCountry = (input: string | undefined): string => {
     if (c === 'nordmazedonien' || c === 'mazedonien' || c === 'macedonia' || c === 'maqedoni') return 'MK';
     if (c === 'serbien' || c === 'serbia' || c === 'serbi') return 'RS';
     if (c === 'belgien' || c === 'belgium' || c === 'belgique') return 'BE';
+    if (c === 'spanien' || c === 'spain' || c === 'españa' || c === 'spanja') return 'ES';
     if (c === 'schweden' || c === 'sweden') return 'SE';
     if (c === 'norwegen' || c === 'norway') return 'NO';
     if (c === 'england' || c === 'grossbritannien' || c === 'united kingdom' || c === 'uk') return 'GB';

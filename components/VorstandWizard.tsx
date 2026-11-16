@@ -56,7 +56,7 @@ const VorstandWizard: React.FC<Props> = ({ mitglieder, nachbarschaften, onClose,
   const [m, setM] = useState({
     firstName: '', lastName: '', neighborhoodId: '',
     email: '', phone: '', street: '', zip: '', city: '',
-    country: 'Switzerland', birthdate: '',
+    country: 'Schweiz', birthdate: '',
     membershipCategory: '', billingGroup: '',
     invoiceDeliveryMethod: '' as '' | 'EMAIL' | 'POST' | 'BOTH',
   });

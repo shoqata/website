@@ -35,6 +35,11 @@ describe('Zustellweg', () => {
 describe('Zahlungsart', () => {
   it('Schweiz bekommt die QR-Rechnung', () => {
     expect(zahlungsart({ country: 'Switzerland' })).toBe('QR_BILL');
+    // Die Schreibweise der Laenderauswahl -- 278 Mitglieder bei Koretini.
+    expect(zahlungsart({ country: 'Schweiz' })).toBe('QR_BILL');
+    expect(zahlungsart({ country: ' CH ' })).toBe('QR_BILL');
+    expect(zahlungsart({ country: 'Zvicër' })).toBe('QR_BILL');
+    expect(zahlungsart({ country: 'Österreich' })).toBe('BANK_TRANSFER');
   });
   it('alles andere eine Ueberweisung', () => {
     expect(zahlungsart({ country: 'Kosovo' })).toBe('BANK_TRANSFER');

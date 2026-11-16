@@ -58,7 +58,7 @@ import { rechnungsmailBauen } from '../lib/rechnungsmail';
 import { briefEinreihen, zahlungsangabenPruefen, postArbeiterAnstossen, postDatenAus } from '../lib/postversand';
 import { zustellweg } from '../lib/erfassen';
 import { postTauglich, waehrungStimmt, waehrungFuer, wohnsitz } from '../lib/rechnungsregeln';
-import { istSchweiz } from '../services/qrBillService';
+import { istSchweiz, normalizeCountry } from '../services/qrBillService';
 import { textwerkLaden, sprachenFuer, textFuer, alsHtml, type Textwerk } from '../lib/textbaustein';
 import { QRCodeSVG } from 'qrcode.react';
 import AdminRechnungsdesigner from './AdminRechnungsdesigner';
@@ -189,7 +189,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear, jah
     // Frage nicht, die man an ein Budget hat.
     const [journal, setJournal] = useState<JournalEntry[]>([]);
     const [paymentSettings, setPaymentSettings] = useState<GlobalPaymentSettings>({
-        iban: '', bankName: '', bic: '', accountHolder: '', street: '', zip: '', city: '', country: 'Switzerland', paypalEmail: '', currency: 'CHF', annualFeeAmount: 100
+        iban: '', bankName: '', bic: '', accountHolder: '', street: '', zip: '', city: '', country: 'Schweiz', paypalEmail: '', currency: 'CHF', annualFeeAmount: 100
     });
     
     const invoiceAssociation = loc(branding.associationName) || paymentSettings.accountHolder || '';
@@ -238,7 +238,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear, jah
         street: '',
         zip: '',
         city: '',
-        country: 'Switzerland'
+        country: 'Schweiz'
     });
     
     // Member Search/Selection State
@@ -753,11 +753,12 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear, jah
         else setSelectedInvoiceUserIds(new Set(multiSelectUsers.map(u => u.id)));
     };
 
+    // Ueber normalizeCountry statt eigener Wortliste: "Zvicër", "CH" oder
+    // "Oesterreich" fielen hier sonst auf PayPal.
     const determinePaymentMethod = (country?: string): 'QR_BILL' | 'GIRO_CODE' | 'PAYPAL' => {
-        if (!country) return 'QR_BILL';
-        const c = country.toLowerCase();
-        if (['switzerland', 'schweiz', 'suisse', 'svizzera', 'ch'].includes(c)) return 'QR_BILL';
-        if (['germany', 'deutschland', 'de', 'austria', 'österreich', 'at', 'france', 'frankreich', 'fr', 'italy', 'italien', 'it'].includes(c)) return 'GIRO_CODE';
+        const c = normalizeCountry(country);
+        if (c === 'CH') return 'QR_BILL';
+        if (['DE', 'AT', 'FR', 'IT', 'BE', 'NL', 'ES', 'LU'].includes(c)) return 'GIRO_CODE';
         return 'PAYPAL';
     };
 
@@ -812,12 +813,12 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear, jah
             
             if (invoiceMode === 'SINGLE') {
                 const docRef = doc(collection(db, 'payments'));
-                let country = 'Switzerland';
+                let country = 'Schweiz';
                 if (recipientMode === 'EXTERNAL') {
-                    country = customRecipient.country || 'Switzerland';
+                    country = customRecipient.country || 'Schweiz';
                 } else {
                     const member = users.find(u => u.id === newInvoice.userId);
-                    if (member) country = member.country || 'Switzerland';
+                    if (member) country = member.country || 'Schweiz';
                 }
                 // Wohnsitz im Ausland heisst Euro -- hier waehlt man die
                 // Waehrung von Hand, also wird nicht still umgestellt,
@@ -895,7 +896,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear, jah
             setShowCreateModal(false);
             setNewInvoice({ amount: 0, currency: 'CHF', description: '', userId: '' });
             setMemberSearchTerm('');
-            setCustomRecipient({ name: '', email: '', street: '', zip: '', city: '', country: 'Switzerland' });
+            setCustomRecipient({ name: '', email: '', street: '', zip: '', city: '', country: 'Schweiz' });
             setSelectedInvoiceUserIds(new Set());
             showAlert({ type: 'success', message: createdSummary });
         } catch (error) { showAlert({ type: 'error', message: t('admin.finance.invoice_failed') }); }
@@ -1075,6 +1076,46 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear, jah
         }
     };
 
+    // Mahnungen fuer mehrere auf einmal. In Frage kommt, wer eine
+    // brauchbare E-Mail-Adresse hat und nicht in den letzten 14 Tagen
+    // gemahnt wurde -- die Mahnung setzt selbst eine Frist von 14 Tagen,
+    // eine zweite davor waere unfair und verwirrend.
+    const [mahnAuswahl, setMahnAuswahl] = useState<Set<string>>(new Set());
+    const [mahnLauf, setMahnLauf] = useState<{ fertig: number; alle: number } | null>(null);
+    const kuerzlichGemahnt = (p: Payment) => !!(p as any).lastDunningDate
+        && Date.now() - new Date((p as any).lastDunningDate).getTime() < 14 * 864e5;
+    const mahnbar = (p: Payment) => hasUsableEmail({ email: mailAdresse(p) } as any) && !kuerzlichGemahnt(p);
+    const mahnGewaehlt = overduePayments.filter(p => mahnAuswahl.has(p.id));
+    const mahnFuer = mahnGewaehlt.filter(mahnbar);
+
+    const mahnungenSenden = async () => {
+        const liste = mahnFuer;
+        if (!liste.length) return;
+        const ok = await showConfirm({ title: t('mahnung.sammel_titel', { anzahl: liste.length }),
+            message: t('mahnung.sammel_text', { anzahl: liste.length, aus: mahnGewaehlt.length - liste.length }),
+            confirmText: t('mahnung.sammel_ja'), type: 'primary' });
+        if (!ok) return;
+        // Den Textbaustein einmal laden statt 200 mal.
+        let werk: Textwerk | undefined;
+        try { werk = await textwerkLaden(); } catch { /* mahnungSenden laedt selbst und meldet */ }
+        const fehler: string[] = [];
+        let gut = 0;
+        setMahnLauf({ fertig: 0, alle: liste.length });
+        for (const p of liste) {
+            try { await mahnungSenden(p, users.find(x => x.id === p.userId), invoiceAssociation, werk); gut++; }
+            catch (e: any) { fehler.push(`${anschriftVon(p).name || p.invoiceNumber}: ${e?.message || '?'}`); }
+            setMahnLauf(l => l ? { ...l, fertig: l.fertig + 1 } : l);
+        }
+        setMahnLauf(null);
+        setMahnAuswahl(new Set());
+        mailsLaden();
+        const bereit = await postausgangBereit();
+        showAlert({ type: fehler.length ? 'error' : bereit ? 'success' : 'warning',
+            title: t('mahnung.sammel_ergebnis', { gut, alle: liste.length }),
+            message: (bereit ? t('mahnung.sammel_unterwegs') : t('mahnung.sammel_wartet'))
+                + (fehler.length ? ' ' + fehler.slice(0, 5).join(' · ') + (fehler.length > 5 ? ' …' : '') : '') });
+    };
+
     // Fix: Refactored getQrData to correctly resolve debtor and handle member lookup
     const getQrData = (payment: Payment): QrBillData | null => {
         if (!paymentSettings) return null;
@@ -1245,20 +1286,47 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear, jah
                                 </div>
                             ) : (
                                 <div className="space-y-4">
+                                    <div className="sticky top-2 z-10 flex flex-wrap items-center gap-2 bg-stone-900 text-white rounded-2xl px-4 py-3">
+                                        <label className="flex items-center gap-2 text-sm font-bold mr-2 cursor-pointer">
+                                            <input type="checkbox" checked={mahnGewaehlt.length === overduePayments.length}
+                                                ref={el => { if (el) el.indeterminate = mahnGewaehlt.length > 0 && mahnGewaehlt.length < overduePayments.length; }}
+                                                onChange={() => setMahnAuswahl(mahnGewaehlt.length === overduePayments.length ? new Set() : new Set(overduePayments.map(p => p.id)))}
+                                                className="w-4 h-4 accent-white" />
+                                            {mahnGewaehlt.length ? t('auswahl.anzahl', { anzahl: mahnGewaehlt.length }) : t('auswahl.alle')}
+                                        </label>
+                                        <button onClick={mahnungenSenden} disabled={!mahnFuer.length || !!mahnLauf} title={t('mahnung.sammel_hinweis')}
+                                            className="px-3 py-2 rounded-xl bg-red-500 hover:bg-red-400 text-sm font-bold flex items-center gap-2 disabled:opacity-40">
+                                            {mahnLauf ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                                            {mahnLauf ? t('mahnung.laeuft', { fertig: mahnLauf.fertig, alle: mahnLauf.alle }) : t('mahnung.sammel_knopf', { anzahl: mahnFuer.length })}
+                                        </button>
+                                        {mahnGewaehlt.length > 0 && !mahnLauf && (
+                                            <button onClick={() => setMahnAuswahl(new Set())} className="ml-auto px-2 py-2 text-sm text-stone-300 hover:text-white flex items-center gap-1"><X size={14}/> {t('auswahl.aufheben')}</button>
+                                        )}
+                                    </div>
                                     {overduePayments.map(p => {
                                         const u = users.find(u => u.id === p.userId);
                                         return (
-                                            <div key={p.id} className="flex justify-between items-center p-4 bg-red-50/50 border border-red-100 rounded-2xl">
-                                                <div>
+                                            <div key={p.id} className={`flex justify-between items-center gap-3 p-4 border rounded-2xl ${mahnAuswahl.has(p.id) ? 'bg-red-100/60 border-red-200' : 'bg-red-50/50 border-red-100'}`}>
+                                                <input type="checkbox" aria-label={p.invoiceNumber || ''} checked={mahnAuswahl.has(p.id)}
+                                                    onChange={() => setMahnAuswahl(prev => { const n = new Set(prev); n.has(p.id) ? n.delete(p.id) : n.add(p.id); return n; })}
+                                                    className="w-4 h-4 accent-stone-900 cursor-pointer shrink-0" />
+                                                <div className="flex-1 min-w-0">
                                                     <p className="font-bold text-stone-900">{u?.displayName || p.customRecipient?.name || 'Unknown'}</p>
-                                                    <p className="text-xs text-stone-500">Rechnung: {p.invoiceNumber} • Fällig seit: {new Date(p.dueDate).toLocaleDateString()}</p>
+                                                    <p className="text-xs text-stone-500">{t('mahnung.zeile', { nummer: p.invoiceNumber || '', seit: datumText(p.dueDate) })}
+                                                        {(p as any).dunningLevel > 0 && <> · {t('mahnung.stand', { stufe: (p as any).dunningLevel, am: datumText((p as any).lastDunningDate) })}</>}
+                                                        {!hasUsableEmail({ email: mailAdresse(p) } as any) && <span className="ml-1 font-bold text-red-700">· {t('mail.no_address')}</span>}</p>
                                                 </div>
                                                 <div className="flex items-center gap-4">
                                                     <div className="text-right">
                                                         <p className="font-mono font-bold text-red-600">{p.amount.toFixed(2)} {p.currency}</p>
                                                     </div>
-                                                    <button onClick={() => handleSendInvoiceEmail(p)} className="px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-bold hover:bg-red-700 transition-colors flex items-center gap-2">
-                                                        <Send size={14} /> {t('admin.finance.send_reminder')}
+                                                    {/* Vorher rief dieser Knopf handleSendInvoiceEmail: es ging
+                                                        noch einmal die Rechnung hinaus, keine Mahnung, und die
+                                                        Mahnstufe stieg nie. */}
+                                                    <button onClick={() => handleSendReminder(p)} disabled={!mahnbar(p) || !!mahnLauf}
+                                                        title={!hasUsableEmail({ email: mailAdresse(p) } as any) ? t('mail.no_address') : kuerzlichGemahnt(p) ? t('mahnung.kuerzlich') : undefined}
+                                                        className="px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-bold hover:bg-red-700 transition-colors flex items-center gap-2 disabled:opacity-40">
+                                                        <Send size={14} /> {t('mahnung.stufe_senden', { stufe: ((p as any).dunningLevel || 0) + 1 })}
                                                     </button>
                                                 </div>
                                             </div>

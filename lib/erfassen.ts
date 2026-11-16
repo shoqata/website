@@ -1,5 +1,5 @@
 import { hasUsableEmail } from './memberEmail';
-import { waehrungFuer } from './rechnungsregeln';
+import { waehrungFuer, wohnsitz } from './rechnungsregeln';
 import type { UserProfile } from '../types';
 
 // Die Schreibschicht wird in den beiden Schreibfunktionen geholt, nicht
@@ -58,8 +58,12 @@ export function zustellweg(m: Partial<UserProfile>): 'EMAIL' | 'POST' | 'BOTH' {
 }
 
 // Zahlungsart: in der Schweiz die QR-Rechnung, sonst Ueberweisung.
+// Ueber wohnsitz() und nicht ueber den Text: im Bestand stehen
+// "Schweiz", "Switzerland" und "CH" nebeneinander, und der Vergleich mit
+// 'Switzerland' schickte 278 Mitglieder mit "Schweiz" auf Ueberweisung.
+// Ohne Land bleibt es bei der Ueberweisung -- wie bisher.
 export function zahlungsart(m: Partial<UserProfile>): 'QR_BILL' | 'BANK_TRANSFER' {
-  return (m.country ?? '').trim() === 'Switzerland' ? 'QR_BILL' : 'BANK_TRANSFER';
+  return wohnsitz(m.country) === 'CH' ? 'QR_BILL' : 'BANK_TRANSFER';
 }
 
 // ------------------------------------------------------ Rechnungsnummer
@@ -183,7 +187,8 @@ export async function mitgliedErfassen(e: NeuesMitglied): Promise<string> {
     street: e.street?.trim() || null,
     zip: e.zip?.trim() || null,
     city: e.city?.trim() || null,
-    country: e.country?.trim() || 'Switzerland',
+    // Die Schreibweise der Laenderauswahl (lib/countries.ts).
+    country: e.country?.trim() || 'Schweiz',
     // Die Adresszeile wird mitgefuehrt, weil beide Spalten in den Daten
     // dasselbe enthalten und Auswertungen auf address zugreifen.
     address: e.street?.trim() || null,

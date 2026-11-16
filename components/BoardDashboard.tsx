@@ -14,7 +14,7 @@ import AnfragenBearbeiten from './AnfragenBearbeiten';
 import ProtokollTeilen from './ProtokollTeilen';
 import CountrySelect from './ui/CountrySelect';
 import { missingFieldKeys } from '../lib/memberQuality';
-import { markPaymentPaid, zahlungDifferenzSetzen } from '@/services/supabase-bridge';
+import { zahlungEingangErfassen, zahlungEingangEntfernen, zahlungDifferenzSetzen } from '@/services/supabase-bridge';
 import { beitragFuer } from '../lib/beitrag';
 import { einstellungLaden } from '../lib/einstellungen';
 import { db } from '../services/datenzugriff';
@@ -66,7 +66,7 @@ interface BoardDashboardProps {
 const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
   const { aktiv: modulAktiv } = useModule();
   const { t } = useTranslation();
-  const { showAlert, showConfirm } = useFeedback();
+  const { showAlert, showConfirm, showToast } = useFeedback();
   
   // Data State
   const [selectedYear, setSelectedYear, vereinsjahre] = useJahresauswahl();
@@ -377,20 +377,32 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
       }
       setBuchLaeuft(true);
       try {
-          await markPaymentPaid(buchung.id, buchArt,
-              new Date().toISOString().slice(0, 10), betrag);
+          // Direkt der Eingang statt mark_payment_paid: dieselbe Buchung
+          // (mark_payment_paid ruft genau das), aber mit der Nummer des
+          // Eingangs -- ohne sie gaebe es kein Rueckgaengig.
+          const eingang = await zahlungEingangErfassen(buchung.id, betrag, buchArt,
+              new Date().toISOString().slice(0, 10));
           const d = betrag - Number(buchung.amount ?? 0) + Number((buchung as any).bezahlt ?? 0);
-          showAlert({
-              type: 'success',
-              // Die Meldung sagt, was daraus folgt. "Gebucht" allein
-              // liesse offen, ob die Rechnung damit erledigt ist -- und
-              // bei einer Teilzahlung ist sie es nicht.
-              message: d === 0 ? t('board.marked_paid')
+          const name = users.find(u => u.id === buchung.userId)?.displayName || buchung.invoiceNumber || '';
+          // Die Meldung sagt, was daraus folgt. "Gebucht" allein
+          // liesse offen, ob die Rechnung damit erledigt ist -- und
+          // bei einer Teilzahlung ist sie es nicht.
+          const text = d === 0 ? t('board.marked_paid')
                 : d > 0 ? t('board.booked_more', { betrag: d.toFixed(2) })
-                : t('board.booked_less', { betrag: Math.abs(d).toFixed(2) }),
-          });
-          if (d > 0) setMehrbetrag({ id: buchung.id, betrag: d });
-          else setBuchung(null);
+                : t('board.booked_less', { betrag: Math.abs(d).toFixed(2) });
+          if (d > 0) {
+              // Mehrbetrag: hier muss jemand entscheiden -- das bleibt ein Dialog.
+              showAlert({ type: 'success', message: text });
+              setMehrbetrag({ id: buchung.id, betrag: d });
+          } else {
+              setBuchung(null);
+              showToast({ message: `${name}: ${text}`, undoLabel: t('erfolg.rueckgaengig'),
+                  undo: async () => {
+                      try { await zahlungEingangEntfernen(eingang);
+                            showToast({ message: t('erfolg.bezahlt_zurueck', { name }) }); }
+                      catch (e: any) { showAlert({ type: 'error', message: e?.message || '?' }); }
+                  } });
+          }
       } catch (e: any) {
           showAlert({ type: 'error', message: e?.message || '?' });
       } finally {
@@ -422,6 +434,11 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
   };
 
   // Die Liste im Rechnungsfenster, nach Name, Rechnungsnummer oder Beschreibung.
+  // Mehrere offene Rechnungen auf einmal: als Brief oder als bezahlt.
+  // Gehandelt wird nur ueber das, was im Fenster sichtbar ist.
+  const [auswahl, setAuswahl] = React.useState<Set<string>>(new Set());
+  React.useEffect(() => { setAuswahl(new Set()); }, [showInvoiceListModal]);
+
   const rechnungenImFenster = useMemo(() => {
       const liste = showInvoiceListModal === 'PAID' ? stats.paidInvoices : stats.openInvoices;
       const suche = rechnungsSuche.toLowerCase().trim();
@@ -434,6 +451,48 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
               || (inv.description || '').toLowerCase().includes(suche);
       });
   }, [showInvoiceListModal, stats, rechnungsSuche, users]);
+
+  const gewaehlt = useMemo(() => rechnungenImFenster.filter((p: Payment) => auswahl.has(p.id!)),
+      [rechnungenImFenster, auswahl]);
+  const alleGewaehlt = rechnungenImFenster.length > 0 && gewaehlt.length === rechnungenImFenster.length;
+  const umschalten = (id: string) => setAuswahl(prev => {
+      const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const restVon = (p: Payment) => Number(p.amount || 0) - Number((p as any).bezahlt || 0);
+  const auswahlBrief = gewaehlt.filter((p: Payment) => briefMoeglich(p).ok);
+  const auswahlBezahlt = gewaehlt.filter((p: Payment) => restVon(p) > 0);
+
+  const auswahlAlsBezahlt = async () => {
+      const liste = auswahlBezahlt;
+      if (!liste.length) return;
+      const summen = new Map<string, number>();
+      liste.forEach(p => summen.set(p.currency || 'CHF', (summen.get(p.currency || 'CHF') || 0) + restVon(p)));
+      const summeText = [...summen].map(([w, b]) => `${w} ${b.toFixed(2)}`).join(' + ');
+      const ja = await showConfirm({ title: t('auswahl.bezahlt_frage_titel', { anzahl: liste.length }),
+          message: t('auswahl.bezahlt_frage_text', { anzahl: liste.length, summe: summeText }),
+          confirmText: t('auswahl.bezahlt_ja'), type: 'primary' });
+      if (!ja) return;
+      const heute = new Date().toISOString().slice(0, 10);
+      const eingaenge: string[] = [];
+      const fehler: string[] = [];
+      for (const p of liste) {
+          try { eingaenge.push(await zahlungEingangErfassen(p.id!, restVon(p), p.method, heute)); }
+          catch (e: any) { fehler.push(`${users.find(u => u.id === p.userId)?.displayName || p.invoiceNumber}: ${e?.message || '?'}`); }
+      }
+      setAuswahl(new Set());
+      if (fehler.length) showAlert({ type: 'error',
+          title: t('auswahl.bezahlt_teil', { gut: eingaenge.length, alle: liste.length }),
+          message: fehler.slice(0, 5).join(' · ') + (fehler.length > 5 ? ' …' : '') });
+      if (eingaenge.length) showToast({
+          message: t('auswahl.bezahlt_ok', { anzahl: eingaenge.length, summe: summeText }),
+          undoLabel: t('erfolg.rueckgaengig'),
+          undo: async () => {
+              let zurueck = 0;
+              for (const id of eingaenge) { try { await zahlungEingangEntfernen(id); zurueck++; } catch { /* unten gemeldet */ } }
+              zurueck === eingaenge.length
+                  ? showToast({ message: t('auswahl.bezahlt_zurueck', { anzahl: zurueck }) })
+                  : showAlert({ type: 'error', message: t('auswahl.bezahlt_zurueck_teil', { zurueck, alle: eingaenge.length }) });
+          } });
+  };
 
   const nachbarschaftenGefiltert = useMemo(() => {
       const suche = nbSuche.toLowerCase().trim();
@@ -1033,10 +1092,37 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                             )}
                         </div>
 
+                        {showInvoiceListModal === 'OPEN' && gewaehlt.length > 0 && (
+                            <div className="mx-6 mt-4 flex flex-wrap items-center gap-2 bg-stone-900 text-white rounded-2xl px-4 py-3">
+                                <span className="text-sm font-bold mr-1">{t('auswahl.anzahl', { anzahl: gewaehlt.length })}</span>
+                                {briefrecht && (
+                                    <button onClick={() => { setBriefDialog(auswahlBrief); setAuswahl(new Set()); }} disabled={!auswahlBrief.length || !!briefLaeuft}
+                                        title={t('auswahl.brief_hinweis')}
+                                        className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold flex items-center gap-2 disabled:opacity-40">
+                                        <Printer size={14}/> {t('auswahl.brief', { anzahl: auswahlBrief.length })}
+                                    </button>
+                                )}
+                                <button onClick={auswahlAlsBezahlt} disabled={!auswahlBezahlt.length}
+                                    className="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-xs font-bold flex items-center gap-2 disabled:opacity-40">
+                                    <CheckCircle2 size={14}/> {t('auswahl.bezahlt', { anzahl: auswahlBezahlt.length })}
+                                </button>
+                                <button onClick={() => setAuswahl(new Set())} className="ml-auto px-2 py-2 text-xs text-stone-300 hover:text-white flex items-center gap-1">
+                                    <X size={14}/> {t('auswahl.aufheben')}
+                                </button>
+                            </div>
+                        )}
                         <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
                             <table className="w-full text-left text-sm">
                                 <thead className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100">
                                     <tr>
+                                        {showInvoiceListModal === 'OPEN' && (
+                                            <th className="pb-3 w-8">
+                                                <input type="checkbox" aria-label={t('auswahl.alle')} checked={alleGewaehlt}
+                                                    ref={el => { if (el) el.indeterminate = gewaehlt.length > 0 && !alleGewaehlt; }}
+                                                    onChange={() => setAuswahl(alleGewaehlt ? new Set() : new Set(rechnungenImFenster.map((p: Payment) => p.id!)))}
+                                                    className="w-4 h-4 accent-stone-900 cursor-pointer" />
+                                            </th>
+                                        )}
                                         <th className="pb-3">{t('field.member')}</th>
                                         <th className="pb-3">{t('field.date')}</th>
                                         <th className="pb-3 text-right">{t('field.amount')}</th>
@@ -1047,7 +1133,14 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                                     {rechnungenImFenster.map(inv => {
                                         const u = users.find(user => user.id === inv.userId);
                                         return (
-                                            <tr key={inv.id} className="hover:bg-stone-50">
+                                            <tr key={inv.id} className={auswahl.has(inv.id!) ? 'bg-stone-100' : 'hover:bg-stone-50'}>
+                                                {showInvoiceListModal === 'OPEN' && (
+                                                    <td className="py-3 w-8">
+                                                        <input type="checkbox" aria-label={inv.invoiceNumber || u?.displayName || ''}
+                                                            checked={auswahl.has(inv.id!)} onChange={() => umschalten(inv.id!)}
+                                                            className="w-4 h-4 accent-stone-900 cursor-pointer" />
+                                                    </td>
+                                                )}
                                                 <td className="py-3">
                                                     <p className="font-bold text-stone-800">{u?.displayName || 'Unknown'}</p>
                                                     <p className="text-[10px] text-stone-400 font-mono">{inv.invoiceNumber}</p>
@@ -1096,7 +1189,7 @@ const BoardDashboard: React.FC<BoardDashboardProps> = ({ user }) => {
                                         )
                                     })}
                                     {rechnungenImFenster.length === 0 && (
-                                        <tr><td colSpan={showInvoiceListModal === 'OPEN' ? 4 : 3} className="text-center py-8 text-stone-400 italic">{t('board.no_entries')}</td></tr>
+                                        <tr><td colSpan={showInvoiceListModal === 'OPEN' ? 5 : 3} className="text-center py-8 text-stone-400 italic">{t('board.no_entries')}</td></tr>
                                     )}
                                 </tbody>
                             </table>
