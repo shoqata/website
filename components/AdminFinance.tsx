@@ -627,8 +627,18 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear, jah
             + (schonDa ? ' ' + t('post.sammel_schon_da', { schonDa }) : '') });
     };
 
-    const handleSendBulkEmails = async () => {
-        if (pendingEmailPayments.length === 0) return;
+    // Offene Rechnungen ins Ausland, in Euro, per E-Mail: die am 16.11.2026
+    // von CHF auf EUR und vom Brief auf die Mail umgestellten
+    // (Migration ausland_euro_mail). Eigener Knopf, weil "Alle senden"
+    // jede offene Mailrechnung noch einmal verschicken wuerde.
+    const auslandEmailPayments = useMemo(() => pendingEmailPayments.filter(p =>
+        p.status === 'PENDING' && String(p.currency).toUpperCase() === 'EUR'
+        && wohnsitz(anschriftVon(p).land) === 'AUSLAND'),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [pendingEmailPayments, users]);
+
+    const handleSendBulkEmails = async (liste: Payment[] = pendingEmailPayments) => {
+        if (liste.length === 0) return;
 
         // Einmal vorher pruefen statt hundertmal dieselbe Fehlermeldung.
         const fehlt = zahlwegFehlt();
@@ -639,14 +649,14 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear, jah
             return;
         }
 
-        const confirmed = await showConfirm({ title: t('mail.bulk.title'), message: t('mail.bulk.text', { count: pendingEmailPayments.length }), confirmText: t('mail.bulk.confirm'), type: 'primary' });
+        const confirmed = await showConfirm({ title: t('mail.bulk.title'), message: t('mail.bulk.text', { count: liste.length }), confirmText: t('mail.bulk.confirm'), type: 'primary' });
         if (!confirmed) return;
         setIsSendingEmails(true);
         // Gezaehlt wird, was wirklich durchging. "Sent emails successfully"
         // stand hier fest, auch wenn keine einzige hinausging.
         let gut = 0, schlecht = 0;
-        for (const payment of pendingEmailPayments) {
-            (await handleSendInvoiceEmail(payment)) ? gut++ : schlecht++;
+        for (const payment of liste) {
+            (await handleSendInvoiceEmail(payment, () => {})) ? gut++ : schlecht++;
         }
         setIsSendingEmails(false);
         const bereit = await postausgangBereit();
@@ -1015,7 +1025,7 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ viewMode, selectedYear, jah
                     <div className="space-y-6">
                         <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-4 rounded-3xl border border-stone-100 shadow-sm">
                             <div className="flex gap-2 w-full md:w-auto"><div className="relative flex-1 md:w-64"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={16} /><input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t('common.search')} className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:border-[color:color-mix(in_srgb,var(--primary)_30%,transparent)]"/></div><div className="flex bg-stone-50 p-1 rounded-xl border border-stone-200">{(['ALL', 'TO_PRINT', 'PAID', 'PENDING', 'OVERDUE'] as const).map(s => (<button key={s} onClick={() => setFilterStatus(s)} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 ${filterStatus === s ? 'bg-white shadow-sm text-stone-900' : 'text-stone-400 hover:text-stone-600'}`}>{s === 'TO_PRINT' ? <><Printer size={12}/> {t('admin.finance.to_print')}</> : s === 'ALL' ? t('status.all') : s === 'PAID' ? t('board.paid') : s === 'PENDING' ? t('status.pending') : t('admin.finance.overdue')}</button>))}</div>{filterStatus === 'TO_PRINT' && filteredPayments.some(p => postStand(p).art === 'OFFEN' && p.status !== 'PAID') && (<button onClick={() => setPostDialog(filteredPayments.filter(p => postStand(p).art === 'OFFEN' && p.status !== 'PAID'))} disabled={postLaeuft !== ''} className="px-4 py-2.5 bg-stone-900 text-white rounded-xl text-xs font-bold hover:bg-stone-800 disabled:opacity-40 flex items-center gap-2 whitespace-nowrap">{postLaeuft === 'ALLE' ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}{t('post.alle_als_brief')}</button>)}</div>
-                            <div className="flex gap-2">{pendingEmailPayments.length > 0 && (<button onClick={handleSendBulkEmails} disabled={isSendingEmails} className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-blue-700 transition shadow-lg disabled:opacity-50">{isSendingEmails ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />} Send All Emails ({pendingEmailPayments.length})</button>)}<button onClick={() => setWechselJahr(naechstesWechselJahr)} title="Neues Vereinsjahr: Mitglieder aktualisieren, Rechnungen erstellen und senden" className="bg-white border border-stone-200 text-stone-700 px-5 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:border-stone-400 transition"><CalendarPlus size={16} /> Jahreswechsel {naechstesWechselJahr}</button><button onClick={() => setShowCreateModal(true)} className="bg-stone-900 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-black transition shadow-lg"><Plus size={16} /> {t('admin.finance.create')}</button></div>
+                            <div className="flex gap-2">{auslandEmailPayments.length > 0 && (<button onClick={() => handleSendBulkEmails(auslandEmailPayments)} disabled={isSendingEmails} title={t('mail.ausland_hint')} className="bg-white border border-blue-300 text-blue-700 px-5 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-blue-50 transition disabled:opacity-50">{isSendingEmails ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />} {t('mail.ausland', { count: auslandEmailPayments.length })}</button>)}{pendingEmailPayments.length > 0 && (<button onClick={() => handleSendBulkEmails()} disabled={isSendingEmails} className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-blue-700 transition shadow-lg disabled:opacity-50">{isSendingEmails ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />} Send All Emails ({pendingEmailPayments.length})</button>)}<button onClick={() => setWechselJahr(naechstesWechselJahr)} title="Neues Vereinsjahr: Mitglieder aktualisieren, Rechnungen erstellen und senden" className="bg-white border border-stone-200 text-stone-700 px-5 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:border-stone-400 transition"><CalendarPlus size={16} /> Jahreswechsel {naechstesWechselJahr}</button><button onClick={() => setShowCreateModal(true)} className="bg-stone-900 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-black transition shadow-lg"><Plus size={16} /> {t('admin.finance.create')}</button></div>
                         </div>
                         <div className="bg-white rounded-[2.5rem] border border-stone-100 shadow-sm overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-stone-50 text-stone-400 font-bold uppercase text-[10px] tracking-widest border-b border-stone-100 sticky top-0 z-10"><tr><th className="px-6 py-4">{t('admin.finance.invoiceNum')}</th><th className="px-6 py-4">{t('field.recipient')}</th><th className="px-6 py-4">{t('field.description')}</th><th className="px-6 py-4">{t('field.date')}</th><th className="px-6 py-4">{t('field.amount')}</th><th className="px-6 py-4">{t('admin.finance.method_via')}</th><th className="px-6 py-4">{t('field.status')}</th><th className="px-6 py-4 text-right">{t('common.actions')}</th></tr></thead><tbody className="divide-y divide-stone-50">{filteredPayments.map(p => { const recipientUser = users.find(u => u.id === p.userId); const recipientName = recipientUser?.displayName || p.customRecipient?.name || 'Unknown'; return (<tr key={p.id} className="hover:bg-stone-50 transition-colors group"><td className="px-6 py-4 font-mono text-xs text-stone-500">{p.invoiceNumber}</td><td className="px-6 py-4 font-bold text-stone-800">{recipientName}</td><td className="px-6 py-4 text-stone-600">{p.description}</td><td className="px-6 py-4 text-stone-500 text-xs">{p.timestamp?.toDate().toLocaleDateString()}</td><td className="px-6 py-4 font-mono font-bold">{p.amount.toFixed(2)} {p.currency}</td><td className="px-6 py-4"><div className="flex flex-col gap-1"><span className="text-[10px] font-bold text-stone-600 uppercase tracking-widest">{p.method === 'QR_BILL' ? 'Swiss QR' : p.method === 'GIRO_CODE' ? 'GiroCode' : p.method === 'PAYPAL' ? 'PayPal' : p.method}</span>{(() => { const st = postStand(p); const datum = st.am ? new Date(st.am).toLocaleDateString('de-CH') : ''; return st.art === 'KEIN' ? null
   : st.art === 'VERSANDT' ? (<span className="flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded w-fit"><Printer size={10}/> {t('post.stand_versandt', { datum })}</span>)

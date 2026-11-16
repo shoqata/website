@@ -2403,6 +2403,8 @@ const translations: Translations = {
   'mail.bulk.title': { en: 'Send invoices by email', de: 'Rechnungen per E-Mail senden', sq: 'Dërgo faturat me e-mail' },
   'mail.bulk.text': { en: 'Send invoices to {count} recipients by email?', de: 'Rechnungen an {count} Empfänger per E-Mail senden?', sq: 'Të dërgohen faturat te {count} marrës me e-mail?' },
   'mail.bulk.confirm': { en: 'Send all', de: 'Alle senden', sq: 'Dërgo të gjitha' },
+  'mail.ausland': { en: 'Abroad by email ({count})', de: 'Ausland per E-Mail ({count})', sq: 'Jashtë vendit me e-mail ({count})' },
+  'mail.ausland_hint': { en: 'Open invoices to addresses abroad, in EUR, delivered by email', de: 'Offene Rechnungen an Adressen im Ausland, in EUR, per E-Mail', sq: 'Faturat e hapura për adresa jashtë vendit, në EUR, me e-mail' },
   'field.not_specified': { en: 'Not specified', de: 'Nicht angegeben', sq: 'E paspecifikuar' },
   'field.not_configured': { en: 'Not configured', de: 'Nicht konfiguriert', sq: 'E pakonfiguruar' },
   'field.bank': { en: 'Bank', de: 'Bank', sq: 'Banka' },
